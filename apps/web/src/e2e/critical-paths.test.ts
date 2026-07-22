@@ -36,7 +36,13 @@ import { DEFAULT_RUNTIME_CONFIG } from "@wnr/config";
 function windowControls(): WindowControl[] {
   return [
     { window: "today", label: "Today", href: "/?w=today", selected: true, exactDates: ["Jul 21"] },
-    { window: "tomorrow", label: "Tomorrow", href: "/?w=tomorrow", selected: false, exactDates: ["Jul 22"] },
+    {
+      window: "tomorrow",
+      label: "Tomorrow",
+      href: "/?w=tomorrow",
+      selected: false,
+      exactDates: ["Jul 22"],
+    },
   ];
 }
 
@@ -91,7 +97,10 @@ function viewModelWith(state: TravelRadarViewModel["state"]): TravelRadarViewMod
 
 function render(state: TravelRadarViewModel["state"]): string {
   return renderToStaticMarkup(
-    createElement(TravelRadarPage, { viewModel: viewModelWith(state), windowControls: windowControls() }),
+    createElement(TravelRadarPage, {
+      viewModel: viewModelWith(state),
+      windowControls: windowControls(),
+    }),
   );
 }
 
@@ -187,7 +196,11 @@ describe("critical path — commercial kill-switch + privacy-safe telemetry", ()
       locale: "en",
       slot: "booking",
       config: DEFAULT_RUNTIME_CONFIG, // affiliates map empty -> slot disabled
-      provider: { id: "booking", normalizedHostAllowlist: ["booking.com"], allowedPathPrefixes: ["/"] },
+      provider: {
+        id: "booking",
+        normalizedHostAllowlist: ["booking.com"],
+        allowedPathPrefixes: ["/"],
+      },
       href: "https://booking.com/x",
       dataState: "current",
       opensNewContext: true,
@@ -217,7 +230,15 @@ describe("critical path — commercial kill-switch + privacy-safe telemetry", ()
 
     // Raw, privacy-violating, or malformed events are rejected (never forwarded).
     const rejected = dispatchEvent(
-      { event: "search_submitted", event_version: 1, occurred_at: "2025-07-21T00:00:00Z", route_template: "/[country]/[city]", locale: "en", destination_key: "Tokyo, Japan!", result_count: 12 },
+      {
+        event: "search_submitted",
+        event_version: 1,
+        occurred_at: "2025-07-21T00:00:00Z",
+        route_template: "/[country]/[city]",
+        locale: "en",
+        destination_key: "Tokyo, Japan!",
+        result_count: 12,
+      },
       { sink, requestId: "req-2" },
     );
     expect(rejected).toBe(false);

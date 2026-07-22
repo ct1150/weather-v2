@@ -49,7 +49,9 @@ if (isMain(import.meta.url)) {
       console.error("[verify-preview-repositories] FAILED");
       process.exit(1);
     }
-    console.log("[verify-preview-repositories] preview repositories verified (isolated, migrations applied)");
+    console.log(
+      "[verify-preview-repositories] preview repositories verified (isolated, migrations applied)",
+    );
   } catch (e) {
     console.error(`[verify-preview-repositories] FAILED: ${e.message}`);
     process.exit(1);

@@ -380,12 +380,19 @@ export interface ErrorEnvelope {
 }
 
 /** Build a success envelope. `meta` is captured per request (API-CACHE-001 step 5). */
-export function makeSuccessEnvelope<TData>(data: TData, meta: EnvelopeMeta): SuccessEnvelope<TData> {
+export function makeSuccessEnvelope<TData>(
+  data: TData,
+  meta: EnvelopeMeta,
+): SuccessEnvelope<TData> {
   return { data, meta };
 }
 
 /** Build an error envelope. Only code/message/requestId are ever present. */
-export function makeErrorEnvelope(code: ApiErrorCode, message: string, requestId: string): ErrorEnvelope {
+export function makeErrorEnvelope(
+  code: ApiErrorCode,
+  message: string,
+  requestId: string,
+): ErrorEnvelope {
   return { error: { code, message, requestId } };
 }
 
@@ -625,7 +632,12 @@ export function canonicalizeBounds(
   east: number,
   north: number,
 ): ApplicationResult<CanonicalBounds> {
-  if (!Number.isFinite(west) || !Number.isFinite(south) || !Number.isFinite(east) || !Number.isFinite(north)) {
+  if (
+    !Number.isFinite(west) ||
+    !Number.isFinite(south) ||
+    !Number.isFinite(east) ||
+    !Number.isFinite(north)
+  ) {
     return fail("INVALID_PARAMETER", "bounds must be finite numbers");
   }
   if (west < -180 || west > 180 || east < -180 || east > 180) {
@@ -659,7 +671,10 @@ export interface MapTiles {
  * box (API-VALIDATION-001): at most 64 unique ascending tiles, clamped to the
  * grid. Derives `tileSetHash` and `mapRegionKey`.
  */
-export function computeMapTiles(bounds: CanonicalBounds, zoom: number): ApplicationResult<MapTiles> {
+export function computeMapTiles(
+  bounds: CanonicalBounds,
+  zoom: number,
+): ApplicationResult<MapTiles> {
   if (!Number.isInteger(zoom) || zoom < 2 || zoom > 12) {
     return fail("INVALID_PARAMETER", "zoom must be an integer 2..12");
   }

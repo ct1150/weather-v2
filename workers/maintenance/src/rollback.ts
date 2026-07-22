@@ -127,7 +127,9 @@ export async function performRollback(
 
   // 1. Fail closed: a previous known-good artifact is required.
   if (state.previousArtifactId === null) {
-    throw new RollbackImpossibleError("No previous known-good artifact recorded; rollback is impossible.");
+    throw new RollbackImpossibleError(
+      "No previous known-good artifact recorded; rollback is impossible.",
+    );
   }
 
   // 2. Fail closed: the artifact must resolve WITHOUT rebuilding.

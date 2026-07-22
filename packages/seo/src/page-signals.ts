@@ -55,14 +55,7 @@ export function indexabilityForRouteClass(
 /** Inputs to the deterministic quality gate. */
 export interface QualityGateInput {
   readonly routeClass:
-    | "homepage"
-    | "country"
-    | "city"
-    | "ranking"
-    | "seasonal"
-    | "article"
-    | "compare"
-    | "explore";
+    "homepage" | "country" | "city" | "ranking" | "seasonal" | "article" | "compare" | "explore";
   readonly entityActive: boolean;
   readonly freshnessOk: boolean;
   readonly confidenceOk: boolean;
@@ -122,7 +115,11 @@ export interface PageMetadataInput {
   /** locale code -> canonical URL, including the self-referencing entry. */
   readonly alternates?: Readonly<Record<string, string>>;
   readonly xDefaultUrl?: string;
-  readonly openGraph?: { readonly image?: string; readonly type?: string; readonly siteName?: string };
+  readonly openGraph?: {
+    readonly image?: string;
+    readonly type?: string;
+    readonly siteName?: string;
+  };
   readonly twitter?: {
     readonly card?: "summary" | "summary_large_image";
     readonly site?: string;
@@ -241,7 +238,11 @@ export function renderMetaTags(meta: PageMetadata): string {
 // Structured data (SEO-STRUCTURED-001)
 // ---------------------------------------------------------------------------
 
-export type JsonLdNode = { readonly "@type": string; readonly "@id": string; readonly [key: string]: unknown };
+export type JsonLdNode = {
+  readonly "@type": string;
+  readonly "@id": string;
+  readonly [key: string]: unknown;
+};
 
 export interface JsonLdInput {
   readonly canonicalUrl: string;
@@ -404,14 +405,7 @@ export interface SitemapEntry {
   readonly url: string;
   /** Included only when visible primary content changed meaningfully. */
   readonly lastmod?: string;
-  readonly changefreq?:
-    | "always"
-    | "hourly"
-    | "daily"
-    | "weekly"
-    | "monthly"
-    | "yearly"
-    | "never";
+  readonly changefreq?: "always" | "hourly" | "daily" | "weekly" | "monthly" | "yearly" | "never";
   readonly priority?: number;
   /** Caller ensures only canonical URLs that pass the gate are included. */
   readonly indexable: boolean;
@@ -446,7 +440,8 @@ export function buildSitemap(entries: ReadonlyArray<SitemapEntry>): string {
     seen.add(entry.url);
 
     const loc = `    <loc>${escapeXml(entry.url)}</loc>`;
-    const lastmod = entry.lastmod !== undefined ? `    <lastmod>${escapeXml(entry.lastmod)}</lastmod>` : "";
+    const lastmod =
+      entry.lastmod !== undefined ? `    <lastmod>${escapeXml(entry.lastmod)}</lastmod>` : "";
     const changefreq =
       entry.changefreq !== undefined
         ? `    <changefreq>${escapeXml(entry.changefreq)}</changefreq>`
@@ -456,10 +451,12 @@ export function buildSitemap(entries: ReadonlyArray<SitemapEntry>): string {
     urls.push(`  <url>\n${loc}\n${lastmod}${changefreq}${priority}  </url>`);
   }
 
-  return `<?xml version="1.0" encoding="UTF-8"?>\n` +
+  return (
+    `<?xml version="1.0" encoding="UTF-8"?>\n` +
     `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n` +
     `${urls.join("\n")}\n` +
-    `</urlset>`;
+    `</urlset>`
+  );
 }
 
 /** Build a sitemap index partitioning eligible canonical URLs by type/locale. */
@@ -470,10 +467,12 @@ export function buildSitemapIndex(partitions: ReadonlyArray<{ readonly loc: stri
       return `  <sitemap>\n    <loc>${escapeXml(p.loc)}</loc>\n  </sitemap>`;
     })
     .join("\n");
-  return `<?xml version="1.0" encoding="UTF-8"?>\n` +
+  return (
+    `<?xml version="1.0" encoding="UTF-8"?>\n` +
     `<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n` +
     `${items}\n` +
-    `</sitemapindex>`;
+    `</sitemapindex>`
+  );
 }
 
 /**

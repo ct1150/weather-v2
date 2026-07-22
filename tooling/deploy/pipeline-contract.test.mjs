@@ -119,7 +119,11 @@ test("migratePreview applies the ordered migration set", () => {
     const migrated = migratePreview(deployed);
     assert.equal(migrated.migrations.status, "applied");
     assert.ok(migrated.migrations.applied.length >= 1, "at least one migration applied");
-    assert.match(String(migrated.migrations.version), /^\d+_/, "version derived from latest migration");
+    assert.match(
+      String(migrated.migrations.version),
+      /^\d+_/,
+      "version derived from latest migration",
+    );
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }

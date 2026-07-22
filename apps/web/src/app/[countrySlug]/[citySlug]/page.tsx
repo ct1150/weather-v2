@@ -27,7 +27,13 @@ function renderScoreValue(score: ScoreViewModel): string {
   return String(score.value);
 }
 
-function WeatherSummary({ weather, unit }: { weather: WeatherSummaryViewModel; unit: "metric" | "imperial" }) {
+function WeatherSummary({
+  weather,
+  unit,
+}: {
+  weather: WeatherSummaryViewModel;
+  unit: "metric" | "imperial";
+}) {
   const degree = unit === "metric" ? "°C" : "°F";
   return (
     <div>
@@ -135,7 +141,10 @@ export function CityPage({ viewModel }: CityPageProps) {
           <h2 className="text-heading-3 font-semibold text-foreground">Travel services</h2>
           <ul className="mt-2 flex flex-wrap gap-2">
             {commercial.map((item, index) => (
-              <li key={index} className="rounded-pill border border-border px-3 py-1 text-caption text-muted">
+              <li
+                key={index}
+                className="rounded-pill border border-border px-3 py-1 text-caption text-muted"
+              >
                 {item}
               </li>
             ))}
@@ -191,7 +200,9 @@ export async function generateMetadata({
     (b) => b.city.slug === params.citySlug && b.country.slug === params.countrySlug,
   );
   return {
-    title: baked ? `${baked.city.name.en}, ${baked.country.name.en} — Where Not Rain` : "Where Not Rain",
+    title: baked
+      ? `${baked.city.name.en}, ${baked.country.name.en} — Where Not Rain`
+      : "Where Not Rain",
   };
 }
 

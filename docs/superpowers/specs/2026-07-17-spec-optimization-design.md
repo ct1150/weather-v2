@@ -59,21 +59,21 @@ docs/
 
 ### 3.1 权威边界
 
-| 决策类型 | 唯一权威文档 |
-|---|---|
-| 产品愿景、市场和商业阶段 | `00-Founder-Vision.md` |
-| 功能范围和验收标准 | `01-Product-PRD.md` |
-| UX、Design System、状态和无障碍 | `02-UX-Bible.md` |
-| SEO、内容和索引质量门禁 | `03-SEO-Bible.md` |
-| Agent 行为、编码边界和 DoD | `04-AI-Coding-Bible.md` |
-| 系统架构、数据流、缓存和恢复 | `05-System-Architecture.md` |
-| 数据模型、索引、迁移和保留 | `06-Database.md` |
-| API 请求、响应、错误、鉴权和限流 | `07-API-Spec.md` |
+| 决策类型                            | 唯一权威文档                  |
+| ----------------------------------- | ----------------------------- |
+| 产品愿景、市场和商业阶段            | `00-Founder-Vision.md`        |
+| 功能范围和验收标准                  | `01-Product-PRD.md`           |
+| UX、Design System、状态和无障碍     | `02-UX-Bible.md`              |
+| SEO、内容和索引质量门禁             | `03-SEO-Bible.md`             |
+| Agent 行为、编码边界和 DoD          | `04-AI-Coding-Bible.md`       |
+| 系统架构、数据流、缓存和恢复        | `05-System-Architecture.md`   |
+| 数据模型、索引、迁移和保留          | `06-Database.md`              |
+| API 请求、响应、错误、鉴权和限流    | `07-API-Spec.md`              |
 | Cloudflare 环境、额度、CI/CD 和回滚 | `08-Cloudflare-Deployment.md` |
-| 测试、性能、安全和可观测性门禁 | `09-Engineering-Handbook.md` |
-| Analytics、Affiliate、广告和实验 | `10-Growth-Bible.md` |
-| 发布版本、顺序和阶段验收 | `11-Roadmap.md` |
-| 已批准的架构例外 | 对应 ADR |
+| 测试、性能、安全和可观测性门禁      | `09-Engineering-Handbook.md`  |
+| Analytics、Affiliate、广告和实验    | `10-Growth-Bible.md`          |
+| 发布版本、顺序和阶段验收            | `11-Roadmap.md`               |
+| 已批准的架构例外                    | 对应 ADR                      |
 
 领域文档可以引用其他领域的 Requirement ID，但不得复制并重新定义其合同。`00-Founder-Vision.md` 中的“商业阶段”只描述收入模式和市场演进，不决定功能首次发布；任何功能的 MVP/Beta/V1/V2 归属只由 `11-Roadmap.md` 定义。若两个正文发生冲突，先根据权威边界识别拥有者；无法判断时停止实施、记录问题并请求产品负责人裁决。
 
@@ -167,15 +167,15 @@ MVP 提供 typed static config 和紧急 kill switch，用于地图、广告、A
 
 默认路由合同如下：
 
-| 路由类别 | 模式 | 默认更新/失效 | 索引规则 |
-|---|---|---|---|
-| 方法论、法律、稳定营销页 | SSG | 发布时重建 | 通过质量门禁后索引 |
-| 首页、国家、城市、天气型排行榜 | ISR | 3600 秒；成功同步后按 snapshot version 主动失效 | 通过质量门禁后索引 |
-| Article | SSG | 发布或编辑时重建 | 通过审核后索引 |
-| 白名单 Compare（Beta） | ISR | 3600 秒；城市 snapshot 变化时失效 | 仅白名单组合索引 |
-| `/explore` | SSR shell + client map | CDN shell；地图读模型按 3600 秒缓存 | shell 可索引，筛选参数 canonical 到稳定页 |
-| `/search` 与任意查询结果 | SSR | 不持久预渲染 | `noindex,follow` |
-| `/admin`、预览页、`/api/*` | Dynamic | 按端点缓存合同 | `noindex` 或非 HTML |
+| 路由类别                       | 模式                   | 默认更新/失效                                   | 索引规则                                  |
+| ------------------------------ | ---------------------- | ----------------------------------------------- | ----------------------------------------- |
+| 方法论、法律、稳定营销页       | SSG                    | 发布时重建                                      | 通过质量门禁后索引                        |
+| 首页、国家、城市、天气型排行榜 | ISR                    | 3600 秒；成功同步后按 snapshot version 主动失效 | 通过质量门禁后索引                        |
+| Article                        | SSG                    | 发布或编辑时重建                                | 通过审核后索引                            |
+| 白名单 Compare（Beta）         | ISR                    | 3600 秒；城市 snapshot 变化时失效               | 仅白名单组合索引                          |
+| `/explore`                     | SSR shell + client map | CDN shell；地图读模型按 3600 秒缓存             | shell 可索引，筛选参数 canonical 到稳定页 |
+| `/search` 与任意查询结果       | SSR                    | 不持久预渲染                                    | `noindex,follow`                          |
+| `/admin`、预览页、`/api/*`     | Dynamic                | 按端点缓存合同                                  | `noindex` 或非 HTML                       |
 
 任何路由偏离默认值都必须在 Architecture 文档中记录理由和验证证据；涉及索引变化时同步更新 SEO 表。
 
@@ -183,12 +183,12 @@ MVP 提供 typed static config 和紧急 kill switch，用于地图、广告、A
 
 MVP 必须在应用层实施以下默认分层限流；Cloudflare 原生规则作为可用时的前置增强，不得成为核心防护的唯一依赖：
 
-| 等级 | 范围 | 默认每 IP 限制 | 超限动作 |
-|---|---|---:|---|
-| L1 | 可缓存公开 HTML | 120 次/分钟，且 30 次/10 秒 burst | `429` + `Retry-After` |
-| L2 | 公开 read API、地图数据 | 60 次/分钟 | `429` + 短期冷却 |
-| L3 | 搜索、比较等高基数端点 | 30 次/分钟 | `429`；连续超限进入挑战候选 |
-| L4 | 内部同步、维护、Admin | 10 次/分钟并强认证 | 拒绝、审计并记录安全事件 |
+| 等级 | 范围                    |                    默认每 IP 限制 | 超限动作                    |
+| ---- | ----------------------- | --------------------------------: | --------------------------- |
+| L1   | 可缓存公开 HTML         | 120 次/分钟，且 30 次/10 秒 burst | `429` + `Retry-After`       |
+| L2   | 公开 read API、地图数据 |                        60 次/分钟 | `429` + 短期冷却            |
+| L3   | 搜索、比较等高基数端点  |                        30 次/分钟 | `429`；连续超限进入挑战候选 |
+| L4   | 内部同步、维护、Admin   |                10 次/分钟并强认证 | 拒绝、审计并记录安全事件    |
 
 同一来源在 5 分钟内达到相应阈值 3 倍，或命中 Cloudflare 可用的自动化/滥用信号时，触发 Managed Challenge（套餐支持时）或延长应用层冷却。缓存键必须使用参数白名单和基数上限。可信 crawler 只能依据 Cloudflare Verified Bots 信号，或反向 DNS 后再正向 DNS 校验；不得仅信任 User-Agent。经过验证的主流搜索引擎访问公开可索引内容时免于交互挑战，但仍受异常流量安全上限保护。
 
@@ -203,16 +203,16 @@ MVP 必须在应用层实施以下默认分层限流；Cloudflare 原生规则�
 
 MVP 自定义事件共享必填字段：`event_version:integer`、`occurred_at:ISO-8601 UTC string`、`route_template:string`、`locale:enum`。事件白名单如下：
 
-| 事件 | 额外必填字段 |
-|---|---|
-| `search_submitted` | `destination_key:string|other`、`result_count:nonnegative integer` |
-| `search_result_clicked` | `destination_id:string`、`result_type:city|country|article`、`position:positive integer` |
-| `city_viewed` | `city_id:string`、`country_code:string` |
-| `country_viewed` | `country_code:string` |
-| `ranking_viewed` | `theme:enum`、`window:enum` |
-| `ranking_city_clicked` | `theme:enum`、`window:enum`、`city_id:string`、`rank:positive integer` |
-| `affiliate_impression` / `affiliate_clicked` | `provider_id:string`、`category:enum`、`placement:enum`、`destination_id:string|null` |
-| `ad_impression` | `network_id:string`、`placement:enum` |
+| 事件                                         | 额外必填字段                                                                    |
+| -------------------------------------------- | ------------------------------------------------------------------------------- |
+| `search_submitted`                           | `destination_key:string                                                         | other`、`result_count:nonnegative integer` |
+| `search_result_clicked`                      | `destination_id:string`、`result_type:city                                      | country                                    | article`、`position:positive integer` |
+| `city_viewed`                                | `city_id:string`、`country_code:string`                                         |
+| `country_viewed`                             | `country_code:string`                                                           |
+| `ranking_viewed`                             | `theme:enum`、`window:enum`                                                     |
+| `ranking_city_clicked`                       | `theme:enum`、`window:enum`、`city_id:string`、`rank:positive integer`          |
+| `affiliate_impression` / `affiliate_clicked` | `provider_id:string`、`category:enum`、`placement:enum`、`destination_id:string | null`                                      |
+| `ad_impression`                              | `network_id:string`、`placement:enum`                                           |
 
 `destination_key` 只能来自已知城市、国家和别名字典；无法匹配的自由文本统一记为 `other`，不得上传原始搜索词。未知字段必须丢弃，事件版本不受支持时拒绝写入。低于隐私最小计数阈值 10 的国家或目的地聚合并入 `other`。
 
@@ -298,9 +298,13 @@ roadmap_ref: REL-MVP-001
 owner: Engineering
 verification: pnpm docs:check
 -->
+
 ### ENG-PERF-001 — Performance release gate
+
 ...
+
 #### Acceptance Criteria
+
 ...
 ```
 

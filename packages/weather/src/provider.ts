@@ -1,5 +1,11 @@
 // @wnr/weather — sync-only WeatherProvider port and the MVP FAKE adapter.
 //
+// The named `createWeatherProvider(name)` factory lives here so both the FAKE and the
+// real `OpenMeteoProvider` adapters are constructed through one stable entry point
+// (docs/15 §7: WEATHER_PRIMARY_PROVIDER selects the adapter).
+
+import { OpenMeteoProvider } from "./open-meteo.js";
+//
 // ARCH-PROVIDER-001: the internal weather port has the stable minimum shape
 // { id, fetchForecast, healthCheck }. WeatherAPI/Open-Meteo real adapters (with timeouts,
 // bounded retries, jittered backoff, circuit breaker, and credentials via secret bindings)
@@ -130,7 +136,7 @@ function addDays(isoDate: string, days: number): string {
   return `${yy}-${mm}-${dd}`;
 }
 
-function validateRequest(request: ForecastRequest): void {
+export function validateForecastRequest(request: ForecastRequest): void {
   if (typeof request.cityId !== "string" || request.cityId.length === 0) {
     throw new ProviderRequestError("cityId is required", null);
   }
@@ -190,7 +196,8 @@ function aggregateDay(localDate: string, hourly: ReadonlyArray<NormalizedHourly>
     hourly.map(sel).filter((v): v is number => v != null);
   const maxOf = (arr: number[]): number | null => (arr.length ? Math.max(...arr) : null);
   const minOf = (arr: number[]): number | null => (arr.length ? Math.min(...arr) : null);
-  const meanOf = (arr: number[]): number | null => (arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null);
+  const meanOf = (arr: number[]): number | null =>
+    arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null;
 
   const temps = pick((h) => h.temperatureC);
   const apparent = pick((h) => h.apparentTemperatureC);
@@ -209,12 +216,30 @@ function aggregateDay(localDate: string, hourly: ReadonlyArray<NormalizedHourly>
     apparentMaxC: maxOf(apparent) == null ? null : round1(maxOf(apparent) as number),
     precipitationMm: prec.length === 0 ? null : round1(prec.reduce((a, b) => a + b, 0)),
     precipitationProbabilityMax: maxOf(pick((h) => h.precipitationProbability)),
-    humidityMean: meanOf(pick((h) => h.humidity)) == null ? null : clampInt(meanOf(pick((h) => h.humidity)) as number, 0, 100),
-    windSpeedMaxKph: maxOf(pick((h) => h.windSpeedKph)) == null ? null : round1(maxOf(pick((h) => h.windSpeedKph)) as number),
-    windGustMaxKph: maxOf(pick((h) => h.windGustKph)) == null ? null : round1(maxOf(pick((h) => h.windGustKph)) as number),
-    uvIndexMax: maxOf(pick((h) => h.uvIndex)) == null ? null : round1(maxOf(pick((h) => h.uvIndex)) as number),
-    cloudCoverMean: meanOf(pick((h) => h.cloudCover)) == null ? null : clampInt(meanOf(pick((h) => h.cloudCover)) as number, 0, 100),
-    visibilityMeanM: meanOf(pick((h) => h.visibilityM)) == null ? null : clampInt(meanOf(pick((h) => h.visibilityM)) as number, 0, 20000),
+    humidityMean:
+      meanOf(pick((h) => h.humidity)) == null
+        ? null
+        : clampInt(meanOf(pick((h) => h.humidity)) as number, 0, 100),
+    windSpeedMaxKph:
+      maxOf(pick((h) => h.windSpeedKph)) == null
+        ? null
+        : round1(maxOf(pick((h) => h.windSpeedKph)) as number),
+    windGustMaxKph:
+      maxOf(pick((h) => h.windGustKph)) == null
+        ? null
+        : round1(maxOf(pick((h) => h.windGustKph)) as number),
+    uvIndexMax:
+      maxOf(pick((h) => h.uvIndex)) == null
+        ? null
+        : round1(maxOf(pick((h) => h.uvIndex)) as number),
+    cloudCoverMean:
+      meanOf(pick((h) => h.cloudCover)) == null
+        ? null
+        : clampInt(meanOf(pick((h) => h.cloudCover)) as number, 0, 100),
+    visibilityMeanM:
+      meanOf(pick((h) => h.visibilityM)) == null
+        ? null
+        : clampInt(meanOf(pick((h) => h.visibilityM)) as number, 0, 20000),
     sunriseLocal: "06:12",
     sunsetLocal: "20:45",
     hourly,
@@ -229,7 +254,7 @@ export class FakeWeatherProvider implements WeatherProvider {
   readonly id = "fake";
 
   async fetchForecast(request: ForecastRequest): Promise<NormalizedForecast[]> {
-    validateRequest(request);
+    validateForecastRequest(request);
     if (request.days === 0) return [];
     const days: NormalizedDaily[] = [];
     for (let d = 0; d < request.days; d++) {
@@ -250,7 +275,26 @@ export class FakeWeatherProvider implements WeatherProvider {
   }
 }
 
-/** MVP factory: the only adapter shipped is the FAKE one (no real network, no credentials). */
-export function createWeatherProvider(): WeatherProvider {
-  return new FakeWeatherProvider();
+/**
+ * Legal provider identifiers selected by `WEATHER_PRIMARY_PROVIDER` (docs/15 §7).
+ * `weatherapi` is a reserved-but-disabled name this phase (no secret wiring).
+ */
+export type WeatherProviderName = "open-meteo" | "fake" | "weatherapi";
+
+/**
+ * Construct the configured weather adapter. Defaults to the MVP FAKE provider for
+ * backward compatibility and safe local builds. `open-meteo` selects the real,
+ * key-free adapter; `weatherapi` is reserved but disabled this phase and throws.
+ */
+export function createWeatherProvider(name: WeatherProviderName = "fake"): WeatherProvider {
+  switch (name) {
+    case "open-meteo":
+      return new OpenMeteoProvider();
+    case "weatherapi":
+      // ARCH-PROVIDER-001: WeatherAPI is reserved but disabled this phase (no secret wiring).
+      throw new ProviderRequestError("provider 'weatherapi' is disabled this phase", null);
+    case "fake":
+    default:
+      return new FakeWeatherProvider();
+  }
 }

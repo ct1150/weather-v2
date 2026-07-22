@@ -62,10 +62,12 @@
 ### Task 1: Implement deterministic requirement and manifest parsing
 
 **Files:**
+
 - Create: `tooling/docs/requirement-format.mjs`
 - Create: `tooling/docs/requirement-format.test.mjs`
 
 **Interfaces:**
+
 - Produces: `normalizeBlock(text): string`
 - Produces: `sha256(text): string`
 - Produces: `parseRequirementBlocks(markdown, filePath): RequirementBlock[]`
@@ -109,9 +111,12 @@ test("digests selected blocks in sorted ID order", () => {
 });
 
 test("parses release, trace, and derived JSON comments", () => {
-  const release = '<!-- release: {"first_release":"MVP","id":"REL-MVP-ENG_PERF_001","lifecycle":"Continuous","requirement_id":"ENG-PERF-001"} -->';
-  const trace = '<!-- trace: {"classification":"Hard","coverage":"Covered","line_end":691,"line_start":675,"rationale":"Direct","requirement_id":"ENG-PERF-001","source_excerpt":"# PERFORMANCE","source_sha256":"70e692e5dd1dee3ae167c9b95d7014bc521ec194a6cc14989a88c382c453924d"} -->';
-  const derived = '<!-- derived: {"generated_at":"2026-07-17","schema":1,"sources":[{"digest":"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","ids":["ENG-PERF-001"],"path":"docs/09-Engineering-Handbook.md"}]} -->';
+  const release =
+    '<!-- release: {"first_release":"MVP","id":"REL-MVP-ENG_PERF_001","lifecycle":"Continuous","requirement_id":"ENG-PERF-001"} -->';
+  const trace =
+    '<!-- trace: {"classification":"Hard","coverage":"Covered","line_end":691,"line_start":675,"rationale":"Direct","requirement_id":"ENG-PERF-001","source_excerpt":"# PERFORMANCE","source_sha256":"70e692e5dd1dee3ae167c9b95d7014bc521ec194a6cc14989a88c382c453924d"} -->';
+  const derived =
+    '<!-- derived: {"generated_at":"2026-07-17","schema":1,"sources":[{"digest":"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","ids":["ENG-PERF-001"],"path":"docs/09-Engineering-Handbook.md"}]} -->';
   assert.equal(parseReleaseRecords(release, "r.md")[0].requirementId, "ENG-PERF-001");
   assert.equal(parseTraceRecords(trace, "t.md")[0].classification, "Hard");
   assert.equal(parseDerivedManifest(derived, "d.md").schema, 1);
@@ -161,12 +166,14 @@ Expected: exit code 0 and no syntax changes on a second `--check` run.
 ### Task 2: Implement repository-level documentation validation
 
 **Files:**
+
 - Create: `tooling/docs/validate-docs.mjs`
 - Create: `tooling/docs/validate-docs.test.mjs`
 - Modify: `package.json`
 - Modify: `prettier.config.js`
 
 **Interfaces:**
+
 - Consumes: Task 1 parser/digest exports.
 - Produces: `validateRepository(root, { mode }): Promise<ValidationResult>` where mode is `staging|active`.
 - Produces CLI: `node tooling/docs/validate-docs.mjs --mode staging|active`
@@ -187,7 +194,10 @@ import { validateRepository } from "./validate-docs.mjs";
 test("rejects an Active hard requirement without exactly one release", async () => {
   const root = await mkdtemp(path.join(tmpdir(), "wnr-docs-"));
   await mkdir(path.join(root, "docs"), { recursive: true });
-  await writeFile(path.join(root, "docs", "09-Engineering-Handbook.md"), "---\nstatus: Active\n---\n<!-- requirement\nid: ENG-PERF-001\nstatus: Active\nkind: Hard\nroadmap_ref: REL-MVP-ENG_PERF_001\nowner: Engineering\nverification: pnpm docs:check\n-->\n### ENG-PERF-001 — Gate\n#### Acceptance Criteria\n- Pass.\n");
+  await writeFile(
+    path.join(root, "docs", "09-Engineering-Handbook.md"),
+    "---\nstatus: Active\n---\n<!-- requirement\nid: ENG-PERF-001\nstatus: Active\nkind: Hard\nroadmap_ref: REL-MVP-ENG_PERF_001\nowner: Engineering\nverification: pnpm docs:check\n-->\n### ENG-PERF-001 — Gate\n#### Acceptance Criteria\n- Pass.\n",
+  );
   const result = await validateRepository(root, { mode: "active" });
   assert(result.errors.some((error) => error.code === "MISSING_RELEASE"));
 });
@@ -252,12 +262,14 @@ Expected: all docs tests PASS and Prettier exits 0.
 ### Task 3: Create governance, authority, and release documents in Draft state
 
 **Files:**
+
 - Create: `docs/README.md`
 - Create: `docs/00-Founder-Vision.md`
 - Create: `docs/11-Roadmap.md`
 - Modify: `docs/12-ADR/README.md`
 
 **Interfaces:**
+
 - Produces the authority map used by every later document.
 - Produces one `REL-*` record for every requirement ID listed in Tasks 3–6.
 
@@ -265,22 +277,22 @@ Expected: all docs tests PASS and Prettier exits 0.
 
 Every new authority document uses `status: Draft` and `last_updated: 2026-07-17`. Use these exact title/authority pairs in front matter:
 
-| File | title | authority |
-|---|---|---|
-| `docs/README.md` | Documentation Governance | Governance |
-| `docs/00-Founder-Vision.md` | Founder Vision | Vision |
-| `docs/01-Product-PRD.md` | Product PRD | Product |
-| `docs/02-UX-Bible.md` | UX Bible | UX |
-| `docs/03-SEO-Bible.md` | SEO Bible | SEO |
-| `docs/04-AI-Coding-Bible.md` | AI Coding Bible | Agent Delivery |
-| `docs/05-System-Architecture.md` | System Architecture | Architecture |
-| `docs/06-Database.md` | Database and Scoring | Data |
-| `docs/07-API-Spec.md` | API Specification | API |
-| `docs/08-Cloudflare-Deployment.md` | Cloudflare Deployment | Deployment |
-| `docs/09-Engineering-Handbook.md` | Engineering Handbook | Engineering |
-| `docs/10-Growth-Bible.md` | Growth Bible | Growth |
-| `docs/11-Roadmap.md` | Roadmap | Release |
-| `docs/13-Requirements-Traceability.md` | Requirements Traceability | Traceability |
+| File                                   | title                     | authority      |
+| -------------------------------------- | ------------------------- | -------------- |
+| `docs/README.md`                       | Documentation Governance  | Governance     |
+| `docs/00-Founder-Vision.md`            | Founder Vision            | Vision         |
+| `docs/01-Product-PRD.md`               | Product PRD               | Product        |
+| `docs/02-UX-Bible.md`                  | UX Bible                  | UX             |
+| `docs/03-SEO-Bible.md`                 | SEO Bible                 | SEO            |
+| `docs/04-AI-Coding-Bible.md`           | AI Coding Bible           | Agent Delivery |
+| `docs/05-System-Architecture.md`       | System Architecture       | Architecture   |
+| `docs/06-Database.md`                  | Database and Scoring      | Data           |
+| `docs/07-API-Spec.md`                  | API Specification         | API            |
+| `docs/08-Cloudflare-Deployment.md`     | Cloudflare Deployment     | Deployment     |
+| `docs/09-Engineering-Handbook.md`      | Engineering Handbook      | Engineering    |
+| `docs/10-Growth-Bible.md`              | Growth Bible              | Growth         |
+| `docs/11-Roadmap.md`                   | Roadmap                   | Release        |
+| `docs/13-Requirements-Traceability.md` | Requirements Traceability | Traceability   |
 
 `docs/README.md` must state the reading order, unique owner table, Requirement metadata format, release-record JSON format, trace JSON format, Draft/cutover protocol, conflict resolution, and the rule that `weather.txt` is historical input after cutover.
 
@@ -313,11 +325,13 @@ Expected: no parser errors; missing-document/coverage errors are expected until 
 ### Task 4: Create Product, UX, and SEO authority documents
 
 **Files:**
+
 - Create: `docs/01-Product-PRD.md`
 - Create: `docs/02-UX-Bible.md`
 - Create: `docs/03-SEO-Bible.md`
 
 **Interfaces:**
+
 - Consumes Roadmap IDs from Task 3.
 - Produces product and experience contracts consumed by Kiro requirements/design.
 
@@ -361,12 +375,14 @@ Expected: all three files parse with unique IDs and valid roadmap references; on
 ### Task 5: Create Architecture, Database, API, and Deployment authorities
 
 **Files:**
+
 - Create: `docs/05-System-Architecture.md`
 - Create: `docs/06-Database.md`
 - Create: `docs/07-API-Spec.md`
 - Create: `docs/08-Cloudflare-Deployment.md`
 
 **Interfaces:**
+
 - Produces contracts used by Kiro design and tasks.
 - Owns the only rendering matrix and the only data/API definitions.
 
@@ -395,11 +411,13 @@ Expected: no duplicate owner for rendering, data, API, or release assignment; on
 ### Task 6: Create Engineering, Growth, and Agent authorities
 
 **Files:**
+
 - Create: `docs/04-AI-Coding-Bible.md`
 - Create: `docs/09-Engineering-Handbook.md`
 - Create: `docs/10-Growth-Bible.md`
 
 **Interfaces:**
+
 - Completes the authoritative requirement set.
 - Supplies validator-critical IDs listed in Task 2.
 
@@ -438,9 +456,11 @@ Expected: all required authority files and critical IDs exist; remaining failure
 ### Task 7: Build complete source traceability
 
 **Files:**
+
 - Create: `docs/13-Requirements-Traceability.md`
 
 **Interfaces:**
+
 - Consumes every authority Requirement ID and locked `weather.txt` hash.
 - Produces machine-readable `trace` comments and a generated human matrix.
 
@@ -469,11 +489,13 @@ Expected: trace hash matches, all Hard source ranges resolve, `Needs Decision` c
 ### Task 8: Synchronize the three Kiro-derived specifications
 
 **Files:**
+
 - Modify: `.kiro/specs/where-not-rain/requirements.md`
 - Modify: `.kiro/specs/where-not-rain/design.md`
 - Modify: `.kiro/specs/where-not-rain/tasks.md`
 
 **Interfaces:**
+
 - Consumes all MVP Active Hard Requirements selected through Roadmap records.
 - Produces canonical derived manifests using Task 1's digest algorithm.
 
@@ -500,12 +522,14 @@ Expected: Kiro bidirectional coverage and digest checks pass; only Draft/cutover
 ### Task 9: Perform logical cutover and final verification
 
 **Files:**
+
 - Modify: all new `docs/*.md` front matter from Draft to Active.
 - Modify: `SPEC.md`
 - Modify: `README.md`
 - Modify: `package.json` only if Task 2 scripts need formatting correction.
 
 **Interfaces:**
+
 - Consumes the fully validated staging set.
 - Produces the active authoritative documentation system.
 

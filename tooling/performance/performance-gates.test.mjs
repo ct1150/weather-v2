@@ -84,7 +84,10 @@ test("Lighthouse gate blocks a page below performance 95", () => {
 
 test("Lighthouse gate blocks any SEO/AX/BP below 100", () => {
   const okPerf = page("home", [100, 100, 100]);
-  const badSeo = { url: "country", runs: [{ performance: 100, seo: 99, accessibility: 100, bestPractices: 100 }] };
+  const badSeo = {
+    url: "country",
+    runs: [{ performance: 100, seo: 99, accessibility: 100, bestPractices: 100 }],
+  };
   const r = lighthouseGate([okPerf, badSeo]);
   assert.equal(r.passed, false);
   assert.ok(r.failures.some((f) => f.startsWith("country:seo")));

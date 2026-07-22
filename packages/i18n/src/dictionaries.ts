@@ -163,11 +163,7 @@ export function formatLocalDate(date: string | Date, locale: Locale, timeZone: s
 }
 
 /** Format a date-time in the destination's local time zone. */
-export function formatLocalDateTime(
-  date: string | Date,
-  locale: Locale,
-  timeZone: string,
-): string {
+export function formatLocalDateTime(date: string | Date, locale: Locale, timeZone: string): string {
   const d = typeof date === "string" ? new Date(date) : date;
   return new Intl.DateTimeFormat(localeTag(locale), {
     timeZone,

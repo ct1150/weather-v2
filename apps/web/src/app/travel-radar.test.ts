@@ -21,12 +21,13 @@ import { TravelRadarPage } from "./page";
 import type { TravelRadarViewModel, WindowControl } from "./view-models";
 
 function render(vm: TravelRadarViewModel, windowControls: WindowControl[]): string {
-  return renderToStaticMarkup(
-    createElement(TravelRadarPage, { viewModel: vm, windowControls }),
-  );
+  return renderToStaticMarkup(createElement(TravelRadarPage, { viewModel: vm, windowControls }));
 }
 
-function fixture(state: TravelRadarViewModel["state"] = "ready", stale = false): TravelRadarViewModel {
+function fixture(
+  state: TravelRadarViewModel["state"] = "ready",
+  stale = false,
+): TravelRadarViewModel {
   return {
     window: "today",
     includedDates: ["2026-07-20"],
@@ -46,8 +47,19 @@ function fixture(state: TravelRadarViewModel["state"] = "ready", stale = false):
           countryName: "Japan",
           path: "/jp/tokyo",
         },
-        score: { value: 82, state: "available", confidence: 0.9, reasonCodes: ["LOW_RAIN_CHANCE", "COMFORTABLE_TEMPERATURE"] },
-        weather: { conditionLabel: "Clear", temperatureMin: 18, temperatureMax: 26, rainProbability: 10, observedAt: "2026-07-20T00:00:00Z" },
+        score: {
+          value: 82,
+          state: "available",
+          confidence: 0.9,
+          reasonCodes: ["LOW_RAIN_CHANCE", "COMFORTABLE_TEMPERATURE"],
+        },
+        weather: {
+          conditionLabel: "Clear",
+          temperatureMin: 18,
+          temperatureMax: 26,
+          rainProbability: 10,
+          observedAt: "2026-07-20T00:00:00Z",
+        },
         reasonCodes: ["LOW_RAIN_CHANCE", "COMFORTABLE_TEMPERATURE"],
       },
       {
@@ -59,8 +71,19 @@ function fixture(state: TravelRadarViewModel["state"] = "ready", stale = false):
           countryName: "South Korea",
           path: "/kr/seoul",
         },
-        score: { value: null, state: "unavailable", confidence: null, reasonCodes: ["LIMITED_DATA"] },
-        weather: { conditionLabel: "Cloudy", temperatureMin: 15, temperatureMax: 22, rainProbability: 40, observedAt: "2026-07-20T00:00:00Z" },
+        score: {
+          value: null,
+          state: "unavailable",
+          confidence: null,
+          reasonCodes: ["LIMITED_DATA"],
+        },
+        weather: {
+          conditionLabel: "Cloudy",
+          temperatureMin: 15,
+          temperatureMax: 22,
+          rainProbability: 40,
+          observedAt: "2026-07-20T00:00:00Z",
+        },
         reasonCodes: ["LIMITED_DATA"],
       },
     ],
@@ -70,9 +93,27 @@ function fixture(state: TravelRadarViewModel["state"] = "ready", stale = false):
 function controls(): WindowControl[] {
   return [
     { window: "today", label: "Today", href: "/?window=today", selected: true, exactDates: [] },
-    { window: "tomorrow", label: "Tomorrow", href: "/?window=tomorrow", selected: false, exactDates: [] },
-    { window: "weekend", label: "This Weekend", href: "/?window=weekend", selected: false, exactDates: ["2026-07-25", "2026-07-26"] },
-    { window: "next_week", label: "Next Week", href: "/?window=next_week", selected: false, exactDates: ["2026-07-27", "2026-08-02"] },
+    {
+      window: "tomorrow",
+      label: "Tomorrow",
+      href: "/?window=tomorrow",
+      selected: false,
+      exactDates: [],
+    },
+    {
+      window: "weekend",
+      label: "This Weekend",
+      href: "/?window=weekend",
+      selected: false,
+      exactDates: ["2026-07-25", "2026-07-26"],
+    },
+    {
+      window: "next_week",
+      label: "Next Week",
+      href: "/?window=next_week",
+      selected: false,
+      exactDates: ["2026-07-27", "2026-08-02"],
+    },
   ];
 }
 

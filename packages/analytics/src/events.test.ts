@@ -286,7 +286,10 @@ describe("dispatchEvent — non-blocking (GROW-ANALYTICS-001)", () => {
     const emit = vi.fn();
     const rejected = vi.fn();
     const sink: AnalyticsSink = { emit };
-    const ok = dispatchEvent({ ...baseSearch(), destination_key: "Tokyo!" }, { sink, onRejected: rejected });
+    const ok = dispatchEvent(
+      { ...baseSearch(), destination_key: "Tokyo!" },
+      { sink, onRejected: rejected },
+    );
     expect(ok).toBe(false);
     expect(emit).not.toHaveBeenCalled();
     expect(rejected).toHaveBeenCalledTimes(1);

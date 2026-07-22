@@ -158,7 +158,12 @@ export function authenticateInternalOperation(
 ): ApplicationResult<AuthDecision> {
   const requestId = deps.requestId ?? randomUUID();
 
-  const audit = (decision: "allow" | "deny", reason: string, principal: InternalPrincipal | null, operation: InternalOperation | null): void => {
+  const audit = (
+    decision: "allow" | "deny",
+    reason: string,
+    principal: InternalPrincipal | null,
+    operation: InternalOperation | null,
+  ): void => {
     deps.audit?.record({ requestId, principal, operation, decision, reason, at: request.now });
   };
 
@@ -178,11 +183,22 @@ export function authenticateInternalOperation(
   const tsMs = Date.parse(timestamp);
   if (!Number.isFinite(tsMs) || Math.abs(tsMs - request.now) > deps.maxClockSkewMs) {
     audit("deny", "timestamp_out_of_window", principal, operation);
-    return fail("UNAUTHORIZED", "request timestamp is missing or outside the allowed skew", requestId);
+    return fail(
+      "UNAUTHORIZED",
+      "request timestamp is missing or outside the allowed skew",
+      requestId,
+    );
   }
 
   // Step 3: constant-time signature verification (method/path/timestamp/nonce/body).
-  const expected = signRequest(deps.secret, request.method, request.path, timestamp, nonce, request.body);
+  const expected = signRequest(
+    deps.secret,
+    request.method,
+    request.path,
+    timestamp,
+    nonce,
+    request.body,
+  );
   if (!safeEqual(expected, signature)) {
     audit("deny", "signature_mismatch", principal, operation);
     return fail("UNAUTHORIZED", "request signature is invalid", requestId);

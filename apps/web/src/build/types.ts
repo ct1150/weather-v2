@@ -5,11 +5,7 @@
 // the BakedDataset into the display view models in `../view-models`.
 
 import type { Locale } from "../api/v1/schemas";
-import type {
-  NormalizedForecast,
-  NormalizedDaily,
-  ForecastRequest,
-} from "@wnr/weather";
+import type { NormalizedForecast, NormalizedDaily, ForecastRequest } from "@wnr/weather";
 import type { TravelScoreResult, WeatherRow } from "@wnr/domain";
 
 export type { Locale, NormalizedForecast, NormalizedDaily, ForecastRequest, WeatherRow };

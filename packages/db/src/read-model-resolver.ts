@@ -295,7 +295,8 @@ export const coreDataKeyCodec: CoreDataKeyCodec = {
     switch (parts.kind) {
       case "country":
         return asCoreDataKey(
-          "core:v1:country:" + `${identity.contentHash}:${identity.contentVersion}:${parts.countrySlug}:en`,
+          "core:v1:country:" +
+            `${identity.contentHash}:${identity.contentVersion}:${parts.countrySlug}:en`,
         );
       case "articles":
         return asCoreDataKey(

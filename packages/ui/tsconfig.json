@@ -1,9 +1,6 @@
 {
   "extends": "@wnr/tsconfig/library.json",
-  "include": [
-    "src/**/*.ts",
-    "src/**/*.tsx"
-  ],
+  "include": ["src/**/*.ts", "src/**/*.tsx"],
   "compilerOptions": {
     "rootDir": "src",
     "outDir": "dist",
@@ -11,10 +8,5 @@
     "jsxImportSource": "react",
     "lib": ["ES2022", "DOM"]
   },
-  "exclude": [
-    "src/**/*.test.ts",
-    "src/**/*.spec.ts",
-    "dist",
-    "node_modules"
-  ]
+  "exclude": ["src/**/*.test.ts", "src/**/*.spec.ts", "dist", "node_modules"]
 }

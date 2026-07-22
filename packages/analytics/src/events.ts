@@ -325,20 +325,17 @@ export function validateAnalyticsEvent(raw: unknown): ValidationResult<Analytics
   }
 
   const routeTemplate = obj.route_template;
-  if (!asString(routeTemplate) || !(KNOWN_ROUTE_TEMPLATES as ReadonlyArray<string>).includes(routeTemplate)) {
+  if (
+    !asString(routeTemplate) ||
+    !(KNOWN_ROUTE_TEMPLATES as ReadonlyArray<string>).includes(routeTemplate)
+  ) {
     return failV("invalid_route_template");
   }
 
   const locale = obj.locale;
   if (!isLocale(locale)) return failV("invalid_locale");
 
-  return buildPayload(
-    event as AnalyticsEvent["event"],
-    obj,
-    occurred,
-    routeTemplate,
-    locale,
-  );
+  return buildPayload(event as AnalyticsEvent["event"], obj, occurred, routeTemplate, locale);
 }
 
 function buildPayload(

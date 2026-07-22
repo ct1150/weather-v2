@@ -163,7 +163,15 @@ describe("calculateTravelScore — deterministic weighted mean kernel", () => {
   });
 
   it("never substitutes a missing factor with the best value (confidence falls)", () => {
-    const noRain: WeatherRow = { temperatureC: 22, apparentTemperatureC: 21, humidity: 55, windSpeedKph: 8, windGustKph: 15, uvIndex: 3, cloudCover: 40 };
+    const noRain: WeatherRow = {
+      temperatureC: 22,
+      apparentTemperatureC: 21,
+      humidity: 55,
+      windSpeedKph: 8,
+      windGustKph: 15,
+      uvIndex: 3,
+      cloudCover: 40,
+    };
     const all: WeatherRow = { ...noRain, precipitationProbability: 0, precipitationMm: 0 };
     const rNoRain = calculateTravelScore({ row: noRain, modelVersion: "mv1" });
     const rAll = calculateTravelScore({ row: all, modelVersion: "mv1" });

@@ -221,7 +221,12 @@ describe("Localized disclosure, no invented evidence (PRD-FR-011)", () => {
 
 describe("Zero-shift advertising (GROW-ADS-001)", () => {
   it("suppresses disabled ads with zero CLS", () => {
-    const r = resolveAdPlacement({ placement: "homepage", config: DEFAULT_RUNTIME_CONFIG, hasFill: true, locale: "en" });
+    const r = resolveAdPlacement({
+      placement: "homepage",
+      config: DEFAULT_RUNTIME_CONFIG,
+      hasFill: true,
+      locale: "en",
+    });
     expect(r.shouldRender).toBe(false);
     expect(r.reason).toBe("ads_disabled");
     expect(r.contributesCls).toBe(0);
@@ -229,7 +234,12 @@ describe("Zero-shift advertising (GROW-ADS-001)", () => {
 
   it("suppresses a no-fill decision with zero CLS", () => {
     const cfg = parseRuntimeConfig({ advertising: { enabled: true } });
-    const r = resolveAdPlacement({ placement: "sidebar", config: cfg, hasFill: false, locale: "en" });
+    const r = resolveAdPlacement({
+      placement: "sidebar",
+      config: cfg,
+      hasFill: false,
+      locale: "en",
+    });
     expect(r.shouldRender).toBe(false);
     expect(r.reason).toBe("no_fill");
     expect(r.contributesCls).toBe(0);
@@ -237,7 +247,12 @@ describe("Zero-shift advertising (GROW-ADS-001)", () => {
 
   it("renders a filled, enabled ad with zero CLS", () => {
     const cfg = parseRuntimeConfig({ advertising: { enabled: true } });
-    const r = resolveAdPlacement({ placement: "between_sections", config: cfg, hasFill: true, locale: "en" });
+    const r = resolveAdPlacement({
+      placement: "between_sections",
+      config: cfg,
+      hasFill: true,
+      locale: "en",
+    });
     expect(r.shouldRender).toBe(true);
     expect(r.contributesCls).toBe(0);
   });
@@ -290,7 +305,12 @@ describe("Vision: commercial surfaces stay subordinate (VISION-BUSINESS-001)", (
       dataState: "current",
       opensNewContext: false,
     });
-    const ad = resolveAdPlacement({ placement: "homepage", config: DEFAULT_RUNTIME_CONFIG, hasFill: true, locale: "en" });
+    const ad = resolveAdPlacement({
+      placement: "homepage",
+      config: DEFAULT_RUNTIME_CONFIG,
+      hasFill: true,
+      locale: "en",
+    });
     expect(aff.shouldRender).toBe(false);
     expect(ad.shouldRender).toBe(false);
   });

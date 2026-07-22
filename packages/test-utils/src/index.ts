@@ -59,7 +59,9 @@ class SqliteStmt implements D1PreparedStatementLike {
     return { results: rows };
   }
 
-  async run(): Promise<{ readonly meta: { readonly changes: number; readonly lastRowId: number } }> {
+  async run(): Promise<{
+    readonly meta: { readonly changes: number; readonly lastRowId: number };
+  }> {
     const stmt = this.db.prepare(this.query);
     const res = stmt.run(...this.params);
     const changes = Number(res.changes.toString());
@@ -142,7 +144,12 @@ export class FakeFenceLock {
     nowMs: number,
   ): Promise<{ readonly acquired: boolean; readonly token: number }> {
     const existing = this.rows.get(key);
-    if (existing != null && existing.holder != null && existing.expiresAt != null && existing.expiresAt > nowMs) {
+    if (
+      existing != null &&
+      existing.holder != null &&
+      existing.expiresAt != null &&
+      existing.expiresAt > nowMs
+    ) {
       return { acquired: false, token: existing.token };
     }
     const token = (existing?.token ?? 0) + 1;

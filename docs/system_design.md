@@ -58,6 +58,7 @@
 ### 1.3 回退/切换条件（何时改回 Next-on-Pages）
 
 仅在以下任一进入本期范围时，才切到 `@cloudflare/next-on-pages` 并相应调整：
+
 - 引入真实 `/api/v1` route handler（动态信封、D1 读取）；
 - 引入 SSR（如 `/explore` 服务端渲染或 `/search` 真 SSR）；
 - 引入 ISR（`revalidate` 按 snapshot 失效）；
@@ -86,6 +87,7 @@
 ## 2. 文件清单（相对仓库根，新建/修改）
 
 **新建**
+
 - `apps/web/next.config.mjs` — `output:'export'` + `images.unoptimized:true` 等静态导出配置。
 - `apps/web/src/build/types.ts` — 烘焙层内部类型（`GeographySeed`/`CitySeed`/`BakedDataset`）。
 - `apps/web/src/build/geography.seed.ts` — 地理种子（countries/cities）。
@@ -96,6 +98,7 @@
 - `.github/workflows/deploy.yml` — 完整 CI/CD 流水线（verify→build→gates→security→deploy）。
 
 **修改**
+
 - `package.json`（根）— `devDependencies` 加 `wrangler`；`scripts` 可选加 `deploy:preview`/`deploy:prod` 便捷脚本。
 - `apps/web/package.json` — `dependencies` 加 `next`；`scripts.build` 改 `next build`，保留/加 `dev`/`typecheck`/`start`。
 - `apps/web/tsconfig.json` — 核对/补齐 Next 必需项（见 §7）。
@@ -113,6 +116,7 @@
 完整类图见 **`docs/class-diagram.mermaid`**（构建期数据模型 + BuildConfig + CI 产物 + 延迟的 D1 schema）。
 
 要点：
+
 - **构建期数据模型**：`GeographySeed`(1—* `CountrySeed` / `CitySeed`) → `BakePipeline` 依赖 `FakeWeatherProvider`（合成天气）与 `TravelScoreEngine`（算分）→ 产出 `BakedDataset`（按 cityId 索引的天气/分数 + `dataUpdatedAt`）→ 投影为 4 个 `*ViewModel`。
 - **BuildConfig**（DEP-CONFIG-001 子集，构建期生效）：`APP_ENV` / `APP_BASE_URL` / `DEFAULT_LOCALE` / `SUPPORTED_LOCALES` / `WEATHER_DATA_MAX_AGE_MINUTES`。
 - **PipelineArtifact**：`artifactId` / `artifactDir` / `environment` —— 由 `build-immutable-artifact.mjs` 计算，并被后续 `deploy-preview`/`promotion-dry-run` 复用（fail-closed 身份校验）。
@@ -125,6 +129,7 @@
 完整时序图见 **`docs/sequence-diagram.mermaid`**。
 
 要点（`git push main` 与 PR 两条路径）：
+
 1. `git push main` → Actions：`pnpm install` → verify（format/lint/typecheck/test/docs） → `pnpm --filter @wnr/web build`（`next build` → `out/`）→ `build-immutable-artifact`（算 `artifactId`）→ dry-run gates（`deploy-preview` / `verify-preview-repositories` / `preview-smoke` / `promotion-dry-run`，**绝不调用 Cloudflare API**）→ secret-scan → `wrangler pages deploy out --project-name where-not-rain` 真实上传（**复用同一 `out/` 与 `artifactId`**）。
 2. PR → 同样 build+gates，但 `wrangler pages deploy out --branch <pr> --project-name where-not-rain` 上传预览；fork PR 仅跑 gates、不暴露 token（见 §8 #7）。
 3. **D1 migrate 步骤在本期休眠**（无绑定），仅保留显式命令与位置（§7 / §8 #1）。
@@ -136,26 +141,31 @@
 > 任务数 = 5（符合"≤5、按模块分组、首个为基础设施"的约束）。依赖基本线性：T01 → (T02 ∥ T03) → T04 → T05。
 
 ### T01 — 项目基础设施与构建配置（P0）
+
 - **Source files**：`package.json`(根)、`apps/web/package.json`、`apps/web/next.config.mjs`(新)、`apps/web/tsconfig.json`(核)、`.env.example`(新)、`tooling/deploy/build-immutable-artifact.mjs`(改)
 - **Dependencies**：无
 - **Risk：中** — 需确认 `@wnr/tsconfig/nextjs.json` 含 `jsx:"preserve"`、`moduleResolution:"bundler"`、`plugins:[{name:"next"}]`、`esModuleInterop`、`allowJs`、`noEmit`、`incremental`；否则补齐。改 `apps/web/build` 为 `next build`；`next.config.mjs` 设 `output:"export"`、`images.unoptimized:true`。更新 `ARTIFACT_SURFACE` 加入 `next.config.mjs`（及 `public`）。
 
 ### T02 — 构建期数据烘焙层（P0）
+
 - **Source files**：`apps/web/src/build/types.ts`(新)、`apps/web/src/build/geography.seed.ts`(新)、`apps/web/src/build/bake.ts`(新)；复用 `packages/weather`(FakeWeatherProvider)、`packages/domain`(travel-score)
 - **Dependencies**：T01
 - **Risk：高** — 仓库无天气/地理数据集；`weather.txt` 是 SPEC 提示词非数据。需新建 `geography.seed.ts`（countries/cities 含 lat/lng/tz/slug/isFeatured/多语言名），用 `FakeWeatherProvider` 合成 7 天天气，再用 `travel-score` 计算分数，聚合成 `BakedDataset` 并投影为 4 个 ViewModel。地理种子范围需确认（§8 #3）。
 
 ### T03 — 页面接入 App Router（P0）
+
 - **Source files**：`apps/web/src/app/layout.tsx`(新)、`apps/web/src/app/page.tsx`、`apps/web/src/app/[countrySlug]/page.tsx`、`apps/web/src/app/[countrySlug]/[citySlug]/page.tsx`、`apps/web/src/app/explore/page.tsx`、`apps/web/src/app/[countrySlug]/[citySlug]/generateStaticParams` 逻辑（或并入页）、可选 `not-found.tsx`
 - **Dependencies**：T01, T02
 - **Risk：高** — 现有页面是**纯组件（接收 viewModel prop）**，从未 `next build` 过；需改为 App Router 页面模块（导出默认组件，从 `params`/`searchParams` + `BakedDataset` 计算 `viewModel`）。`/api/v1` 本期**不实现**（无 route.ts）。可能需修 import/类型、加 `generateStaticParams`、加 `metadata` 导出；`next/image` 须 `unoptimized` 或改用 `<img>`。
 
 ### T04 — 部署配置与 CI 流水线（P0）
+
 - **Source files**：`apps/web/wrangler.toml`(核)、`.github/workflows/deploy.yml`(新)、`apps/web/public/`(新)、`.gitignore`(核)
 - **Dependencies**：T01, T03
 - **Risk：中** — `wrangler pages deploy` 真实上传需 GitHub Secrets `CLOUDFLARE_API_TOKEN` / `CLOUDFLARE_ACCOUNT_ID`（见 §7）。`wrangler.toml` 维持 `pages_build_output_dir="out"` 与 env vars；注明本期无 D1 绑定。CI 串联 verify→build→gates(dry-run)→secret-scan→deploy；D1 步骤休眠。
 
 ### T05 — 门禁衔接、验证与文档（P1）
+
 - **Source files**：`tooling/deploy/*.mjs`(衔接确认，尤其 `preview-smoke` 适配静态 `out/`)、`docs/08-Cloudflare-Deployment.md`、`docs/05-System-Architecture.md`、`README.md`(部署说明)
 - **Dependencies**：T04
 - **Risk：低-中** — 确保 dry-run gate 与真实 `wrangler pages deploy` 的 artifact 身份契约对齐（`artifactId` 复用、fail-closed）；`preview-smoke` 须针对静态产物（无 D1/KV 断言）；在 `docs/08`/`docs/05` 补充"本期实际采用静态导出 + 回退条件 + 本期静态子集"。
@@ -164,13 +174,13 @@
 
 ## 6. 依赖包列表（需新增/调整）
 
-| 包 | 范围 | 建议版本 | 说明 |
-|---|---|---|---|
-| `next` | `apps/web` dependencies | `^14.2.0` | App Router + 静态导出成熟；**与现有 React 18.3.1 兼容**（Next 15 强制 React 19，会引发 peer 冲突，故选 14.2）。 |
-| `react` / `react-dom` | 已存在 `^18.3.1` | 保持 | 不升 19（配合 Next 14）。 |
-| `wrangler` | 根 `devDependencies` | `^3.90.0` | 仅用于 `wrangler pages deploy` 与（未来）`wrangler d1`；CI 安装。 |
-| `@cloudflare/next-on-pages` | **本期不引入** | — | 仅当切 Next-on-Pages（SSR/ISR/api/D1 进入范围）时再加入。 |
-| `typescript` `^5.7` / `@types/node` `^22` / `@types/react` `^18` | 已存在 | 保持 | 满足 Next 14 要求。 |
+| 包                                                               | 范围                    | 建议版本  | 说明                                                                                                            |
+| ---------------------------------------------------------------- | ----------------------- | --------- | --------------------------------------------------------------------------------------------------------------- |
+| `next`                                                           | `apps/web` dependencies | `^14.2.0` | App Router + 静态导出成熟；**与现有 React 18.3.1 兼容**（Next 15 强制 React 19，会引发 peer 冲突，故选 14.2）。 |
+| `react` / `react-dom`                                            | 已存在 `^18.3.1`        | 保持      | 不升 19（配合 Next 14）。                                                                                       |
+| `wrangler`                                                       | 根 `devDependencies`    | `^3.90.0` | 仅用于 `wrangler pages deploy` 与（未来）`wrangler d1`；CI 安装。                                               |
+| `@cloudflare/next-on-pages`                                      | **本期不引入**          | —         | 仅当切 Next-on-Pages（SSR/ISR/api/D1 进入范围）时再加入。                                                       |
+| `typescript` `^5.7` / `@types/node` `^22` / `@types/react` `^18` | 已存在                  | 保持      | 满足 Next 14 要求。                                                                                             |
 
 > 锁文件：`pnpm-lock.yaml` 当前无任何 `next`/`wrangler` 记录；T01 安装后会写入。包管理器固定 `pnpm@10.11.0`、Node `>=22`（与根 `package.json` 一致）。
 
@@ -212,9 +222,9 @@
 
 ## 附录：约束符合性对照
 
-| 约束 | 本期设计如何满足 |
-|---|---|
-| DEP-FREE-001（免费套餐） | 静态导出 Pages，零 D1/KV/Cron/Workers 成本；无外网、无付费特性。 |
-| DEP-PAGES-001（Pages 优先） | 部署目标 = Cloudflare Pages；静态导出经官方 `wrangler pages deploy` 路径；回退到 Next-on-Pages 的条件已写明。 |
+| 约束                                       | 本期设计如何满足                                                                                                                 |
+| ------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------- |
+| DEP-FREE-001（免费套餐）                   | 静态导出 Pages，零 D1/KV/Cron/Workers 成本；无外网、无付费特性。                                                                 |
+| DEP-PAGES-001（Pages 优先）                | 部署目标 = Cloudflare Pages；静态导出经官方 `wrangler pages deploy` 路径；回退到 Next-on-Pages 的条件已写明。                    |
 | DEP-CICD-001（门禁/迁移/fail-closed/复用） | verify→build→dry-run gates→secret-scan→真实 deploy；D1 步骤显式且休眠（有序、不破坏）；`artifactId` 复用、身份不符 fail-closed。 |
-| DEP-CONFIG-001（词表/密钥走 Secrets） | 构建期变量子集来自词表；`.env.example` 仅占位无 secret；真实 secret 仅 GitHub Secrets。 |
+| DEP-CONFIG-001（词表/密钥走 Secrets）      | 构建期变量子集来自词表；`.env.example` 仅占位无 secret；真实 secret 仅 GitHub Secrets。                                          |

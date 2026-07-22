@@ -26,10 +26,7 @@
 export type BotLevel = "L1" | "L2" | "L3" | "L4";
 
 export type OverLimitAction =
-  | "429_retry_after"
-  | "429_cooldown"
-  | "challenge_candidate"
-  | "reject_audit";
+  "429_retry_after" | "429_cooldown" | "challenge_candidate" | "reject_audit";
 
 export interface LevelPolicy {
   readonly level: BotLevel;
@@ -158,8 +155,7 @@ export class RateLimiter {
     // Every attempt counts toward the 3x challenge heuristic.
     state.attempts.push(now);
     state.attempts = state.attempts.filter((t) => now - t < this.challengeWindowMs);
-    const challengeCandidate =
-      state.attempts.length >= this.challengeMultiplier * policy.perMinute;
+    const challengeCandidate = state.attempts.length >= this.challengeMultiplier * policy.perMinute;
 
     if (minuteOk && burstOk) {
       state.minute.count += 1;
@@ -174,10 +170,7 @@ export class RateLimiter {
       };
     }
 
-    const retryAfterSec = Math.max(
-      1,
-      Math.ceil((state.minute.startMs + MINUTE_MS - now) / 1000),
-    );
+    const retryAfterSec = Math.max(1, Math.ceil((state.minute.startMs + MINUTE_MS - now) / 1000));
     return {
       allowed: false,
       level,
@@ -188,12 +181,7 @@ export class RateLimiter {
     };
   }
 
-  private getState(
-    level: BotLevel,
-    key: string,
-    now: number,
-    policy: LevelPolicy,
-  ): SourceState {
+  private getState(level: BotLevel, key: string, now: number, policy: LevelPolicy): SourceState {
     const id = `${level}:${key}`;
     let state = this.store.get(id);
     if (!state) {
@@ -329,8 +317,7 @@ export function checkOutboundSsrf(
 // ---------------------------------------------------------------------------
 
 export type RedirectCheck =
-  | { readonly ok: true; readonly target: string }
-  | { readonly ok: false; readonly reason: string };
+  { readonly ok: true; readonly target: string } | { readonly ok: false; readonly reason: string };
 
 export interface RedirectSafetyOptions {
   /** The application's own canonical host (always allowed). */
@@ -346,10 +333,7 @@ export interface RedirectSafetyOptions {
  * allowlisted host; scheme-relative (`//evil.com`), `javascript:`, and other
  * non-http(s) schemes are rejected.
  */
-export function checkRedirectSafety(
-  location: string,
-  opts: RedirectSafetyOptions,
-): RedirectCheck {
+export function checkRedirectSafety(location: string, opts: RedirectSafetyOptions): RedirectCheck {
   if (location.length === 0) return { ok: false, reason: "empty_redirect" };
 
   // Any explicit scheme (e.g. "https:", "javascript:", "data:") or a

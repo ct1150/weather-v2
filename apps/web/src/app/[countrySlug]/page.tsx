@@ -14,7 +14,13 @@ export interface CountryPageProps {
   readonly viewModel: CountryPageViewModel;
 }
 
-function CityList({ items, emptyLabel }: { items: ReadonlyArray<DestinationLinkViewModel>; emptyLabel: string }) {
+function CityList({
+  items,
+  emptyLabel,
+}: {
+  items: ReadonlyArray<DestinationLinkViewModel>;
+  emptyLabel: string;
+}) {
   if (items.length === 0) {
     return <p className="mt-2 text-body text-muted">{emptyLabel}</p>;
   }
@@ -82,8 +88,8 @@ export function CountryPage({ viewModel }: CountryPageProps) {
       ) : null}
 
       <footer className="mt-12 border-t border-border pt-6 text-caption text-muted">
-        Recommendations use the latest activated weather and Travel Score; stale results remain usable but
-        are labeled.
+        Recommendations use the latest activated weather and Travel Score; stale results remain
+        usable but are labeled.
       </footer>
     </main>
   );

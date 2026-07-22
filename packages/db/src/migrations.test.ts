@@ -157,7 +157,9 @@ describe("migrations — publication state and pointer triggers", () => {
     // No pointer inserted yet: setting bootstrapped=1 must abort.
     await expect(
       db
-        .prepare("UPDATE weather_publication_state SET bootstrapped = 1, updated_at = ? WHERE state_key = 'weather'")
+        .prepare(
+          "UPDATE weather_publication_state SET bootstrapped = 1, updated_at = ? WHERE state_key = 'weather'",
+        )
         .bind(TS)
         .run(),
     ).rejects.toThrow(/bootstrap requires one active weather pointer/);
@@ -186,7 +188,11 @@ describe("migrations — publication state and pointer triggers", () => {
 
     // Irreversibility: cannot flip bootstrapped back to 0.
     await expect(
-      db.prepare("UPDATE weather_publication_state SET bootstrapped = 0 WHERE state_key = 'weather'").run(),
+      db
+        .prepare(
+          "UPDATE weather_publication_state SET bootstrapped = 0 WHERE state_key = 'weather'",
+        )
+        .run(),
     ).rejects.toThrow(/irreversible/);
   });
 
@@ -236,12 +242,14 @@ describe("migrations — sync_locks fencing triggers (DATA-OPERATIONS-001)", () 
 
   it("rejects deletion of a lock row (permanent high-water mark)", async () => {
     await db
-      .prepare("INSERT INTO sync_locks (key, holder, fencing_token, acquired_at, expires_at) VALUES (?, NULL, 0, NULL, NULL)")
+      .prepare(
+        "INSERT INTO sync_locks (key, holder, fencing_token, acquired_at, expires_at) VALUES (?, NULL, 0, NULL, NULL)",
+      )
       .bind("weather-publication")
       .run();
-    await expect(db.prepare("DELETE FROM sync_locks WHERE key = ?").bind("weather-publication").run()).rejects.toThrow(
-      /permanent/,
-    );
+    await expect(
+      db.prepare("DELETE FROM sync_locks WHERE key = ?").bind("weather-publication").run(),
+    ).rejects.toThrow(/permanent/);
   });
 
   it("rejects a decrease of the fencing token", async () => {
@@ -252,7 +260,10 @@ describe("migrations — sync_locks fencing triggers (DATA-OPERATIONS-001)", () 
       .bind("weather-publication", TS, TS)
       .run();
     await expect(
-      db.prepare("UPDATE sync_locks SET fencing_token = 3 WHERE key = ?").bind("weather-publication").run(),
+      db
+        .prepare("UPDATE sync_locks SET fencing_token = 3 WHERE key = ?")
+        .bind("weather-publication")
+        .run(),
     ).rejects.toThrow(/cannot decrease/);
   });
 });

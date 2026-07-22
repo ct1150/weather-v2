@@ -6,6 +6,7 @@ coverage
 .artifacts
 .wrangler
 .kiro
+.superpowers
 *.log
 pnpm-lock.yaml
 weather.txt

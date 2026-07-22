@@ -1,0 +1,197 @@
+classDiagram
+    %% ===================== Provider port & adapters =====================
+    class WeatherProvider {
+        <<interface>>
+        +id: string
+        +fetchForecast(req: ForecastRequest): Promise~NormalizedForecast[]~
+        +healthCheck(): Promise~ProviderHealth~
+    }
+    class FakeWeatherProvider {
+        +id: "fake"
+        +fetchForecast(req): Promise~NormalizedForecast[]~
+        +healthCheck(): Promise~ProviderHealth~
+    }
+    class OpenMeteoProvider {
+        +id: "open-meteo"
+        -endpoint: string
+        -timeoutMs: number
+        +fetchForecast(req): Promise~NormalizedForecast[]~
+        +healthCheck(): Promise~ProviderHealth~
+        -normalizeDaily(json): NormalizedDaily
+        -normalizeHourly(json): NormalizedHourly
+    }
+    WeatherProvider <|.. FakeWeatherProvider
+    WeatherProvider <|.. OpenMeteoProvider
+
+    %% ===================== Normalized DTOs =====================
+    class ForecastRequest {
+        +cityId: string
+        +latitude: number
+        +longitude: number
+        +timezone: string
+        +days: number
+        +startDate: string
+    }
+    class NormalizedHourly {
+        +localTime: string
+        +weatherCode: number|null
+        +temperatureC: number|null
+        +apparentTemperatureC: number|null
+        +precipitationMm: number|null
+        +precipitationProbability: number|null
+        +humidity: number|null
+        +windSpeedKph: number|null
+        +windGustKph: number|null
+        +uvIndex: number|null
+        +cloudCover: number|null
+        +visibilityM: number|null
+    }
+    class NormalizedDaily {
+        +localDate: string
+        +weatherCode: number|null
+        +tempMinC: number|null
+        +tempMaxC: number|null
+        +apparentMinC: number|null
+        +apparentMaxC: number|null
+        +precipitationMm: number|null
+        +precipitationProbabilityMax: number|null
+        +humidityMean: number|null
+        +windSpeedMaxKph: number|null
+        +windGustMaxKph: number|null
+        +uvIndexMax: number|null
+        +cloudCoverMean: number|null
+        +visibilityMeanM: number|null
+        +sunriseLocal: string|null
+        +sunsetLocal: string|null
+        +hourly: NormalizedHourly[]
+    }
+    class NormalizedForecast {
+        +cityId: string
+        +days: NormalizedDaily[]
+    }
+    NormalizedForecast "1" *-- "many" NormalizedDaily
+    NormalizedDaily "1" *-- "24" NormalizedHourly
+    WeatherProvider ..> ForecastRequest : consumes
+    WeatherProvider ..> NormalizedForecast : produces
+
+    %% ===================== Worker runtime =====================
+    class WorkerEnv {
+        +DB: D1Database
+        +WEATHER_SYNC_KV: KVNamespace
+        +WEATHER_PRIMARY_PROVIDER: string
+    }
+    class WeatherSyncWorker {
+        +scheduled(event, env, ctx)
+        +fetch(req, env)
+    }
+    class SyncDeps {
+        +db: D1DatabaseLike
+        +provider: WeatherProvider
+        +lock: FenceLock
+        +config: RuntimeConfig
+        +kv: KVNamespaceLike
+    }
+    class SyncReport {
+        +runId: string
+        +status: "success"|"partial"|"failed"
+        +snapshotId: string|null
+        +citiesOk: number
+        +citiesFailed: number
+        +activated: boolean
+        +fencingToken: number
+    }
+    class FenceLock {
+        <<interface>>
+        +acquire(key, holder, ttlMs, nowMs): Promise~{acquired, token}~
+        +release(key, holder, token): Promise~boolean~
+        +getToken(key): number
+    }
+    WeatherSyncWorker ..> SyncDeps : builds
+    WeatherSyncWorker ..> runSync : invokes
+    SyncDeps o-- WeatherProvider
+    SyncDeps o-- "1" FenceLock
+    SyncDeps o-- "1" RuntimeConfig
+    SyncDeps o-- "0..1" KVNamespaceLike
+    runSync ..> SyncReport : returns
+    WorkerEnv ..> WeatherSyncWorker : injected at runtime
+
+    %% ===================== D1 consumption =====================
+    class WeatherSnapshots {
+        +id PK
+        +provider
+        +fetched_at
+        +valid_from
+        +valid_to
+        +status
+        +checksum
+    }
+    class WeatherDaily {
+        +snapshot_id FK
+        +city_id FK
+        +local_date
+        +weather_code ...
+    }
+    class WeatherHourly {
+        +snapshot_id FK
+        +city_id FK
+        +local_time
+        +weather_code ...
+    }
+    class ActiveWeatherSnapshot {
+        +pointer_key PK
+        +snapshot_id FK
+        +publication_fencing_token
+        +activated_at
+    }
+    class SyncRuns {
+        +id PK
+        +provider
+        +status
+        +cities_ok
+        +cities_failed
+    }
+    class SyncFailures {
+        +id PK
+        +run_id FK
+        +error_code
+    }
+    class SyncLocks {
+        +key PK
+        +holder
+        +fencing_token
+    }
+    SyncDeps ..> WeatherSnapshots : writes (provider=id)
+    SyncDeps ..> WeatherDaily : writes
+    SyncDeps ..> WeatherHourly : writes
+    SyncDeps ..> ActiveWeatherSnapshot : writes (bootstrap/replace)
+    SyncDeps ..> SyncRuns : writes
+    SyncDeps ..> SyncFailures : writes (sanitized)
+    SyncDeps ..> SyncLocks : acquire/release
+    WorkerEnv ..> WeatherSnapshots : DB binding
+
+    %% ===================== KV health =====================
+    class KVHealthRecord {
+        +lastSuccessAt: string
+        +provider: string
+        +status: "ok"
+    }
+    SyncDeps ..> KVHealthRecord : put("sync-health")
+
+    %% ===================== Frontend analytics =====================
+    class CloudflareAnalytics {
+        +enabled: boolean
+        +token: string|undefined
+        +render(): Script|null
+    }
+    class RootLayout {
+        +mounts CloudflareAnalytics
+    }
+    RootLayout ..> CloudflareAnalytics : conditionally renders
+
+    %% ===================== WMO mapping (shared) =====================
+    class WeatherCodeMap {
+        <<module>>
+        +describe(code): {label, icon}
+        +OPEN_METEO_WMO: Record~number,Entry~
+    }
+    NormalizedDaily ..> WeatherCodeMap : weatherCode -> label/icon

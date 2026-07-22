@@ -107,13 +107,20 @@ export function parseRuntimeConfig(raw: unknown): RuntimeConfig {
   const input = raw as Record<string, unknown>;
 
   const map = input.map === undefined ? DISABLED : parseFlag("map", input.map);
-  const advertising = input.advertising === undefined ? DISABLED : parseFlag("advertising", input.advertising);
+  const advertising =
+    input.advertising === undefined ? DISABLED : parseFlag("advertising", input.advertising);
   const weatherProvider =
-    input.weatherProvider === undefined ? DISABLED : parseFlag("weatherProvider", input.weatherProvider);
+    input.weatherProvider === undefined
+      ? DISABLED
+      : parseFlag("weatherProvider", input.weatherProvider);
 
   const affiliates = new Map<string, CapabilityFlag>();
   if (input.affiliates !== undefined) {
-    if (input.affiliates === null || typeof input.affiliates !== "object" || Array.isArray(input.affiliates)) {
+    if (
+      input.affiliates === null ||
+      typeof input.affiliates !== "object" ||
+      Array.isArray(input.affiliates)
+    ) {
       throw new ConfigParseError("affiliates", "expected a record of slot -> flag");
     }
     const record = input.affiliates as Record<string, unknown>;
@@ -139,4 +146,23 @@ export function getAffiliate(config: RuntimeConfig, slot: string): CapabilityFla
 /** Convenience: whether a specific Affiliate slot is enabled. */
 export function isAffiliateEnabled(config: RuntimeConfig, slot: string): boolean {
   return getAffiliate(config, slot).enabled;
+}
+
+/** Legal weather-provider identifiers selectable via `WEATHER_PRIMARY_PROVIDER` (docs/15 §7). */
+export type ResolvedProviderName = "open-meteo" | "fake" | "weatherapi";
+
+/**
+ * Normalize a raw `WEATHER_PRIMARY_PROVIDER` value into a known provider name.
+ *
+ * Returns `null` for missing or unknown input so callers never implicitly enable a
+ * provider (DEP-CONFIG-001). `weatherapi` is recognized but reserved/disabled this
+ * phase — callers must decide what to do (the worker falls back to `fake`).
+ */
+export function resolveProviderName(raw: unknown): ResolvedProviderName | null {
+  if (typeof raw !== "string") return null;
+  const normalized = raw.trim().toLowerCase();
+  if (normalized === "open-meteo" || normalized === "fake" || normalized === "weatherapi") {
+    return normalized;
+  }
+  return null;
 }

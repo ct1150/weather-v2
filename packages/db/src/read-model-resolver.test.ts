@@ -22,7 +22,9 @@ import {
 
 const TS = "2026-07-20T00:00:00Z";
 
-function makeAuthority(overrides: Partial<WeatherPublicationAuthority> = {}): WeatherPublicationAuthority {
+function makeAuthority(
+  overrides: Partial<WeatherPublicationAuthority> = {},
+): WeatherPublicationAuthority {
   return {
     active: {
       snapshotId: "snap-1",
@@ -76,7 +78,11 @@ function buildPorts(opts: {
   hint?: ManifestHint | null;
   kv: FakeKv;
   d1Core?: ImmutableCore<string> | null;
-}): { ports: ResolverPorts<WeatherCoreKeyParts, string>; kvReader: KvBackedReader; d1Calls: number[] } {
+}): {
+  ports: ResolverPorts<WeatherCoreKeyParts, string>;
+  kvReader: KvBackedReader;
+  d1Calls: number[];
+} {
   const kvReader = new KvBackedReader(opts.kv);
   const d1Calls: number[] = [];
   const d1: ActiveCoreLoader<WeatherCoreKeyParts, string> = {

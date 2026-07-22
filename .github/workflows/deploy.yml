@@ -1,14 +1,20 @@
-# Where Not Rain — Deploy to Cloudflare Pages
+# Where Not Rain — Deploy to Cloudflare Pages + weather-sync Worker
 #
-# Pipeline (docs/08 DEP-CICD-001): install -> verify -> build (static export)
-# -> dry-run gates (no Cloudflare API) -> secret scan -> real `wrangler pages deploy`.
+# Pipeline (docs/08 DEP-CICD-001 / docs/15 §4B): install -> verify -> build (static
+# export + worker) -> dry-run gates (no Cloudflare API) -> secret scan -> real deploy.
 #
-# - push to `main`      -> production deploy
-# - internal PR          -> preview deploy (exposes Cloudflare token)
+# - push to `main`      -> production promotion (Pages + Worker, Cron registered)
+# - internal PR          -> preview deploy (Pages + Worker, NO Cron) + extended smoke
 # - fork PR              -> gates ONLY, no token (no deploy)  [security boundary]
 #
-# The static export is built ONCE into `apps/web/out/` and the SAME artifact is
-# uploaded (never rebuilt). D1 migrations are intentionally absent this phase.
+# The static export (apps/web/out) is built ONCE and the SAME artifact is uploaded
+# (never rebuilt). D1 migrations are applied from packages/db/migrations.
+#
+# !!! IMPORTANT (DATA-MIGRATION-001 / docs/15 §5,§7) !!!
+#   CI applies ONLY `0001_weather.sql`. There is NO `0002` migration this phase and the
+#   CI step MUST NOT create or apply one. The schema already contains every table/column
+#   the increment needs (sync_runs, active_weather_snapshot, weather_snapshots.provider,
+#   feature_flags, analytics_events_daily, sync_locks, ...).
 
 name: Deploy
 
@@ -28,6 +34,9 @@ concurrency:
 env:
   PNPM_VERSION: "10.11.0"
   NODE_VERSION: "22"
+  # Single source of truth for the sync-worker adapter (docs/15 §7). Injected into the
+  # deployed Worker via `wrangler deploy --var` below.
+  WEATHER_PRIMARY_PROVIDER: "open-meteo"
 
 jobs:
   deploy:
@@ -67,9 +76,17 @@ jobs:
       - name: Documentation gate
         run: pnpm docs:check
 
-      # --- Build (static export -> apps/web/out/) ---------------------------
+      # --- Build (static export -> apps/web/out/ AND worker -> dist/) -------
       - name: Build web (Next.js static export)
+        env:
+          # Inlined at build time into the static HTML (DEP-CONFIG-001). Optional: when
+          # unset, the analytics component renders nothing (zero integration by default).
+          NEXT_PUBLIC_CLOUDFLARE_ANALYTICS_ENABLED: ${{ secrets.NEXT_PUBLIC_CLOUDFLARE_ANALYTICS_ENABLED }}
+          NEXT_PUBLIC_CLOUDFLARE_ANALYTICS_TOKEN: ${{ secrets.NEXT_PUBLIC_CLOUDFLARE_ANALYTICS_TOKEN }}
         run: pnpm --filter @wnr/web build
+
+      - name: Build weather-sync Worker
+        run: pnpm --filter @wnr/weather-sync build
 
       # --- Dry-run gates (NEVER contact Cloudflare API) ---------------------
       - name: Pipeline contract tests
@@ -103,7 +120,71 @@ jobs:
           fi
           echo "secret scan: clean"
 
-      # --- Real deploy (production) -----------------------------------------
+      # =====================================================================
+      # PREVIEW DEPLOY (internal PR only)
+      # Order: D1 migrate (0001 only) -> extended smoke -> Worker (no Cron) -> Pages
+      # =====================================================================
+      - name: Apply D1 migrations (preview, 0001 ONLY — no 0002)
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          # Idempotent: wrangler skips already-applied migrations. The single migration
+          # file is packages/db/migrations/0001_weather.sql (no 0002 exists).
+          pnpm --filter @wnr/weather-sync exec wrangler d1 migrations apply wnr-weather --env preview --remote
+
+      - name: Deploy weather-sync Worker (preview, NO Cron)
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          WEATHER_PRIMARY_PROVIDER: ${{ env.WEATHER_PRIMARY_PROVIDER }}
+        run: |
+          # `--env preview` uses the [env.preview] block, which has NO `crons` binding.
+          # `--var WEATHER_PRIMARY_PROVIDER` injects the adapter selection into the Worker.
+          pnpm --filter @wnr/weather-sync exec wrangler deploy --env preview \
+            --var WEATHER_PRIMARY_PROVIDER=${{ env.WEATHER_PRIMARY_PROVIDER }}
+
+      - name: Extended preview smoke (KV hit / D1 fallback / no user-path provider call)
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        env:
+          WORKER_PREVIEW_URL: ${{ secrets.WORKER_PREVIEW_URL }}
+        run: |
+          node tooling/deploy/sync-smoke.mjs --worker-url "${WORKER_PREVIEW_URL:-}"
+
+      - name: Deploy preview (internal PR)
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: pnpm --filter @wnr/web exec wrangler pages deploy out --branch ${{ github.event.pull_request.number }} --project-name where-not-rain
+
+      # =====================================================================
+      # PRODUCTION PROMOTION (push to main only)
+      # Order: D1 migrate (0001 only) -> Worker (Cron registered) -> Pages -> smoke
+      # =====================================================================
+      - name: Apply D1 migrations (production, 0001 ONLY — no 0002)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          # Idempotent. Single migration = packages/db/migrations/0001_weather.sql.
+          pnpm --filter @wnr/weather-sync exec wrangler d1 migrations apply wnr-weather --env production --remote
+
+      - name: Deploy weather-sync Worker (production, Cron registered)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          WEATHER_PRIMARY_PROVIDER: ${{ env.WEATHER_PRIMARY_PROVIDER }}
+        run: |
+          # `--env production` uses the [env.production] block, which declares
+          # `crons = ["0 * * * *"]` (hourly). No Cron is registered for preview.
+          pnpm --filter @wnr/weather-sync exec wrangler deploy --env production \
+            --var WEATHER_PRIMARY_PROVIDER=${{ env.WEATHER_PRIMARY_PROVIDER }}
+
       - name: Deploy to production (main)
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         env:
@@ -111,10 +192,9 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: pnpm --filter @wnr/web exec wrangler pages deploy out --project-name where-not-rain
 
-      # --- Real deploy (preview, internal PR only) --------------------------
-      - name: Deploy preview (internal PR)
-        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+      - name: Production smoke (active snapshot freshness / Cron registered)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: pnpm --filter @wnr/web exec wrangler pages deploy out --branch ${{ github.event.pull_request.number }} --project-name where-not-rain
+          WORKER_PRODUCTION_URL: ${{ secrets.WORKER_PRODUCTION_URL }}
+        run: |
+          node tooling/deploy/sync-smoke.mjs --worker-url "${WORKER_PRODUCTION_URL:-}"

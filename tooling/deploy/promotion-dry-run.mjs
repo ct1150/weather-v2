@@ -44,7 +44,9 @@ export function promotionDryRun({
     );
   }
   if (requireSameArtifact && sourceRecord.artifactId !== expectedArtifactId) {
-    errors.push("same-artifact promotion requires the source artifact to equal the expected artifact");
+    errors.push(
+      "same-artifact promotion requires the source artifact to equal the expected artifact",
+    );
   }
 
   const now = new Date().toISOString();
@@ -92,7 +94,11 @@ if (isMain(import.meta.url)) {
     string: ["source-deployment-record", "target-environment", "expected-artifact-id"],
     boolean: ["require-same-artifact", "fail-closed"],
   });
-  if (!args["source-deployment-record"] || !args["target-environment"] || !args["expected-artifact-id"]) {
+  if (
+    !args["source-deployment-record"] ||
+    !args["target-environment"] ||
+    !args["expected-artifact-id"]
+  ) {
     console.error(
       "usage: promotion-dry-run --source-deployment-record <file> --target-environment production " +
         "--expected-artifact-id <id> [--require-same-artifact] [--fail-closed]",

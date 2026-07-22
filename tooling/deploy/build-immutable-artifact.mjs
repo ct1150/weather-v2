@@ -55,7 +55,12 @@ function buildWorkspace(workspace, rootDir) {
  * Build the workspace, copy its deployable surface into `outputDir`, and return
  * a deterministic artifact identity written to `identityFile` (when given).
  */
-export function buildImmutableArtifact({ workspace, outputDir, identityFile, rootDir = process.cwd() }) {
+export function buildImmutableArtifact({
+  workspace,
+  outputDir,
+  identityFile,
+  rootDir = process.cwd(),
+}) {
   const root = resolve(rootDir);
   buildWorkspace(workspace, root); // throws on failure -> fail closed
 

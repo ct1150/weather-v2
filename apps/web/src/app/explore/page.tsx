@@ -28,15 +28,15 @@ const WINDOW_LABELS: Readonly<Record<ExplorerViewModel["window"], string>> = {
  * Project marker lat/long into the static SVG poster box. Single markers are
  * centered; empty sets return no points.
  */
-function projectMarkers(
-  markers: ReadonlyArray<ExploreMarkerViewModel>,
-): ReadonlyArray<{ readonly x: number; readonly y: number; readonly marker: ExploreMarkerViewModel }> {
+function projectMarkers(markers: ReadonlyArray<ExploreMarkerViewModel>): ReadonlyArray<{
+  readonly x: number;
+  readonly y: number;
+  readonly marker: ExploreMarkerViewModel;
+}> {
   if (markers.length === 0) return [];
   if (markers.length === 1) {
     const only = markers[0];
-    return only === undefined
-      ? []
-      : [{ x: MAP_WIDTH / 2, y: MAP_HEIGHT / 2, marker: only }];
+    return only === undefined ? [] : [{ x: MAP_WIDTH / 2, y: MAP_HEIGHT / 2, marker: only }];
   }
   const lats = markers.map((m) => m.latitude);
   const lngs = markers.map((m) => m.longitude);
@@ -116,7 +116,13 @@ export function ExplorerPage({ viewModel }: ExplorerPageProps) {
             role="img"
             aria-label={`Map preview of ${markers.length} destinations`}
           >
-            <rect x={0} y={0} width={MAP_WIDTH} height={MAP_HEIGHT} className="fill-surface-elevated" />
+            <rect
+              x={0}
+              y={0}
+              width={MAP_WIDTH}
+              height={MAP_HEIGHT}
+              className="fill-surface-elevated"
+            />
             {points.map((p) => (
               <circle key={p.marker.cityId} cx={p.x} cy={p.y} r={5} className="fill-primary" />
             ))}

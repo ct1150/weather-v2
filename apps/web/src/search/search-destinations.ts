@@ -57,10 +57,7 @@ const MIN_QUERY_LENGTH = 2;
 
 /** Normalize a string for matching: trim, collapse whitespace, lowercase. */
 function normalize(value: string): string {
-  return value
-    .trim()
-    .replace(/\s+/g, " ")
-    .toLowerCase();
+  return value.trim().replace(/\s+/g, " ").toLowerCase();
 }
 
 /** Classic Levenshtein edit distance (char-based, O(n·m)). */

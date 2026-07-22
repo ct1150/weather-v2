@@ -10,13 +10,7 @@
 // rather than rebuilding different code.
 
 import { createHash } from "node:crypto";
-import {
-  readdirSync,
-  readFileSync,
-  statSync,
-  writeFileSync,
-  mkdirSync,
-} from "node:fs";
+import { readdirSync, readFileSync, statSync, writeFileSync, mkdirSync } from "node:fs";
 import { dirname, join, relative, resolve, sep } from "node:path";
 import { pathToFileURL } from "node:url";
 
@@ -146,7 +140,10 @@ export function loadRecord(file) {
   try {
     return JSON.parse(readFileSync(file, "utf8"));
   } catch (e) {
-    throw new DeploymentError(`cannot read deployment record ${file}: ${e.message}`, "record_read_error");
+    throw new DeploymentError(
+      `cannot read deployment record ${file}: ${e.message}`,
+      "record_read_error",
+    );
   }
 }
 

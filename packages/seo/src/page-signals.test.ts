@@ -192,9 +192,7 @@ describe("SEO — structured data (SEO-STRUCTURED-001)", () => {
     expect(ok.valid).toBe(true);
     expect(ok.errors).toEqual([]);
 
-    const bad: JsonLdNode[] = [
-      { "@type": "Place", "@id": "x", apiKey: "secret-value" },
-    ];
+    const bad: JsonLdNode[] = [{ "@type": "Place", "@id": "x", apiKey: "secret-value" }];
     const result = validateJsonLd(bad, CANONICAL);
     expect(result.valid).toBe(false);
     expect(result.errors.some((e) => e.startsWith("forbidden_key"))).toBe(true);
@@ -300,14 +298,26 @@ describe("SEO — route rendering matrix (ARCH-RENDER-001)", () => {
 
   it("covers every matrix row with its exact mode and revalidation", () => {
     expect(Object.keys(ROUTE_RENDER_MATRIX).sort()).toEqual([...classes].sort());
-    expect(routeRenderMode("homepage")).toEqual({ mode: "ISR", revalidateSeconds: 3600, cacheable: true });
-    expect(routeRenderMode("article")).toEqual({ mode: "SSG", revalidateSeconds: null, cacheable: true });
+    expect(routeRenderMode("homepage")).toEqual({
+      mode: "ISR",
+      revalidateSeconds: 3600,
+      cacheable: true,
+    });
+    expect(routeRenderMode("article")).toEqual({
+      mode: "SSG",
+      revalidateSeconds: null,
+      cacheable: true,
+    });
     const explore = routeRenderMode("explore");
     expect(explore.mode).toBe("SSR");
     expect(explore.revalidateSeconds).toBe(3600);
     expect(explore.cacheable).toBe(true);
     expect(routeRenderMode("search").cacheable).toBe(false);
-    expect(routeRenderMode("admin")).toEqual({ mode: "Dynamic", revalidateSeconds: null, cacheable: false });
+    expect(routeRenderMode("admin")).toEqual({
+      mode: "Dynamic",
+      revalidateSeconds: null,
+      cacheable: false,
+    });
     expect(routeRenderMode("api").mode).toBe("Dynamic");
   });
 });

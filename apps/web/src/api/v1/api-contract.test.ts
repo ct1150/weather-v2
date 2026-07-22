@@ -97,12 +97,23 @@ describe("query-parameter validation", () => {
       ["theme", "beach"],
       ["window", "today"],
     ]);
-    expect(res).toEqual({ ok: true, value: [["theme", "beach"], ["window", "today"]] });
+    expect(res).toEqual({
+      ok: true,
+      value: [
+        ["theme", "beach"],
+        ["window", "today"],
+      ],
+    });
   });
 
   it("rejects unknown, duplicate, empty, bracket, and >20 inputs", () => {
     expect(validateQueryParameters(allowed, [["tracking", "x"]]).ok).toBe(false);
-    expect(validateQueryParameters(allowed, [["theme", "a"], ["theme", "b"]]).ok).toBe(false);
+    expect(
+      validateQueryParameters(allowed, [
+        ["theme", "a"],
+        ["theme", "b"],
+      ]).ok,
+    ).toBe(false);
     expect(validateQueryParameters(allowed, [["theme", ""]]).ok).toBe(false);
     expect(validateQueryParameters(allowed, [["theme[]", "a"]]).ok).toBe(false);
     const tooMany = Array.from({ length: 21 }, (_, i) => [`k${i}`, "v"] as const);
@@ -137,7 +148,7 @@ describe("map bounds canonicalization", () => {
   it("produces one canonical identity for equivalent decimal spellings", () => {
     const a = canonicalizeBounds(1.5, 2.5, 3.5, 4.5);
     const b = canonicalizeBounds(1.5, 2.5, 3.5, 4.5);
-    const c = canonicalizeBounds(1.500, 2.5000, 3.50, 4.500);
+    const c = canonicalizeBounds(1.5, 2.5, 3.5, 4.5);
     expect(a.ok && b.ok && c.ok).toBe(true);
     if (a.ok && b.ok && c.ok) {
       expect(a.value.canonicalString).toBe("1.500000,2.500000,3.500000,4.500000");
@@ -201,7 +212,9 @@ describe("request ID selection", () => {
     expect(generated).not.toBe("short");
     expect(generated).toMatch(/^[A-Za-z0-9_-]{8,128}$/);
     // UUIDv4 shape
-    expect(generated).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+    expect(generated).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
+    );
   });
 
   it("generates a UUIDv4", () => {
@@ -254,7 +267,9 @@ describe("envelope shapes", () => {
 
   it("builds an error envelope with code/message/requestId only", () => {
     const env = makeErrorEnvelope("CITY_NOT_FOUND", "City not found", "req-1");
-    expect(env).toEqual({ error: { code: "CITY_NOT_FOUND", message: "City not found", requestId: "req-1" } });
+    expect(env).toEqual({
+      error: { code: "CITY_NOT_FOUND", message: "City not found", requestId: "req-1" },
+    });
     expect(isErrorEnvelope(env)).toBe(true);
     expect(isSuccessEnvelope(env)).toBe(false);
     expect(Object.keys(env.error).sort()).toEqual(["code", "message", "requestId"]);
@@ -316,7 +331,10 @@ describe("weak ETag hash", () => {
   it("changes when coreData or identity changes", () => {
     const h1 = computeCoreHash(identity, coreData);
     const h2 = computeCoreHash(identity, { items: [{ rank: 2 }] });
-    const h3 = computeCoreHash({ snapshotId: "s2", rankingVersion: null, modelVersion: "m1" }, coreData);
+    const h3 = computeCoreHash(
+      { snapshotId: "s2", rankingVersion: null, modelVersion: "m1" },
+      coreData,
+    );
     expect(h1).not.toBe(h2);
     expect(h1).not.toBe(h3);
   });

@@ -7,13 +7,7 @@
 // non-empty https bound URL.
 
 import { resolve } from "node:path";
-import {
-  loadRecord,
-  computeArtifactId,
-  isMain,
-  parseArgs,
-  statSyncSafe,
-} from "./deploy-core.mjs";
+import { loadRecord, computeArtifactId, isMain, parseArgs, statSyncSafe } from "./deploy-core.mjs";
 
 /**
  * Verify the preview deployment serves the recorded artifact.

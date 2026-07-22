@@ -1,9 +1,9 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { createInMemoryD1, FakeFenceLock } from "@wnr/test-utils";
 import type { D1DatabaseLike, D1PreparedStatementLike } from "@wnr/test-utils";
-import { FakeWeatherProvider } from "@wnr/weather";
+import { FakeWeatherProvider, type WeatherProvider, type ForecastRequest } from "@wnr/weather";
 import { DEFAULT_RUNTIME_CONFIG } from "@wnr/config";
 import { runSync, LockHeldError, ProviderIngestionDisabledError, type SyncDeps } from "./sync.js";
 
@@ -12,7 +12,7 @@ const MIGRATION = readFileSync(
   "utf8",
 );
 
-const TS = "2026-07-20T00:00:00Z";
+const TS = "2026-07-20T00:00:00.000Z";
 
 let counter = 0;
 const makeId = (): string => `id-${++counter}`;
@@ -24,9 +24,16 @@ function disabledConfig() {
   return { ...DEFAULT_RUNTIME_CONFIG, weatherProvider: { enabled: false } };
 }
 
-async function seedCity(db: D1DatabaseLike, id: string, slug: string, featured: boolean): Promise<void> {
+async function seedCity(
+  db: D1DatabaseLike,
+  id: string,
+  slug: string,
+  featured: boolean,
+): Promise<void> {
   await db
-    .prepare("INSERT OR IGNORE INTO countries (id, iso2, iso3, default_timezone, slug, status, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?)")
+    .prepare(
+      "INSERT OR IGNORE INTO countries (id, iso2, iso3, default_timezone, slug, status, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?)",
+    )
     .bind("pt", "PT", "PRT", "Europe/Lisbon", "portugal", "active", TS, TS)
     .run();
   await db
@@ -90,25 +97,41 @@ describe("runSync — fenced ingestion and activation", () => {
   });
 
   it("bootstrap run activates, persists weather, and releases the lock", async () => {
-    const report = await runSync(deps, { now: () => new Date(TS), days: 7, startDate: "2026-07-20", makeSnapshotId: makeId });
+    const report = await runSync(deps, {
+      now: () => new Date(TS),
+      days: 7,
+      startDate: "2026-07-20",
+      makeSnapshotId: makeId,
+    });
 
     expect(report.status).toBe("success");
     expect(report.activated).toBe(true);
     expect(report.snapshotId).not.toBeNull();
     expect(report.citiesOk).toBe(2);
 
-    const state = (await db.prepare("SELECT bootstrapped FROM weather_publication_state WHERE state_key='weather'").first()) as { bootstrapped: number };
+    const state = (await db
+      .prepare("SELECT bootstrapped FROM weather_publication_state WHERE state_key='weather'")
+      .first()) as { bootstrapped: number };
     expect(state.bootstrapped).toBe(1);
 
-    const pointers = await db.prepare("SELECT snapshot_id FROM active_weather_snapshot WHERE pointer_key='weather'").all();
+    const pointers = await db
+      .prepare("SELECT snapshot_id FROM active_weather_snapshot WHERE pointer_key='weather'")
+      .all();
     expect(pointers.results).toHaveLength(1);
 
-    const daily = (await db.prepare("SELECT COUNT(*) AS c FROM weather_daily").first()) as { c: number };
+    const daily = (await db.prepare("SELECT COUNT(*) AS c FROM weather_daily").first()) as {
+      c: number;
+    };
     expect(daily.c).toBe(14); // 2 cities * 7 days
-    const hourly = (await db.prepare("SELECT COUNT(*) AS c FROM weather_hourly").first()) as { c: number };
+    const hourly = (await db.prepare("SELECT COUNT(*) AS c FROM weather_hourly").first()) as {
+      c: number;
+    };
     expect(hourly.c).toBe(14 * 24);
 
-    const run = (await db.prepare("SELECT status, cities_ok, cities_failed FROM sync_runs WHERE id=?").bind(report.runId).first()) as { status: string; cities_ok: number; cities_failed: number };
+    const run = (await db
+      .prepare("SELECT status, cities_ok, cities_failed FROM sync_runs WHERE id=?")
+      .bind(report.runId)
+      .first()) as { status: string; cities_ok: number; cities_failed: number };
     expect(run.status).toBe("success");
     expect(run.cities_ok).toBe(2);
 
@@ -117,17 +140,31 @@ describe("runSync — fenced ingestion and activation", () => {
   });
 
   it("replacement run keeps exactly one pointer and supersedes the old snapshot", async () => {
-    const first = await runSync(deps, { now: () => new Date(TS), days: 7, startDate: "2026-07-20", makeSnapshotId: makeId });
-    const second = await runSync(deps, { now: () => new Date(TS), days: 7, startDate: "2026-07-21", makeSnapshotId: makeId });
+    const first = await runSync(deps, {
+      now: () => new Date(TS),
+      days: 7,
+      startDate: "2026-07-20",
+      makeSnapshotId: makeId,
+    });
+    const second = await runSync(deps, {
+      now: () => new Date(TS),
+      days: 7,
+      startDate: "2026-07-21",
+      makeSnapshotId: makeId,
+    });
 
     expect(second.activated).toBe(true);
     expect(second.snapshotId).not.toBe(first.snapshotId);
 
-    const pointers = await db.prepare("SELECT snapshot_id FROM active_weather_snapshot WHERE pointer_key='weather'").all();
+    const pointers = await db
+      .prepare("SELECT snapshot_id FROM active_weather_snapshot WHERE pointer_key='weather'")
+      .all();
     expect(pointers.results).toHaveLength(1);
     expect((pointers.results[0] as { snapshot_id: string }).snapshot_id).toBe(second.snapshotId);
 
-    const snapshots = (await db.prepare("SELECT status, COUNT(*) AS c FROM weather_snapshots GROUP BY status").all()) as { results: ReadonlyArray<{ status: string; c: number }> };
+    const snapshots = (await db
+      .prepare("SELECT status, COUNT(*) AS c FROM weather_snapshots GROUP BY status")
+      .all()) as { results: ReadonlyArray<{ status: string; c: number }> };
     const byStatus = new Map(snapshots.results.map((r) => [r.status, r.c]));
     expect(byStatus.get("active")).toBe(1);
     expect(byStatus.get("superseded")).toBe(1);
@@ -176,21 +213,97 @@ describe("runSync — fenced ingestion and activation", () => {
     expect(report.snapshotId).toBeNull();
     expect(report.citiesFailed).toBe(1);
 
-    const state = (await db.prepare("SELECT bootstrapped FROM weather_publication_state WHERE state_key='weather'").first()) as { bootstrapped: number };
+    const state = (await db
+      .prepare("SELECT bootstrapped FROM weather_publication_state WHERE state_key='weather'")
+      .first()) as { bootstrapped: number };
     expect(state.bootstrapped).toBe(0);
 
-    const failures = (await db.prepare("SELECT COUNT(*) AS c FROM sync_failures WHERE run_id=?").bind(report.runId).first()) as { c: number };
+    const failures = (await db
+      .prepare("SELECT COUNT(*) AS c FROM sync_failures WHERE run_id=?")
+      .bind(report.runId)
+      .first()) as { c: number };
     expect(failures.c).toBe(1);
   });
 
   it("releases the lock even when activation fails mid-transaction", async () => {
     const failingDb = new FailingDb(db, (q) => q.includes("active_weather_snapshot"));
     await expect(
-      runSync({ ...deps, db: failingDb }, { now: () => new Date(TS), days: 7, startDate: "2026-07-20", makeSnapshotId: makeId }),
+      runSync(
+        { ...deps, db: failingDb },
+        { now: () => new Date(TS), days: 7, startDate: "2026-07-20", makeSnapshotId: makeId },
+      ),
     ).rejects.toThrow();
 
     // Lock must be released despite the failure.
     const reacquire = await lock.acquire("weather-sync", "recovery", 900000, Date.parse(TS));
     expect(reacquire.acquired).toBe(true);
+  });
+
+  it("writes the KV 'sync-health' record after a successful activation", async () => {
+    // Provider that reports id 'open-meteo' without contacting the network.
+    const openMeteoLike = {
+      id: "open-meteo",
+      async fetchForecast(req: ForecastRequest) {
+        return new FakeWeatherProvider().fetchForecast(req);
+      },
+      async healthCheck() {
+        return { ok: true, providerId: "open-meteo", latencyMs: 0, checkedAt: TS };
+      },
+    } as unknown as WeatherProvider;
+
+    const kvWrites: Record<string, string> = {};
+    const kv = {
+      put: vi.fn(async (key: string, value: string) => {
+        kvWrites[key] = value;
+        return undefined;
+      }),
+    };
+
+    const report = await runSync(
+      { ...deps, provider: openMeteoLike, kv },
+      { now: () => new Date(TS), days: 7, startDate: "2026-07-20", makeSnapshotId: makeId },
+    );
+
+    expect(report.status).toBe("success");
+    expect(report.activated).toBe(true);
+    expect(kv.put).toHaveBeenCalledTimes(1);
+
+    const health = JSON.parse(kvWrites["sync-health"] ?? "{}") as {
+      status: string;
+      provider: string;
+      lastSuccessAt: string;
+    };
+    expect(health.status).toBe("ok");
+    expect(health.provider).toBe("open-meteo");
+    expect(health.lastSuccessAt).toBe(TS);
+  });
+
+  it("records provider='open-meteo' in sync_runs and weather_snapshots", async () => {
+    const openMeteoLike = {
+      id: "open-meteo",
+      async fetchForecast(req: ForecastRequest) {
+        return new FakeWeatherProvider().fetchForecast(req);
+      },
+      async healthCheck() {
+        return { ok: true, providerId: "open-meteo", latencyMs: 0, checkedAt: TS };
+      },
+    } as unknown as WeatherProvider;
+
+    const report = await runSync(
+      { ...deps, provider: openMeteoLike },
+      { now: () => new Date(TS), days: 7, startDate: "2026-07-20", makeSnapshotId: makeId },
+    );
+
+    const run = (await db
+      .prepare("SELECT provider FROM sync_runs WHERE id = ?")
+      .bind(report.runId)
+      .first()) as { provider: string };
+    expect(run.provider).toBe("open-meteo");
+
+    const snap = (await db
+      .prepare("SELECT provider FROM weather_snapshots WHERE id = ?")
+      .bind(report.snapshotId)
+      .first()) as { provider: string };
+    expect(snap.provider).toBe("open-meteo");
   });
 });

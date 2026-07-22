@@ -24,12 +24,7 @@ import { isAffiliateEnabled, type RuntimeConfig } from "@wnr/config";
 
 /** Commercial categories (GROW-AFF-001 / GROW-ADS-001). */
 export type CommercialCategory =
-  | "hotel"
-  | "activities"
-  | "flights"
-  | "sim"
-  | "insurance"
-  | "car_rental";
+  "hotel" | "activities" | "flights" | "sim" | "insurance" | "car_rental";
 
 /** The five canonical ad placements (GROW-ADS-001). */
 export type Placement = "homepage" | "city_page" | "article" | "sidebar" | "between_sections";
@@ -109,8 +104,7 @@ export interface ResolvedAffiliateLink {
 }
 
 type HrefParse =
-  | { readonly ok: true; readonly href: string }
-  | { readonly ok: false; readonly reason: string };
+  { readonly ok: true; readonly href: string } | { readonly ok: false; readonly reason: string };
 
 /**
  * Validate a candidate outbound href against the provider allowlist
@@ -119,10 +113,7 @@ type HrefParse =
  * and a path that matches an approved prefix (or host root). Caller
  * -supplied arbitrary redirect targets are rejected.
  */
-export function parseAffiliateHref(
-  href: string,
-  provider: AffiliateProviderConfig,
-): HrefParse {
+export function parseAffiliateHref(href: string, provider: AffiliateProviderConfig): HrefParse {
   let url: URL;
   try {
     url = new URL(href);
@@ -139,9 +130,7 @@ export function parseAffiliateHref(
   const path = url.pathname;
   const prefixes = provider.allowedPathPrefixes;
   const pathOk =
-    prefixes.length === 0 ||
-    path === "/" ||
-    prefixes.some((p) => path === p || path.startsWith(p));
+    prefixes.length === 0 || path === "/" || prefixes.some((p) => path === p || path.startsWith(p));
   if (!pathOk) {
     return { ok: false, reason: "path_not_approved" };
   }

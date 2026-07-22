@@ -9,13 +9,7 @@
 
 import { existsSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
-import {
-  loadRecord,
-  saveRecord,
-  DeploymentError,
-  isMain,
-  parseArgs,
-} from "./deploy-core.mjs";
+import { loadRecord, saveRecord, DeploymentError, isMain, parseArgs } from "./deploy-core.mjs";
 
 const MIGRATIONS_DIR = resolve(process.cwd(), "packages/db/migrations");
 

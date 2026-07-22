@@ -27,7 +27,12 @@ import type {
   WeatherSummaryViewModel,
 } from "./view-models";
 
-function link(cityId: string, cityName: string, countryName: string, path: string): DestinationLinkViewModel {
+function link(
+  cityId: string,
+  cityName: string,
+  countryName: string,
+  path: string,
+): DestinationLinkViewModel {
   return { cityId, countrySlug: "", citySlug: "", cityName, countryName, path };
 }
 
@@ -48,12 +53,18 @@ function countryFixture(state: CountryPageViewModel["state"] = "ready"): Country
     {
       theme: "beach",
       title: "Best beach escapes",
-      items: [link("TYO", "Tokyo", "Japan", "/jp/tokyo"), link("OSA", "Osaka", "Japan", "/jp/osaka")],
+      items: [
+        link("TYO", "Tokyo", "Japan", "/jp/tokyo"),
+        link("OSA", "Osaka", "Japan", "/jp/osaka"),
+      ],
     },
   ];
   return {
     country: countryHeader(),
-    cities: [link("TYO", "Tokyo", "Japan", "/jp/tokyo"), link("OSA", "Osaka", "Japan", "/jp/osaka")],
+    cities: [
+      link("TYO", "Tokyo", "Japan", "/jp/tokyo"),
+      link("OSA", "Osaka", "Japan", "/jp/osaka"),
+    ],
     rankings,
     relatedLinks: [link("SEL", "Seoul", "South Korea", "/kr/seoul")],
     state,

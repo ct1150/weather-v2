@@ -38,8 +38,8 @@ export function TravelRadarPage({ viewModel, windowControls }: TravelRadarPagePr
     <main className="mx-auto max-w-5xl px-4 py-8">
       <h1 className="text-3xl font-semibold text-foreground">Where is NOT raining?</h1>
       <p className="mt-2 max-w-2xl text-body text-muted">
-        Deterministic travel recommendations from the latest successfully activated weather and Travel
-        Score data.
+        Deterministic travel recommendations from the latest successfully activated weather and
+        Travel Score data.
       </p>
 
       <nav aria-label="Time window" className="mt-6 flex flex-wrap gap-2">
@@ -102,14 +102,21 @@ export function TravelRadarPage({ viewModel, windowControls }: TravelRadarPagePr
                     <div>
                       <dt className="text-caption text-muted">Temperature</dt>
                       <dd className="font-medium">
-                        {card.weather.temperatureMin !== null ? `${card.weather.temperatureMin}°` : "–"} /{" "}
-                        {card.weather.temperatureMax !== null ? `${card.weather.temperatureMax}°` : "–"}
+                        {card.weather.temperatureMin !== null
+                          ? `${card.weather.temperatureMin}°`
+                          : "–"}{" "}
+                        /{" "}
+                        {card.weather.temperatureMax !== null
+                          ? `${card.weather.temperatureMax}°`
+                          : "–"}
                       </dd>
                     </div>
                     <div>
                       <dt className="text-caption text-muted">Rain chance</dt>
                       <dd className="font-medium">
-                        {card.weather.rainProbability !== null ? `${card.weather.rainProbability}%` : "—"}
+                        {card.weather.rainProbability !== null
+                          ? `${card.weather.rainProbability}%`
+                          : "—"}
                       </dd>
                     </div>
                   </dl>
@@ -141,8 +148,8 @@ export function TravelRadarPage({ viewModel, windowControls }: TravelRadarPagePr
       ) : null}
 
       <footer className="mt-12 border-t border-border pt-6 text-caption text-muted">
-        Recommendations use the latest activated weather and Travel Score; stale results remain usable but
-        are labeled.
+        Recommendations use the latest activated weather and Travel Score; stale results remain
+        usable but are labeled.
       </footer>
     </main>
   );

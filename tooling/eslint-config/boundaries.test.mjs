@@ -24,9 +24,7 @@ import path from "node:path";
 const ROOT = process.cwd();
 
 // --- Extract the boundaries/element-types policy from the real config -------------------
-const boundaryConfig = eslintConfig.find(
-  (c) => c.rules && c.rules["boundaries/element-types"]
-);
+const boundaryConfig = eslintConfig.find((c) => c.rules && c.rules["boundaries/element-types"]);
 const elementTypesRule = boundaryConfig.rules["boundaries/element-types"];
 const policy = elementTypesRule[1];
 const allowFor = (t) => policy.rules.find((r) => r.from === t)?.allow ?? [];
@@ -50,7 +48,7 @@ test("provider adapter is isolated to a single file and is classified first", ()
   // the provider-adapter type instead of package.
   assert.ok(
     elements.indexOf(pa) < elements.findIndex((e) => e.type === "package"),
-    "provider-adapter must precede package in the elements array"
+    "provider-adapter must precede package in the elements array",
   );
 });
 
@@ -67,11 +65,20 @@ test("import resolution enforces boundaries on real fixtures", async () => {
   write("packages/weather/src/provider.ts", 'import x from "../../db/src/index.ts";\n');
   write("packages/db/src/index.ts", "export {};\n");
   // app importing provider-adapter — FORBIDDEN.
-  const badFile = write("apps/web/src/bad.ts", 'import x from "../../../packages/weather/src/provider.ts";\n');
+  const badFile = write(
+    "apps/web/src/bad.ts",
+    'import x from "../../../packages/weather/src/provider.ts";\n',
+  );
   // app importing a normal package (db) — allowed.
-  const goodFile = write("apps/web/src/good.ts", 'import x from "../../../packages/db/src/index.ts";\n');
+  const goodFile = write(
+    "apps/web/src/good.ts",
+    'import x from "../../../packages/db/src/index.ts";\n',
+  );
   // worker importing provider-adapter — allowed (the ONLY permitted path).
-  const syncFile = write("workers/weather-sync/src/sync.ts", 'import x from "../../../packages/weather/src/provider.ts";\n');
+  const syncFile = write(
+    "workers/weather-sync/src/sync.ts",
+    'import x from "../../../packages/weather/src/provider.ts";\n',
+  );
 
   const eslint = new ESLint({
     overrideConfigFile: path.join(ROOT, "tooling/eslint-config/index.js"),
@@ -91,10 +98,14 @@ test("import resolution enforces boundaries on real fixtures", async () => {
 
   assert.ok(
     bad.some((m) => /provider-adapter/.test(m)),
-    `app importing provider-adapter must be rejected, got: ${JSON.stringify(bad)}`
+    `app importing provider-adapter must be rejected, got: ${JSON.stringify(bad)}`,
   );
   assert.equal(good.length, 0, `app importing db must be allowed, got: ${JSON.stringify(good)}`);
-  assert.equal(sync.length, 0, `worker importing provider must be allowed, got: ${JSON.stringify(sync)}`);
+  assert.equal(
+    sync.length,
+    0,
+    `worker importing provider must be allowed, got: ${JSON.stringify(sync)}`,
+  );
 
   fs.rmSync(tmp, { recursive: true, force: true });
 });

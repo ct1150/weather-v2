@@ -40,7 +40,11 @@ export type AsyncState<T> =
       readonly reason: "no-match" | "unavailable";
       readonly action?: UiAction;
     }
-  | { readonly kind: "partial"; readonly data: T; readonly unavailableFields: ReadonlyArray<string> }
+  | {
+      readonly kind: "partial";
+      readonly data: T;
+      readonly unavailableFields: ReadonlyArray<string>;
+    }
   | { readonly kind: "stale"; readonly data: T; readonly updatedAt: string }
   | { readonly kind: "error"; readonly code: string; readonly retry?: RetryAction }
   | { readonly kind: "offline"; readonly retained?: T }
@@ -222,11 +226,7 @@ export function AsyncStateRegion<T>(props: AsyncStateRegionProps<T>): JSX.Elemen
       content = createElement(
         Fragment,
         null,
-        createElement(
-          "div",
-          { "data-state": "stale", className: "text-body" },
-          render(state.data),
-        ),
+        createElement("div", { "data-state": "stale", className: "text-body" }, render(state.data)),
         createElement(
           "p",
           { className: "text-caption text-warning" },

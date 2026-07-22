@@ -2,3 +2,4 @@
 // Sits at the bottom of the dependency graph (SPEC §7.3): imports no
 // Next.js, Cloudflare SDK, or provider DTO code.
 export * from "./score/travel-score.js";
+export * from "./weather-code.js";

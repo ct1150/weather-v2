@@ -71,16 +71,16 @@ describe("performRollback", () => {
 
   it("is fail-closed when the previous artifact cannot be loaded", async () => {
     const ports = basePorts({ loadArtifact: async () => null });
-    await expect(
-      performRollback(baseState(), ports, { trigger: "x" }),
-    ).rejects.toBeInstanceOf(RollbackImpossibleError);
+    await expect(performRollback(baseState(), ports, { trigger: "x" })).rejects.toBeInstanceOf(
+      RollbackImpossibleError,
+    );
   });
 
   it("is fail-closed when the schema is not backward-compatible", async () => {
     const ports = basePorts({ isSchemaBackwardCompatible: () => false });
-    await expect(
-      performRollback(baseState(), ports, { trigger: "x" }),
-    ).rejects.toBeInstanceOf(RollbackRejectedError);
+    await expect(performRollback(baseState(), ports, { trigger: "x" })).rejects.toBeInstanceOf(
+      RollbackRejectedError,
+    );
   });
 
   it("disables a faulty optional integration independently without losing core data", async () => {

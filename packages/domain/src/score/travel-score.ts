@@ -102,7 +102,10 @@ function rainAmountFactor(m: number): number {
 }
 
 /** Rain factor: min(100 - probabilityPct, rainAmountFactor). Missing when either input is invalid. */
-export function rainFactor(probabilityPct: number | null | undefined, precipitationMm: number | null | undefined): number | null {
+export function rainFactor(
+  probabilityPct: number | null | undefined,
+  precipitationMm: number | null | undefined,
+): number | null {
   if (!inRange(probabilityPct, 0, 100) || !nonNegative(precipitationMm)) return null;
   return Math.min(100 - probabilityPct, rainAmountFactor(precipitationMm));
 }
@@ -153,7 +156,10 @@ export function windGustFactor(g: number | null | undefined): number | null {
   return 0;
 }
 
-export function windFactor(speedKph: number | null | undefined, gustKph: number | null | undefined): number | null {
+export function windFactor(
+  speedKph: number | null | undefined,
+  gustKph: number | null | undefined,
+): number | null {
   const speed = windSpeedFactor(speedKph);
   const gust = windGustFactor(gustKph);
   if (speed == null || gust == null) return null;
@@ -210,11 +216,27 @@ export function calculateTravelScore(input: TravelScoreInput): TravelScoreResult
     readonly value: number | null;
     readonly weight: number;
   }> = [
-    { name: "rain", value: rainFactor(row.precipitationProbability, row.precipitationMm), weight: GENERAL_WEIGHTS.rain },
-    { name: "temperature", value: temperatureFactor(row.temperatureC), weight: GENERAL_WEIGHTS.temperature },
-    { name: "comfort", value: comfortFactor(row.apparentTemperatureC), weight: GENERAL_WEIGHTS.comfort },
+    {
+      name: "rain",
+      value: rainFactor(row.precipitationProbability, row.precipitationMm),
+      weight: GENERAL_WEIGHTS.rain,
+    },
+    {
+      name: "temperature",
+      value: temperatureFactor(row.temperatureC),
+      weight: GENERAL_WEIGHTS.temperature,
+    },
+    {
+      name: "comfort",
+      value: comfortFactor(row.apparentTemperatureC),
+      weight: GENERAL_WEIGHTS.comfort,
+    },
     { name: "humidity", value: humidityFactor(row.humidity), weight: GENERAL_WEIGHTS.humidity },
-    { name: "wind", value: windFactor(row.windSpeedKph, row.windGustKph), weight: GENERAL_WEIGHTS.wind },
+    {
+      name: "wind",
+      value: windFactor(row.windSpeedKph, row.windGustKph),
+      weight: GENERAL_WEIGHTS.wind,
+    },
     { name: "uv", value: uvFactor(row.uvIndex), weight: GENERAL_WEIGHTS.uv },
     { name: "cloud", value: cloudFactor(row.cloudCover), weight: GENERAL_WEIGHTS.cloud },
   ];

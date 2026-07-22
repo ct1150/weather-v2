@@ -165,7 +165,11 @@ function validateCity(city: CityCanonical): void {
     throw new GeographyValidationError("isFeatured", "must be a boolean");
   if (!CITY_STATUSES.includes(city.status))
     throw new GeographyValidationError("status", "unsupported city status");
-  if (typeof city.searchWeight !== "number" || !Number.isFinite(city.searchWeight) || city.searchWeight <= 0)
+  if (
+    typeof city.searchWeight !== "number" ||
+    !Number.isFinite(city.searchWeight) ||
+    city.searchWeight <= 0
+  )
     throw new GeographyValidationError("searchWeight", "must be a positive number");
   if (typeof city.createdAt !== "string" || !city.createdAt)
     throw new GeographyValidationError("createdAt", "required ISO timestamp");
@@ -285,14 +289,26 @@ export class GeographyRepository {
     for (const t of translations) {
       validateCountryTranslation(t);
       if (t.countryId !== country.id)
-        throw new GeographyValidationError("countryId", "translation must reference the inserted country");
+        throw new GeographyValidationError(
+          "countryId",
+          "translation must reference the inserted country",
+        );
     }
     await this.db
       .prepare(
         "INSERT INTO countries (id, iso2, iso3, default_timezone, slug, status, created_at, updated_at) " +
           "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
       )
-      .bind(country.id, country.iso2, country.iso3, country.defaultTimezone, country.slug, country.status, country.createdAt, country.updatedAt)
+      .bind(
+        country.id,
+        country.iso2,
+        country.iso3,
+        country.defaultTimezone,
+        country.slug,
+        country.status,
+        country.createdAt,
+        country.updatedAt,
+      )
       .run();
     for (const t of translations) {
       await this.db
@@ -313,7 +329,10 @@ export class GeographyRepository {
     for (const t of translations) {
       validateCityTranslation(t);
       if (t.cityId !== city.id)
-        throw new GeographyValidationError("cityId", "translation must reference the inserted city");
+        throw new GeographyValidationError(
+          "cityId",
+          "translation must reference the inserted city",
+        );
     }
     await this.db
       .prepare(
@@ -357,10 +376,7 @@ export class GeographyRepository {
   }
 
   async getCountryBySlug(slug: string): Promise<CountryCanonical | null> {
-    const row = await this.db
-      .prepare("SELECT * FROM countries WHERE slug = ?")
-      .bind(slug)
-      .first();
+    const row = await this.db.prepare("SELECT * FROM countries WHERE slug = ?").bind(slug).first();
     return row == null ? null : mapCountryRow(row as Record<string, unknown>);
   }
 
@@ -372,7 +388,10 @@ export class GeographyRepository {
     return row == null ? null : mapCityRow(row as Record<string, unknown>);
   }
 
-  async getCountryTranslation(countryId: string, locale: string): Promise<CountryTranslation | null> {
+  async getCountryTranslation(
+    countryId: string,
+    locale: string,
+  ): Promise<CountryTranslation | null> {
     const row = await this.db
       .prepare("SELECT * FROM country_translations WHERE country_id = ? AND locale = ?")
       .bind(countryId, locale)

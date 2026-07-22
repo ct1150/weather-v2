@@ -52,7 +52,10 @@ export function percentile(sortedAsc, p) {
 /** 75th percentile of a metric sample set. */
 export function computeP75(values) {
   if (values.length === 0) return NaN;
-  return percentile([...values].sort((a, b) => a - b), 0.75);
+  return percentile(
+    [...values].sort((a, b) => a - b),
+    0.75,
+  );
 }
 
 /**

@@ -109,7 +109,10 @@ describe("GeographyRepository — canonical + localized persistence", () => {
     const country = await repo.getCountryBySlug("portugal");
     expect(country?.id).toBe("pt");
     expect(country?.iso2).toBe("PT");
-    expect(await repo.getCountryTranslation("pt", "en")).toMatchObject({ name: "Portugal", locale: "en" });
+    expect(await repo.getCountryTranslation("pt", "en")).toMatchObject({
+      name: "Portugal",
+      locale: "en",
+    });
   });
 
   it("round-trips a city and its localized name + aliases by slug", async () => {
@@ -201,11 +204,18 @@ describe("GeographyRepository — validation rejects bad data before persistence
     await repo.insertCountry(makeCountry(), [{ countryId: "pt", locale: "en", name: "Portugal" }]);
     const city = makeCity();
     await expect(
-      repo.insertCity(city, [{ cityId: "lisbon", locale: "en", name: "Lisbon", aliases: ["x"] as unknown as string[] }]),
+      repo.insertCity(city, [
+        { cityId: "lisbon", locale: "en", name: "Lisbon", aliases: ["x"] as unknown as string[] },
+      ]),
     ).resolves.toBeUndefined();
     // Directly corrupt the stored JSON to prove the parser rejects malformed content.
-    await db.prepare("UPDATE city_translations SET aliases_json = ? WHERE city_id = ?").bind("{bad", "lisbon").run();
-    await expect(repo.getCityTranslation("lisbon", "en")).rejects.toBeInstanceOf(GeographyValidationError);
+    await db
+      .prepare("UPDATE city_translations SET aliases_json = ? WHERE city_id = ?")
+      .bind("{bad", "lisbon")
+      .run();
+    await expect(repo.getCityTranslation("lisbon", "en")).rejects.toBeInstanceOf(
+      GeographyValidationError,
+    );
   });
 
   it("rejects a non-ASCII slug", async () => {

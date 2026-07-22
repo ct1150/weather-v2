@@ -13,7 +13,7 @@
 
 import { FakeWeatherProvider } from "@wnr/weather";
 import type { NormalizedDaily } from "@wnr/weather";
-import { calculateTravelScore } from "@wnr/domain";
+import { calculateTravelScore, describeWeatherCode } from "@wnr/domain";
 import type { TravelScoreInput, WeatherRow } from "@wnr/domain";
 import { computeStale } from "../api/v1/schemas";
 import type { Locale, Window, Theme, LocalDate, ReasonCode } from "../api/v1/schemas";
@@ -104,23 +104,10 @@ export function computeCityScore(day: NormalizedDaily, modelVersion: string): Ci
   return calculateTravelScore(input);
 }
 
-/** Human-readable condition label from a normalized weather code (0..3). */
-function conditionLabel(code: number | null): string {
-  switch (code) {
-    case 3:
-      return "Rain";
-    case 2:
-      return "Cloudy";
-    case 1:
-      return "Partly cloudy";
-    default:
-      return "Clear";
-  }
-}
-
+/** Human-readable condition label from a normalized WMO weather code. */
 function weatherSummary(day: NormalizedDaily): WeatherSummaryViewModel {
   return {
-    conditionLabel: conditionLabel(day.weatherCode),
+    conditionLabel: describeWeatherCode(day.weatherCode).label,
     temperatureMin: day.tempMinC,
     temperatureMax: day.tempMaxC,
     rainProbability: day.precipitationProbabilityMax,
@@ -247,10 +234,7 @@ const WINDOW_LABELS: Record<Window, string> = {
   next_week: "Next week",
 };
 
-const MONTHS = [
-  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
-];
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 /** "YYYY-MM-DD" -> "Mon D" for window-control labels. */
 function shortDate(localDate: LocalDate): string {
@@ -351,7 +335,8 @@ export function projectCountry(
   locale: Locale,
 ): CountryPageViewModel {
   const country = dataset.countries.find((c) => c.slug === countrySlug);
-  const countryCities = country === undefined ? [] : dataset.citiesByCountry.get(country.id) ?? [];
+  const countryCities =
+    country === undefined ? [] : (dataset.citiesByCountry.get(country.id) ?? []);
 
   const cityLinks = countryCities.map((b) => destinationLink(b.city, b.country, locale));
 
@@ -377,7 +362,13 @@ export function projectCountry(
         summary: null,
         defaultTimezone: country.defaultTimezone,
       }
-    : { countryId: "", slug: countrySlug, name: countrySlug, summary: null, defaultTimezone: "UTC" };
+    : {
+        countryId: "",
+        slug: countrySlug,
+        name: countrySlug,
+        summary: null,
+        defaultTimezone: "UTC",
+      };
 
   return {
     country: header,
@@ -423,11 +414,12 @@ export function projectCity(
         longitude: 0,
       };
 
-  const relatedLinks = country === undefined
-    ? []
-    : (dataset.citiesByCountry.get(country.id) ?? [])
-        .filter((b) => baked !== undefined && b.city.id !== baked.city.id)
-        .map((b) => destinationLink(b.city, b.country, locale));
+  const relatedLinks =
+    country === undefined
+      ? []
+      : (dataset.citiesByCountry.get(country.id) ?? [])
+          .filter((b) => baked !== undefined && b.city.id !== baked.city.id)
+          .map((b) => destinationLink(b.city, b.country, locale));
 
   return {
     city: header,

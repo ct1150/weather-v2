@@ -24,9 +24,23 @@ const MODEL_VERSION = "mv1";
 
 /** Owner-aware fence lock port. Mirrors the D1 sync_locks contract (DATA-OPERATIONS-001). */
 export interface FenceLock {
-  acquire(key: string, holder: string, ttlMs: number, nowMs: number): Promise<{ acquired: boolean; token: number }>;
+  acquire(
+    key: string,
+    holder: string,
+    ttlMs: number,
+    nowMs: number,
+  ): Promise<{ acquired: boolean; token: number }>;
   release(key: string, holder: string, token: number): Promise<boolean>;
   getToken(key: string): number;
+}
+
+/**
+ * Narrow KV binding port used for the "sync health" signal. Mirrors the Cloudflare
+ * KV `put` shape we rely on (a single string value per key, namespaced per environment).
+ * Optional: when absent (e.g. local/preview without a binding) the health write is skipped.
+ */
+export interface KVNamespaceLike {
+  put(key: string, value: string): Promise<unknown>;
 }
 
 export interface EnabledCity {
@@ -43,6 +57,8 @@ export interface SyncDeps {
   readonly provider: WeatherProvider;
   readonly lock: FenceLock;
   readonly config: RuntimeConfig;
+  /** Optional KV binding for the "sync health" signal (preview/production isolated). */
+  readonly kv?: KVNamespaceLike;
 }
 
 export interface SyncOptions {
@@ -100,7 +116,9 @@ function asNumber(value: unknown, field: string): number {
 
 async function readEnabledCities(db: D1DatabaseLike): Promise<ReadonlyArray<EnabledCity>> {
   const res = await db
-    .prepare("SELECT id, slug, latitude, longitude, timezone, is_featured FROM cities WHERE status = 'active'")
+    .prepare(
+      "SELECT id, slug, latitude, longitude, timezone, is_featured FROM cities WHERE status = 'active'",
+    )
     .all();
   const rows = res.results as ReadonlyArray<Record<string, unknown>>;
   return rows.map((r) => ({
@@ -114,9 +132,9 @@ async function readEnabledCities(db: D1DatabaseLike): Promise<ReadonlyArray<Enab
 }
 
 async function isBootstrapped(db: D1DatabaseLike): Promise<boolean> {
-  const row = (await db.prepare("SELECT bootstrapped FROM weather_publication_state WHERE state_key = 'weather'").first()) as
-    | { bootstrapped: number }
-    | null;
+  const row = (await db
+    .prepare("SELECT bootstrapped FROM weather_publication_state WHERE state_key = 'weather'")
+    .first()) as { bootstrapped: number } | null;
   return row != null && row.bootstrapped === 1;
 }
 
@@ -125,6 +143,7 @@ async function insertRun(
   runId: string,
   startedAt: string,
   status: string,
+  providerId: string,
   enabledCount: number,
   featuredCount: number,
 ): Promise<void> {
@@ -132,9 +151,9 @@ async function insertRun(
     .prepare(
       "INSERT INTO sync_runs (id, started_at, finished_at, status, provider, provider_switched, " +
         "enabled_cities_at_start, featured_cities_at_start, cities_ok, cities_failed, duration_ms) " +
-        "VALUES (?, ?, NULL, ?, 'fake', 0, ?, ?, 0, 0, NULL)",
+        "VALUES (?, ?, NULL, ?, ?, 0, ?, ?, 0, 0, NULL)",
     )
-    .bind(runId, startedAt, status, enabledCount, featuredCount)
+    .bind(runId, startedAt, status, providerId, enabledCount, featuredCount)
     .run();
 }
 
@@ -266,6 +285,7 @@ async function persistCandidate(
   validFrom: string,
   validTo: string,
   checksum: string,
+  providerId: string,
   dailyRows: ReadonlyArray<PendingRow>,
   hourlyRows: ReadonlyArray<{ readonly cityId: string; readonly hour: NormalizedHourly }>,
 ): Promise<void> {
@@ -274,9 +294,9 @@ async function persistCandidate(
     await db
       .prepare(
         "INSERT INTO weather_snapshots (id, provider, fetched_at, valid_from, valid_to, status, checksum, created_at) " +
-          "VALUES (?, 'fake', ?, ?, ?, 'pending', ?, ?)",
+          "VALUES (?, ?, ?, ?, ?, 'pending', ?, ?)",
       )
-      .bind(snapshotId, nowIso, validFrom, validTo, checksum, nowIso)
+      .bind(snapshotId, providerId, nowIso, validFrom, validTo, checksum, nowIso)
       .run();
     for (const { cityId, day } of dailyRows) await insertDaily(db, snapshotId, cityId, day);
     for (const { cityId, hour } of hourlyRows) await insertHourly(db, snapshotId, cityId, hour);
@@ -297,7 +317,10 @@ async function activate(
   await db.exec("BEGIN IMMEDIATE;");
   try {
     if (!bootstrapped) {
-      await db.prepare("UPDATE weather_snapshots SET status = 'active' WHERE id = ?").bind(snapshotId).run();
+      await db
+        .prepare("UPDATE weather_snapshots SET status = 'active' WHERE id = ?")
+        .bind(snapshotId)
+        .run();
       await db
         .prepare(
           "INSERT INTO active_weather_snapshot (pointer_key, snapshot_id, ranking_version, model_version, " +
@@ -306,7 +329,9 @@ async function activate(
         .bind(snapshotId, RANKING_VERSION, MODEL_VERSION, token, nowIso, nowIso)
         .run();
       await db
-        .prepare("UPDATE weather_publication_state SET bootstrapped = 1, updated_at = ? WHERE state_key = 'weather'")
+        .prepare(
+          "UPDATE weather_publication_state SET bootstrapped = 1, updated_at = ? WHERE state_key = 'weather'",
+        )
         .bind(nowIso)
         .run();
     } else {
@@ -316,7 +341,10 @@ async function activate(
             "SELECT snapshot_id FROM active_weather_snapshot WHERE pointer_key = 'weather')",
         )
         .run();
-      await db.prepare("UPDATE weather_snapshots SET status = 'active' WHERE id = ?").bind(snapshotId).run();
+      await db
+        .prepare("UPDATE weather_snapshots SET status = 'active' WHERE id = ?")
+        .bind(snapshotId)
+        .run();
       await db
         .prepare(
           "UPDATE active_weather_snapshot SET snapshot_id = ?, ranking_version = ?, model_version = ?, " +
@@ -361,7 +389,15 @@ export async function runSync(deps: SyncDeps, options: SyncOptions = {}): Promis
   try {
     const cities = await readEnabledCities(deps.db);
     const featured = cities.filter((c) => c.isFeatured);
-    await insertRun(deps.db, runId, nowIso, "running", cities.length, featured.length);
+    await insertRun(
+      deps.db,
+      runId,
+      nowIso,
+      "running",
+      deps.provider.id,
+      cities.length,
+      featured.length,
+    );
     await insertRunScope(deps.db, runId, cities);
 
     const days = options.days ?? 7;
@@ -402,7 +438,15 @@ export async function runSync(deps: SyncDeps, options: SyncOptions = {}): Promis
     if (citiesOk === 0 || featuredFailed) {
       const status: "failed" | "partial" = citiesOk === 0 ? "failed" : "partial";
       await updateRun(deps.db, runId, nowIso, status, citiesOk, citiesFailed, 0, 0);
-      return { runId, status, snapshotId: null, citiesOk, citiesFailed, activated: false, fencingToken: token };
+      return {
+        runId,
+        status,
+        snapshotId: null,
+        citiesOk,
+        citiesFailed,
+        activated: false,
+        fencingToken: token,
+      };
     }
 
     const snapshotId = makeId();
@@ -415,6 +459,7 @@ export async function runSync(deps: SyncDeps, options: SyncOptions = {}): Promis
       nowIso,
       validToDate.toISOString(),
       checksum,
+      deps.provider.id,
       dailyRows,
       hourlyRows,
     );
@@ -422,11 +467,37 @@ export async function runSync(deps: SyncDeps, options: SyncOptions = {}): Promis
     const bootstrapped = await isBootstrapped(deps.db);
     await activate(deps.db, snapshotId, nowIso, bootstrapped, token);
 
+    // Write the (environment-isolated) KV "sync health" signal only after a successful
+    // activation. Skipped when no KV binding is present (e.g. local/preview without one).
+    if (deps.kv) {
+      await deps.kv.put(
+        "sync-health",
+        JSON.stringify({ lastSuccessAt: nowIso, provider: deps.provider.id, status: "ok" }),
+      );
+    }
+
     const valid7 = cities.filter((c) => validCityIds.has(c.id) && days >= 7).length;
     const featuredValid = featured.filter((c) => validCityIds.has(c.id)).length;
-    await updateRun(deps.db, runId, nowIso, "success", citiesOk, citiesFailed, valid7, featuredValid);
+    await updateRun(
+      deps.db,
+      runId,
+      nowIso,
+      "success",
+      citiesOk,
+      citiesFailed,
+      valid7,
+      featuredValid,
+    );
 
-    return { runId, status: "success", snapshotId, citiesOk, citiesFailed, activated: true, fencingToken: token };
+    return {
+      runId,
+      status: "success",
+      snapshotId,
+      citiesOk,
+      citiesFailed,
+      activated: true,
+      fencingToken: token,
+    };
   } catch (err) {
     try {
       await updateRun(deps.db, runId, nowIso, "failed", 0, 0, 0, 0);

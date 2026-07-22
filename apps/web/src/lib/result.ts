@@ -26,11 +26,7 @@ export function ok<T>(value: T): ApplicationResult<T> {
 }
 
 /** Construct a failed result with a stable error code. */
-export function fail(
-  code: string,
-  message: string,
-  requestId?: string,
-): ApplicationResult<never> {
+export function fail(code: string, message: string, requestId?: string): ApplicationResult<never> {
   const error: { code: string; message: string; requestId?: string } = { code, message };
   if (requestId !== undefined) error.requestId = requestId;
   return { ok: false, error };

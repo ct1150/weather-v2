@@ -1,0 +1,52 @@
+# Cloudflare Worker — Where Not Rain weather-sync (PRD-INC-001 / 002 / 005).
+#
+# Free-plan-safe: D1 + KV + Cron only (no R2 / DO / Queues / Queues). The worker is a
+# complementary background sync engine; the static Pages site remains the primary
+# delivery (DEP-PAGES-001 / DEP-FREE-001).
+#
+# ONE-TIME MANUAL PREREQUISITE (owner, before first CI run — see .github/workflows/deploy.yml):
+#   wrangler d1 create wnr-weather --env production
+#   wrangler d1 create wnr-weather --env preview
+#   wrangler kv namespace create wnr-weather-sync --env production
+#   wrangler kv namespace create wnr-weather-sync --env preview
+# then paste the returned IDs into the placeholders below.
+
+name = "where-not-rain-sync"
+compatibility_date = "2025-07-01"
+# Built by `pnpm --filter @wnr/weather-sync build` (tsc -> dist) before `wrangler deploy`.
+main = "./dist/index.js"
+
+# --- D1 (weather snapshots; canonical schema in packages/db/migrations/0001_weather.sql) ---
+# NOTE: CI applies ONLY 0001_weather.sql — there is NO 0002 migration this phase.
+[[d1_databases]]
+binding = "DB"
+database_name = "wnr-weather"
+migrations_dir = "../../packages/db/migrations"
+# Production D1 database id (paste from `wrangler d1 create wnr-weather --env production`).
+database_id = "<WNR-WEATHER-PRODUCTION-D1-ID>"
+
+# --- KV (sync-health signal; preview and production are ISOLATED namespaces) ---
+[[kv_namespaces]]
+binding = "WEATHER_SYNC_KV"
+# Production KV namespace id (paste from `wrangler kv namespace create wnr-weather-sync --env production`).
+id = "<WNR-WEATHER-SYNC-PRODUCTION-KV-ID>"
+# Preview KV namespace id (paste from `wrangler kv namespace create wnr-weather-sync --env preview`).
+preview_id = "<WNR-WEATHER-SYNC-PREVIEW-KV-ID>"
+
+# ---------------------------------------------------------------------------
+# Preview environment — isolated D1 DB, and NO scheduled (Cron) trigger.
+# ---------------------------------------------------------------------------
+[env.preview]
+[[env.preview.d1_databases]]
+binding = "DB"
+database_name = "wnr-weather"
+migrations_dir = "../../packages/db/migrations"
+# Preview D1 database id (paste from `wrangler d1 create wnr-weather --env preview`).
+database_id = "<WNR-WEATHER-PREVIEW-D1-ID>"
+
+# ---------------------------------------------------------------------------
+# Production environment — hourly Cron registered HERE ONLY (DEP-CICD-001).
+# Inherits the top-level D1/KV bindings above.
+# ---------------------------------------------------------------------------
+[env.production]
+crons = ["0 * * * *"]

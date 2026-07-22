@@ -5,6 +5,7 @@ import {
   ConfigParseError,
   getAffiliate,
   isAffiliateEnabled,
+  resolveProviderName,
   type RuntimeConfig,
 } from "./runtime-config.js";
 
@@ -61,7 +62,10 @@ describe("parseRuntimeConfig — typed parsing", () => {
   });
 
   it("ignores unknown top-level keys rather than enabling them", () => {
-    const cfg = parseRuntimeConfig({ map: true, unknownFutureFlag: true } as Record<string, unknown>);
+    const cfg = parseRuntimeConfig({ map: true, unknownFutureFlag: true } as Record<
+      string,
+      unknown
+    >);
     expect(cfg.map.enabled).toBe(true);
     // No crash, and the unknown key has no effect on the typed result.
     expect(cfg.coreReadsEnabled).toBe(true);
@@ -141,7 +145,9 @@ describe("affiliate helpers", () => {
   });
 
   it("getAffiliate returns the configured flag for a known slot", () => {
-    const cfg = parseRuntimeConfig({ affiliates: { booking: { enabled: true, reason: "partner" } } });
+    const cfg = parseRuntimeConfig({
+      affiliates: { booking: { enabled: true, reason: "partner" } },
+    });
     expect(getAffiliate(cfg, "booking")).toEqual({ enabled: true, reason: "partner" });
   });
 });
@@ -159,3 +165,21 @@ function rawOf(cfg: RuntimeConfig): Record<string, unknown> {
   }
   return out;
 }
+
+describe("resolveProviderName — WEATHER_PRIMARY_PROVIDER vocab (docs/15 §7)", () => {
+  it("accepts the known provider identifiers (case/space insensitive)", () => {
+    expect(resolveProviderName("open-meteo")).toBe("open-meteo");
+    expect(resolveProviderName("FAKE")).toBe("fake");
+    expect(resolveProviderName("  weatherapi ")).toBe("weatherapi");
+  });
+
+  it("returns null for missing or unknown input (never implicitly enables)", () => {
+    expect(resolveProviderName(undefined)).toBeNull();
+    expect(resolveProviderName(null)).toBeNull();
+    expect(resolveProviderName("")).toBeNull();
+    expect(resolveProviderName("openmeteo")).toBeNull();
+    expect(resolveProviderName("weather-api")).toBeNull();
+    expect(resolveProviderName(42)).toBeNull();
+    expect(resolveProviderName({})).toBeNull();
+  });
+});

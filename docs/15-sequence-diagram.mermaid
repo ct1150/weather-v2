@@ -1,0 +1,81 @@
+%% ===================== (A) Cron -> Open-Meteo -> D1 + KV =====================
+sequenceDiagram
+    autonumber
+    participant Cron as Cloudflare Cron (hourly, prod only)
+    participant W as weather-sync Worker
+    participant Sync as runSync()
+    participant Prov as OpenMeteoProvider
+    participant OM as Open-Meteo API (no key)
+    participant DB as D1 (wnr-weather)
+    participant KV as KV (WEATHER_SYNC_KV)
+    participant Lock as sync_locks
+
+    Cron->>W: scheduled(event, env, ctx)
+    W->>W: provider = createWeatherProvider(env.WEATHER_PRIMARY_PROVIDER)
+    W->>Sync: runSync({db:env.DB, provider, lock, config, kv:env.WEATHER_SYNC_KV})
+    Sync->>Sync: config.weatherProvider.enabled?
+    alt ingestion disabled
+        Sync-->>W: throw ProviderIngestionDisabledError
+        W-->>Cron: abort (no lock held)
+    end
+    Sync->>Lock: acquire("weather-sync", holder, 15minTTL)
+    alt already held
+        Lock-->>Sync: acquired=false
+        Sync-->>W: throw LockHeldError
+    end
+    Lock-->>Sync: token (monotonic)
+    Sync->>DB: readEnabledCities(status='active')
+    loop each enabled city
+        Sync->>Prov: fetchForecast({lat,lng,tz,days,startDate})
+        Prov->>OM: GET /v1/forecast?daily=...&hourly=...&timezone=<city tz>&forecast_days=N
+        OM-->>Prov: hourly + daily JSON (WMO codes)
+        Prov-->>Sync: NormalizedForecast (1:1 to D1 columns)
+        alt city fetch/normalize fails
+            Sync->>DB: insertSyncFailure(run_id, city_id, 'PROVIDER_ERROR', sanitized)
+        end
+    end
+    alt candidate gate OK (citiesOk>0 AND no featured failed)
+        Sync->>DB: persistCandidate(weather_snapshots.provider='open-meteo', daily, hourly)
+        Sync->>DB: activate (bootstrap | replace under BEGIN IMMEDIATE)
+        Sync->>KV: put("sync-health", {lastSuccessAt, provider:'open-meteo', status:'ok'})
+        Sync->>DB: updateRun(status='success', counts)
+    else candidate rejected
+        Sync->>DB: updateRun(status='partial'|'failed')
+    end
+    Sync->>Lock: release(token)
+    Sync-->>W: SyncReport
+    W-->>Cron: done
+
+%% ===================== (B) CI: deploy.yml pipeline =====================
+sequenceDiagram
+    autonumber
+    participant GH as GitHub Actions
+    participant Wrangler as wrangler CLI
+    participant D1p as D1 preview
+    participant D1prod as D1 production
+    participant Worker as weather-sync Worker
+    participant Pages as Cloudflare Pages
+
+    Note over GH: push main => production; internal PR => preview only
+    GH->>GH: install -> verify(format/lint/typecheck/test/docs)
+    GH->>GH: build web (next build -> out/, static export)
+    GH->>GH: dry-run gates (artifact identity + static preview-smoke)
+    GH->>GH: secret scan (no WEATHERAPI_SECRET / token in out/)
+
+    GH->>Wrangler: d1 migrations apply wnr-weather --env preview --remote
+    Wrangler->>D1p: apply 0001_weather.sql (single migration, no 0002)
+    GH->>GH: extended preview smoke (KV hit + D1 fallback + no provider call on user reads)
+    GH->>Wrangler: deploy --env preview (Worker, no scheduled binding)
+    Wrangler->>Worker: upload preview Worker (D1+KV preview bindings)
+    GH->>Wrangler: pages deploy out --project-name where-not-rain (preview branch)
+    Wrangler->>Pages: upload static out/
+
+    alt push to main (production promotion)
+        GH->>Wrangler: d1 migrations apply wnr-weather --remote (production)
+        Wrangler->>D1prod: apply 0001_weather.sql
+        GH->>Wrangler: deploy (production Worker, crons registered hourly)
+        Wrangler->>Worker: upload prod Worker + Cron trigger
+        GH->>Wrangler: pages deploy out --project-name where-not-rain (production)
+        Wrangler->>Pages: upload static out/
+        GH->>GH: production smoke (active snapshot freshness, Cron registered)
+    end
