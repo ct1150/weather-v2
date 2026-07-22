@@ -1,0 +1,16 @@
+{
+  "extends": "@wnr/tsconfig/nextjs.json",
+  "include": [
+    "next-env.d.ts",
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    ".next/types/**/*.ts"
+  ],
+  "exclude": [
+    "src/**/*.test.ts",
+    "src/**/*.spec.ts",
+    "dist",
+    "node_modules",
+    ".next"
+  ]
+}

@@ -1,0 +1,89 @@
+classDiagram
+    direction LR
+
+    class BuildConfig {
+        +APP_ENV: 'preview' | 'production'
+        +APP_BASE_URL: string
+        +DEFAULT_LOCALE: Locale
+        +SUPPORTED_LOCALES: Locale[]
+        +WEATHER_DATA_MAX_AGE_MINUTES: number
+    }
+
+    class GeographySeed {
+        +countries: CountrySeed[]
+        +cities: CitySeed[]
+    }
+    class CountrySeed {
+        +id: string
+        +iso2: string
+        +slug: string
+        +defaultTimezone: string
+        +name: Record~Locale,string~
+    }
+    class CitySeed {
+        +id: string
+        +countryId: string
+        +slug: string
+        +latitude: number
+        +longitude: number
+        +timezone: string
+        +isFeatured: boolean
+        +name: Record~Locale,string~
+    }
+
+    class FakeWeatherProvider {
+        +fetchForecast(req): Promise~NormalizedForecast[]~
+    }
+    class TravelScoreEngine {
+        +compute(input): CityScore
+    }
+    class BakePipeline {
+        +bake(seed, config): BakedDataset
+    }
+    class BakedDataset {
+        +weatherByCity: Map~cityId, NormalizedForecast~
+        +scoresByCity: Map~cityId, CityScore~
+        +dataUpdatedAt: string
+    }
+
+    GeographySeed "1" *-- "many" CountrySeed
+    GeographySeed "1" *-- "many" CitySeed
+    BakePipeline ..> FakeWeatherProvider : 合成天气(无网络)
+    BakePipeline ..> TravelScoreEngine : 计算分数
+    BakePipeline ..> GeographySeed : 读取种子
+    BakePipeline ..> BakedDataset : 产出
+
+    class TravelRadarViewModel
+    class CountryPageViewModel
+    class CityPageViewModel
+    class ExplorerViewModel
+    BakedDataset ..> TravelRadarViewModel : 投影
+    BakedDataset ..> CountryPageViewModel : 投影
+    BakedDataset ..> CityPageViewModel : 投影
+    BakedDataset ..> ExplorerViewModel : 投影
+
+    class PipelineArtifact {
+        +artifactId: string
+        +artifactDir: string
+        +environment: 'preview' | 'production'
+    }
+    class DeployJob {
+        +name: string
+        +needs: string[]
+        +inputs: string[]
+        +outputs: string[]
+    }
+    PipelineArtifact <.. DeployJob : 产出/消费
+
+    note for FakeWeatherProvider "确定性、网络无关（MVP FAKE 适配器，packages/weather）"
+    note for BakedDataset "构建期产出，烤入静态 HTML（output:'export'）"
+
+    class D1Schema {
+        <<DEFERRED 本期不部署>>
+    }
+    D1Schema : countries / cities
+    D1Schema : weather_snapshots / active_weather_snapshot
+    D1Schema : weather_daily / weather_hourly
+    D1Schema : city_scores / ranking_snapshots
+    D1Schema : sync_locks / sync_runs
+    note for D1Schema "由 workers/weather-sync 在后续增量消费；本期无绑定、不迁移"

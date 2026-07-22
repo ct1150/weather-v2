@@ -1,0 +1,1063 @@
+# Task 2 filesystem review package
+
+
+## NEW FILE: tooling/docs/validate-docs.mjs
+--- /dev/null	2026-07-13 18:58:14.987676037 +0800
++++ tooling/docs/validate-docs.mjs	2026-07-17 18:28:22.935838114 +0800
+@@ -0,0 +1,681 @@
++import { access, readdir, readFile } from "node:fs/promises";
++import path from "node:path";
++import { fileURLToPath } from "node:url";
++import {
++  digestRequirementSelection,
++  parseDerivedManifest,
++  parseReleaseRecords,
++  parseRequirementBlocks,
++  parseTraceRecords,
++  sha256,
++} from "./requirement-format.mjs";
++
++/** @typedef {{code:string,file:string,message:string}} ValidationIssue */
++/** @typedef {{errors:ValidationIssue[],warnings:ValidationIssue[],stats:{requirements:number,releases:number,traces:number}}} ValidationResult */
++
++export const REQUIRED_CONTRACT_IDS = [
++  "ARCH-RENDER-001",
++  "ARCH-FLAG-001",
++  "DATA-ACTIVITY-001",
++  "ENG-PERF-001",
++  "ENG-BOT-001",
++  "GROW-AFF-001",
++  "GROW-ADS-001",
++  "GROW-ANALYTICS-001",
++  "GROW-REPORT-001",
++];
++
++export const AUTHORITY_FILES = [
++  "docs/README.md",
++  "docs/00-Founder-Vision.md",
++  "docs/01-Product-PRD.md",
++  "docs/02-UX-Bible.md",
++  "docs/03-SEO-Bible.md",
++  "docs/04-AI-Coding-Bible.md",
++  "docs/05-System-Architecture.md",
++  "docs/06-Database.md",
++  "docs/07-API-Spec.md",
++  "docs/08-Cloudflare-Deployment.md",
++  "docs/09-Engineering-Handbook.md",
++  "docs/10-Growth-Bible.md",
++  "docs/11-Roadmap.md",
++  "docs/13-Requirements-Traceability.md",
++];
++
++const REQUIREMENT_FILES = AUTHORITY_FILES.filter((file) => /^docs\/(?:0\d|10)-/u.test(file));
++const KIRO_FILES = [
++  ".kiro/specs/where-not-rain/requirements.md",
++  ".kiro/specs/where-not-rain/design.md",
++  ".kiro/specs/where-not-rain/tasks.md",
++];
++const REQUIRED_FILES = [
++  "README.md",
++  "SPEC.md",
++  "weather.txt",
++  ...AUTHORITY_FILES,
++  "docs/12-ADR/README.md",
++  ...KIRO_FILES,
++];
++const FRONT_MATTER_FILES = AUTHORITY_FILES;
++const REQUIREMENT_ID_PATTERN =
++  /\b(?:ARCH|DATA|ENG|GROW|VISION|PRD|UX|SEO|AGENT|API|DEP)(?:-[A-Z0-9]+)+-\d{3}\b/gu;
++const DERIVED_COMMENT_PATTERN = /^<!-- derived: .*?-->[ \t]*(?:\r?\n)?/u;
++
++class ValidatorError extends Error {
++  constructor(kind, message, options) {
++    super(message, options);
++    this.name = "ValidatorError";
++    this.kind = kind;
++  }
++}
++
++function compareText(left, right) {
++  if (left < right) return -1;
++  if (left > right) return 1;
++  return 0;
++}
++
++function sortIssues(issues) {
++  issues.sort(
++    (left, right) =>
++      compareText(left.file, right.file) ||
++      compareText(left.code, right.code) ||
++      compareText(left.message, right.message),
++  );
++}
++
++function addIssue(state, code, file, message, severity = "errors") {
++  state[severity].push({ code, file, message });
++}
++
++function relativePath(root, absolutePath) {
++  return path.relative(root, absolutePath).split(path.sep).join("/");
++}
++
++async function pathExists(absolutePath) {
++  try {
++    await access(absolutePath);
++    return true;
++  } catch {
++    return false;
++  }
++}
++
++async function readKnownFile(state, file) {
++  if (state.files.has(file)) return state.files.get(file);
++  const absolutePath = path.join(state.root, file);
++  if (!(await pathExists(absolutePath))) return null;
++  const contents = await readFile(absolutePath, "utf8");
++  state.files.set(file, contents);
++  return contents;
++}
++
++async function readMarkdownFilesRecursively(state, directory) {
++  const absoluteDirectory = path.join(state.root, directory);
++  if (!(await pathExists(absoluteDirectory))) return;
++  const entries = await readdir(absoluteDirectory, { withFileTypes: true });
++  for (const entry of entries) {
++    const absoluteEntry = path.join(absoluteDirectory, entry.name);
++    const file = relativePath(state.root, absoluteEntry);
++    if (entry.isDirectory()) {
++      await readMarkdownFilesRecursively(state, file);
++    } else if (entry.isFile() && entry.name.endsWith(".md")) {
++      state.files.set(file, await readFile(absoluteEntry, "utf8"));
++    }
++  }
++}
++
++function parseWithContext(parser, markdown, file) {
++  try {
++    return parser(markdown, file);
++  } catch (error) {
++    throw new ValidatorError("parser", error instanceof Error ? error.message : String(error), {
++      cause: error,
++    });
++  }
++}
++
++function frontMatterStatus(markdown) {
++  const match = /^---(?:\r?\n)([\s\S]*?)(?:\r?\n)---(?:\r?\n|$)/u.exec(markdown);
++  if (!match) return null;
++  const status = /^status:[ \t]*(.+?)[ \t]*$/mu.exec(match[1]);
++  return status?.[1] ?? null;
++}
++
++function anchorsIn(markdown) {
++  const anchors = new Set();
++  for (const match of markdown.matchAll(/<a[ \t]+[^>]*\bid=["']([^"']+)["'][^>]*>/giu)) {
++    anchors.add(match[1]);
++  }
++  for (const match of markdown.matchAll(/^#{1,6}[ \t]+(.+)$/gmu)) {
++    const slug = match[1]
++      .replace(/<[^>]+>/gu, "")
++      .trim()
++      .toLowerCase()
++      .replace(/[^\p{L}\p{N}\s-]/gu, "")
++      .replace(/[\s-]+/gu, "-");
++    if (slug) anchors.add(slug);
++  }
++  return anchors;
++}
++
++function extractRequirementIds(markdown) {
++  return [...markdown.replace(DERIVED_COMMENT_PATTERN, "").matchAll(REQUIREMENT_ID_PATTERN)].map(
++    (match) => match[0],
++  );
++}
++
++function manifestIds(manifest) {
++  return new Set(manifest?.sources.flatMap((source) => source.ids) ?? []);
++}
++
++/** Ensure the fixed authority, source, ADR, and Kiro file set exists. */
++export async function checkDocumentSet(state) {
++  for (const file of REQUIRED_FILES) {
++    const contents = await readKnownFile(state, file);
++    if (contents === null) {
++      addIssue(state, "MISSING_DOCUMENT", file, `Required document is missing: ${file}`);
++    }
++  }
++  const adrDirectory = path.join(state.root, "docs/12-ADR");
++  if (!(await pathExists(adrDirectory))) {
++    addIssue(state, "MISSING_DIRECTORY", "docs/12-ADR", "Required ADR directory is missing");
++  } else {
++    await readMarkdownFilesRecursively(state, "docs/12-ADR");
++  }
++}
++
++/** Parse requirement blocks and prove global ID uniqueness and explicit anchors. */
++export function checkRequirementSchema(state) {
++  const byId = new Map();
++  for (const file of REQUIREMENT_FILES) {
++    const markdown = state.files.get(file);
++    if (markdown === undefined) continue;
++    const blocks = parseWithContext(parseRequirementBlocks, markdown, file);
++    for (const block of blocks) {
++      state.requirements.push(block);
++      const previous = byId.get(block.id);
++      if (previous) {
++        addIssue(
++          state,
++          "DUPLICATE_REQUIREMENT",
++          file,
++          `${block.id} is also defined in ${previous.filePath}`,
++        );
++      } else {
++        byId.set(block.id, block);
++      }
++      const anchorPattern = new RegExp(
++        `<a[ \\t]+[^>]*\\bid=["']${block.id.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&")}["'][^>]*>`,
++        "iu",
++      );
++      if (!anchorPattern.test(block.text)) {
++        addIssue(
++          state,
++          "MISSING_REQUIREMENT_ANCHOR",
++          file,
++          `${block.id} must declare an explicit ID anchor`,
++        );
++      }
++    }
++  }
++  state.requirementsById = byId;
++}
++
++/** Parse the sole Roadmap release registry and enforce one matching record per Active Hard requirement. */
++export function checkReleaseUniqueness(state) {
++  const file = "docs/11-Roadmap.md";
++  const markdown = state.files.get(file);
++  if (markdown === undefined) return;
++  state.releases = parseWithContext(parseReleaseRecords, markdown, file);
++  const releasesById = new Map();
++  const releasesByRequirement = new Map();
++
++  for (const release of state.releases) {
++    if (releasesById.has(release.id)) {
++      addIssue(state, "DUPLICATE_RELEASE", file, `Release ID ${release.id} is duplicated`);
++    } else {
++      releasesById.set(release.id, release);
++    }
++    const records = releasesByRequirement.get(release.requirementId) ?? [];
++    records.push(release);
++    releasesByRequirement.set(release.requirementId, records);
++    if (!state.requirementsById.has(release.requirementId)) {
++      addIssue(
++        state,
++        "UNKNOWN_RELEASE_REQUIREMENT",
++        file,
++        `${release.id} references unknown requirement ${release.requirementId}`,
++      );
++    }
++  }
++
++  for (const requirement of state.requirements) {
++    if (requirement.status !== "Active" || requirement.kind !== "Hard") continue;
++    const records = releasesByRequirement.get(requirement.id) ?? [];
++    if (records.length === 0) {
++      addIssue(
++        state,
++        "MISSING_RELEASE",
++        requirement.filePath,
++        `${requirement.id} has no release record`,
++      );
++    } else if (records.length > 1) {
++      addIssue(
++        state,
++        "DUPLICATE_RELEASE",
++        file,
++        `${requirement.id} has ${records.length} release records`,
++      );
++    } else if (records[0].id !== requirement.roadmapRef) {
++      addIssue(
++        state,
++        "ROADMAP_REF_MISMATCH",
++        requirement.filePath,
++        `${requirement.id} points to ${requirement.roadmapRef}, not ${records[0].id}`,
++      );
++    }
++  }
++  state.releasesByRequirement = releasesByRequirement;
++}
++
++/** Validate relative Markdown file targets and fragments in the controlled document set. */
++export async function checkMarkdownLinks(state) {
++  const markdownFiles = [...state.files.entries()].filter(([file]) => file.endsWith(".md"));
++  for (const [file, markdown] of markdownFiles) {
++    const linkPattern = /!?\[[^\]]*\]\(([^)\s]+)(?:\s+(?:"[^"]*"|'[^']*'))?\)/gu;
++    for (const match of markdown.matchAll(linkPattern)) {
++      const destination = match[1].replace(/^<|>$/gu, "");
++      if (/^(?:[a-z][a-z0-9+.-]*:|\/\/)/iu.test(destination)) continue;
++      let decoded;
++      try {
++        decoded = decodeURI(destination);
++      } catch {
++        addIssue(state, "BROKEN_LINK", file, `Invalid URI in Markdown link: ${destination}`);
++        continue;
++      }
++      const hashIndex = decoded.indexOf("#");
++      const targetPart = hashIndex === -1 ? decoded : decoded.slice(0, hashIndex);
++      const fragment = hashIndex === -1 ? "" : decoded.slice(hashIndex + 1);
++      const targetFile = targetPart
++        ? path.posix.normalize(path.posix.join(path.posix.dirname(file), targetPart))
++        : file;
++      if (
++        targetFile === ".." ||
++        targetFile.startsWith("../") ||
++        path.posix.isAbsolute(targetFile)
++      ) {
++        addIssue(state, "BROKEN_LINK", file, `Link escapes the repository: ${destination}`);
++        continue;
++      }
++      let targetMarkdown = state.files.get(targetFile);
++      if (targetMarkdown === undefined) {
++        const absoluteTarget = path.join(state.root, targetFile);
++        if (!(await pathExists(absoluteTarget))) {
++          addIssue(state, "BROKEN_LINK", file, `Link target does not exist: ${destination}`);
++          continue;
++        }
++        if (targetFile.endsWith(".md")) {
++          targetMarkdown = await readFile(absoluteTarget, "utf8");
++          state.files.set(targetFile, targetMarkdown);
++        }
++      }
++      if (fragment && targetMarkdown !== undefined && !anchorsIn(targetMarkdown).has(fragment)) {
++        addIssue(state, "BROKEN_LINK", file, `Link anchor does not exist: ${destination}`);
++      }
++    }
++  }
++}
++
++/** Validate trace targets, source hash/ranges, and approval evidence. */
++export function checkTraceCoverage(state) {
++  const file = "docs/13-Requirements-Traceability.md";
++  const markdown = state.files.get(file);
++  if (markdown === undefined) return;
++  state.traces = parseWithContext(parseTraceRecords, markdown, file);
++  const weather = state.files.get("weather.txt");
++  const weatherLines = weather?.replaceAll("\r\n", "\n").replaceAll("\r", "\n").split("\n");
++  const weatherDigest = weather === undefined ? null : sha256(weather);
++
++  for (const trace of state.traces) {
++    const requirement = state.requirementsById.get(trace.requirementId);
++    if (!requirement) {
++      addIssue(
++        state,
++        "UNKNOWN_TRACE_REQUIREMENT",
++        file,
++        `Trace references unknown requirement ${trace.requirementId}`,
++      );
++    } else if (
++      trace.classification === "Hard" &&
++      (requirement.status !== "Active" || requirement.kind !== "Hard")
++    ) {
++      addIssue(
++        state,
++        "INVALID_HARD_TRACE",
++        file,
++        `Hard trace must map to an Active Hard requirement: ${trace.requirementId}`,
++      );
++    }
++    if (weatherDigest !== null && trace.sourceSha256 !== weatherDigest) {
++      addIssue(
++        state,
++        "TRACE_SOURCE_HASH_MISMATCH",
++        file,
++        `Trace for ${trace.requirementId} has a stale weather.txt digest`,
++      );
++    }
++    if (weatherLines && trace.lineEnd > weatherLines.length) {
++      addIssue(
++        state,
++        "TRACE_RANGE_INVALID",
++        file,
++        `Trace for ${trace.requirementId} exceeds weather.txt line count`,
++      );
++    } else if (weatherLines) {
++      const selected = weatherLines.slice(trace.lineStart - 1, trace.lineEnd).join("\n");
++      if (!selected.includes(trace.sourceExcerpt)) {
++        addIssue(
++          state,
++          "TRACE_EXCERPT_MISMATCH",
++          file,
++          `Trace excerpt for ${trace.requirementId} does not match its source range`,
++        );
++      }
++    }
++    if (
++      (trace.coverage === "Changed" || trace.coverage === "Rejected") &&
++      !/\bapproved\b/iu.test(trace.rationale)
++    ) {
++      addIssue(
++        state,
++        "UNAPPROVED_TRACE",
++        file,
++        `${trace.coverage} trace for ${trace.requirementId} lacks approval evidence`,
++      );
++    }
++  }
++}
++
++/** Recompute every Kiro manifest source digest from authoritative requirement blocks. */
++export function checkDerivedFreshness(state) {
++  for (const file of KIRO_FILES) {
++    const markdown = state.files.get(file);
++    if (markdown === undefined) continue;
++    const manifest = parseWithContext(parseDerivedManifest, markdown, file);
++    state.manifests.set(file, manifest);
++    if (!manifest) {
++      addIssue(state, "MISSING_DERIVED_MANIFEST", file, "Kiro file lacks a derived manifest");
++      continue;
++    }
++    const seenIds = new Set();
++    for (const source of manifest.sources) {
++      const sourceMarkdown = state.files.get(source.path);
++      if (sourceMarkdown === undefined) {
++        addIssue(
++          state,
++          "UNKNOWN_DERIVED_SOURCE",
++          file,
++          `Derived source does not exist: ${source.path}`,
++        );
++        continue;
++      }
++      const sourceBlocks = parseWithContext(parseRequirementBlocks, sourceMarkdown, source.path);
++      const sourceIds = new Set(sourceBlocks.map((block) => block.id));
++      for (const id of source.ids) {
++        if (seenIds.has(id)) {
++          addIssue(state, "DUPLICATE_DERIVED_ID", file, `${id} appears in multiple sources`);
++        }
++        seenIds.add(id);
++        if (!sourceIds.has(id)) {
++          addIssue(state, "UNKNOWN_DERIVED_ID", file, `${id} is not defined by ${source.path}`);
++        }
++      }
++      if (source.ids.every((id) => sourceIds.has(id))) {
++        const actualDigest = digestRequirementSelection(sourceBlocks, source.ids);
++        if (actualDigest !== source.digest) {
++          addIssue(
++            state,
++            "STALE_DERIVED",
++            file,
++            `${source.path} digest is stale for ${source.ids.join(", ")}`,
++          );
++        }
++      }
++    }
++  }
++}
++
++/** Enforce exact requirements.md and at-least-once design/tasks coverage of MVP Active Hard IDs. */
++export function checkKiroBidirectionalCoverage(state) {
++  const mvpRequirements = state.requirements.filter((requirement) => {
++    if (requirement.status !== "Active" || requirement.kind !== "Hard") return false;
++    const releases = state.releasesByRequirement.get(requirement.id) ?? [];
++    return releases.length === 1 && releases[0].firstRelease === "MVP";
++  });
++  const mvpIds = new Set(mvpRequirements.map((requirement) => requirement.id));
++
++  for (const file of KIRO_FILES) {
++    const markdown = state.files.get(file);
++    if (markdown === undefined) continue;
++    const ids = extractRequirementIds(markdown);
++    const counts = new Map();
++    for (const id of ids) counts.set(id, (counts.get(id) ?? 0) + 1);
++    const isRequirements = file.endsWith("/requirements.md");
++    for (const id of mvpIds) {
++      const count = counts.get(id) ?? 0;
++      if (count === 0) {
++        addIssue(
++          state,
++          isRequirements ? "KIRO_REQUIREMENT_MISSING" : "KIRO_COVERAGE_MISSING",
++          file,
++          `${id} is not covered`,
++        );
++      } else if (isRequirements && count !== 1) {
++        addIssue(
++          state,
++          "KIRO_REQUIREMENT_DUPLICATE",
++          file,
++          `${id} appears ${count} times; requirements.md requires exactly one mapping`,
++        );
++      }
++    }
++    for (const id of counts.keys()) {
++      if (!state.requirementsById.has(id)) {
++        addIssue(state, "UNKNOWN_KIRO_REQUIREMENT", file, `Unknown requirement ID ${id}`);
++      } else if (!mvpIds.has(id)) {
++        addIssue(state, "NON_MVP_KIRO_REQUIREMENT", file, `${id} is not an MVP Active Hard ID`);
++      }
++    }
++    const derivedIds = manifestIds(state.manifests.get(file));
++    for (const id of mvpIds) {
++      if (!derivedIds.has(id)) {
++        addIssue(state, "DERIVED_COVERAGE_MISSING", file, `Manifest omits MVP requirement ${id}`);
++      }
++    }
++    for (const id of derivedIds) {
++      if (!mvpIds.has(id)) {
++        addIssue(state, "NON_MVP_DERIVED_ID", file, `Manifest includes non-MVP requirement ${id}`);
++      }
++    }
++  }
++}
++
++/** Validate Kiro task requirement, command, expected-result, and completed-evidence fields. */
++export function checkTaskEvidence(state) {
++  const file = ".kiro/specs/where-not-rain/tasks.md";
++  const markdown = state.files.get(file);
++  if (markdown === undefined) return;
++  const taskStarts = [...markdown.matchAll(/^- \[([ xX])\][ \t]+.*$/gmu)];
++  for (const [index, start] of taskStarts.entries()) {
++    const end = taskStarts[index + 1]?.index ?? markdown.length;
++    const block = markdown.slice(start.index, end);
++    const label = start[0].replace(/^- \[[ xX]\][ \t]*/u, "").trim();
++    const requirements = /^\s*_Requirements:[ \t]*([^_\n]+)_/mu.exec(block)?.[1];
++    const verify = /^\s*Verify:[ \t]*(\S.*)$/mu.exec(block)?.[1];
++    const expected = /^\s*Expected:[ \t]*(\S.*)$/mu.exec(block)?.[1];
++    const evidence = /^\s*Evidence:[ \t]*(\S.*)$/mu.exec(block)?.[1];
++    if (!requirements) {
++      addIssue(state, "MISSING_TASK_REQUIREMENTS", file, `${label} lacks _Requirements:_`);
++    }
++    if (!verify) addIssue(state, "MISSING_TASK_VERIFY", file, `${label} lacks Verify:`);
++    if (!expected) addIssue(state, "MISSING_TASK_EXPECTED", file, `${label} lacks Expected:`);
++    if (!evidence) addIssue(state, "MISSING_TASK_EVIDENCE", file, `${label} lacks Evidence:`);
++    const completed = start[1].toLowerCase() === "x";
++    if (
++      completed &&
++      (!evidence || /\bpending\b/iu.test(evidence) || !/\d{4}-\d{2}-\d{2}/u.test(evidence))
++    ) {
++      addIssue(
++        state,
++        "INVALID_COMPLETED_TASK_EVIDENCE",
++        file,
++        `${label} must include dated successful evidence`,
++      );
++    }
++    if (
++      [requirements, verify, expected].some(
++        (value) => value && /(?:<[^>]+>|\b(?:TODO|TBD)\b)/iu.test(value),
++      )
++    ) {
++      addIssue(state, "TASK_PLACEHOLDER", file, `${label} contains a placeholder field`);
++    }
++  }
++}
++
++/** Prove audited contract clauses through their authoritative Requirement IDs. */
++export function checkCriticalClauses(state) {
++  for (const id of REQUIRED_CONTRACT_IDS) {
++    if (!state.requirementsById.has(id)) {
++      addIssue(
++        state,
++        "MISSING_CRITICAL_CONTRACT",
++        "docs",
++        `Required audited contract ID is missing: ${id}`,
++      );
++    }
++  }
++}
++
++/** Enforce Draft/Active authority state and block unresolved trace decisions at cutover. */
++export function checkCutoverState(state) {
++  for (const file of FRONT_MATTER_FILES) {
++    const markdown = state.files.get(file);
++    if (markdown === undefined) continue;
++    const status = frontMatterStatus(markdown);
++    if (status !== "Active" && status !== "Draft") {
++      addIssue(
++        state,
++        "INVALID_DOCUMENT_STATUS",
++        file,
++        "Authority front matter status must be Active or Draft",
++      );
++    } else if (state.mode === "active" && status === "Draft") {
++      addIssue(state, "DRAFT_DOCUMENT", file, "Active mode does not permit Draft authority");
++    }
++  }
++  if (state.mode === "active") {
++    for (const trace of state.traces) {
++      if (trace.coverage === "Needs Decision") {
++        addIssue(
++          state,
++          "NEEDS_DECISION",
++          trace.filePath,
++          `Unresolved trace decision for ${trace.requirementId}`,
++        );
++      }
++    }
++  }
++}
++
++/**
++ * Validate the repository documentation contract.
++ * @param {string} root
++ * @param {{mode:"staging"|"active"}} options
++ * @returns {Promise<ValidationResult>}
++ */
++export async function validateRepository(root, { mode } = {}) {
++  if (typeof root !== "string" || root.length === 0) {
++    throw new ValidatorError("config", "Repository root must be a non-empty path");
++  }
++  if (mode !== "staging" && mode !== "active") {
++    throw new ValidatorError("config", "--mode must be staging or active");
++  }
++  const state = {
++    errors: [],
++    files: new Map(),
++    manifests: new Map(),
++    mode,
++    releases: [],
++    releasesByRequirement: new Map(),
++    requirements: [],
++    requirementsById: new Map(),
++    root: path.resolve(root),
++    traces: [],
++    warnings: [],
++  };
++
++  await checkDocumentSet(state);
++  checkRequirementSchema(state);
++  checkReleaseUniqueness(state);
++  await checkMarkdownLinks(state);
++  checkTraceCoverage(state);
++  checkDerivedFreshness(state);
++  checkKiroBidirectionalCoverage(state);
++  checkTaskEvidence(state);
++  checkCriticalClauses(state);
++  checkCutoverState(state);
++
++  sortIssues(state.errors);
++  sortIssues(state.warnings);
++  return {
++    errors: state.errors,
++    warnings: state.warnings,
++    stats: {
++      releases: state.releases.length,
++      requirements: state.requirements.length,
++      traces: state.traces.length,
++    },
++  };
++}
++
++function parseCliArguments(argv) {
++  if (argv.length !== 2 || argv[0] !== "--mode") {
++    throw new ValidatorError(
++      "config",
++      "Usage: node tooling/docs/validate-docs.mjs --mode staging|active",
++    );
++  }
++  const mode = argv[1];
++  if (mode !== "staging" && mode !== "active") {
++    throw new ValidatorError("config", "--mode must be staging or active");
++  }
++  return { mode };
++}
++
++async function runCli() {
++  try {
++    const options = parseCliArguments(process.argv.slice(2));
++    const result = await validateRepository(process.cwd(), options);
++    for (const warning of result.warnings) {
++      console.warn(`WARNING ${warning.code} ${warning.file}: ${warning.message}`);
++    }
++    for (const error of result.errors) {
++      console.error(`ERROR ${error.code} ${error.file}: ${error.message}`);
++    }
++    console.log(
++      `Documentation validation: ${result.errors.length} error(s), ${result.warnings.length} warning(s); ` +
++        `${result.stats.requirements} requirement(s), ${result.stats.releases} release(s), ${result.stats.traces} trace(s).`,
++    );
++    process.exitCode = result.errors.length === 0 ? 0 : 1;
++  } catch (error) {
++    const message = error instanceof Error ? error.message : String(error);
++    console.error(`Validator failure: ${message}`);
++    process.exitCode = 2;
++  }
++}
++
++const invokedPath = process.argv[1] ? path.resolve(process.argv[1]) : "";
++if (invokedPath === fileURLToPath(import.meta.url)) {
++  await runCli();
++}
+
+## NEW FILE: tooling/docs/validate-docs.test.mjs
+--- /dev/null	2026-07-13 18:58:14.987676037 +0800
++++ tooling/docs/validate-docs.test.mjs	2026-07-17 18:28:22.992072405 +0800
+@@ -0,0 +1,304 @@
++import assert from "node:assert/strict";
++import { spawn } from "node:child_process";
++import { mkdtemp, mkdir, readFile, writeFile } from "node:fs/promises";
++import { tmpdir } from "node:os";
++import path from "node:path";
++import test from "node:test";
++import { fileURLToPath } from "node:url";
++import {
++  digestRequirementSelection,
++  parseRequirementBlocks,
++  sha256,
++} from "./requirement-format.mjs";
++import { validateRepository } from "./validate-docs.mjs";
++
++const VALIDATOR_PATH = fileURLToPath(new URL("./validate-docs.mjs", import.meta.url));
++const AUTHORITY_FILES = [
++  "docs/README.md",
++  "docs/00-Founder-Vision.md",
++  "docs/01-Product-PRD.md",
++  "docs/02-UX-Bible.md",
++  "docs/03-SEO-Bible.md",
++  "docs/04-AI-Coding-Bible.md",
++  "docs/05-System-Architecture.md",
++  "docs/06-Database.md",
++  "docs/07-API-Spec.md",
++  "docs/08-Cloudflare-Deployment.md",
++  "docs/09-Engineering-Handbook.md",
++  "docs/10-Growth-Bible.md",
++  "docs/11-Roadmap.md",
++  "docs/13-Requirements-Traceability.md",
++];
++const REQUIREMENTS = [
++  ["ARCH-RENDER-001", "docs/05-System-Architecture.md", "MVP"],
++  ["ARCH-FLAG-001", "docs/05-System-Architecture.md", "MVP"],
++  ["DATA-ACTIVITY-001", "docs/06-Database.md", "V1"],
++  ["ENG-PERF-001", "docs/09-Engineering-Handbook.md", "MVP"],
++  ["ENG-BOT-001", "docs/09-Engineering-Handbook.md", "MVP"],
++  ["GROW-AFF-001", "docs/10-Growth-Bible.md", "MVP"],
++  ["GROW-ADS-001", "docs/10-Growth-Bible.md", "MVP"],
++  ["GROW-ANALYTICS-001", "docs/10-Growth-Bible.md", "MVP"],
++  ["GROW-REPORT-001", "docs/10-Growth-Bible.md", "Beta"],
++];
++
++function releaseId(id, release) {
++  return `REL-${release}-${id.replaceAll("-", "_")}`;
++}
++
++function requirementBlock(id, release) {
++  const roadmapRef = releaseId(id, release);
++  return `<!-- requirement
++id: ${id}
++status: Active
++kind: Hard
++roadmap_ref: ${roadmapRef}
++owner: Test
++verification: pnpm docs:check
++-->
++<a id="${id}"></a>
++### ${id} — Contract
++The system shall satisfy [${roadmapRef}](11-Roadmap.md#${roadmapRef}).
++#### Acceptance Criteria
++- The contract passes.
++`;
++}
++
++function frontMatter(file, status = "Active") {
++  const title = path.basename(file, ".md");
++  return `---\ntitle: ${title}\nauthority: Test\nstatus: ${status}\nlast_updated: 2026-07-17\n---\n# ${title}\n`;
++}
++
++async function writeFiles(root, entries) {
++  for (const [relativePath, contents] of Object.entries(entries)) {
++    const absolutePath = path.join(root, relativePath);
++    await mkdir(path.dirname(absolutePath), { recursive: true });
++    await writeFile(absolutePath, contents);
++  }
++}
++
++async function mutate(root, relativePath, transform) {
++  const absolutePath = path.join(root, relativePath);
++  await writeFile(absolutePath, transform(await readFile(absolutePath, "utf8")));
++}
++
++function manifestFor(sourceDocuments, selectedIds) {
++  const selected = new Set(selectedIds);
++  const sources = [...sourceDocuments.entries()]
++    .map(([sourcePath, markdown]) => {
++      const blocks = parseRequirementBlocks(markdown, sourcePath);
++      const ids = blocks
++        .map((block) => block.id)
++        .filter((id) => selected.has(id))
++        .sort();
++      return {
++        digest: digestRequirementSelection(blocks, ids),
++        ids,
++        path: sourcePath,
++      };
++    })
++    .filter((source) => source.ids.length > 0)
++    .sort((left, right) => left.path.localeCompare(right.path));
++  return `<!-- derived: ${JSON.stringify({ generated_at: "2026-07-17", schema: 1, sources })} -->`;
++}
++
++async function createValidFixture() {
++  const root = await mkdtemp(path.join(tmpdir(), "wnr-docs-"));
++  const authority = new Map(AUTHORITY_FILES.map((file) => [file, frontMatter(file)]));
++
++  for (const [id, file, release] of REQUIREMENTS) {
++    authority.set(file, `${authority.get(file)}\n${requirementBlock(id, release)}`);
++  }
++
++  const releases = REQUIREMENTS.map(([id, , release]) => {
++    const idForRelease = releaseId(id, release);
++    return `<a id="${idForRelease}"></a>\n<!-- release: ${JSON.stringify({
++      first_release: release,
++      id: idForRelease,
++      lifecycle: "Continuous",
++      requirement_id: id,
++    })} -->`;
++  }).join("\n");
++  authority.set("docs/11-Roadmap.md", `${authority.get("docs/11-Roadmap.md")}\n${releases}\n`);
++
++  const weather = "Historical requirement source.\n";
++  const traces = REQUIREMENTS.map(
++    ([id]) =>
++      `<!-- trace: ${JSON.stringify({
++        classification: "Hard",
++        coverage: "Covered",
++        line_end: 1,
++        line_start: 1,
++        rationale: "Direct approved mapping",
++        requirement_id: id,
++        source_excerpt: "Historical requirement source.",
++        source_sha256: sha256(weather),
++      })} -->`,
++  ).join("\n");
++  authority.set(
++    "docs/13-Requirements-Traceability.md",
++    `${authority.get("docs/13-Requirements-Traceability.md")}\n${traces}\n`,
++  );
++
++  const sourceDocuments = new Map(
++    [...authority.entries()].filter(([file]) =>
++      REQUIREMENTS.some(([, requirementFile]) => requirementFile === file),
++    ),
++  );
++  const mvpIds = REQUIREMENTS.filter(([, , release]) => release === "MVP").map(([id]) => id);
++  const manifest = manifestFor(sourceDocuments, mvpIds);
++  const kiroRequirements = `${manifest}\n# Requirements\n${mvpIds
++    .map((id) => `## ${id}\nThe system shall satisfy this contract.`)
++    .join("\n")}`;
++  const kiroDesign = `${manifest}\n# Design\n${mvpIds
++    .map((id) => `## Design unit for ${id}\n_Requirements: ${id}_`)
++    .join("\n")}`;
++  const kiroTasks = `${manifest}\n# Tasks\n${mvpIds
++    .map(
++      (id) =>
++        `- [ ] Implement ${id}\n  _Requirements: ${id}_\n  Verify: pnpm docs:test\n  Expected: command exits 0\n  Evidence: pending — verification has not been executed`,
++    )
++    .join("\n")}`;
++
++  await writeFiles(root, {
++    ...Object.fromEntries(authority),
++    ".kiro/specs/where-not-rain/design.md": kiroDesign,
++    ".kiro/specs/where-not-rain/requirements.md": kiroRequirements,
++    ".kiro/specs/where-not-rain/tasks.md": kiroTasks,
++    "docs/12-ADR/README.md": "# Architecture Decision Records\n",
++    "README.md": "# Fixture\n\n[Documentation](docs/README.md)\n",
++    "SPEC.md": "# Specification\n\n[Documentation](docs/README.md)\n",
++    "weather.txt": weather,
++  });
++
++  return root;
++}
++
++function assertError(result, code) {
++  assert(
++    result.errors.some((error) => error.code === code),
++    `expected ${code}, received ${JSON.stringify(result.errors, null, 2)}`,
++  );
++}
++
++function runCli(root, args) {
++  return new Promise((resolve, reject) => {
++    const child = spawn(process.execPath, [VALIDATOR_PATH, ...args], { cwd: root });
++    let stderr = "";
++    let stdout = "";
++    child.stderr.setEncoding("utf8");
++    child.stdout.setEncoding("utf8");
++    child.stderr.on("data", (chunk) => (stderr += chunk));
++    child.stdout.on("data", (chunk) => (stdout += chunk));
++    child.on("error", reject);
++    child.on("close", (code) => resolve({ code, stderr, stdout }));
++  });
++}
++
++test("accepts a complete repository fixture and reports deterministic stats", async () => {
++  const root = await createValidFixture();
++  const result = await validateRepository(root, { mode: "active" });
++
++  assert.deepEqual(result.errors, []);
++  assert.deepEqual(result.warnings, []);
++  assert.deepEqual(result.stats, { releases: 9, requirements: 9, traces: 9 });
++});
++
++test("rejects duplicate requirement IDs across authority documents", async () => {
++  const root = await createValidFixture();
++  await mutate(
++    root,
++    "docs/01-Product-PRD.md",
++    (markdown) => `${markdown}\n${requirementBlock("ENG-PERF-001", "MVP")}`,
++  );
++
++  assertError(await validateRepository(root, { mode: "active" }), "DUPLICATE_REQUIREMENT");
++});
++
++test("rejects an Active hard requirement without exactly one release", async () => {
++  const root = await createValidFixture();
++  await mutate(root, "docs/11-Roadmap.md", (markdown) =>
++    markdown.replace(/^<a id="REL-MVP-ENG_PERF_001".*\n<!-- release: .*ENG-PERF-001.*\n?/mu, ""),
++  );
++
++  assertError(await validateRepository(root, { mode: "active" }), "MISSING_RELEASE");
++});
++
++test("rejects a stale Kiro source digest", async () => {
++  const root = await createValidFixture();
++  await mutate(root, ".kiro/specs/where-not-rain/design.md", (markdown) =>
++    markdown.replace(/sha256:[a-f0-9]{64}/u, `sha256:${"0".repeat(64)}`),
++  );
++
++  assertError(await validateRepository(root, { mode: "active" }), "STALE_DERIVED");
++});
++
++test("rejects invalid internal Markdown links", async () => {
++  const root = await createValidFixture();
++  await mutate(
++    root,
++    "docs/09-Engineering-Handbook.md",
++    (markdown) => `${markdown}\n[Missing](missing.md#missing-anchor)\n`,
++  );
++
++  assertError(await validateRepository(root, { mode: "active" }), "BROKEN_LINK");
++});
++
++test("rejects Needs Decision traces in active mode", async () => {
++  const root = await createValidFixture();
++  await mutate(root, "docs/13-Requirements-Traceability.md", (markdown) =>
++    markdown.replace('"coverage":"Covered"', '"coverage":"Needs Decision"'),
++  );
++
++  assertError(await validateRepository(root, { mode: "active" }), "NEEDS_DECISION");
++});
++
++test("rejects Kiro omissions for MVP Active hard requirements", async () => {
++  const root = await createValidFixture();
++  await mutate(root, ".kiro/specs/where-not-rain/requirements.md", (markdown) =>
++    markdown.replace(/## ARCH-RENDER-001\n[^\n]+\n?/u, ""),
++  );
++
++  assertError(await validateRepository(root, { mode: "active" }), "KIRO_REQUIREMENT_MISSING");
++});
++
++test("active mode rejects Draft authority while staging mode permits it", async () => {
++  const root = await createValidFixture();
++  await mutate(root, "docs/09-Engineering-Handbook.md", (markdown) =>
++    markdown.replace("status: Active", "status: Draft"),
++  );
++
++  assertError(await validateRepository(root, { mode: "active" }), "DRAFT_DOCUMENT");
++  const staging = await validateRepository(root, { mode: "staging" });
++  assert(!staging.errors.some((error) => error.code === "DRAFT_DOCUMENT"));
++});
++
++test("sorts issues by file, code, then message", async () => {
++  const root = await createValidFixture();
++  await mutate(
++    root,
++    "docs/09-Engineering-Handbook.md",
++    (markdown) => `${markdown}\n[B](z-missing.md)\n[A](a-missing.md)\n`,
++  );
++  const result = await validateRepository(root, { mode: "active" });
++  const sorted = [...result.errors].sort(
++    (left, right) =>
++      left.file.localeCompare(right.file) ||
++      left.code.localeCompare(right.code) ||
++      left.message.localeCompare(right.message),
++  );
++
++  assert.deepEqual(result.errors, sorted);
++});
++
++test("CLI exits 0 for valid docs, 1 for contract errors, and 2 for bad configuration", async () => {
++  const root = await createValidFixture();
++  assert.equal((await runCli(root, ["--mode", "active"])).code, 0);
++
++  await mutate(
++    root,
++    "docs/09-Engineering-Handbook.md",
++    (markdown) => `${markdown}\n[Missing](not-there.md)\n`,
++  );
++  assert.equal((await runCli(root, ["--mode", "active"])).code, 1);
++  assert.equal((await runCli(root, ["--mode", "invalid"])).code, 2);
++});
+
+## MODIFIED FILE: package.json
+--- .superpowers/sdd/snapshots/task-2/package.json	2026-07-17 18:22:22.727918671 +0800
++++ package.json	2026-07-17 18:28:23.004122716 +0800
+@@ -1,26 +1,28 @@
+-{
+-  "name": "where-not-rain",
+-  "version": "0.0.0",
+-  "private": true,
+-  "packageManager": "pnpm@10.11.0",
+-  "engines": {
+-    "node": ">=22",
+-    "pnpm": ">=10"
+-  },
+-  "scripts": {
+-    "build": "pnpm -r build",
+-    "typecheck": "pnpm -r typecheck",
+-    "lint": "pnpm -r lint",
+-    "format": "prettier --write .",
+-    "format:check": "prettier --check .",
+-    "test": "pnpm -r test"
+-  },
+-  "devDependencies": {
+-    "@types/node": "^22.10.2",
+-    "eslint": "^9.17.0",
+-    "prettier": "^3.4.2",
+-    "tailwindcss": "^3.4.17",
+-    "typescript": "^5.7.2",
+-    "vitest": "^2.1.8"
+-  }
+-}
++{
++  "name": "where-not-rain",
++  "version": "0.0.0",
++  "private": true,
++  "packageManager": "pnpm@10.11.0",
++  "engines": {
++    "node": ">=22",
++    "pnpm": ">=10"
++  },
++  "scripts": {
++    "build": "pnpm -r build",
++    "typecheck": "pnpm -r typecheck",
++    "lint": "pnpm -r lint",
++    "format": "prettier --write .",
++    "format:check": "prettier --check .",
++    "docs:test": "node --test tooling/docs/*.test.mjs",
++    "docs:check": "node tooling/docs/validate-docs.mjs --mode active",
++    "test": "pnpm -r test"
++  },
++  "devDependencies": {
++    "@types/node": "^22.10.2",
++    "eslint": "^9.17.0",
++    "prettier": "^3.4.2",
++    "tailwindcss": "^3.4.17",
++    "typescript": "^5.7.2",
++    "vitest": "^2.1.8"
++  }
++}
+
+## MODIFIED FILE: prettier.config.js
+--- .superpowers/sdd/snapshots/task-2/prettier.config.js	2026-07-17 18:22:22.728036016 +0800
++++ prettier.config.js	2026-07-17 18:28:23.008139761 +0800
+@@ -1 +1 @@
+-export { default } from "@wnr/prettier-config";
++export { default } from "./tooling/prettier-config/index.js";

@@ -1,0 +1,34 @@
+{
+  "name": "@wnr/maintenance",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@wnr/domain": "workspace:*",
+    "@wnr/db": "workspace:*",
+    "@wnr/seo": "workspace:*",
+    "@wnr/config": "workspace:*"
+  },
+  "devDependencies": {
+    "@wnr/tsconfig": "workspace:*",
+    "@wnr/eslint-config": "workspace:*",
+    "@wnr/vitest-config": "workspace:*"
+  },
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ]
+}

@@ -1,0 +1,11 @@
+node_modules
+dist
+.next
+out
+coverage
+.artifacts
+.wrangler
+.kiro
+*.log
+pnpm-lock.yaml
+weather.txt

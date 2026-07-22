@@ -1,0 +1,28 @@
+sequenceDiagram
+    autonumber
+    actor Dev as 开发者
+    participant GH as GitHub Actions
+    participant Build as build job
+    participant Gate as deploy gates (dry-run)
+    participant Wrangler as wrangler CLI
+    participant Pages as Cloudflare Pages
+
+    Dev->>GH: git push main (或 open PR)
+    alt 事件 = push main (生产部署)
+        GH->>Build: checkout + pnpm install (锁定包管理器)
+        Build->>Build: format:check / lint / typecheck / test / docs:check
+        Build->>Build: pnpm --filter @wnr/web build (next build → out/)
+        Build->>Gate: build-immutable-artifact (计算 artifactId)
+        Gate->>Gate: deploy-preview / verify-preview-repositories / preview-smoke / promotion-dry-run
+        Note over Gate: dry-run，绝不调用 Cloudflare API
+        Gate->>Gate: secret-scan (构建产物无密钥泄漏)
+        Note over Gate: D1 migrate = 休眠（本期无绑定，不执行）
+        GH->>Wrangler: wrangler pages deploy out --project-name where-not-rain
+        Wrangler->>Pages: 上传静态产物（复用同一 out/）
+        Pages-->>GH: 生产部署完成
+    else 事件 = PR (预览部署)
+        GH->>Build: 同上 build + gates
+        GH->>Wrangler: wrangler pages deploy out --branch <pr> --project-name where-not-rain
+        Wrangler->>Pages: 上传预览产物
+        Pages-->>GH: 预览 URL
+    end

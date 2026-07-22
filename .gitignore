@@ -1,0 +1,11 @@
+node_modules/
+dist/
+.next/
+out/
+coverage/
+*.tsbuildinfo
+.env
+.env.local
+.wrangler/
+.artifacts/
+.DS_Store

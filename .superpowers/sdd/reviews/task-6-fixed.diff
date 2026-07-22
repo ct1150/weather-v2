@@ -1,0 +1,807 @@
+
+## docs/04-AI-Coding-Bible.md
+--- /dev/null	2026-07-13 18:58:14.987676037 +0800
++++ docs/04-AI-Coding-Bible.md	2026-07-17 20:31:52.450091546 +0800
+@@ -0,0 +1,158 @@
++---
++title: AI Coding Bible
++authority: Agent Delivery
++status: Draft
++last_updated: 2026-07-17
++---
++
++# AI Coding Bible
++
++> **Draft / Non-authoritative.** `SPEC.md` remains the sole implementation authority until the controlled documentation cutover. This document stages Coding Agent conduct, delivery boundaries, Definition of Done, and documentation protocol only; it does not authorize product implementation from the Draft authority set.
++
++## Delivery protocol
++
++<!-- requirement
++id: AGENT-PROTOCOL-001
++status: Active
++kind: Hard
++roadmap_ref: REL-MVP-AGENT_PROTOCOL_001
++owner: Agent Delivery
++verification: pnpm docs:check
++-->
++
++<a id="AGENT-PROTOCOL-001"></a>
++
++### AGENT-PROTOCOL-001 — Authority-first, phase-gated delivery
++
++Before changing implementation, an Agent reads the current authority entry point and the documents that own the affected decisions. During Draft staging, that entry point is `SPEC.md`; after controlled cutover, the Agent follows the reading order and unique-owner map in [Documentation Governance](README.md). The Agent resolves release timing only through the affected requirement's link to [Roadmap](11-Roadmap.md) and works on one currently approved release phase at a time.
++
++The Agent identifies the applicable Requirement IDs, acceptance criteria, boundaries, and verification commands before editing. It does not begin a later phase, opportunistically implement delayed scope, or treat a documented API shape as capability activation. Completion of a phase requires Product Owner review before work advances to the next phase.
++
++Roadmap: [REL-MVP-AGENT_PROTOCOL_001](11-Roadmap.md#REL-MVP-AGENT_PROTOCOL_001).
++
++#### Acceptance Criteria
++
++- A change record names the authority entry point, affected owner documents, Requirement IDs, and one approved release phase before implementation starts.
++- Review evidence shows that later-release scope was neither implemented nor silently pulled into the active phase.
++- Every cross-domain question is resolved by the unique-owner map and the requirement's Roadmap link rather than by copying a non-owning document.
++- The phase output stops for Product Owner confirmation before starting the next release phase.
++- During migration, no Agent starts product implementation from a Draft authority document or treats Draft content as a replacement for `SPEC.md`.
++
++<!-- requirement
++id: AGENT-BOUNDARY-001
++status: Active
++kind: Hard
++roadmap_ref: REL-MVP-AGENT_BOUNDARY_001
++owner: Agent Delivery
++verification: pnpm docs:check
++-->
++
++<a id="AGENT-BOUNDARY-001"></a>
++
++### AGENT-BOUNDARY-001 — Production-quality implementation boundaries
++
++An Agent delivers runnable, scoped work. Production changes contain no pseudocode, knowingly non-runnable placeholder, dead code, unexplained implementation marker, unused dependency, or critical business behavior without applicable tests. New dependencies require a demonstrated need, exact approved versioning, compatibility review, and confirmation that an existing platform or repository capability cannot satisfy the requirement more simply.
++
++The Agent preserves the dependency and provider-call boundaries owned by [ARCH-LAYERS-001](05-System-Architecture.md#ARCH-LAYERS-001) and [ARCH-DATAFLOW-001](05-System-Architecture.md#ARCH-DATAFLOW-001). It does not expose credentials, invent travel, price, availability, review, weather, or safety claims, create low-quality index surfaces, or change brand, core routes, scoring definitions, release assignment, or an authority owner's contract without approval.
++
++When requested work conflicts with an authority, ownership is ambiguous, source intent cannot be proven, or an exception would change architecture, the Agent stops the affected implementation, records the conflict and impact, and escalates under [Documentation Governance](README.md#conflict-resolution). It never silently weakens, strengthens, duplicates, or bypasses a contract.
++
++Roadmap: [REL-MVP-AGENT_BOUNDARY_001](11-Roadmap.md#REL-MVP-AGENT_BOUNDARY_001).
++
++#### Acceptance Criteria
++
++- Static review finds no pseudocode, unused dependency, dead implementation, or unexplained placeholder in the delivered scope.
++- Every new dependency has a recorded purpose, exact version, boundary impact, and rejected simpler alternative.
++- Tests prove critical changed behavior and the architecture boundary checks continue to reject prohibited dependency or provider-call paths.
++- Change review finds no unsupported commercial, destination, weather, price, review, or safety claim and no unapproved brand, route, score, or release change.
++- Every authority conflict or ambiguity is logged and escalated before implementation proceeds; no conflicting change is concealed as an implementation detail.
++
++## Definition of Done
++
++<!-- requirement
++id: AGENT-DOD-001
++status: Active
++kind: Hard
++roadmap_ref: REL-MVP-AGENT_DOD_001
++owner: Agent Delivery
++verification: pnpm docs:check
++-->
++
++<a id="AGENT-DOD-001"></a>
++
++### AGENT-DOD-001 — Evidence-based Definition of Done
++
++A feature, fix, migration, or documentation phase is done only when it satisfies all applicable owning requirements and acceptance criteria; contains complete production behavior with no dead or pseudo implementation; and passes its applicable format, lint, import-boundary, strict type, unit, integration, end-to-end, non-functional, security, documentation, build, and smoke checks.
++
++The Agent also verifies applicable mobile and desktop behavior, keyboard operation, dark mode, async and degraded states, analytics, SEO, internationalization, privacy, security, performance, migration, configuration, and operational effects. Documentation and environment examples are updated when their owned contract changes. A new or changed architectural decision updates an ADR; otherwise the exact phase statement is `ADR: none — no new architectural decision`.
++
++A checkbox, file presence, previous run, expected result, or narrative confidence is not verification. The final record contains the exact command, execution date, exit status, and concise observed result. A failing, skipped, unavailable, or partial check is reported as such and blocks any broader completion claim.
++
++Roadmap: [REL-MVP-AGENT_DOD_001](11-Roadmap.md#REL-MVP-AGENT_DOD_001).
++
++#### Acceptance Criteria
++
++- The delivery maps every applicable acceptance criterion to implementation or documentation evidence and identifies any criterion that remains unmet.
++- Recorded verification includes exact commands, date, exit status, and observed result; all checks required for the completion claim have succeeded.
++- Appropriate unit, integration, end-to-end, non-functional, build, security, and smoke evidence exists for the changed behavior, or the scope is explicitly not declared complete.
++- Applicable accessibility, responsive, state, analytics, SEO, i18n, privacy, security, performance, migration, configuration, and operations impacts are verified rather than assumed.
++- The record contains either the created or updated ADR link or the exact no-ADR statement, and no task is marked complete solely because a file exists.
++
++## Documentation and handoff
++
++<!-- requirement
++id: AGENT-DOCS-001
++status: Active
++kind: Hard
++roadmap_ref: REL-MVP-AGENT_DOCS_001
++owner: Agent Delivery
++verification: pnpm docs:check
++-->
++
++<a id="AGENT-DOCS-001"></a>
++
++### AGENT-DOCS-001 — Traceable handoff, decision log, and derived Kiro files
++
++Every phase handoff uses this decision-log structure:
++
++```text
++Phase: Phase N — Name
++
++Completed
++- ...
++
++Decision summary
++- ...
++
++Changed files
++- path: purpose
++
++Verification evidence
++- command: date, exit status, observed result
++
++Performance / SEO / security / privacy impact
++- ...
++
++Known limitations
++- ...
++
++ADR
++- link, or: none — no new architectural decision
++
++Next step / awaiting confirmation
++- ...
++```
++
++The decision summary records material choices and their authority, not only a list of edits. Known limitations include blocked, deferred, untested, environment-dependent, and later-release work. The next step identifies the gate or owner confirmation required and never represents later scope as already approved.
++
++[`.kiro/specs/where-not-rain/requirements.md`](../.kiro/specs/where-not-rain/requirements.md), [`.kiro/specs/where-not-rain/design.md`](../.kiro/specs/where-not-rain/design.md), and [`.kiro/specs/where-not-rain/tasks.md`](../.kiro/specs/where-not-rain/tasks.md) are derived implementation materials. They cite and digest authority Requirement IDs, remain limited to their generated release scope, and cannot override, add to, weaken, or reassign an authority contract. A conflict is resolved in favor of the authority owner and requires regeneration of the derived file; an existing Kiro task remains incomplete until its exact `Verify:` command succeeds and dated evidence is recorded.
++
++Roadmap: [REL-MVP-AGENT_DOCS_001](11-Roadmap.md#REL-MVP-AGENT_DOCS_001).
++
++#### Acceptance Criteria
++
++- Every phase handoff contains completed work, decision summary, changed files, verification evidence, cross-cutting impact, known limitations, ADR statement, and next step or confirmation gate.
++- Decisions cite owning Requirement IDs, and unresolved conflicts identify the owner and escalation rather than selecting a convenient source.
++- Kiro manifests and cited IDs validate against the current authority documents and contain no normative obligation without an authority source.
++- A Kiro conflict cannot change authority behavior or release assignment; the derived file is regenerated after the authority decision.
++- No Kiro task is checked complete without a successful execution of its exact `Verify:` command and dated evidence summary.
+
+## docs/09-Engineering-Handbook.md
+--- /dev/null	2026-07-13 18:58:14.987676037 +0800
++++ docs/09-Engineering-Handbook.md	2026-07-17 20:31:58.038324475 +0800
+@@ -0,0 +1,287 @@
++---
++title: Engineering Handbook
++authority: Engineering
++status: Draft
++last_updated: 2026-07-17
++---
++
++# Engineering Handbook
++
++> **Draft / Non-authoritative.** `SPEC.md` remains authoritative until the controlled documentation cutover. This document stages testing, performance, security, privacy, observability, and reliability quality gates. Architecture owns recovery mechanics, API owns request and response contracts, and Deployment owns promotion and rollback procedure; this handbook verifies those contracts without redefining them.
++
++## Code quality
++
++<!-- requirement
++id: ENG-TYPESCRIPT-001
++status: Active
++kind: Hard
++roadmap_ref: REL-MVP-ENG_TYPESCRIPT_001
++owner: Engineering
++verification: pnpm docs:check
++-->
++
++<a id="ENG-TYPESCRIPT-001"></a>
++
++### ENG-TYPESCRIPT-001 — Strict, bounded TypeScript implementation
++
++All production TypeScript compiles under strict mode with no unchecked escape hatch used to suppress an unexplained type error. External, configuration, storage, queue, analytics, provider, and API inputs are runtime-validated at their boundary before mapping into domain types. Domain entities, persistence records, provider DTOs, API contracts, and UI ViewModels remain distinct types.
++
++Shared formulas, event names, route builders, locale behavior, constants, and schemas have one owning implementation. Code follows the acyclic dependency rules in [ARCH-LAYERS-001](05-System-Architecture.md#ARCH-LAYERS-001), uses exhaustive handling for closed unions, and keeps optional behavior safe and explicit. Suppression comments, non-null assertions, and broad `any` are rejected unless the narrowest unavoidable use has a documented invariant and a test.
++
++Roadmap: [REL-MVP-ENG_TYPESCRIPT_001](11-Roadmap.md#REL-MVP-ENG_TYPESCRIPT_001).
++
++#### Acceptance Criteria
++
++- Recursive strict type checking exits successfully for every workspace package and application.
++- Boundary tests reject malformed external, configuration, storage, analytics, provider, and API values before they enter domain logic.
++- Static checks prove persistence records and provider DTOs do not leak into domain or UI contracts and package dependencies remain acyclic.
++- Lint or review finds no unexplained `any`, suppression, unsafe assertion, duplicate formula, event name, route builder, or locale implementation.
++- Closed-union fixtures exercise every supported value and fail safely for an unknown value.
++
++## Verification strategy
++
++<!-- requirement
++id: ENG-TEST-001
++status: Active
++kind: Hard
++roadmap_ref: REL-MVP-ENG_TEST_001
++owner: Engineering
++verification: pnpm docs:check
++-->
++
++<a id="ENG-TEST-001"></a>
++
++### ENG-TEST-001 — Required test suites and critical paths
++
++The test pyramid contains deterministic unit tests, boundary-focused integration tests, representative end-to-end journeys, and non-functional release checks. Tests use fixed clocks, explicit city time zones, controlled provider/storage fakes, and production-equivalent builds where behavior depends on bundling or rendering. A critical scoring, migration, publication, cache, authentication, or recovery change cannot merge without tests for its success and failure paths.
++
++Required unit coverage includes:
++
++- score formulas, normalization boundaries, missing factors, confidence, hazard penalty, reason codes, and model versions;
++- time windows, city-local dates, time zones, daylight-saving transitions, unit conversion, and locale formatting;
++- provider DTO validation and normalization;
++- URL and canonical identity construction;
++- typed static-control defaults and unknown-key behavior.
++
++Required integration coverage includes:
++
++- ordered D1 migrations, repositories, constraints, indexes, and rollback-window compatibility;
++- immutable KV CoreData hit, miss, mismatch, stale calculation, D1 fallback, and no request-path write or provider call;
++- Cron success, overlap, partial city failure, primary-provider exhaustion, configured fallback, candidate rejection, and last-known-good preservation;
++- API schema, validation, stable errors, request IDs, authentication, authorization, replay prevention, rate limits, and cache-cardinality controls;
++- multilingual names and aliases in search;
++- sitemap, robots, canonical, hreflang, JSON-LD, quality, and indexability outcomes.
++
++Required end-to-end paths are:
++
++1. Open the homepage, switch to Weekend ranking, and enter a city page.
++2. Search for Tokyo, select the result by keyboard, and inspect its seven-day forecast.
++3. Switch the map to Beach and open a destination, with the accessible list fallback also verified.
++4. In the release where Compare is active, compare Tokyo and Osaka and verify canonical ordering and result correctness.
++5. Switch language and units and verify the URL, local date, and displayed values.
++6. With an approved Affiliate adapter enabled, record a click without blocking navigation and reach only an allowlisted target.
++7. Exercise stale, partial, empty, offline, error, unavailable, and retry behavior without losing the last trustworthy decision context.
++
++Non-functional checks include Lighthouse CI under [ENG-PERF-001](#ENG-PERF-001), axe accessibility, format, lint and import boundaries, strict type checking, production build, route-level JavaScript budget, security headers, dependency and secret scanning, documentation validation, and a minimum load/cache-hit smoke test.
++
++Roadmap: [REL-MVP-ENG_TEST_001](11-Roadmap.md#REL-MVP-ENG_TEST_001).
++
++#### Acceptance Criteria
++
++- Unit, integration, end-to-end, and non-functional manifests map every listed case to at least one executable test or an explicitly release-gated test.
++- Changed critical behavior has both positive and negative fixtures, and repeated runs are deterministic under fixed time, locale, and provider/storage inputs.
++- User-read integration tests observe zero weather-provider calls and zero request-path KV or Cache API writes on hits, misses, stale data, and unavailable data.
++- Each active end-to-end path passes on its required viewport/input mode; delayed paths cannot activate before their Roadmap capability.
++- CI blocks merge or promotion when any applicable suite, build, security, documentation, accessibility, bundle, or smoke check fails.
++
++## Performance
++
++<!-- requirement
++id: ENG-PERF-001
++status: Active
++kind: Hard
++roadmap_ref: REL-MVP-ENG_PERF_001
++owner: Engineering
++verification: pnpm docs:check
++-->
++
++<a id="ENG-PERF-001"></a>
++
++### ENG-PERF-001 — Dual-layer performance release gate
++
++The product target is Lighthouse **100** for Performance, SEO, Accessibility, and Best Practices on every representative page; this target is not achieved by hiding required content, disabling production behavior, or excluding enabled scripts from the test path.
++
++The first blocking layer is Lighthouse CI against a production build. It tests the homepage, a country page, a city page, a baseline ranking page, and the search shell. Each page runs exactly **3 times** with representative mid-tier mobile-device emulation, **4× CPU slowdown**, **1.6 Mbps downlink**, **750 Kbps uplink**, and **150 ms RTT**. The gate uses each page's median of the three runs. Every representative page must independently meet **Performance >= 95**, **SEO = 100**, **Accessibility = 100**, and **Best Practices = 100**; one page below one threshold blocks release. Map, Analytics, and every enabled commercial or experiment script use the same loading path as production.
++
++The second blocking layer is production real-user telemetry from Cloudflare Web Analytics or a privacy-approved equivalent RUM source. For each route class, a rolling **28-day p75** is evaluated against **LCP < 2.0 seconds**, **CLS < 0.05**, and **INP < 200 milliseconds**. A route class requires at least **100 valid samples** in the window for a hard decision; fewer samples are reported but do not block. Exceeding any threshold in **2 consecutive daily evaluation windows** creates a performance incident, pauses new releases, and first disables optional commercial and experiment scripts through the applicable emergency control. If the regression is attributable to the latest deployment and rollback would restore the metric, that deployment is rolled back under [DEP-ROLLBACK-001](08-Cloudflare-Deployment.md#DEP-ROLLBACK-001).
++
++Roadmap: [REL-MVP-ENG_PERF_001](11-Roadmap.md#REL-MVP-ENG_PERF_001).
++
++#### Acceptance Criteria
++
++- CI evidence identifies the production artifact, five representative pages, exact device/network settings, all three run values, each median, and the four threshold decisions.
++- A fixture below 95/100/100/100 on any one representative page blocks promotion, while scores of 100 remain visible as the product target.
++- Production evaluation groups valid samples by route class, uses rolling 28-day p75, enforces only at 100 or more samples, and reports a smaller sample without blocking.
++- Boundary fixtures prove LCP equal to 2.0 seconds, CLS equal to 0.05, and INP equal to 200 milliseconds fail the strict production limits.
++- Incident tests require two consecutive failing daily windows, pause release, disable optional commercial/experiment scripts first, and perform rollback only when attribution and recovery evidence support it.
++- Audit evidence proves required content and enabled production-path map, Analytics, commercial, and experiment scripts were not hidden or bypassed to pass the gate.
++
++## Security and abuse prevention
++
++<!-- requirement
++id: ENG-SECURITY-001
++status: Active
++kind: Hard
++roadmap_ref: REL-MVP-ENG_SECURITY_001
++owner: Engineering
++verification: pnpm docs:check
++-->
++
++<a id="ENG-SECURITY-001"></a>
++
++### ENG-SECURITY-001 — Layered application and supply-chain security
++
++All untrusted input is bounded and runtime-validated, output is contextually encoded, and every D1 query is parameterized. Content Security Policy is least-privilege and deployment security headers include HSTS, Referrer-Policy, Permissions-Policy, and X-Content-Type-Options. HTML, attributes, URLs, JSON-LD, logs, and analytics treat external text as data; no unsafe rendering path can execute injected script.
++
++Outbound server requests are restricted to approved schemes, exact hosts, ports, paths, redirect behavior, timeouts, and response sizes to prevent SSRF. Affiliate and other redirects resolve only provider-owned allowlisted destinations and never accept an arbitrary caller target. Internal HTTP operations, when unavoidable, follow [API-INTERNAL-001](07-API-Spec.md#API-INTERNAL-001) for strong credentials, signed method/path/body, timestamp, nonce, short replay window, constant-time verification, authorization, rate limiting, and audit.
++
++Cache and publication inputs follow canonical parameter allowlists, bounded cardinality, schema and identity verification, checksums, and the Architecture-owned activation rules so poisoning cannot select or publish untrusted data. Provider payloads are validated and isolated before activation. Secrets use [DEP-CONFIG-001](08-Cloudflare-Deployment.md#DEP-CONFIG-001), never entering source, build output, browser bundles, URLs, logs, analytics, errors, previews, or snapshots.
++
++Dependencies are locked, reviewed, scanned for vulnerabilities and suspicious packages, and checked together with repository secret scanning. Admin remains disabled by default and, when active, requires reliable identity, least-privilege authorization, audit, CSRF protection where applicable, no public caching, and no production write or sensitive data exposure beyond its separately approved scope.
++
++Roadmap: [REL-MVP-ENG_SECURITY_001](11-Roadmap.md#REL-MVP-ENG_SECURITY_001).
++
++#### Acceptance Criteria
++
++- Security tests cover XSS in every output context, SQL injection in every input family, CSP and required headers, SSRF variants and redirects, open redirect, replay, cache poisoning, provider-data poisoning, and secret leakage.
++- D1 spies prove untrusted values use parameter bindings, and output fixtures cannot break their HTML, attribute, URL, JSON-LD, log, or analytics context.
++- SSRF and redirect fixtures reject unapproved scheme, host, port, path, DNS/redirect change, and caller-supplied outbound target before a sensitive request occurs.
++- Internal-route tests reject missing, malformed, expired, replayed, incorrectly signed, and unauthorized calls before side effects.
++- Secret and dependency scans pass against source, lockfile, artifacts, bundles, logs, errors, previews, and snapshots.
++- Admin tests prove default-off behavior, authentication, least privilege, audit, no shared caching, no unauthorized mutation, and redaction of internal or sensitive data.
++
++<!-- requirement
++id: ENG-BOT-001
++status: Active
++kind: Hard
++roadmap_ref: REL-MVP-ENG_BOT_001
++owner: Engineering
++verification: pnpm docs:check
++-->
++
++<a id="ENG-BOT-001"></a>
++
++### ENG-BOT-001 — Four-level Bot Protection and rate enforcement
++
++MVP provides application-layer enforcement at all four levels below. Cloudflare-native controls may run ahead of it when available, but they are an enhancement and never the sole core defense.
++
++| Level | Scope                                                 | Default per-IP limit                                   | Over-limit action                                    |
++| ----- | ----------------------------------------------------- | ------------------------------------------------------ | ---------------------------------------------------- |
++| L1    | Cacheable public HTML                                 | 120 requests/minute and a 30 requests/10 seconds burst | `429` plus `Retry-After`                             |
++| L2    | Public read API and map data                          | 60 requests/minute                                     | `429` plus a short cooldown                          |
++| L3    | Search, Compare, and other high-cardinality endpoints | 30 requests/minute                                     | `429`; repeated excess becomes a challenge candidate |
++| L4    | Internal sync, maintenance, and Admin                 | 10 requests/minute plus strong authentication          | Reject, audit, and record a security event           |
++
++When the same source reaches **3× the applicable threshold within 5 minutes**, or an available Cloudflare automation/abuse signal fires, the system applies Managed Challenge when the plan supports it; otherwise it extends the application cooldown. Cache keys use parameter allowlists and explicit cardinality bounds.
++
++A crawler is trusted only through Cloudflare Verified Bots or reverse-DNS followed by forward-DNS verification; User-Agent alone is never sufficient. A verified mainstream search crawler accessing public indexable content is exempt from an interactive challenge, but remains subject to an abnormal-traffic safety ceiling. Limit changes before launch require measured load evidence, an update to this requirement, corresponding tests, and a phase decision-log entry.
++
++Roadmap: [REL-MVP-ENG_BOT_001](11-Roadmap.md#REL-MVP-ENG_BOT_001).
++
++#### Acceptance Criteria
++
++- Boundary tests cover the last allowed and first rejected request for L1's minute and burst windows and for every L2, L3, and L4 minute window.
++- Window-reset and cooldown fixtures prove counters reset as designed and 3× threshold within five minutes triggers challenge candidacy or extended cooldown.
++- L1 returns `429` with `Retry-After`; L2 returns `429` with a short cooldown; L3 returns `429` and escalates repeated excess; L4 rejects, audits, and records a security event in addition to strong authentication.
++- Forged crawler User-Agents receive no trust, while Verified Bots or reverse-then-forward DNS verification permits legitimate mainstream search crawling without interactive challenge.
++- Cache-key amplification, encoded/duplicate parameter, map-bound, arbitrary search/Compare cardinality, and authenticated-endpoint bypass tests remain bounded.
++- Cloudflare-native rules can be absent without removing application enforcement, and any numerical adjustment carries load evidence, updated tests, and a decision-log record.
++
++## Privacy, observability, and reliability
++
++<!-- requirement
++id: ENG-PRIVACY-001
++status: Active
++kind: Hard
++roadmap_ref: REL-MVP-ENG_PRIVACY_001
++owner: Engineering
++verification: pnpm docs:check
++-->
++
++<a id="ENG-PRIVACY-001"></a>
++
++### ENG-PRIVACY-001 — Data minimization, redaction, and user disclosure
++
++The system collects and retains only data required by an approved product, security, aggregate analytics, or operational purpose. Custom analytics and operational stores do not contain IP addresses, precise location, email, raw search text, full User-Agent, cookies, Authorization values, API keys, credentials, provider bodies, or reversible user identifiers. Country analytics is anonymous and aggregate; destination and country cells below their owning privacy threshold are merged into `other`.
++
++Logs use allowlisted structured fields and sanitized stable error codes. Query strings and headers are excluded by default and any approved field is normalized and redacted before emission. Retention is bounded and documented; deletion and cleanup preserve legally or operationally required aggregate evidence without retaining prohibited raw data.
++
++Privacy, Cookie, Affiliate Disclosure, and data-source pages accurately describe enabled behavior. Optional analytics, advertising, Affiliate, and experiment adapters remain disabled until their consent, purpose, data-flow, retention, regional, and vendor review is complete. Admin exposes only minimum aggregate and sanitized operational data to authorized roles.
++
++Roadmap: [REL-MVP-ENG_PRIVACY_001](11-Roadmap.md#REL-MVP-ENG_PRIVACY_001).
++
++#### Acceptance Criteria
++
++- Schema and sink tests reject IP, precise location, email, raw search text, full User-Agent, cookie, Authorization, API key, secret, provider body, and reversible identifier fields.
++- Log fixtures containing sensitive headers, query values, SQL, stack, path, provider, and credential text emit only allowlisted fields and sanitized error codes.
++- Retention tests remove expired optional raw operational records while preserving only approved aggregate or required audit evidence.
++- Enabled-data-flow review matches public Privacy, Cookie, Affiliate Disclosure, and data-source pages and records consent or lawful-purpose decisions where applicable.
++- Optional analytics, ads, Affiliate, experiments, and Admin remain disabled when review, consent, regional, retention, or access-control prerequisites are absent.
++
++<!-- requirement
++id: ENG-OBSERVABILITY-001
++status: Active
++kind: Hard
++roadmap_ref: REL-MVP-ENG_OBSERVABILITY_001
++owner: Engineering
++verification: pnpm docs:check
++-->
++
++<a id="ENG-OBSERVABILITY-001"></a>
++
++### ENG-OBSERVABILITY-001 — Structured logs, metrics, and actionable signals
++
++Structured logs use the common fields `timestamp`, `level`, `service`, `requestId` or `runId`, `event`, `durationMs`, `status`, and `errorCode`. Values are bounded, timestamps are UTC, IDs support correlation without becoming personal identifiers, and [ENG-PRIVACY-001](#ENG-PRIVACY-001) redaction applies before every sink.
++
++Required sync signals are run status, provider adapter, primary-to-fallback switch, success and failure city counts, duration, activation outcome, and source-data freshness. Required cache and storage signals are internal KV hit/miss/mismatch, D1 fallback, D1/KV read and write failures by authorized path, and read-model repair/publication outcomes. Required request signals are 5xx, 404, typed unavailable outcomes, API latency, and rate-limit decisions. Required quality signals are stale-city count, cities without a valid forecast, ranking generation count and anomaly distribution, broken links, structured-data errors, deployment/smoke status, and the performance indicators in [ENG-PERF-001](#ENG-PERF-001).
++
++Metrics use bounded labels; route templates, stable codes, and enumerated dimensions replace raw URLs, query strings, stack messages, city-scale unbounded IDs where aggregation is sufficient, and arbitrary provider text. Alerts point to an owning runbook or authority contract and distinguish actionable failure from expected stale, no-fill, or insufficient-sample states.
++
++Roadmap: [REL-MVP-ENG_OBSERVABILITY_001](11-Roadmap.md#REL-MVP-ENG_OBSERVABILITY_001).
++
++#### Acceptance Criteria
++
++- Log schema tests require all common fields appropriate to request or run events, validate UTC timestamps and bounded values, and apply privacy redaction before sink emission.
++- Fixture runs emit the required sync, provider switch, city outcome, duration, activation, and freshness signals.
++- KV hit/miss/mismatch, D1 fallback, storage failure, request 5xx/404/unavailable/latency/rate-limit, stale/forecast/ranking, SEO, and deployment fixtures emit their named metrics.
++- Cardinality tests reject raw URL, query string, arbitrary exception/provider text, and other unbounded labels in favor of route templates and stable enumerations.
++- Every alert identifies an owner and response reference and does not page solely for an expected no-fill or an under-100-sample performance report.
++
++<!-- requirement
++id: ENG-RELIABILITY-001
++status: Active
++kind: Hard
++roadmap_ref: REL-MVP-ENG_RELIABILITY_001
++owner: Engineering
++verification: pnpm docs:check
++-->
++
++<a id="ENG-RELIABILITY-001"></a>
++
++### ENG-RELIABILITY-001 — Verified degraded service and recovery readiness
++
++Reliability tests and operations must preserve trustworthy travel-decision service through provider, sync, KV, D1, candidate-publication, and deployment faults. The normative lock, activation, stale, KV/D1 fallback, static fallback, unavailable, and last-known-good mechanics are owned only by [ARCH-RECOVERY-001](05-System-Architecture.md#ARCH-RECOVERY-001); this requirement does not restate or alter them. Architecture's user-path provider prohibition remains governed by [ARCH-DATAFLOW-001](05-System-Architecture.md#ARCH-DATAFLOW-001), and deployment rollback mechanics remain governed by [DEP-ROLLBACK-001](08-Cloudflare-Deployment.md#DEP-ROLLBACK-001).
++
++Engineering owns proof that these paths work: fault injection covers sync overlap and expiry, single-city and provider failures, invalid and partial candidates, stale presentation, KV miss/corruption/unavailability, D1 degradation, publication interruption, unavailable API behavior, eligible deployed-page fallback, failed promotion, and rollback rehearsal. No degraded path labels stale data as live, publishes an unvalidated candidate, mutates read models from a user request, calls a provider from a user request, or invents missing data.
++
++Each production incident records detection time, affected route class or run, user impact, stable error codes, mitigation, recovery evidence, data-integrity result, known limitations, follow-up owner, and decision-log/ADR outcome. Recovery objectives and alert thresholds are measured from evidence before they become release commitments.
++
++Roadmap: [REL-MVP-ENG_RELIABILITY_001](11-Roadmap.md#REL-MVP-ENG_RELIABILITY_001).
++
++#### Acceptance Criteria
++
++- Fault-injection evidence covers provider/sync failure, invalid candidate, stale data, KV miss/mismatch/failure, D1 degradation, interrupted publication, failed deployment, and rollback without redefining Architecture's recovery algorithm.
++- Tests prove stale data is visibly identified, only trustworthy active data is used, and no user-path provider call, score computation, publication, cache repair, or fabricated result occurs.
++- API and eligible page tests produce exactly their Architecture/API-owned unavailable or fallback outcomes under D1 and KV faults.
++- A rollback rehearsal passes [DEP-ROLLBACK-001](08-Cloudflare-Deployment.md#DEP-ROLLBACK-001) checks and confirms previous-version and last-known-good availability.
++- Incident records contain detection, scope, user impact, stable codes, mitigation, recovery and integrity evidence, limitations, owner, and decision-log/ADR outcome.
+
+## docs/10-Growth-Bible.md
+--- /dev/null	2026-07-13 18:58:14.987676037 +0800
++++ docs/10-Growth-Bible.md	2026-07-17 20:39:14.211048641 +0800
+@@ -0,0 +1,246 @@
++---
++title: Growth Bible
++authority: Growth
++status: Draft
++last_updated: 2026-07-17
++---
++
++# Growth Bible
++
++> **Draft / Non-authoritative.** `SPEC.md` remains authoritative until the controlled documentation cutover. This document stages Analytics, Affiliate, advertising, candidate-provider, and experiment contracts. It performs no analytics, advertising, Affiliate, provider, Cloudflare, database, or deployment integration and promises no named provider launch.
++
++## Analytics events
++
++<!-- requirement
++id: GROW-ANALYTICS-001
++status: Active
++kind: Hard
++roadmap_ref: REL-MVP-GROW_ANALYTICS_001
++owner: Growth
++verification: pnpm docs:check
++-->
++
++<a id="GROW-ANALYTICS-001"></a>
++
++### GROW-ANALYTICS-001 — Versioned allowlisted analytics events
++
++Cloudflare Web Analytics is the default aggregate analytics capability. GA4 and Plausible are removable, disabled-by-default adapters and are not both enabled by default. Documentation of an adapter does not activate it.
++
++Every custom event version `1` contains exactly these common required fields:
++
++| Field            | Type and allowlist                                             |
++| ---------------- | -------------------------------------------------------------- |
++| `event_version`  | integer; exactly `1`                                           |
++| `occurred_at`    | ISO-8601 UTC string ending in `Z`                              |
++| `route_template` | bounded route-template string; never a raw URL or query string |
++| `locale`         | `en` \| `ja` \| `ko` \| `zh-cn` \| `zh-tw`                     |
++
++The exact event and additional-field allowlist is:
++
++| Event name              | Additional required fields                                                                                      |
++| ----------------------- | --------------------------------------------------------------------------------------------------------------- |
++| `search_submitted`      | `destination_key: string \| "other"`; `result_count: nonnegative integer`                                       |
++| `search_result_clicked` | `destination_id: string`; `result_type: "city" \| "country" \| "article"`; `position: positive integer`         |
++| `city_viewed`           | `city_id: string`; `country_code: ISO-3166-1 alpha-2 uppercase string`                                          |
++| `country_viewed`        | `country_code: ISO-3166-1 alpha-2 uppercase string`                                                             |
++| `ranking_viewed`        | `theme: Theme`; `window: Window`                                                                                |
++| `ranking_city_clicked`  | `theme: Theme`; `window: Window`; `city_id: string`; `rank: positive integer`                                   |
++| `affiliate_impression`  | `provider_id: string`; `category: CommercialCategory`; `placement: Placement`; `destination_id: string \| null` |
++| `affiliate_clicked`     | `provider_id: string`; `category: CommercialCategory`; `placement: Placement`; `destination_id: string \| null` |
++| `ad_impression`         | `network_id: string`; `placement: Placement`                                                                    |
++
++`Theme` is exactly `general | outdoor | beach | walking | hiking | camping | family | photography | night_view | food_trip | shopping | theme_park | mountain`. `Window` is exactly `today | tomorrow | weekend | next_week`. `CommercialCategory` is exactly `hotel | activities | flights | sim | insurance | car_rental`. `Placement` is exactly `homepage | city_page | article | sidebar | between_sections`.
++
++`destination_key` is emitted only after matching the approved city, country, or alias dictionary; unmatched user text becomes `other`. Raw search terms are never uploaded or persisted. Event schemas discard unknown fields, reject unknown event names, and reject unsupported event versions rather than accepting a best-effort shape. They also reject IP address, precise location, email, full User-Agent, cookie, credentials, and reversible user identifiers. Collection must not block navigation or core destination use.
++
++Roadmap: [REL-MVP-GROW_ANALYTICS_001](11-Roadmap.md#REL-MVP-GROW_ANALYTICS_001).
++
++#### Acceptance Criteria
++
++- Schema fixtures accept each exact event with all common and event-specific fields and reject every missing field, wrong scalar type, enum outsider, negative count, and nonpositive position or rank.
++- Events with a name outside the table, `event_version` other than integer `1`, or an unsupported future version are rejected; extra fields are discarded before storage or forwarding.
++- Search fixtures emit a known dictionary key or `other` and prove raw unmatched search text never reaches an analytics payload, log, aggregate row, or adapter.
++- Privacy fixtures reject IP, precise location, email, full User-Agent, cookie, credential, and reversible identifier fields.
++- Navigation and core-use tests succeed when analytics is slow, disabled, unavailable, or rejects an event, with no duplicate default-adapter emission.
++
++## Aggregate reporting
++
++<!-- requirement
++id: GROW-REPORT-001
++status: Active
++kind: Hard
++roadmap_ref: REL-Beta-GROW_REPORT_001
++owner: Growth
++verification: pnpm docs:check
++-->
++
++<a id="GROW-REPORT-001"></a>
++
++### GROW-REPORT-001 — Privacy-bounded Beta growth reports
++
++Beta provides exactly two aggregate report contracts. Both aggregate by UTC calendar day, accept only fixed trailing windows of **7**, **28**, or **90** complete UTC days, use nonnegative integer metrics, and return no raw event or user-level row.
++
++`top_pages` uses these dimensions and metric:
++
++| Field            | Type and behavior                                                                                            |
++| ---------------- | ------------------------------------------------------------------------------------------------------------ |
++| `event_date`     | UTC calendar date in `YYYY-MM-DD`                                                                            |
++| `route_template` | bounded known route-template string; unknown templates aggregate to `other`; raw query strings are forbidden |
++| `page_type`      | `homepage \| country \| city \| ranking \| search \| explore \| compare \| article \| other`                 |
++| `locale`         | `en \| ja \| ko \| zh-cn \| zh-tw \| th \| vi`                                                               |
++| `page_views`     | nonnegative integer                                                                                          |
++
++`acquisition_country` uses these dimensions and metrics:
++
++| Field          | Type and behavior                                                                                          |
++| -------------- | ---------------------------------------------------------------------------------------------------------- |
++| `event_date`   | UTC calendar date in `YYYY-MM-DD`                                                                          |
++| `country_code` | ISO-3166-1 alpha-2 uppercase code, `ZZ` for unknown/unavailable country, or `other` for the privacy bucket |
++| `visits`       | nonnegative integer                                                                                        |
++| `page_views`   | nonnegative integer                                                                                        |
++
++Country comes only from Cloudflare's anonymous country-level dimension; the report stores no IP, precise location, cookie, or reversible identifier. Invalid country values normalize to `ZZ`, not a guessed country. Before output or persistence of a reportable aggregate, any country grouping with count below the privacy minimum of **10** is merged into `other`; a country represented by the report uses `ZZ` for unknown source country and `other` only for privacy aggregation, so these meanings remain distinct. No API permits arbitrary date range, arbitrary dimension, or raw query grouping.
++
++Roadmap: [REL-Beta-GROW_REPORT_001](11-Roadmap.md#REL-Beta-GROW_REPORT_001).
++
++#### Acceptance Criteria
++
++- UTC-boundary fixtures assign events immediately before and after midnight to the correct `event_date` without applying a viewer or destination time zone.
++- Query validation accepts only 7, 28, and 90 complete UTC-day windows and rejects arbitrary ranges, dimensions, raw rows, and raw query-string grouping.
++- `top_pages` contains only route template, page type, locale, and nonnegative `page_views`; unknown routes become `other` and no raw URL/query is retained.
++- `acquisition_country` contains only valid uppercase ISO alpha-2, `ZZ`, or privacy bucket `other`, nonnegative `visits`, and nonnegative `page_views`; malformed or unavailable country input becomes `ZZ`.
++- Privacy fixtures merge every applicable country grouping with a count below 10 into `other`, preserve a count of exactly 10, and prove that no IP, precise location, cookie, or reversible identifier is stored.
++
++## Affiliate and advertising
++
++<!-- requirement
++id: GROW-AFF-001
++status: Active
++kind: Hard
++roadmap_ref: REL-MVP-GROW_AFF_001
++owner: Growth
++verification: pnpm docs:check
++-->
++
++<a id="GROW-AFF-001"></a>
++
++### GROW-AFF-001 — Provider-neutral, disclosed Affiliate actions
++
++Affiliate surfaces use a provider-neutral adapter and ViewModel; user-facing components do not depend on provider DTO fields. Categories are Hotel, Activities, Flights, SIM, Insurance, and Car Rental. A surface renders only from authorized, current, configured data and never invents price, availability, rating, discount, review, or recommendation evidence.
++
++Every commercial recommendation and outbound action carries clear proximate disclosure in the active locale. Paid outbound links include `rel="sponsored"`; they also include `nofollow` where policy requires it and `noopener noreferrer` when a new browsing context is used. A click event is dispatched best-effort without blocking or delaying navigation and cannot change the destination.
++
++Every adapter has an exact normalized HTTPS host allowlist. Stored and runtime targets must match the selected provider's allowed host and approved path policy after parsing and redirect resolution; caller-provided arbitrary redirect targets are rejected. The typed static configuration and emergency kill-switch behavior are owned by [ARCH-FLAG-001](05-System-Architecture.md#ARCH-FLAG-001). Affiliate remains optional: disabled, unavailable, invalid, or empty data removes the entire surface without reducing core weather content.
++
++Roadmap: [REL-MVP-GROW_AFF_001](11-Roadmap.md#REL-MVP-GROW_AFF_001).
++
++#### Acceptance Criteria
++
++- Adapter contract tests swap two provider fixtures without changing the component or exposing provider-specific fields in its ViewModel.
++- Locale and accessibility tests find a proximate understandable disclosure for every impression and outbound action.
++- Link tests require `sponsored`, apply `nofollow` by policy, apply `noopener noreferrer` to a new context, and permit only normalized approved HTTPS hosts and paths.
++- Slow, failed, rejected, or disabled analytics never blocks navigation, changes the destination, or emits duplicate click events.
++- Disabled, unconfigured, invalid, unauthorized, stale, or empty Affiliate data renders no misleading recommendation, false commercial claim, dead control, or blank surface.
++
++<!-- requirement
++id: GROW-ADS-001
++status: Active
++kind: Hard
++roadmap_ref: REL-MVP-GROW_ADS_001
++owner: Growth
++verification: pnpm docs:check
++-->
++
++<a id="GROW-ADS-001"></a>
++
++### GROW-ADS-001 — Bounded advertising placements with zero layout shift
++
++Reusable advertising may appear only in the five canonical placements **Homepage**, **City Page**, **Article**, **Sidebar**, and **Between Sections**, represented by `homepage`, `city_page`, `article`, `sidebar`, and `between_sections` in configuration and analytics. No other placement name is accepted without changing this owning requirement.
++
++Advertising is optional and subordinate to complete core content. The MVP control is typed static configuration with a global and supported placement kill switch under [ARCH-FLAG-001](05-System-Architecture.md#ARCH-FLAG-001), not dynamic segmentation or experimentation. Disabled, blocked, invalid, or no-fill state produces no blank block, label, control, or movement of already rendered content. An enabled creative uses a size-constrained responsive container and cannot overlay core controls or introduce CLS; a no-fill decision is resolved without resizing the laid-out page.
++
++Roadmap: [REL-MVP-GROW_ADS_001](11-Roadmap.md#REL-MVP-GROW_ADS_001).
++
++#### Acceptance Criteria
++
++- Schema tests accept exactly Homepage, City Page, Article, Sidebar, and Between Sections canonical placements and reject an unknown placement.
++- Global and per-placement static controls default safe, are evaluated server-side, and omit disabled ad code and markup rather than visually hiding an active integration.
++- Disabled, blocked, invalid, and no-fill fixtures leave no blank reserved content block or unusable control and contribute exactly zero CLS.
++- Filled responsive creatives stay within their placement, do not overlay or reorder core content, and contribute exactly zero CLS in representative viewport tests.
++- Core discovery, weather, navigation, and accessibility journeys remain complete when every ad control is disabled.
++
++## Candidate providers
++
++<!-- requirement
++id: GROW-PROVIDER-001
++status: Active
++kind: Hard
++roadmap_ref: REL-V1-GROW_PROVIDER_001
++owner: Growth
++verification: pnpm docs:check
++-->
++
++<a id="GROW-PROVIDER-001"></a>
++
++### GROW-PROVIDER-001 — Conditional V1 commercial candidate registry
++
++The V1 candidate Adapter registry contains exactly:
++
++| Candidate        | Category                                                |
++| ---------------- | ------------------------------------------------------- |
++| Google AdSense   | Advertising                                             |
++| Booking          | Lodging Affiliate                                       |
++| Agoda            | Lodging Affiliate                                       |
++| Trip.com         | Travel Affiliate                                        |
++| Klook            | Activities Affiliate                                    |
++| KKday            | Activities Affiliate                                    |
++| Expedia          | Travel Affiliate                                        |
++| Rentalcars       | Car-rental Affiliate                                    |
++| Airalo           | Connectivity Affiliate                                  |
++| Travel Insurance | Insurance Affiliate category; provider not yet selected |
++
++Registry presence means only that an adapter may be evaluated. It does not represent a signed contract, brand approval, regional availability, production activation, launch commitment, or promise that all candidates will be integrated. Each candidate can be rejected, deferred, or remain disabled independently.
++
++Before enablement, a candidate must pass documented contract and brand-term review, regional availability, disclosure and `rel` policy, privacy and consent review, [ENG-PERF-001](09-Engineering-Handbook.md#ENG-PERF-001), security redirect/host allowlisting, authorized-data review, and a control available for that release. MVP optional surfaces use typed static configuration and emergency kill switches under [ARCH-FLAG-001](05-System-Architecture.md#ARCH-FLAG-001); V1 may additionally use the dynamic platform under [ARCH-FLAG-002](05-System-Architecture.md#ARCH-FLAG-002), but a dynamic assignment cannot override a static emergency disable.
++
++Roadmap: [REL-V1-GROW_PROVIDER_001](11-Roadmap.md#REL-V1-GROW_PROVIDER_001).
++
++#### Acceptance Criteria
++
++- Registry validation contains all ten listed candidates with the exact category and no unapproved provider represented as enabled.
++- Status output distinguishes candidate, reviewed, approved, configured, enabled, rejected, and deferred without treating candidate status as launch evidence.
++- Every enabled candidate has current evidence for contract/brand, region, disclosure/rel, privacy/consent, performance, security allowlist, authorized data, and release-appropriate control gates.
++- One candidate can be disabled or removed without affecting another candidate or core weather and destination use.
++- Review language and release evidence make no commitment to integrate all candidates and no claim that an unevaluated candidate is available.
++
++## Experiments
++
++<!-- requirement
++id: GROW-EXPERIMENT-001
++status: Active
++kind: Hard
++roadmap_ref: REL-V1-GROW_EXPERIMENT_001
++owner: Growth
++verification: pnpm docs:check
++-->
++
++<a id="GROW-EXPERIMENT-001"></a>
++
++### GROW-EXPERIMENT-001 — V1 hypothesis-led, privacy-safe experiments
++
++A/B experiments begin only with the V1 dynamic Feature Flag platform in [ARCH-FLAG-002](05-System-Architecture.md#ARCH-FLAG-002). MVP has only typed static configuration and emergency kill switches under [ARCH-FLAG-001](05-System-Architecture.md#ARCH-FLAG-001); it performs no audience segmentation, percentage rollout, live experiment assignment, or remotely mutable per-request treatment. A static emergency disable always overrides a V1 dynamic assignment.
++
++Before exposure, each experiment record defines a stable experiment and version ID, falsifiable hypothesis, control and treatment, eligible audience, deterministic assignment unit, allocation, **one primary metric**, guardrail metrics, UTC start date/time, UTC end date/time, minimum sample or decision rule, owner, stop condition, and rollback control. Assignment and analysis use only approved allowlisted event fields and collect no extra personal information.
++
++Control and treatment use the same canonical URL and indexability outcome. Experiments do not create query-parameter or path variants for indexing, change canonical or hreflang identity, cloak crawler content, block core cached weather reads, or publish unsupported commercial, safety, price, or destination claims. Results record exposure validity, primary and guardrail outcomes, limitations, and the ship/stop/iterate decision; ending an experiment removes stale assignment code and retains only approved aggregate evidence.
++
++Roadmap: [REL-V1-GROW_EXPERIMENT_001](11-Roadmap.md#REL-V1-GROW_EXPERIMENT_001).
++
++#### Acceptance Criteria
++
++- The MVP configuration schema and runtime contain no dynamic segmentation, percentage rollout, live experiment assignment, or remote per-request mutation.
++- Every V1 experiment fixture is rejected unless hypothesis, variants, audience, deterministic assignment, allocation, one primary metric, guardrails, UTC dates, sample/decision rule, owner, stop condition, and rollback control are complete.
++- Repeated evaluation for the same experiment version, subject, and context yields the same assignment, while failure or unknown configuration is disabled and a static kill switch wins.
++- SEO tests prove both variants retain one canonical URL, hreflang and indexability outcome and create no indexable path/query variant or crawler cloaking.
++- Privacy schemas prove experiment assignment adds no field or PII beyond approved analytics allowlists, and core weather reads remain available when dynamic evaluation fails.
++- Closure evidence records aggregate outcomes, limitations, decision, and cleanup of stale treatment code without claiming that an experiment requires or guarantees launch.
+
+## REPORT
+# Task 6 Report
+
+Phase: Phase 6 — Engineering, Growth, and Agent authorities
+
+## Completed
+
+- Staged the Task 6 authority set as Draft / Non-authoritative: `docs/04-AI-Coding-Bible.md`, `docs/09-Engineering-Handbook.md`, and `docs/10-Growth-Bible.md`.
+- Defined 18 `Active` / `Hard` requirements with deterministic `roadmap_ref` values, explicit matching anchors, inline Roadmap links, and Acceptance Criteria: four Agent, eight Engineering, and six Growth requirements.
+- Remediated review finding `GROW-REPORT-001`: `acquisition_country.country_code` now permits an uppercase ISO-3166-1 alpha-2 code, `ZZ`, or privacy bucket `other`.
+- Removed destination-threshold language from `GROW-REPORT-001`; the threshold of 10 now applies only to the country grouping exposed by `acquisition_country`.
+- Updated this report to satisfy the evidence and handoff structure required by `AGENT-DOD-001` and `AGENT-DOCS-001`.
+- No product code, dependency, configuration, infrastructure, deployment, or runtime integration was changed. The directory is not a Git repository, and no commit was created.
+
+## Decision summary
+
+- Authority entry point: `SPEC.md` remains authoritative during Draft staging. Affected owner documents are the Growth authority (`docs/10-Growth-Bible.md`) and Agent Delivery authority (`docs/04-AI-Coding-Bible.md`). Applicable IDs are `GROW-REPORT-001`, `AGENT-DOD-001`, and `AGENT-DOCS-001`; work remained within the approved Task 6 documentation phase.
+- `ZZ` and `other` remain distinct: `ZZ` represents malformed, unknown, or unavailable source country, while `other` is the privacy aggregation bucket for country groups below 10.
+- Neither `top_pages` nor `acquisition_country` exposes a destination dimension, so a destination privacy-threshold contract would be untestable and was removed. Destination aggregation remains outside these two reports.
+- No later-release capability was activated. Analytics, Affiliate, advertising, provider, experiment, Cloudflare, database, and deployment integrations remain documentation-only.
+
+## Changed files
+
+- `docs/10-Growth-Bible.md`: added `other` to the `acquisition_country.country_code` union and limited threshold language and acceptance criteria to country grouping.
+- `.superpowers/sdd/task-6-report.md`: added the required phase handoff, dated command evidence, cross-cutting impact, limitations, ADR statement, and next gate.
+
+## Verification evidence
+
+1. **Prettier — Growth authority**
+   - Exact command: `pnpm exec prettier --write docs/10-Growth-Bible.md`
+   - Execution date: 2026-07-17
+   - Exit status: 0
+   - Observed result: formatted `docs/10-Growth-Bible.md`; Prettier emitted the existing `MODULE_TYPELESS_PACKAGE_JSON` warning for `prettier.config.js`.
+2. **Documentation tests**
+   - Exact command: `pnpm docs:test`
+   - Execution date: 2026-07-17
+   - Exit status: 0
+   - Observed result: Node TAP completed 59 tests: 59 passed, 0 failed, 0 cancelled, 0 skipped, 0 todo.
+3. **Staging documentation validation**
+   - Exact command: `node tooling/docs/validate-docs.mjs --mode staging`
+   - Execution date: 2026-07-17
+   - Exit status: 1
+   - Observed result: reported 941 errors, 0 warnings, 78 requirements, 78 releases, and 0 traces. All errors are the known pre-cutover Task 7/8 gaps; no error targets a Task 6 authority document. This expected nonzero staging result prevents a repository-wide completion claim.
+4. **Focused `GROW-REPORT-001` assertion**
+   - Exact command:
+
+     ```sh
+     node -e "const fs=require('node:fs');const text=fs.readFileSync('docs/10-Growth-Bible.md','utf8');if(!text.includes('ISO-3166-1 alpha-2 uppercase code, \`ZZ\` for unknown/unavailable country, or \`other\` for the privacy bucket'))process.exit(1);if(text.includes('country or destination grouping'))process.exit(1);if(text.includes('country or destination count'))process.exit(1);console.log('GROW-REPORT-001 country union includes other; threshold applies only to country grouping')"
+     ```
+
+   - Execution date: 2026-07-17
+   - Exit status: 0
+   - Observed result: printed `GROW-REPORT-001 country union includes other; threshold applies only to country grouping`.
+5. **Prettier — complete changed-file set**
+   - Exact command: `pnpm exec prettier --write docs/10-Growth-Bible.md .superpowers/sdd/task-6-report.md`
+   - Execution date: 2026-07-17
+   - Exit status: 0
+   - Observed result: processed both changed files; `docs/10-Growth-Bible.md` was unchanged and only the existing module-type warning was emitted.
+
+Staging error classification:
+
+| Area / error code             |   Count | Classification                                                                             |
+| ----------------------------- | ------: | ------------------------------------------------------------------------------------------ |
+| Task 6 authority documents    |       0 | No schema, metadata, anchor, Roadmap, link, critical-contract, or authority-content errors |
+| `DERIVED_COVERAGE_MISSING`    |     189 | Task 8 Kiro manifest coverage                                                              |
+| `KIRO_COVERAGE_MISSING`       |     126 | Task 8 Kiro design/task coverage                                                           |
+| `KIRO_REQUIREMENT_MISSING`    |      63 | Task 8 Kiro requirements coverage                                                          |
+| `MISSING_DERIVED_MANIFEST`    |       3 | Task 8 Kiro derived manifests                                                              |
+| `MISSING_DESIGN_REQUIREMENTS` |      75 | Task 8 Kiro design metadata                                                                |
+| `MISSING_TASK_REQUIREMENTS`   |     121 | Task 8 Kiro task requirement metadata                                                      |
+| `MISSING_TASK_VERIFY`         |     121 | Task 8 Kiro task verification commands                                                     |
+| `MISSING_TASK_EXPECTED`       |     121 | Task 8 Kiro task expected results                                                          |
+| `MISSING_TASK_EVIDENCE`       |     121 | Task 8 Kiro task evidence                                                                  |
+| `MISSING_DOCUMENT`            |       1 | Task 7 `docs/13-Requirements-Traceability.md`                                              |
+| **Total**                     | **941** | **940 Task 8 Kiro errors and 1 Task 7 traceability error; 0 Task 6 authority errors**      |
+
+## Performance / SEO / security / privacy impact
+
+- **Performance:** documentation-only change; no runtime path, asset, query, network call, or Lighthouse behavior changed.
+- **SEO:** no route, metadata, canonical, hreflang, structured-data, sitemap, robots, or indexability behavior changed.
+- **Security:** no executable code, dependency, credential, input boundary, policy, or deployment configuration changed.
+- **Privacy:** clarified the report schema so `other` is an explicit privacy bucket and threshold merging applies only to the report's actual country dimension. `ZZ` remains reserved for unknown or unavailable source country; no IP, precise location, cookie, or reversible identifier is introduced.
+- Accessibility, responsive behavior, dark mode, async/degraded state, i18n, migration, configuration, and operations are not runtime-applicable to this documentation-only correction.
+
+## Known limitations
+
+- Staging remains red with exit 1. The 941 known errors are outside this two-file remediation: Task 7 must add traceability, and Task 8 must regenerate the three Kiro-derived specifications. Therefore this report claims completion only for the Task 6 review remediation, not repository-wide documentation cutover readiness.
+- The three Task 6 authorities remain Draft / Non-authoritative. `SPEC.md` remains the implementation authority until controlled cutover, and this phase does not authorize product implementation.
+- No runtime aggregate-report implementation or product behavior was added; verification is limited to the applicable documentation contract and repository documentation tooling.
+- Prettier continues to emit the repository's existing `MODULE_TYPELESS_PACKAGE_JSON` warning. Fixing package module metadata is outside Task 6 scope.
+- No Git status, staging, or commit evidence exists because the assigned directory is explicitly non-Git.
+
+## ADR
+
+ADR: none — no new architectural decision
+
+## Next step / awaiting confirmation
+
+- Await Product Owner confirmation of the Task 6 review remediation.
+- After confirmation, Task 7 owns `docs/13-Requirements-Traceability.md`; Task 8 then owns Kiro derivation and removal of the remaining staging errors. Neither later task was started in this phase.

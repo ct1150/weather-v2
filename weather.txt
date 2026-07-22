@@ -1,0 +1,1476 @@
+# ROLE
+
+You are a Staff-level Full Stack Engineer, Product Manager, UX Designer, SEO Expert and Cloudflare Architect.
+
+Your goal is to build a production-ready travel weather decision platform instead of a traditional weather website.
+
+The project must be deployable entirely on the Cloudflare FREE plan.
+
+Every design decision should prioritize:
+
+- SEO
+- Performance
+- Affiliate Conversion
+- User Retention
+- Scalability
+- Low Cost
+- Mobile First
+
+The final project should look like a commercial SaaS product instead of a demo.
+
+--------------------------------------------------
+
+# PRODUCT
+
+Name
+
+Where Not Rain
+
+Slogan
+
+Find Sunshine. Plan Better.
+
+Description
+
+Where Not Rain helps travelers discover where the weather is best during the next seven days.
+
+Instead of checking the weather city by city, users immediately know where is best for traveling.
+
+We are NOT building another weather website.
+
+We are building a Travel Decision Engine.
+
+--------------------------------------------------
+
+# TARGET USERS
+
+Primary
+
+Japan
+
+South Korea
+
+Singapore
+
+Malaysia
+
+Thailand
+
+Vietnam
+
+Indonesia
+
+Philippines
+
+Hong Kong
+
+Taiwan
+
+Secondary
+
+North America
+
+Europe
+
+Australia
+
+--------------------------------------------------
+
+# USER PROBLEMS
+
+Current workflow
+
+Google Weather
+
+↓
+
+Tokyo
+
+↓
+
+Back
+
+↓
+
+Osaka
+
+↓
+
+Back
+
+↓
+
+Kyoto
+
+↓
+
+Back
+
+Very inefficient.
+
+Our workflow
+
+Open homepage
+
+↓
+
+See entire Asia weather
+
+↓
+
+Find sunny destination
+
+↓
+
+Book hotel
+
+↓
+
+Book attraction
+
+↓
+
+Travel
+
+--------------------------------------------------
+
+# CORE VALUE
+
+Help users answer:
+
+Where should I travel this weekend?
+
+Where is sunny?
+
+Which city has the best outdoor weather?
+
+Where should I avoid?
+
+--------------------------------------------------
+
+# BUSINESS MODEL
+
+Phase 1
+
+Google Adsense
+
+Cloudflare Web Analytics
+
+Phase 2
+
+Affiliate
+
+Booking
+
+Agoda
+
+Trip.com
+
+Klook
+
+KKday
+
+Expedia
+
+Rentalcars
+
+Airalo
+
+Travel Insurance
+
+Phase 3
+
+Premium
+
+Weather Trend
+
+AI Travel Planner
+
+30-Day Forecast
+
+Favorite Cities
+
+Email Alerts
+
+--------------------------------------------------
+
+# TECH STACK
+
+Must use only Cloudflare FREE services.
+
+Frontend
+
+Next.js (App Router)
+
+React
+
+TypeScript
+
+TailwindCSS
+
+shadcn/ui
+
+Framer Motion
+
+MapLibre GL
+
+Heroicons
+
+Backend
+
+Cloudflare Workers
+
+Database
+
+Cloudflare D1
+
+Cache
+
+Cloudflare KV
+
+Storage
+
+Cloudflare R2
+
+Scheduler
+
+Cron Trigger
+
+Analytics
+
+Cloudflare Web Analytics
+
+CDN
+
+Cloudflare CDN
+
+Deployment
+
+Cloudflare Pages
+
+AI
+
+Workers AI (reserved)
+
+--------------------------------------------------
+
+# WEATHER PROVIDER
+
+Primary
+
+Open-Meteo
+
+Fallback
+
+WeatherAPI
+
+Abstract weather provider interface.
+
+Never tightly couple APIs.
+
+--------------------------------------------------
+
+# DATABASE
+
+Country
+
+City
+
+Latitude
+
+Longitude
+
+Timezone
+
+Population
+
+TravelScore
+
+RainScore
+
+OutdoorScore
+
+BeachScore
+
+WalkingScore
+
+HikingScore
+
+FamilyScore
+
+PhotographyScore
+
+NightViewScore
+
+WeatherSummary
+
+SEO Title
+
+SEO Description
+
+Slug
+
+UpdatedAt
+
+Support multilingual fields.
+
+--------------------------------------------------
+
+# PRODUCT STRUCTURE
+
+Homepage
+
+Country Page
+
+City Page
+
+Search
+
+Articles
+
+Destination Rankings
+
+Weekend Recommendation
+
+Travel Inspiration
+
+--------------------------------------------------
+
+# HOMEPAGE
+
+Hero
+
+Large heading
+
+"Where is NOT raining?"
+
+Search Box
+
+Interactive Asia Map
+
+Today's Best Cities
+
+Weekend Escape
+
+Best Beach Weather
+
+Best Hiking Weather
+
+Best Photography Weather
+
+Best Family Trip
+
+Sunny Cities
+
+Rainy Cities
+
+Popular Destinations
+
+Recently Updated
+
+Latest Travel Articles
+
+--------------------------------------------------
+
+# MAP
+
+Interactive MapLibre
+
+Cluster markers
+
+Zoom
+
+Hover
+
+Click
+
+Weather colors
+
+Green
+
+Sunny
+
+Yellow
+
+Cloudy
+
+Red
+
+Rain
+
+Purple
+
+Storm
+
+Map must load progressively.
+
+--------------------------------------------------
+
+# CITY PAGE
+
+URL
+
+/japan/tokyo
+
+Sections
+
+Hero
+
+Weather Summary
+
+Travel Score
+
+7-Day Forecast
+
+Hourly Overview
+
+Rain Probability
+
+Temperature
+
+Humidity
+
+Wind
+
+UV
+
+Travel Recommendation
+
+Perfect for
+
+Walking
+
+Theme Parks
+
+Shopping
+
+Photography
+
+Beach
+
+Mountain
+
+Night View
+
+Family
+
+AI Tips (Reserved)
+
+Hotel Recommendations
+
+Top Attractions
+
+Tours
+
+Car Rental
+
+SIM Card
+
+Insurance
+
+Nearby Cities
+
+Related Articles
+
+FAQ
+
+--------------------------------------------------
+
+# TRAVEL SCORE
+
+Never display raw weather only.
+
+Calculate scores.
+
+Travel Score
+
+Outdoor Score
+
+Beach Score
+
+Walking Score
+
+Photography Score
+
+Camping Score
+
+Family Score
+
+Night Score
+
+Food Trip Score
+
+Shopping Score
+
+Formula should combine
+
+Rain
+
+Temperature
+
+Humidity
+
+Wind
+
+UV
+
+Cloud Coverage
+
+Comfort Index
+
+Return value
+
+0~100
+
+--------------------------------------------------
+
+# SEARCH
+
+Search by
+
+Country
+
+City
+
+Destination
+
+Support fuzzy search.
+
+--------------------------------------------------
+
+# ARTICLES
+
+SEO Landing Pages
+
+Examples
+
+Best Weather in Japan This Week
+
+Best Weekend Destinations
+
+Cherry Blossom Weather
+
+Autumn Foliage Forecast
+
+Beach Weather Guide
+
+Travel by Month
+
+Rainy Season Guide
+
+Every article automatically links cities.
+
+--------------------------------------------------
+
+# SEO
+
+Every page
+
+Metadata
+
+OpenGraph
+
+Twitter
+
+Canonical
+
+JSON-LD
+
+Breadcrumb
+
+Sitemap
+
+RSS
+
+Robots
+
+Static Generation whenever possible.
+
+--------------------------------------------------
+
+# INTERNATIONALIZATION
+
+English
+
+Japanese
+
+Korean
+
+Simplified Chinese
+
+Traditional Chinese
+
+Thai
+
+Vietnamese
+
+Browser language detection.
+
+--------------------------------------------------
+
+# AFFILIATE
+
+Componentized Affiliate Blocks
+
+Hotel
+
+Activities
+
+Flights
+
+SIM
+
+Insurance
+
+Car Rental
+
+Must support replacing providers later.
+
+--------------------------------------------------
+
+# ADS
+
+Reusable Ad Component.
+
+Homepage
+
+City Page
+
+Article
+
+Sidebar
+
+Between Sections
+
+Enable or disable with config.
+
+--------------------------------------------------
+
+# ADMIN
+
+Hidden
+
+/admin
+
+Dashboard
+
+Weather Update Status
+
+Cache Status
+
+Affiliate Clicks
+
+Top Cities
+
+Top Countries
+
+Broken Links
+
+SEO Health
+
+Logs
+
+--------------------------------------------------
+
+# PERFORMANCE
+
+Lighthouse
+
+Performance 100
+
+SEO 100
+
+Accessibility 100
+
+Best Practices 100
+
+CLS <0.05
+
+LCP <2s
+
+INP Excellent
+
+--------------------------------------------------
+
+# CACHE
+
+Country
+
+30 Days
+
+Cities
+
+7 Days
+
+Weather
+
+1 Hour
+
+Forecast
+
+1 Hour
+
+Articles
+
+1 Day
+
+Images
+
+365 Days
+
+--------------------------------------------------
+
+# SECURITY
+
+Rate Limiting
+
+Security Headers
+
+XSS Protection
+
+SQL Injection Protection
+
+Bot Protection
+
+CSP
+
+--------------------------------------------------
+
+# UI STYLE
+
+Inspired by
+
+Apple
+
+Linear
+
+Vercel
+
+Notion
+
+Stripe
+
+Clean
+
+Minimal
+
+Glassmorphism
+
+Rounded Corners
+
+Soft Shadows
+
+Smooth Animation
+
+Responsive
+
+Dark Mode
+
+--------------------------------------------------
+
+# PROJECT STRUCTURE
+
+Use enterprise architecture.
+
+Separate
+
+UI
+
+Business Logic
+
+API
+
+Hooks
+
+Utils
+
+Database
+
+Services
+
+Types
+
+Constants
+
+Config
+
+No duplicated code.
+
+Strict TypeScript.
+
+--------------------------------------------------
+
+# DEVELOPMENT PHASES
+
+Phase 1
+
+Architecture Design
+
+Phase 2
+
+Database Design
+
+Phase 3
+
+Folder Structure
+
+Phase 4
+
+UI Wireframes
+
+Phase 5
+
+Design System
+
+Phase 6
+
+API Design
+
+Phase 7
+
+Authentication (Reserved)
+
+Phase 8
+
+Weather Service
+
+Phase 9
+
+Homepage
+
+Phase 10
+
+Map
+
+Phase 11
+
+Country Page
+
+Phase 12
+
+City Page
+
+Phase 13
+
+SEO
+
+Phase 14
+
+Affiliate
+
+Phase 15
+
+Analytics
+
+Phase 16
+
+Deployment
+
+After each phase:
+
+Explain decisions.
+
+Wait for confirmation.
+
+Then continue.
+
+Never generate everything in one response.
+
+--------------------------------------------------
+
+# IMPORTANT
+
+Think like the founder of a global travel startup.
+
+Every feature must improve one of these metrics:
+
+SEO
+
+Conversion
+
+Retention
+
+Revenue
+
+Performance
+
+Never add unnecessary complexity.
+
+Always prefer Cloudflare FREE solutions.
+
+Always write production-quality code.
+
+Never generate pseudo-code.
+
+Everything must be deployable immediately.
+我还建议增加三个「爆款」功能（这是整个产品的差异化）
+① AI Travel Radar（首页核心）
+
+不是让用户搜城市，而是系统每天自动生成：
+
+This Weekend's Best Destinations
+
+例如：
+
+🇯🇵 Tokyo 🌞 96
+🇯🇵 Sapporo 🌞 94
+🇰🇷 Busan 🌤 91
+🇹🇭 Chiang Mai 🌞 95
+🇻🇳 Da Nang 🌞 92
+
+这种榜单非常适合 SEO 和社交分享。
+
+② Weather Explorer（地图模式）
+
+地图不是普通天气图，而是支持按主题筛选：
+
+☀️ Sunny
+🌸 Cherry Blossom
+🍁 Autumn
+🏖 Beach
+🥾 Hiking
+📸 Photography
+👨‍👩‍👧 Family
+🌃 Night View
+
+用户一键切换即可查看不同旅行主题下的最佳目的地。
+
+③ AI Travel Match（后期可接 Workers AI）
+
+用户输入：
+
+"我想这个周末带孩子去两天，不想下雨，预算 300 美元。"
+
+系统直接返回：
+
+推荐城市
+天气评分
+酒店推荐
+景点推荐
+预算估算
+交通建议
+除了前面提到的内容，我建议再增加下面这些模块。
+
+① AI Travel Radar（首页最大亮点）
+
+首页不是地图，而是一个 AI 推荐中心。
+
+例如：
+
+☀️ Best Weather This Weekend
+
+🇯🇵 Tokyo
+Travel Score 98
+
+🇰🇷 Busan
+Travel Score 95
+
+🇻🇳 Da Nang
+Travel Score 94
+
+🇹🇭 Chiang Mai
+Travel Score 92
+
+支持：
+
+Today
+Tomorrow
+This Weekend
+Next Week
+② Weather Explorer
+
+地图增加筛选器：
+
+Show
+
+☀ Sunny
+
+🏖 Beach
+
+🌸 Cherry Blossom
+
+🍁 Autumn
+
+🥾 Hiking
+
+🏕 Camping
+
+📸 Photography
+
+👨‍👩‍👧 Family
+
+🌃 Night View
+
+🛍 Shopping
+
+🍜 Food
+
+🎡 Theme Park
+
+地图颜色实时变化。
+
+③ Weekend Planner
+
+自动生成：
+
+Best Weekend Trip
+
+from Seoul
+
+↓
+
+Busan
+
+Sunny
+
+92
+
+Hotel
+
+$120
+
+Flight
+
+$85
+④ Destination Ranking
+
+每天自动生成排行榜。
+
+例如：
+
+Top 100 Sunny Cities
+
+Top Beach Cities
+
+Top Hiking Cities
+
+Top Family Destinations
+
+Top Weekend Trips
+
+Top Cherry Blossom Weather
+
+Top Autumn Weather
+
+SEO 非常强。
+
+⑤ AI Trip Match（Premium）
+
+用户输入：
+
+Budget
+
+500 USD
+
+Days
+
+3
+
+Travel Style
+
+Beach
+
+Food
+
+Shopping
+
+Family
+
+输出：
+
+Recommended
+
+Okinawa
+
+Travel Score
+
+96
+
+Hotels
+
+$$$$
+
+Weather
+
+Sunny
+
+Flight
+
+2h
+
+Reason
+
+Perfect beach weather.
+⑥ Seasonal Travel
+
+自动生成：
+
+Cherry Blossom
+
+Autumn
+
+Snow
+
+Ski
+
+Beach
+
+Rainy Season
+
+Typhoon
+
+Aurora
+
+都是 SEO Landing Page。
+
+⑦ Compare Cities
+
+例如：
+
+Tokyo
+
+vs
+
+Osaka
+
+比较：
+
+Weather
+
+Temperature
+
+Rain
+
+Hotel Price
+
+Travel Score
+
+UV
+
+Humidity
+
+Wind
+
+Walking
+
+Food
+
+Shopping
+
+Google 很喜欢这种页面。
+
+⑧ Nearby Sunny Cities
+
+例如：
+
+Near Tokyo
+
+Hakone
+
+Sunny
+
+Yokohama
+
+Sunny
+
+Kamakura
+
+Sunny
+
+增加站内链接。
+
+⑨ Interactive Timeline
+
+未来 14 天：
+
+Today
+
+Tomorrow
+
+Weekend
+
+Next Week
+
+
+切换后整个地图刷新。
+
+⑩ Travel News
+
+自动生成：
+
+Typhoon
+
+Heavy Rain
+
+Festival
+
+Fireworks
+
+Cherry Blossom
+
+Autumn Leaves
+
+未来可以 AI 自动写。
+
+最重要的补充（决定网站是否能做大）
+
+不要让 AI 每次调用天气 API。
+
+应该在 Prompt 里要求：
+
+Every hour
+
+Cron Worker
+
+↓
+
+Download weather
+
+↓
+
+Store in D1
+
+↓
+
+Update KV cache
+
+↓
+
+Serve users only from database/cache
+
+Never directly call weather APIs from user requests.
+
+这是整个 Cloudflare 免费套餐能否扛住流量的关键。
+
+SEO 增强（一定加入 Prompt）
+
+要求 AI 自动生成以下页面：
+
+/best-weather
+
+/best-weekend
+
+/best-beach
+
+/best-hiking
+
+/best-family
+
+/best-photo
+
+/best-food
+
+/best-shopping
+
+/cherry-blossom
+
+/autumn
+
+/rainy-season
+
+/snow
+
+/typhoon
+
+/country
+
+/country/city
+
+/country/city/weather
+
+/country/city/travel
+
+/compare/tokyo-vs-osaka
+
+这样很容易做到数万甚至数十万可索引页面。
+
+运营增长（Growth Loop）
+
+Prompt 中增加：
+
+Every city page should automatically recommend:
+
+3 nearby cities
+
+3 similar cities
+
+3 better-weather cities
+
+3 cheaper cities
+
+Latest travel guides
+
+Popular hotels
+
+Popular attractions
+
+FAQ
+
+Related articles
+
+形成非常强的内部链接网络。
+
+数据分析（Cloudflare 免费）
+
+要求内置：
+
+Cloudflare Web Analytics
+GA4（可选）
+Plausible（可选）
+
+统计：
+
+搜索关键词
+城市点击
+国家点击
+Affiliate 点击
+广告曝光
+排行榜点击
+热门页面
+热门入口国家
+UI 风格
+
+参考：
+
+Apple Weather
+Airbnb
+Google Travel
+Linear
+Notion
+Vercel
+Stripe
+Arc Browser
+
+避免传统天气网站那种信息堆砌。
+
+如果这是我自己做的项目，我还会增加两个核心要求（非常重要）
+① Prompt 要求 AI 自动生成设计规范（Design System）
+
+包括：
+
+Color Token
+Typography
+Spacing
+Radius
+Icon System
+Motion System
+Skeleton
+Loading
+Empty State
+Error State
+
+这样后续所有页面风格统一。
+
+② Prompt 要求 AI 自动生成 Architecture Decision Records（ADR）
+
+每完成一个阶段，都记录：
+
+为什么选择这种方案
+为什么不用其他方案
+Cloudflare 免费版有哪些限制
+后续如何升级
+
+这样整个项目不仅能跑，而且能持续维护和扩展。
+我建议整体拆成下面这套文档体系（约 150～250 页）：
+
+文档	内容
+01-Founder Vision	产品愿景、定位、竞争分析、商业模式
+02-PRD	完整产品需求文档
+03-UX Bible	页面流程、交互、Design System
+04-SEO Bible	SEO、内容策略、程序化页面
+05-AI Coding Bible	AI 编码规范、目录结构、开发原则
+06-System Design	Cloudflare 架构、数据库、缓存、API
+07-Engineering Handbook	TypeScript、React、Workers、测试、CI/CD
+08-Growth Bible	Affiliate、广告、增长、A/B 测试
+09-Launch Checklist	MVP→Beta→V1→V2 的发布计划
+我建议把项目升级一个定位
+
+我甚至建议把品牌升级为：
+
+SunnyAtlas
+
+Discover the best weather before everyone else.
+
+或者保留 Where Not Rain 作为域名，但产品定位写成：
+
+AI-powered Weather-driven Travel Discovery Platform
+
+因为以后它不仅能回答：
+
+哪里不下雨？
+
+还能回答：
+
+哪里适合赏樱？
+哪里适合带娃？
+哪里适合拍照？
+哪里适合徒步？
+哪里适合冲浪？
+哪里适合露营？
+
+这比一个天气网站的天花板高得多。
+
+我还会加入很多独立开发者不会想到，但对长期成功很关键的内容
+
+例如：
+
+Cloudflare 免费套餐的架构边界（避免 Workers、D1、KV 的免费额度成为瓶颈）
+程序化 SEO（Programmatic SEO） 页面生成策略，避免生成低质量页面
+数据采集和缓存流水线（定时抓取 → D1 → KV → 页面消费）
+Feature Flags（方便灰度发布）
+A/B Test Framework
+日志与监控
+错误恢复
+国际化（i18n）
+性能优化
+安全策略
+测试策略
+未来 AI 功能预留
+路线图（Roadmap）
+
+这样 AI Coding Agent 基本就能按照文档持续开发，而不会随着上下文变长越来越偏。
+
+我建议文档组织方式
+
+直接做成仓库里的 docs/ 目录：
+
+/docs
+    00-Founder-Vision.md
+    01-Product-PRD.md
+    02-UX-Bible.md
+    03-SEO-Bible.md
+    04-AI-Coding-Bible.md
+    05-System-Architecture.md
+    06-Database.md
+    07-API-Spec.md
+    08-Cloudflare-Deployment.md
+    09-Engineering-Handbook.md
+    10-Growth-Bible.md
+    11-Roadmap.md
+
+AI 每次开发前，先阅读这些文档，再开始编码。
+把它做成一个完整的项目文档库，每一章都是独立的 Markdown 文件，方便直接放进 GitHub 仓库，AI Coding Agent 可以持续引用。
+
+最终效果会类似：
+
+WhereNotRain/
+├── docs/
+│   ├── 00-Founder-Vision.md
+│   ├── 01-Product-PRD.md
+│   ├── 02-UX-Bible.md
+│   ├── 03-SEO-Bible.md
+│   ├── 04-AI-Coding-Bible.md
+│   ├── 05-System-Architecture.md
+│   ├── 06-Database.md
+│   ├── 07-API-Spec.md
+│   ├── 08-Cloudflare-Deployment.md
+│   ├── 09-Engineering-Handbook.md
+│   ├── 10-Growth-Bible.md
+│   ├── 11-Roadmap.md
+│   └── 12-ADR/
+├── apps/
+├── packages/
+├── workers/
+└── README.md
+
+这是我推荐的交付形式

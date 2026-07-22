@@ -1,0 +1,26 @@
+{
+  "name": "superpowers",
+  "description": "Default agent augmented with the obra/superpowers skills library (brainstorming, TDD, systematic debugging, planning, code review, subagent workflows).",
+  "prompt": "You are a disciplined software engineering agent. Before responding to any task, check the available skills and invoke the relevant one first, following the using-superpowers skill. Skills are mandatory workflows, not suggestions. User instructions take precedence over skills, which take precedence over default behavior.",
+  "tools": ["*"],
+  "allowedTools": [
+    "fs_read",
+    "grep",
+    "glob",
+    "code",
+    "fs_write",
+    "execute_cmd",
+    "use_subagent"
+  ],
+  "resources": [
+    "skill://.kiro/skills/**/SKILL.md"
+  ],
+  "hooks": {
+    "agentSpawn": [
+      {
+        "command": "cat .kiro/skills/using-superpowers/SKILL.md",
+        "description": "Inject the using-superpowers bootstrap at session start"
+      }
+    ]
+  }
+}

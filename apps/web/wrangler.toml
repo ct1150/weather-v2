@@ -1,0 +1,40 @@
+# Cloudflare Pages configuration for Where Not Rain.
+#
+# Free-plan-safe: no Durable Objects, Queues, R2 (unless an approved need
+# exists), Workers Analytics Engine, or any other paid feature. The core stays
+# Cloudflare-only and free-tier compatible per DEP-FREE-001 / VISION-COST-001.
+#
+# Preview and production use ISOLATED bindings and secrets (DEP-CONFIG-001).
+# Scheduled bindings run ONLY in production; preview has none.
+#
+# Deployment this phase: STATIC EXPORT. `next build` (output: "export") writes
+# the site to `out/`, and `wrangler pages deploy out --project-name where-not-rain`
+# uploads it. There is NO Pages Functions runtime, NO D1, and NO KV this phase
+# (see system_design.md §1.2 / §7). `pages_build_output_dir` stays "out".
+
+name = "where-not-rain"
+compatibility_date = "2025-07-01"
+pages_build_output_dir = "out"
+
+# Preview environment — isolated, no scheduled bindings.
+[env.preview]
+vars = { APP_ENV = "preview", DEFAULT_LOCALE = "en", SUPPORTED_LOCALES = "en,ja,ko,zh-cn,zh-tw" }
+
+# Production environment — carries the approved hourly Cron + maintenance schedule.
+[env.production]
+vars = { APP_ENV = "production", DEFAULT_LOCALE = "en", SUPPORTED_LOCALES = "en,ja,ko,zh-cn,zh-tw" }
+
+# ---------------------------------------------------------------------------
+# D1 (DEFERRED — dormant this phase, do NOT enable)
+# ---------------------------------------------------------------------------
+# The build-time bake uses a static geography seed; no D1 consumer exists in
+# apps/web, and this wrangler.toml has no D1 binding. The worker increment will
+# add the binding under `workers/weather-sync/wrangler.toml`, e.g.:
+#
+#   [[d1_databases]]
+#   binding = "DB"
+#   database_name = "wnr-weather"
+#   migrations_dir = "../../packages/db/migrations"
+#
+# Enable only when the sync worker + D1-backed read path land. CI's
+# `wrangler d1 migrations apply` step is intentionally absent this phase.

@@ -1,0 +1,2150 @@
+# Task 5 closure review package
+
+
+## NEW FILE: docs/05-System-Architecture.md
+--- /dev/null	2026-07-13 18:58:14.987676037 +0800
++++ docs/05-System-Architecture.md	2026-07-17 20:24:19.640962639 +0800
+@@ -0,0 +1,336 @@
++---
++title: System Architecture
++authority: Architecture
++status: Draft
++last_updated: 2026-07-17
++---
++
++# System Architecture
++
++> **Draft / Non-authoritative.** `SPEC.md` remains authoritative until the controlled documentation cutover. This document owns system boundaries, data flow, rendering, caching, and recovery. It does not redefine product scope, data schema or scoring, API payload contracts, SEO quality gates, or deployment procedure.
++
++## System boundaries
++
++<!-- requirement
++id: ARCH-LAYERS-001
++status: Active
++kind: Hard
++roadmap_ref: REL-MVP-ARCH_LAYERS_001
++owner: Architecture
++verification: pnpm docs:check
++-->
++
++<a id="ARCH-LAYERS-001"></a>
++
++### ARCH-LAYERS-001 — Acyclic layered architecture
++
++The system uses the dependency direction `UI → Application Use Cases → Domain → Repository/Provider Interfaces`; infrastructure adapters implement inward-facing interfaces. `packages/domain` has no Next.js, Cloudflare SDK, provider DTO, or framework dependency. UI code does not directly access D1, KV, R2, or weather-provider clients, and public API/database records are mapped to dedicated ViewModels before presentation.
++
++The monorepo preserves the documented boundaries: `apps/web` owns UI and read handlers; `workers/weather-sync` owns scheduled ingestion and scoring; `workers/maintenance` owns maintenance jobs; shared `packages/*` own their named framework-independent concerns. Import-boundary checks prevent cycles and make `packages/weather` importable only by `workers/weather-sync`.
++
++Core operation does not require R2. R2 stores static or generated assets, exports, or images only after a demonstrated need justifies the binding and operational cost; weather JSON does not move to R2 merely because R2 is available.
++
++Roadmap: [REL-MVP-ARCH_LAYERS_001](11-Roadmap.md#REL-MVP-ARCH_LAYERS_001).
++
++#### Acceptance Criteria
++
++- A dependency-graph check proves that package edges are acyclic and that domain code imports no framework, Cloudflare SDK, or provider DTO.
++- `apps/web` cannot import `packages/weather`, and a user-path attempt to construct a weather-provider adapter fails the boundary check.
++- UI and route handlers invoke use cases rather than directly querying infrastructure bindings.
++- Shared formulas, route builders, locale behavior, and event names have one implementation rather than route-local copies.
++- R2 can be omitted without breaking weather ingestion, scoring, core reads, or recovery.
++
++<!-- requirement
++id: ARCH-DATAFLOW-001
++status: Active
++kind: Hard
++roadmap_ref: REL-MVP-ARCH_DATAFLOW_001
++owner: Architecture
++verification: pnpm docs:check
++-->
++
++<a id="ARCH-DATAFLOW-001"></a>
++
++### ARCH-DATAFLOW-001 — Scheduled write path and precomputed read path
++
++The hourly weather flow is the only weather write path:
++
++```text
++Cron Trigger (hourly)
++  1. acquire the owner-aware D1 "weather-sync" lock with a 15-minute expiry; abort if held
++  2. create the run and freeze E = enabled city IDs and F = featured IDs at run start
++  3. fetch bounded city batches; after primary exhaustion, use the configured fallback
++  4. validate provider DTOs and normalize them to internal types
++  5. record each failed city and continue with valid cities
++  6. transactionally persist the pending snapshot, daily/hourly weather, scores, and one new rankingVersion in D1
++  7. validate all records and activation coverage against frozen E and F; fail the candidate on any gate failure
++  8. write and checksum-read-back immutable weather keys scoped by snapshotId and ranking/map keys scoped by snapshotId + rankingVersion
++  9. acquire the owner-aware D1 `weather-publication` lock and capture its newly incremented monotonic `fencing_token = T`
++ 10. in one D1 activation transaction require the same unexpired holder and captured `fencing_token = T`, revalidate the candidate and coverage, supersede the old snapshot, activate the candidate, and replace the active publication identity
++ 11. after commit, replace only `v1:manifest:active` with the exact D1 identity `{ snapshotId, rankingVersion, modelVersion, publishedAt, fencingToken: T }`
++ 12. mark the run successful or partial and owner-aware release both locks without resetting either lock's fencing-token high-water mark
++```
++
++At step 2, an enabled city is exactly a `cities` row whose `status = 'active'`; `E` is that set captured before the first provider fetch, and `F = {city in E | is_featured = 1}` uses the same run-start rows. Let `d0(city)` be the city-local calendar date containing `sync_runs.started_at`. A city belongs to `V` only when the candidate contains runtime-valid daily weather for every date `d0(city)` through `d0(city) + 6`, inclusive, and every row contains the raw inputs required to derive rain, temperature, comfort, humidity, wind, UV, cloud, and visibility factors. Activation requires `|E| > 0`, `100 * |V| >= 95 * |E|`, and `F subset-of V`. The integer inequality is the exact `>= 95%` test; `F subset-of V` is exact 100% featured coverage and passes vacuously when `F` is empty. City enablement changes after run start do not change this denominator.
++
++Step 8 uses high-entropy `snapshotId` and `rankingVersion` values that have never appeared in a manifest, response, log, or public URL. No candidate write overwrites an active key. The candidate becomes discoverable only through step 11, after record validation, coverage validation, immutable-key read-back verification, and D1 activation have succeeded.
++
++The maintenance ranking refresh protocol never creates or activates weather. Maintenance reads the current D1 active `snapshotId = S`, generates a new high-entropy `rankingVersion = R` for every enabled `(theme, window, region, locale)` ranking variant and every enabled canonical map region/bounds variant of S, and checksum-validates the complete expected set. It then acquires `weather-publication` and captures the newly incremented monotonic `fencing_token = T`. In one D1 transaction it requires the same unexpired holder and captured fencing token, rechecks that S is still the sole active snapshot, and updates the fixed active publication row to `(S, R, modelVersion, publishedAt, T)`; otherwise it publishes nothing. Only after that commit may it write a manifest carrying that exact tuple.
++
++Acquiring token T immediately makes every lower-token manifest ineligible at a `/api/v1` resolver until D1 publication at T completes; reads use D1 during that interval. A delayed KV write by an old or stale holder carries a lower fencing token and cannot become effective: every `/api/v1` resolver compares it with both the D1 active publication row and the current `weather-publication` token high-water mark. The sync and maintenance protocols therefore cannot restore a superseded snapshot or ranking generation even when KV writes arrive out of order. A crash before the one-key manifest replacement leaves D1 authoritative and causes D1 fallback, not acceptance of an older hint.
++
++Every user request follows a read-only path with an explicit CDN boundary:
++
++```text
++Static asset or SSG/ISR HTML request
++  → Cloudflare CDN hit: return only that cached static asset or generated HTML artifact
++  → CDN miss: execute the route's rendering/fallback contract
++
++/api/v1 request
++  → always execute the application use case; the CDN never directly returns a final API envelope
++  → first read the D1 authoritative publication/content identity and, for weather, the publication fencing-token high-water mark
++  → derive the exact identity-bound key and read only worker-populated immutable KV CoreData
++  → schema-parse, identity-check, and checksum-verify that CoreData
++  → on KV miss or any manifest/identity/key/checksum mismatch, read only D1-active/content-authoritative rows
++  → do not write or backfill KV or Cache API; subsequent requests continue using D1 until a worker repairs publication
++  → derive stale from this request's captured time and assemble its request ID, generation time, and final envelope dynamically
++  → return the final envelope as private, no-store
++
++User request ─X→ Open-Meteo / WeatherAPI
++```
++
++D1 active publication or content identity is authoritative on every `/api/v1` request; the KV manifest hint is accepted only when its identity exactly matches D1 and never selects identity. A stale, malformed, missing, future-token, lower-token, or D1-mismatched manifest is ignored. The resolver never guesses an ID, lists KV, probes pending data, or searches arbitrary old keys. If authoritative D1 identity cannot be read, the API does not trust KV alone and returns the explicitly contracted unavailable outcome. Deployed static fallback artifacts apply only to eligible page rendering and are never substituted for a final `/api/v1` envelope.
++
++The user read path never writes or repairs a weather read model, computes a score, contacts a provider, mutates KV, or uses the ephemeral Cache API for CoreData or final API responses. Only static assets and SSG/ISR HTML may be direct CDN hits. Every `/api/v1` request executes identity resolution, CoreData resolution, and dynamic envelope assembly; its `stale` value is derived solely from age under the API contract, not from publication status, manifest age, internal KV TTL, or fallback source.
++
++Roadmap: [REL-MVP-ARCH_DATAFLOW_001](11-Roadmap.md#REL-MVP-ARCH_DATAFLOW_001).
++
++#### Acceptance Criteria
++
++- An integration test observes zero provider calls for every public page and read-API use case, including cache misses.
++- CDN routing tests prove direct hits return only static assets or SSG/ISR HTML and that every `/api/v1` request executes D1 identity resolution, CoreData resolution, and dynamic envelope assembly.
++- A successful Cron run persists pending D1 data, fully validates it, writes and verifies undiscoverable immutable KV keys, activates the D1 pointer transactionally, and only then updates the KV manifest, in exactly that order.
++- A failed city is isolated and recorded while valid cities in the bounded batch remain eligible for publication.
++- Every `/api/v1` request reads D1 identity before KV; only an exact D1/high-water-token manifest match may resolve immutable worker-published CoreData, and every miss or mismatch resolves only D1-active/content-authoritative rows without request-path storage mutation.
++- Failure before D1 activation leaves the active publication unchanged; failure after D1 activation but before manifest update makes the old KV hint ineligible while D1 already identifies the new active publication.
++- Only an activated, fully validated snapshot can become the basis of a discoverable public ranking or read model.
++
++<!-- requirement
++id: ARCH-PROVIDER-001
++status: Active
++kind: Hard
++roadmap_ref: REL-MVP-ARCH_PROVIDER_001
++owner: Architecture
++verification: pnpm docs:check
++-->
++
++<a id="ARCH-PROVIDER-001"></a>
++
++### ARCH-PROVIDER-001 — Sync-only weather-provider port
++
++The internal weather port has this stable minimum shape:
++
++```ts
++interface WeatherProvider {
++  readonly id: string;
++  fetchForecast(request: ForecastRequest): Promise<NormalizedForecast[]>;
++  healthCheck(): Promise<ProviderHealth>;
++}
++```
++
++Open-Meteo is the primary adapter. WeatherAPI is the configured fallback adapter when its deployment flag and credentials are present; otherwise primary exhaustion fails the affected batch. Raw provider DTOs remain private to each adapter; each response is runtime-validated and mapped to normalized metric-domain types before it crosses the adapter boundary.
++
++Timeouts, bounded retries, exponential backoff with jitter, bounded batches, provider-aware rate limiting, and a `CLOSED → OPEN → HALF_OPEN` circuit breaker run only inside the sync worker. Fallback occurs only after the primary breaker is open or retries are exhausted, and the provider switch and sanitized reason are recorded with the sync run. Provider credentials are supplied only through deployment-owned secret bindings.
++
++Roadmap: [REL-MVP-ARCH_PROVIDER_001](11-Roadmap.md#REL-MVP-ARCH_PROVIDER_001).
++
++#### Acceptance Criteria
++
++- Both adapters satisfy the same port and return normalized internal records rather than provider DTOs.
++- Invalid, empty, extreme, and partial provider responses are validated and isolated before persistence or activation.
++- Tests cover timeout, bounded retry, jittered backoff, circuit-breaker transitions, primary-to-fallback switching, and both-provider failure.
++- Provider switching records adapter IDs and a sanitized failure reason without credentials or raw provider bodies.
++- Provider resilience code and credentials are unreachable from browser and user-request bundles.
++
++## Caching and recovery
++
++<!-- requirement
++id: ARCH-CACHE-001
++status: Active
++kind: Hard
++roadmap_ref: REL-MVP-ARCH_CACHE_001
++owner: Architecture
++verification: pnpm docs:check
++-->
++
++<a id="ARCH-CACHE-001"></a>
++
++### ARCH-CACHE-001 — Versioned compact read models
++
++Only sync and maintenance workers write immutable KV read models; user paths only read them, never backfill a miss, and never use the ephemeral Cache API for CoreData or final API responses. A read-model schema or serialization change increments the leading key version. Every weather-derived summary, forecast, ranking, map, and approved Compare key contains `snapshotId`; candidate keys are immutable and cannot overwrite an in-flight read of an active version.
++
++```text
++v1:manifest:active
++v1:city:{cityId}:summary:{snapshotId}:{locale}:{unit}
++v1:city:{cityId}:forecast:{snapshotId}:{unit}
++v1:ranking:{snapshotId}:{rankingVersion}:{theme}:{window}:{region}:{locale}
++v1:map:{snapshotId}:{rankingVersion}:{theme}:{window}:{mapRegionKey}:{canonicalBoundsHash}
++v1:country:{countryId}:{locale}
++v1:compare:{snapshotId}:{cityA}-{cityB}:{window}:{locale}    # approved pairs only
++```
++
++`v1:manifest:active` is the only mutable weather publication key and contains exactly `{ snapshotId, rankingVersion, modelVersion, publishedAt, fencingToken }`. It is only a hint for the complete validated generation named by the D1 active publication identity; it remains small and contains no model payload. Both opaque IDs are high entropy. Before publication they are absent from manifests, public responses, public URLs, analytics, and logs, and direct clients cannot select them.
++
++Every immutable weather value carries `{ data, dataUpdatedAt, snapshotId, rankingVersion, modelVersion, checksum }`. `rankingVersion` is a non-null string for ranking and map values and is `null` for summary, forecast, and Compare values. Checksums are verified after write and before use. On every `/api/v1` read, a resolver first obtains D1 identity and the publication-token high-water mark; it accepts a manifest only on an exact five-field match and accepts the immutable value only when its identity and checksum also match. Ranking/map data therefore cannot cross generations. Map values carry the canonical `mapRegionKey` and `canonicalBoundsHash` fixed by the API schema, contain only compact marker fields, and contain no hourly array. Cache cardinality is bounded by enumerated dimensions, canonical map tile regions/bounds, and approved comparison pairs.
++
++| Data            | Target TTL | Invalidation                                                |
++| --------------- | ---------: | ----------------------------------------------------------- |
++| Country         |    30 days | Active-version invalidation on content change               |
++| City metadata   |     7 days | Metadata version change; excludes hourly weather            |
++| Current weather |     1 hour | Refreshed only by Cron; stale-while-revalidate is sync-only |
++| Forecast        |     1 hour | Bound to snapshot version                                   |
++| Rankings/maps   |     1 hour | New rankingVersion after activated sync or maintenance      |
++| Articles        |      1 day | Publish or update                                           |
++| Images          |   365 days | Immutable content-hash filenames                            |
++
++KV eventual consistency is never used for locks, counters, snapshot activation, or another critical state transition.
++
++Roadmap: [REL-MVP-ARCH_CACHE_001](11-Roadmap.md#REL-MVP-ARCH_CACHE_001).
++
++#### Acceptance Criteria
++
++- Tests prove that changing a read-model schema changes the key version; summary, forecast, and Compare bind to one snapshot ID; ranking and map bind to one exact `(snapshotId, rankingVersion)` pair.
++- Publication fault tests stop after every numbered step and prove that no pending candidate becomes discoverable; delayed lower-token sync/maintenance writes are ignored and cannot roll back D1 identity.
++- Resolver tests cover exact D1/manifest match, token-high-water mismatch, old/future manifest, manifest miss/error, referenced-key mismatch, and D1 failure; every `/api/v1` path reads D1 first, never probes another KV snapshot, and performs no storage write or backfill.
++- Cached values always expose enough version, checksum, and timestamp metadata to derive API/page freshness without a provider call.
++- Map payload fixtures contain only compact marker fields and no hourly forecast arrays.
++- A static analysis or integration check proves that KV is not the authoritative lock, counter, or activation store and that `v1:manifest:active` is the only mutable weather publication key.
++
++<!-- requirement
++id: ARCH-RECOVERY-001
++status: Active
++kind: Hard
++roadmap_ref: REL-MVP-ARCH_RECOVERY_001
++owner: Architecture
++verification: pnpm docs:check
++-->
++
++<a id="ARCH-RECOVERY-001"></a>
++
++### ARCH-RECOVERY-001 — Last-known-good activation and degraded reads
++
++D1 lock rows retain a per-key monotonic fencing token. Each successful acquisition increments and returns the token; expiry or owner-aware release clears ownership but never resets or reuses the high-water mark. The default `weather-sync` lease is 15 minutes. Sync overlap is prevented by holder/expiry checks, while every sync or maintenance publication is additionally fenced by the captured `weather-publication` token.
++
++A candidate snapshot remains pending while normalized weather, scores, alerts, rankings, and frozen run-city scope are completed in D1. Full validation and the exact coverage gates run before any KV write. After immutable-key checksum verification, the publisher executes the sole repository activation transaction. That transaction verifies the same unexpired holder and captured fencing token, then atomically performs the bootstrap or replacement protocol defined by Database, updates the fixed active publication identity with that token, and executes final assertions. Schema constraints guarantee at most one pointer/active status; the repository protocol guarantees exactly one after successful bootstrap. A conflict, expired lease, changed token, or failed assertion rolls back.
++
++Only after commit may the holder write the exact D1 tuple to `v1:manifest:active`. A later acquisition increments the high-water mark immediately, so delayed KV writes from any old holder are ineffective even before the next publication commits. Failure between D1 commit and manifest replacement causes `/api/v1` requests to ignore the mismatched old hint and use D1. Orphan immutable keys remain undiscoverable and are later collected after the rollback window.
++
++Provider failure preserves the D1 active publication. On every `/api/v1` read, a missing or mismatched hint falls back only to D1 active data without backfilling KV or Cache API; if D1 fails, an eligible page render may use deployed static content, while `/api/v1` returns a typed unavailable outcome. `stale` is not a fallback signal: it is true exactly when `now - dataUpdatedAt > WEATHER_DATA_MAX_AGE_MINUTES`, with equality false, regardless of internal KV/D1 source. No degraded result is described as live, and no user path contacts a provider.
++
++Roadmap: [REL-MVP-ARCH_RECOVERY_001](11-Roadmap.md#REL-MVP-ARCH_RECOVERY_001).
++
++#### Acceptance Criteria
++
++- Concurrent-run tests allow only one unexpired holder, prove expired-lock recovery, and prove every acquisition returns a strictly greater, never-reused fencing token.
++- Fault-injection tests prove invalid candidates and stale-holder KV writes cannot change effective publication identity.
++- Transaction tests prove activation rejects an expired or changed captured token and atomically commits the post-bootstrap singleton; coverage fixtures test 94.99%, 95%, featured misses, an empty enabled set, and run-start membership changes.
++- Resolver tests prove every `/api/v1` request validates D1 identity first, rejects any manifest whose five fields or token high-water mark differ, and leaves every miss for worker repair without request-path KV or Cache API writes.
++- Stale boundary tests prove age equal to `WEATHER_DATA_MAX_AGE_MINUTES` is fresh and one instant beyond is stale, independent of source and publication status.
++- Absence of trustworthy D1-active data produces the typed unavailable API outcome; only eligible page rendering may use deployed static data, and neither path fabricates data.
++
++## Rendering authority
++
++<!-- requirement
++id: ARCH-RENDER-001
++status: Active
++kind: Hard
++roadmap_ref: REL-MVP-ARCH_RENDER_001
++owner: Architecture
++verification: pnpm docs:check
++-->
++
++<a id="ARCH-RENDER-001"></a>
++
++### ARCH-RENDER-001 — Route rendering matrix
++
++This is the only route rendering matrix. It owns route mode and default update/invalidation behavior. The final column is a cross-domain pointer to the independently owned [SEO indexability policy](03-SEO-Bible.md#SEO-INDEXABILITY-001), not a duplicate definition of its quality conditions.
++
++| Route class                                    | Mode                   | Default update/invalidation                                                 | Index rule                                                            |
++| ---------------------------------------------- | ---------------------- | --------------------------------------------------------------------------- | --------------------------------------------------------------------- |
++| Methodology, legal, and stable marketing pages | SSG                    | Rebuild on release                                                          | Index after passing the quality gate                                  |
++| Homepage, country, city, weather-led rankings  | ISR                    | 3600 seconds; actively invalidate by snapshot version after successful sync | Index after passing the quality gate                                  |
++| Article                                        | SSG                    | Rebuild on publish or edit                                                  | Index after review                                                    |
++| Allowlisted Compare (Beta)                     | ISR                    | 3600 seconds; invalidate when a city snapshot changes                       | Index only allowlisted combinations                                   |
++| `/explore`                                     | SSR shell + client map | CDN shell; cache map read model for 3600 seconds                            | Shell may be indexed; filter parameters canonicalize to a stable page |
++| `/search` and arbitrary query results          | SSR                    | No persistent prerender                                                     | `noindex,follow`                                                      |
++| `/admin`, preview pages, and `/api/*`          | Dynamic                | Per-request API core resolution; no final-envelope caching                  | `noindex` or non-HTML                                                 |
++
++Fallback and cache-header rules are part of the rendering contract: SSG serves the last successfully deployed static artifact; ISR serves the last successfully generated artifact and resolves current data through [ARCH-RECOVERY-001](#ARCH-RECOVERY-001); `/explore` keeps a CDN-cacheable shell while its versioned map model follows the one-hour cache; `/search`, Admin, and preview HTML are not persistently prerendered; API responses follow [API-CACHE-001](07-API-Spec.md#API-CACHE-001). Public cache headers must not outlive the matrix interval or the underlying read-model TTL. Personalized, authenticated, preview, and error responses are private or `no-store` and never enter a shared cache.
++
++A route may depart from this matrix only after Architecture records the reason and verification evidence. Any departure that affects indexing also requires an update to the SEO-owned indexability table.
++
++Roadmap: [REL-MVP-ARCH_RENDER_001](11-Roadmap.md#REL-MVP-ARCH_RENDER_001).
++
++#### Acceptance Criteria
++
++- A route-registry test covers every matrix row and verifies its exact mode and default update/invalidation behavior.
++- There is no second rendering table containing mode, revalidation, invalidation, fallback, TTL, or cache-header values elsewhere in the authority set.
++- ISR invalidation changes with activated snapshot version and never activates an unvalidated candidate.
++- Shared-cache tests prove that authenticated, preview, personalized, and error responses are not cached publicly.
++- Any approved route exception includes architecture evidence, and an indexability-affecting exception links to the corresponding SEO update.
++
++## Capability controls
++
++<!-- requirement
++id: ARCH-FLAG-001
++status: Active
++kind: Hard
++roadmap_ref: REL-MVP-ARCH_FLAG_001
++owner: Architecture
++verification: pnpm docs:check
++-->
++
++<a id="ARCH-FLAG-001"></a>
++
++### ARCH-FLAG-001 — Typed static configuration and emergency kill switches
++
++The baseline control plane is build/deployment-supplied typed static configuration with safe defaults and emergency kill switches. It controls the map, advertising, each Affiliate slot or provider, and the weather-provider master enablement. Evaluation occurs server-side before optional code or data is exposed; an absent or unknown key is disabled rather than implicitly enabled.
++
++This baseline is not a dynamic Feature Flag platform: it performs no user segmentation, percentage rollout, live experimentation, or per-request remote mutation. Configuration names, validation, and secret placement are owned by [DEP-CONFIG-001](08-Cloudflare-Deployment.md#DEP-CONFIG-001).
++
++Roadmap: [REL-MVP-ARCH_FLAG_001](11-Roadmap.md#REL-MVP-ARCH_FLAG_001).
++
++#### Acceptance Criteria
++
++- Typed parsing rejects invalid values and treats absent or unknown optional controls as disabled.
++- Tests independently disable the map, advertising, each Affiliate control, and all provider ingestion without disabling core cached destination reads.
++- Server-rendered output and browser bundles omit disabled optional integrations rather than hiding an already activated integration.
++- The baseline contains no segmentation, percentage rollout, experiment assignment, or remotely mutable flag behavior.
++- Emergency switches can be changed through the approved deployment configuration and rolled back without a schema migration.
++
++<!-- requirement
++id: ARCH-FLAG-002
++status: Active
++kind: Hard
++roadmap_ref: REL-V1-ARCH_FLAG_002
++owner: Architecture
++verification: pnpm docs:check
++-->
++
++<a id="ARCH-FLAG-002"></a>
++
++### ARCH-FLAG-002 — Dynamic Feature Flag platform
++
++The dynamic Feature Flag platform adds server-side audience segmentation, deterministic percentage rollout, staged rollout, and experiment assignment while preserving safe defaults. Flag identity and assignment are stable for the defined subject and evaluation context, and unknown or unavailable flags evaluate disabled.
++
++The platform must not create indexable variants, alter canonical identity, expose secret targeting rules, or make core weather reads depend on a remote flag service. Experiment policy and metrics remain with their owning Growth contracts rather than being redefined here.
++
++Roadmap: [REL-V1-ARCH_FLAG_002](11-Roadmap.md#REL-V1-ARCH_FLAG_002).
++
++#### Acceptance Criteria
++
++- Repeated evaluation of the same flag, subject, and context returns the same assignment.
++- Percentage and audience rollouts are bounded, mutually testable, and default disabled on configuration or service failure.
++- Search crawlers and ordinary users receive one canonical URL regardless of assignment, with no indexable variant parameters.
++- Dynamic evaluation cannot block core cached weather reads or bypass an emergency static kill switch.
++- Audit output records flag/version and assignment reason without personal data or secret targeting configuration.
+
+## NEW FILE: docs/06-Database.md
+--- /dev/null	2026-07-13 18:58:14.987676037 +0800
++++ docs/06-Database.md	2026-07-17 20:13:21.739224253 +0800
+@@ -0,0 +1,955 @@
++---
++title: Database and Scoring
++authority: Database
++status: Draft
++last_updated: 2026-07-17
++---
++
++# Database and Scoring
++
++> **Draft / Non-authoritative.** `SPEC.md` remains authoritative until the controlled documentation cutover. This document is the sole owner of D1 schema, indexes, data retention/migration rules, and deterministic score formulas. It does not redefine product presentation, API envelopes, rendering, or deployment procedure.
++
++## Geography and editorial records
++
++<!-- requirement
++id: DATA-GEOGRAPHY-001
++status: Active
++kind: Hard
++roadmap_ref: REL-MVP-DATA_GEOGRAPHY_001
++owner: Database
++verification: pnpm docs:check
++-->
++
++<a id="DATA-GEOGRAPHY-001"></a>
++
++### DATA-GEOGRAPHY-001 — Canonical geography and localized content schema
++
++D1 stores canonical identifiers and stable ASCII slugs separately from localized display content. Coordinates, time zones, status values, locale values, aliases, and numeric ranges are validated before persistence.
++
++```sql
++CREATE TABLE countries (
++  id TEXT PRIMARY KEY,
++  iso2 TEXT NOT NULL UNIQUE,
++  iso3 TEXT NOT NULL UNIQUE,
++  default_timezone TEXT NOT NULL,
++  slug TEXT NOT NULL UNIQUE,
++  status TEXT NOT NULL DEFAULT 'active',
++  created_at TEXT NOT NULL,
++  updated_at TEXT NOT NULL
++);
++
++CREATE TABLE country_translations (
++  country_id TEXT NOT NULL REFERENCES countries(id),
++  locale TEXT NOT NULL,
++  name TEXT NOT NULL,
++  seo_title TEXT,
++  seo_description TEXT,
++  PRIMARY KEY (country_id, locale)
++);
++
++CREATE TABLE cities (
++  id TEXT PRIMARY KEY,
++  country_id TEXT NOT NULL REFERENCES countries(id),
++  slug TEXT NOT NULL,
++  latitude REAL NOT NULL,
++  longitude REAL NOT NULL,
++  timezone TEXT NOT NULL,
++  population INTEGER,
++  elevation_m REAL,
++  is_featured INTEGER NOT NULL DEFAULT 0,
++  status TEXT NOT NULL DEFAULT 'active',
++  search_weight REAL NOT NULL DEFAULT 1.0,
++  created_at TEXT NOT NULL,
++  updated_at TEXT NOT NULL,
++  UNIQUE (country_id, slug)
++);
++
++CREATE TABLE city_translations (
++  city_id TEXT NOT NULL REFERENCES cities(id),
++  locale TEXT NOT NULL,
++  name TEXT NOT NULL,
++  aliases_json TEXT NOT NULL DEFAULT '[]',
++  summary TEXT,
++  seo_title TEXT,
++  seo_description TEXT,
++  PRIMARY KEY (city_id, locale)
++);
++
++CREATE TABLE articles (
++  id TEXT PRIMARY KEY,
++  slug TEXT NOT NULL UNIQUE,
++  status TEXT NOT NULL,
++  author_id TEXT,
++  reviewer_id TEXT,
++  published_at TEXT,
++  updated_at TEXT NOT NULL,
++  created_at TEXT NOT NULL
++);
++
++CREATE TABLE article_translations (
++  article_id TEXT NOT NULL REFERENCES articles(id),
++  locale TEXT NOT NULL,
++  title TEXT NOT NULL,
++  summary TEXT,
++  body TEXT NOT NULL,
++  seo_title TEXT,
++  seo_description TEXT,
++  PRIMARY KEY (article_id, locale)
++);
++
++CREATE TABLE article_city_links (
++  article_id TEXT NOT NULL REFERENCES articles(id),
++  city_id TEXT NOT NULL REFERENCES cities(id),
++  rank INTEGER NOT NULL,
++  PRIMARY KEY (article_id, city_id)
++);
++```
++
++All timestamps are UTC ISO-8601 strings. Forecast calendar keys separately preserve city-local dates. Storage uses SI/metric values; presentation converts units. Monetary columns always carry a currency when an amount exists. JSON text is accepted only after application-schema validation.
++
++Roadmap: [REL-MVP-DATA_GEOGRAPHY_001](11-Roadmap.md#REL-MVP-DATA_GEOGRAPHY_001).
++
++#### Acceptance Criteria
++
++- Migration tests enforce unique ISO codes, country slugs, article slugs, translation keys, and `(country_id, slug)` city identity.
++- Validation rejects latitude outside `-90..90`, longitude outside `-180..180`, invalid time zones/locales, malformed alias JSON, and unsupported status values.
++- Metric storage remains unchanged when a caller requests a different display unit.
++- Localized names and aliases resolve to canonical geography IDs without creating locale-specific entity duplicates.
++- Article links cannot reference missing cities or articles, and their order is deterministic.
++
++## Weather observations
++
++<!-- requirement
++id: DATA-WEATHER-001
++status: Active
++kind: Hard
++roadmap_ref: REL-MVP-DATA_WEATHER_001
++owner: Database
++verification: pnpm docs:check
++-->
++
++<a id="DATA-WEATHER-001"></a>
++
++### DATA-WEATHER-001 — Snapshot-versioned weather schema
++
++Weather records are immutable by snapshot identity and store both UTC acquisition bounds and city-local forecast keys.
++
++```sql
++CREATE TABLE weather_snapshots (
++  id TEXT PRIMARY KEY,
++  provider TEXT NOT NULL,
++  fetched_at TEXT NOT NULL,
++  valid_from TEXT NOT NULL,
++  valid_to TEXT NOT NULL,
++  status TEXT NOT NULL CHECK (status IN ('pending', 'active', 'superseded', 'failed')),
++  checksum TEXT NOT NULL,
++  created_at TEXT NOT NULL
++);
++
++CREATE TABLE weather_publication_state (
++  state_key TEXT PRIMARY KEY CHECK (state_key = 'weather'),
++  bootstrapped INTEGER NOT NULL DEFAULT 0 CHECK (bootstrapped IN (0, 1)),
++  updated_at TEXT NOT NULL
++);
++
++INSERT INTO weather_publication_state (state_key, bootstrapped, updated_at)
++VALUES ('weather', 0, '1970-01-01T00:00:00Z');
++
++CREATE TABLE active_weather_snapshot (
++  pointer_key TEXT PRIMARY KEY CHECK (pointer_key = 'weather'),
++  snapshot_id TEXT NOT NULL UNIQUE REFERENCES weather_snapshots(id),
++  ranking_version TEXT NOT NULL,
++  model_version TEXT NOT NULL,
++  publication_fencing_token INTEGER NOT NULL CHECK (publication_fencing_token > 0),
++  published_at TEXT NOT NULL,
++  activated_at TEXT NOT NULL
++);
++
++CREATE TABLE weather_daily (
++  snapshot_id TEXT NOT NULL REFERENCES weather_snapshots(id),
++  city_id TEXT NOT NULL REFERENCES cities(id),
++  local_date TEXT NOT NULL,
++  weather_code INTEGER,
++  temp_min_c REAL,
++  temp_max_c REAL,
++  apparent_min_c REAL,
++  apparent_max_c REAL,
++  precipitation_mm REAL,
++  precipitation_probability_max INTEGER,
++  humidity_mean INTEGER,
++  wind_speed_max_kph REAL,
++  wind_gust_max_kph REAL,
++  uv_index_max REAL,
++  cloud_cover_mean INTEGER,
++  visibility_mean_m REAL,
++  sunrise_local TEXT,
++  sunset_local TEXT,
++  data_quality TEXT NOT NULL,
++  PRIMARY KEY (snapshot_id, city_id, local_date)
++);
++
++CREATE TABLE weather_hourly (
++  snapshot_id TEXT NOT NULL REFERENCES weather_snapshots(id),
++  city_id TEXT NOT NULL REFERENCES cities(id),
++  local_time TEXT NOT NULL,
++  weather_code INTEGER,
++  temperature_c REAL,
++  apparent_temperature_c REAL,
++  precipitation_mm REAL,
++  precipitation_probability INTEGER,
++  humidity INTEGER,
++  wind_speed_kph REAL,
++  wind_gust_kph REAL,
++  uv_index REAL,
++  cloud_cover INTEGER,
++  visibility_m REAL,
++  data_quality TEXT NOT NULL,
++  PRIMARY KEY (snapshot_id, city_id, local_time)
++);
++```
++
++The pointer invariant is explicitly phase-scoped. **Pre-bootstrap**, `weather_publication_state.bootstrapped = 0` and the required pointer count is `0`; no weather publication exists. **Post-bootstrap**, the state is irreversibly `1` and the sole repository protocol requires the pointer count to remain `1`. Fixed `CHECK` keys and primary/partial unique indexes give the schema an **at-most-one** pointer and at-most-one active status. The repository bootstrap/activation transaction is the only supported write path and its protocol guarantees post-bootstrap exactly-one. This contract does not claim that arbitrary SQL outside the repository can enforce every cross-table end-of-transaction assertion.
++
++The state row cannot be deleted or changed from `1` back to `0`. After bootstrap, the pointer cannot be deleted; later activation updates its fixed row in place. Before changing `bootstrapped` to `1`, the state trigger requires one pointer joined to one active snapshot. Pointer insert/update triggers require the referenced snapshot to be active at that statement. These are delete protection and local integrity checks, while the repository final assertions remain the cross-table protocol guarantee.
++
++The sole repository uses `BEGIN IMMEDIATE`. Bootstrap executes: require state `0` and pointer count `0`; require the same unexpired `weather-publication` holder and captured fencing token; revalidate candidate and frozen coverage; change the candidate from `pending` to `active`; insert the fixed pointer with `(snapshot_id, ranking_version, model_version, publication_fencing_token, published_at)`; set state to `1`; assert state `1`, one active status, one pointer, one active-pointer inner join, and pointer token equal to the captured token; commit. Replacement executes: require state `1` and one valid old pointer; perform the same lock/token/candidate checks; change the old active row to `superseded`; change the candidate to `active`; update the fixed pointer row in place; run the same final assertions; commit. Temporary mismatches are transaction-local and invisible. Any failed statement, expired lease, changed token, or assertion rolls back.
++
++An uncached read obtains authoritative identity from the pointer joined to the active snapshot and reads the current `weather-publication` fencing-token high-water mark. KV is eligible only when all pointer identity fields match and `publication_fencing_token` also equals that high-water mark. Weather values used by Theme Park or Mountain suitability must have been fetched no more than two hours before evaluation.
++
++```sql
++CREATE TRIGGER trg_weather_publication_state_no_delete
++BEFORE DELETE ON weather_publication_state
++BEGIN
++  SELECT RAISE(ABORT, 'weather publication state is permanent');
++END;
++
++CREATE TRIGGER trg_weather_publication_state_irreversible
++BEFORE UPDATE OF state_key, bootstrapped ON weather_publication_state
++WHEN NEW.state_key <> 'weather'
++  OR (OLD.bootstrapped = 1 AND NEW.bootstrapped <> 1)
++BEGIN
++  SELECT RAISE(ABORT, 'weather bootstrap state is irreversible');
++END;
++
++CREATE TRIGGER trg_weather_publication_bootstrap_requires_pointer
++BEFORE UPDATE OF bootstrapped ON weather_publication_state
++WHEN OLD.bootstrapped = 0
++ AND NEW.bootstrapped = 1
++ AND (
++   SELECT COUNT(*)
++   FROM active_weather_snapshot p
++   JOIN weather_snapshots s ON s.id = p.snapshot_id AND s.status = 'active'
++   WHERE p.pointer_key = 'weather'
++ ) <> 1
++BEGIN
++  SELECT RAISE(ABORT, 'bootstrap requires one active weather pointer');
++END;
++
++CREATE TRIGGER trg_active_weather_pointer_insert
++BEFORE INSERT ON active_weather_snapshot
++WHEN NOT EXISTS (
++  SELECT 1 FROM weather_snapshots
++  WHERE id = NEW.snapshot_id AND status = 'active'
++)
++BEGIN
++  SELECT RAISE(ABORT, 'active weather pointer requires active snapshot');
++END;
++
++CREATE TRIGGER trg_active_weather_pointer_update
++BEFORE UPDATE OF snapshot_id ON active_weather_snapshot
++WHEN NOT EXISTS (
++  SELECT 1 FROM weather_snapshots
++  WHERE id = NEW.snapshot_id AND status = 'active'
++)
++BEGIN
++  SELECT RAISE(ABORT, 'active weather pointer requires active snapshot');
++END;
++
++CREATE TRIGGER trg_active_weather_pointer_no_postbootstrap_delete
++BEFORE DELETE ON active_weather_snapshot
++WHEN (SELECT bootstrapped FROM weather_publication_state WHERE state_key = 'weather') = 1
++BEGIN
++  SELECT RAISE(ABORT, 'post-bootstrap weather pointer cannot be deleted');
++END;
++```
++
++Roadmap: [REL-MVP-DATA_WEATHER_001](11-Roadmap.md#REL-MVP-DATA_WEATHER_001).
++
++#### Acceptance Criteria
++
++- Composite primary keys prevent duplicate daily or hourly rows for a city and snapshot time key.
++- Runtime validation rejects impossible probabilities, humidity, negative precipitation, malformed timestamps, and unsupported quality/status values.
++- Pre-bootstrap fixtures require state `0` and zero pointer rows; successful bootstrap irreversibly reaches state `1`, after which the repository protocol preserves exactly one fixed pointer.
++- Constraint tests prove schema-level at-most-one pointer/active status; trigger tests prove state irreversibility, state/pointer delete protection, and active-target checks without claiming arbitrary-SQL cross-table enforcement.
++- Repository transaction tests reject stale/expired captured fencing tokens and any final status/pointer/identity mismatch, and readers cannot combine weather rows from different snapshots.
++- City-local dates remain stable when the server time zone changes and cover daylight-saving transitions.
++- Activity-score calculation refuses weather inputs older than two hours.
++
++## Scores and rankings
++
++<!-- requirement
++id: DATA-SCORE-001
++status: Active
++kind: Hard
++roadmap_ref: REL-MVP-DATA_SCORE_001
++owner: Database
++verification: pnpm docs:check
++-->
++
++<a id="DATA-SCORE-001"></a>
++
++### DATA-SCORE-001 — Deterministic versioned Travel Score
++
++Every raw factor is normalized to `0..100`. Missing values remain absent rather than defaulting to the best value. Given identical raw inputs and `model_version`, calculation returns the same integer score and stable reason codes.
++
++The normalization primitives are `clamp(x, lo, hi) = min(hi, max(lo, x))` and `line(x; x0,y0; x1,y1) = y0 + (x-x0)*(y1-y0)/(x1-x0)`. Inputs outside their runtime-valid domain are missing, not clamped: probability, relative humidity, cloud cover, and UV require finite values in `0..100`, `0..100`, `0..100`, and `>= 0`; precipitation, wind, gust, and visibility require finite values `>= 0`; temperature and apparent temperature require finite Celsius values. Every listed piece boundary is inclusive on the side shown, adjacent pieces return the same value at a shared boundary, and every raw-to-factor function returns `clamp(selectedPieceResult, 0, 100)`.
++
++```text
++rainFactor(probabilityPct, precipitationMm) =
++  min(100 - probabilityPct, rainAmountFactor(precipitationMm))
++
++rainAmountFactor(m) =
++  100                              when m <= 0
++  line(m; 0,100; 2,80)             when 0 < m <= 2
++  line(m; 2,80; 10,40)             when 2 < m <= 10
++  line(m; 10,40; 30,0)             when 10 < m < 30
++  0                                when m >= 30
++
++temperatureFactor(t) =
++  0                                when t <= 0
++  line(t; 0,0; 10,50)              when 0 < t < 10
++  line(t; 10,50; 18,100)           when 10 <= t < 18
++  100                              when 18 <= t <= 26
++  line(t; 26,100; 32,60)           when 26 < t <= 32
++  line(t; 32,60; 40,0)             when 32 < t < 40
++  0                                when t >= 40
++
++comfortFactor(apparentT) = temperatureFactor(apparentT)
++
++humidityFactor(h) =
++  0                                when h <= 20
++  line(h; 20,0; 30,100)            when 20 < h < 30
++  100                              when 30 <= h <= 60
++  line(h; 60,100; 80,40)           when 60 < h <= 80
++  line(h; 80,40; 100,0)            when 80 < h < 100
++  0                                when h >= 100
++
++windSpeedFactor(s) =
++  100                              when s <= 10
++  line(s; 10,100; 25,60)           when 10 < s <= 25
++  line(s; 25,60; 40,0)             when 25 < s < 40
++  0                                when s >= 40
++
++windGustFactor(g) =
++  100                              when g <= 20
++  line(g; 20,100; 50,0)            when 20 < g < 50
++  0                                when g >= 50
++
++windFactor(speedKph, gustKph) = min(windSpeedFactor(speedKph), windGustFactor(gustKph))
++
++uvFactor(u) =
++  100                              when u <= 2
++  line(u; 2,100; 5,80)             when 2 < u <= 5
++  line(u; 5,80; 8,40)              when 5 < u <= 8
++  line(u; 8,40; 11,0)              when 8 < u < 11
++  0                                when u >= 11
++
++cloudFactor(c) =
++  100                              when c <= 20
++  line(c; 20,100; 60,60)           when 20 < c <= 60
++  line(c; 60,60; 100,0)            when 60 < c < 100
++  0                                when c >= 100
++
++visibilityFactor(vMetres) =
++  0                                when vMetres <= 1000
++  line(vMetres; 1000,0; 5000,50)   when 1000 < vMetres <= 5000
++  line(vMetres; 5000,50; 10000,100) when 5000 < vMetres < 10000
++  100                              when vMetres >= 10000
++```
++
++For an hourly score, raw values are the same row's precipitation probability, precipitation millimetres, temperature, apparent temperature, humidity, wind speed, gust, UV, cloud cover, and visibility. For a daily score, raw temperature and apparent temperature are respectively `(min + max) / 2` and `(apparent_min + apparent_max) / 2`; the other raw values are the daily columns. `weather_daily.visibility_mean_m` is the arithmetic mean of all runtime-valid `weather_hourly.visibility_m` observations assigned to that city-local date, with `N >= 1`; no valid observation makes daily visibility missing. Both raw hourly and derived daily visibility are persisted.
++
++For each city-local date, nighttime observations are hourly rows whose local timestamps are in `[sunset_local, 24:00)` or `[00:00, sunrise_local)`. `nightVisibilityFactor` applies `visibilityFactor` to their arithmetic-mean `visibility_m`, and `nightCloudFactor` applies `cloudFactor` to their arithmetic-mean cloud cover. Every expected nighttime row in those intervals must exist and pass validation; otherwise both nighttime factors are missing. Daylight-saving dates use the actual timezone offset and therefore their real row count.
++
++The general score is:
++
++```text
++base =
++  rain        * 0.30 +
++  temperature * 0.20 +
++  comfort     * 0.15 +
++  humidity    * 0.10 +
++  wind        * 0.10 +
++  uv          * 0.075 +
++  cloud       * 0.075
++
++travelScore = round(clamp(base - hazardPenalty, 0, 100))
++```
++
++For the general model, `availableWeight = sum(weight for each available listed factor)`, `base = sum(factor * weight) / availableWeight`, and `confidence = availableWeight / 1.0`. When `availableWeight = 0`, both score and confidence are unavailable. General confidence below `0.7` hides the score from the homepage top ranking and emits `LIMITED_DATA`; equality at `0.7` is eligible. The general `hazardPenalty` is the exact maximum-value schedule in [DATA-ACTIVITY-001](#DATA-ACTIVITY-001).
++
++The persisted schema is:
++
++```sql
++CREATE TABLE city_theme_attributes (
++  city_id TEXT NOT NULL REFERENCES cities(id),
++  attribute_type TEXT NOT NULL CHECK (
++    attribute_type IN ('beach_water', 'beach_season', 'food_trip', 'shopping')
++  ),
++  value INTEGER NOT NULL CHECK (value BETWEEN 0 AND 100),
++  source_url TEXT NOT NULL,
++  verified_at TEXT NOT NULL,
++  updated_at TEXT NOT NULL,
++  PRIMARY KEY (city_id, attribute_type)
++);
++
++CREATE TABLE weather_alert_snapshots (
++  id TEXT PRIMARY KEY,
++  weather_snapshot_id TEXT NOT NULL REFERENCES weather_snapshots(id),
++  captured_at TEXT NOT NULL,
++  source_range_start TEXT NOT NULL,
++  source_range_end TEXT NOT NULL,
++  checksum TEXT NOT NULL
++);
++
++CREATE TABLE weather_alerts (
++  alert_snapshot_id TEXT NOT NULL REFERENCES weather_alert_snapshots(id),
++  alert_id TEXT NOT NULL,
++  city_id TEXT NOT NULL REFERENCES cities(id),
++  event_type TEXT NOT NULL CHECK (event_type IN ('storm', 'typhoon')),
++  status TEXT NOT NULL CHECK (status IN ('active', 'cancelled')),
++  effective_at TEXT NOT NULL,
++  expires_at TEXT NOT NULL,
++  source_updated_at TEXT NOT NULL,
++  PRIMARY KEY (alert_snapshot_id, alert_id, city_id)
++);
++
++CREATE TABLE city_scores (
++  snapshot_id TEXT NOT NULL REFERENCES weather_snapshots(id),
++  alert_snapshot_id TEXT NOT NULL REFERENCES weather_alert_snapshots(id),
++  city_id TEXT NOT NULL REFERENCES cities(id),
++  anchor_local_date TEXT NOT NULL,
++  window TEXT NOT NULL,
++  as_of TEXT NOT NULL,
++  included_dates_json TEXT NOT NULL,
++  source_kind TEXT NOT NULL CHECK (source_kind IN ('hourly', 'daily', 'mixed')),
++  source_row_keys_json TEXT NOT NULL,
++  source_start TEXT NOT NULL,
++  source_end TEXT NOT NULL,
++  travel_score INTEGER NOT NULL,
++  rain_score INTEGER,
++  outdoor_score INTEGER,
++  beach_score INTEGER,
++  walking_score INTEGER,
++  hiking_score INTEGER,
++  camping_score INTEGER,
++  family_score INTEGER,
++  photography_score INTEGER,
++  night_view_score INTEGER,
++  food_trip_score INTEGER,
++  shopping_score INTEGER,
++  confidence REAL NOT NULL,
++  reason_codes_json TEXT NOT NULL,
++  score_model_version TEXT NOT NULL,
++  hazard_model_version TEXT NOT NULL,
++  PRIMARY KEY (snapshot_id, city_id, anchor_local_date, window)
++);
++
++CREATE TABLE ranking_snapshots (
++  id TEXT PRIMARY KEY,
++  snapshot_id TEXT NOT NULL REFERENCES weather_snapshots(id),
++  ranking_version TEXT NOT NULL,
++  theme TEXT NOT NULL,
++  time_window TEXT NOT NULL,
++  region_key TEXT NOT NULL,
++  generated_at TEXT NOT NULL,
++  expires_at TEXT NOT NULL,
++  model_version TEXT NOT NULL,
++  UNIQUE (snapshot_id, ranking_version, theme, time_window, region_key)
++);
++
++CREATE TABLE ranking_entries (
++  ranking_id TEXT NOT NULL REFERENCES ranking_snapshots(id),
++  city_id TEXT NOT NULL REFERENCES cities(id),
++  rank INTEGER NOT NULL,
++  score INTEGER NOT NULL,
++  reason_codes_json TEXT NOT NULL,
++  PRIMARY KEY (ranking_id, city_id)
++);
++```
++
++Theme percentage weights are exact:
++
++| Theme       | Rain | Temp | Comfort/Humidity | Wind |  UV | Cloud/Visibility | Other |
++| ----------- | ---: | ---: | ---------------: | ---: | --: | ---------------: | ----- |
++| Outdoor     |   30 |   20 |               20 |   15 |  10 |                5 | 0     |
++| Beach       |   20 |   25 |               10 |   15 |  15 |               10 | 5     |
++| Walking     |   30 |   25 |               25 |   10 |   5 |                5 | 0     |
++| Hiking      |   30 |   20 |               15 |   20 |   5 |               10 | 0     |
++| Camping     |   35 |   20 |               15 |   20 |   5 |                5 | 0     |
++| Family      |   35 |   20 |               25 |   10 |   5 |                5 | 0     |
++| Photography |   20 |   10 |               10 |   10 |   5 |               35 | 10    |
++| Night View  |   25 |   10 |               10 |   15 |   0 |               30 | 10    |
++| Food Trip   |   15 |   15 |               20 |    5 |   0 |                0 | 45    |
++| Shopping    |   10 |   10 |               15 |    5 |   0 |                0 | 60    |
++
++`Comfort/Humidity` is `(comfortFactor + humidityFactor) / 2` for every theme. Both factors are required for that component. `Cloud/Visibility` is selected by this complete mapping:
++
++| Theme                    | Exact Cloud/Visibility value                                      |
++| ------------------------ | ----------------------------------------------------------------- |
++| Outdoor, Walking, Family | `cloudFactor`                                                     |
++| Beach, Hiking, Camping   | `(cloudFactor + visibilityFactor) / 2`                            |
++| Photography              | `cloudFactor * 0.40 + visibilityFactor * 0.60`                    |
++| Night View               | `nightCloudFactor * 0.40 + nightVisibilityFactor * 0.60`          |
++| Food Trip, Shopping      | `0`; the column weight is zero and it is not a required component |
++
++Every nonzero combined component is available only when every factor named by its formula is available. The `Other` input has this complete one-to-one mapping:
++
++| Theme                                     | Exact Other value                                  |
++| ----------------------------------------- | -------------------------------------------------- |
++| Outdoor, Walking, Hiking, Camping, Family | `0`; the column weight is zero                     |
++| Beach                                     | `(beachWaterAttribute + beachSeasonAttribute) / 2` |
++| Photography                               | `visibilityFactor`                                 |
++| Night View                                | `nightVisibilityFactor`                            |
++| Food Trip                                 | `foodTripAttribute`                                |
++| Shopping                                  | `shoppingAttribute`                                |
++
++`beachWaterAttribute`, `beachSeasonAttribute`, `foodTripAttribute`, and `shoppingAttribute` are exactly the `value` fields from the `beach_water`, `beach_season`, `food_trip`, and `shopping` `city_theme_attributes` rows. A row is verified only when its value is in `0..100`, its source is an official destination, government/tourism board, or contracted provider, and `verified_at` is no more than 90 days before the score's `asOf`. Beach requires both verified rows. Food Trip and Shopping require their named verified row. A missing, invalid, unqualified, or stale critical non-weather row hides that theme score and excludes it from rankings; it is never replaced or renormalized. Photography and Night View Other are weather inputs and follow the weather-availability rule.
++
++For each theme, `totalWeatherWeight` is the sum of its positive Rain, Temp, Comfort/Humidity, Wind, UV, and Cloud/Visibility percentages; `availableWeatherWeight` sums the positive components available for the selected row. `themeWeatherConfidence = availableWeatherWeight / totalWeatherWeight`. A value below `0.7` hides the theme score; equality passes. For an eligible theme, `weatherBlock = sum(availableWeatherComponent * configuredPercentage) / availableWeatherWeight`, then:
++
++```text
++otherWeight = configured Other percentage
++rawThemeScore = (weatherBlock * totalWeatherWeight + otherValue * otherWeight) / 100
++themeScore = round(clamp(rawThemeScore - hazardPenalty, 0, 100))
++```
++
++For a zero-weight Other row, `otherValue * otherWeight` is exactly zero. The hazard penalty is the maximum-value schedule in [DATA-ACTIVITY-001](#DATA-ACTIVITY-001).
++All windows are evaluated in the destination city's IANA time zone against one snapshot and one `asOf` instant:
++
++- **Today** is the city-local calendar date containing `asOf`.
++- **Tomorrow** is Today plus one local calendar day.
++- **Weekend** is the first Saturday on or after Today and the immediately following Sunday. If Today is Saturday, it is the current Saturday/Sunday; if Today is Sunday, it begins the following Saturday. Both dates are required, and the response displays them.
++- **Next Week** is Monday through Sunday of the ISO week immediately following the city-local ISO week containing Today. It uses every score-eligible date available in that seven-day interval, requires at least one, and displays the exact included dates.
++- Any other approved **multi-day** window declares an inclusive start/end date, uses every score-eligible date in that interval, and exposes the exact included dates; an empty set is unavailable.
++
++For each selected local date `d`, use hourly calculation only when all 15 distinct local hourly records at `08:00, 09:00, ..., 22:00` exist for the same snapshot and every input required to calculate that hour passes validation. In that case, calculate 15 unrounded hourly scores with the applicable formula and set `dailyScore(d)` to their arithmetic mean. If any one of those records or required inputs is absent, use exactly one unrounded score calculated from the same snapshot's daily record; never mix a partial hourly set with daily data. If the daily fallback is also not calculable, the date is not score-eligible.
++
++Today and Tomorrow return `round(clamp(dailyScore(d), 0, 100))` and apply no volatility penalty. Weekend, Next Week, and every other multi-day window use the following exact population standard deviation; daily scores remain unrounded until the final window result:
++
++```text
++mean = sum(dailyScores) / N
++populationStdDev(dailyScores) = sqrt(sum((score - mean)^2) / N)
++volatilityPenalty = min(20, populationStdDev(dailyScores) * 0.5)
++windowScore = round(clamp(mean - volatilityPenalty, 0, 100))
++```
++
++For `N = 1`, `populationStdDev` and `volatilityPenalty` are `0`. Stable persisted reason codes are `LOW_RAIN_CHANCE`, `COMFORTABLE_TEMPERATURE`, `LOW_HUMIDITY`, `CALM_WIND`, `HIGH_UV_CAUTION`, `HEAVY_RAIN_RISK`, `STORM_RISK`, `CLEAR_NIGHT_SKY`, `GOOD_GOLDEN_HOUR`, `LIMITED_DATA`, and `STALE_DATA`; natural-language reasons are not stored.
++
++Every `city_scores` row is a reproducibility record, not only a result. `anchor_local_date` is Today in the city's time zone at `as_of`; `included_dates_json` is the validated chronological unique array actually aggregated. `source_kind` is `hourly` when every included date used complete hourly sets, `daily` when every date used daily fallback, and `mixed` otherwise. Canonical `source_row_keys_json` lists each included date's source kind and every `(table, snapshot_id, city_id, local_time|local_date)` key. `source_start` and `source_end` are the minimum inclusive and maximum exclusive UTC instants covered by those rows. The row freezes `score_model_version`, `hazard_model_version`, and the exact normalized `alert_snapshot_id`; recomputation may not substitute later weather, alerts, dates, or model parameters.
++
++Roadmap: [REL-MVP-DATA_SCORE_001](11-Roadmap.md#REL-MVP-DATA_SCORE_001).
++
++#### Acceptance Criteria
++
++- Property tests prove the complete-factor result equals the exact formula and is always an integer in `0..100`.
++- Every subset of available factors produces the independently calculated weighted mean and proportional confidence; no missing value becomes `100` by default.
++- General confidence below `0.7` cannot enter the homepage top ranking and carries `LIMITED_DATA`.
++- Fixtures verify every normalization segment at all endpoints and immediate neighbors; every theme row sums to 100; each Comfort/Humidity, Cloud/Visibility, and Other mapping is exact; required verified attributes hide rather than improve a score when absent.
++- Repeated calculations from persisted anchor, `as_of`, included dates, source row/range provenance, score/hazard model versions, and alert snapshot reproduce identical scores, ranks, reasons, and map values.
++- Window tests cover Today/Tomorrow local dates, Saturday and Sunday `asOf` behavior, the next ISO week, partial Next Week availability, daylight-saving transitions, all 15 required `08:00..22:00` records, daily fallback on one missing hour, `N = 1`, population standard deviation, and the capped volatility penalty.
++- Provenance validation rejects noncanonical included-date/source-row JSON, source ranges inconsistent with named rows, or an alert snapshot not bound to the same weather snapshot.
++
++<!-- requirement
++id: DATA-ACTIVITY-001
++status: Active
++kind: Hard
++roadmap_ref: REL-V1-DATA_ACTIVITY_001
++owner: Database
++verification: pnpm docs:check
++-->
++
++<a id="DATA-ACTIVITY-001"></a>
++
++### DATA-ACTIVITY-001 — Theme Park and Mountain suitability
++
++Theme Park and Mountain use versioned weather-and-destination suitability and are persisted only when every eligibility rule passes.
++
++```sql
++CREATE TABLE activity_destinations (
++  id TEXT PRIMARY KEY,
++  city_id TEXT NOT NULL REFERENCES cities(id),
++  activity_type TEXT NOT NULL,
++  availability_status TEXT NOT NULL,
++  source_url TEXT NOT NULL,
++  verified_at TEXT NOT NULL,
++  season_start TEXT,
++  season_end TEXT,
++  is_seasonal INTEGER NOT NULL DEFAULT 0,
++  confidence REAL NOT NULL,
++  updated_at TEXT NOT NULL
++);
++
++CREATE TABLE activity_scores (
++  snapshot_id TEXT NOT NULL REFERENCES weather_snapshots(id),
++  alert_snapshot_id TEXT NOT NULL REFERENCES weather_alert_snapshots(id),
++  activity_destination_id TEXT NOT NULL REFERENCES activity_destinations(id),
++  city_id TEXT NOT NULL REFERENCES cities(id),
++  anchor_local_date TEXT NOT NULL,
++  window TEXT NOT NULL,
++  as_of TEXT NOT NULL,
++  included_dates_json TEXT NOT NULL,
++  source_kind TEXT NOT NULL CHECK (source_kind IN ('hourly', 'daily', 'mixed')),
++  source_row_keys_json TEXT NOT NULL,
++  source_start TEXT NOT NULL,
++  source_end TEXT NOT NULL,
++  activity_type TEXT NOT NULL,
++  score INTEGER NOT NULL,
++  weather_confidence REAL NOT NULL,
++  destination_confidence REAL NOT NULL,
++  combined_confidence REAL NOT NULL,
++  reason_codes_json TEXT NOT NULL,
++  model_version TEXT NOT NULL,
++  hazard_model_version TEXT NOT NULL,
++  evaluated_at TEXT NOT NULL,
++  PRIMARY KEY (
++    snapshot_id,
++    activity_destination_id,
++    anchor_local_date,
++    window,
++    activity_type
++  )
++);
++```
++
++Normalize all weather factors to `0..100`. A required weather factor is available only when it is present, runtime-valid, normalized, and no more than two hours old. For each activity, `totalRequiredWeatherWeight` is the sum of all listed weights and equals `1.0`; `availableRequiredWeatherWeight` is the sum of listed weights whose factors are available.
++
++```text
++weatherConfidence = availableRequiredWeatherWeight / totalRequiredWeatherWeight
++weatherSuitability =
++  sum(availableFactorValue * configuredWeight) /
++  availableRequiredWeatherWeight
++```
++
++Do not calculate when `weatherConfidence < 0.8`; equality at `0.8` is eligible. The configured weights are:
++
++```text
++Theme Park weatherSuitability weights =
++  rain * 0.35 +
++  temperature * 0.25 +
++  comfort * 0.20 +
++  wind * 0.10 +
++  uv * 0.10
++
++Mountain weatherSuitability weights =
++  rain * 0.30 +
++  temperature * 0.15 +
++  comfort * 0.10 +
++  wind * 0.25 +
++  uv * 0.05 +
++  visibility * 0.15
++```
++
++Destination factors and completeness map exactly as follows:
++
++- `availabilityFactor`: `available = 100`, `limited = 60`, and `unavailable` or `unknown` means not calculable.
++- `availabilityCompleteness = 1` only when `availability_status`, `source_url`, and `verified_at` are present, the source is qualified, and verification age is at most 90 days; otherwise it is `0`.
++- `seasonCompleteness = 1` only when the verification is fresh and either the destination is explicitly year-round/non-seasonal or both valid seasonal boundaries are present; otherwise it is `0`.
++- `destinationConfidence = availabilityCompleteness * 0.70 + seasonCompleteness * 0.30`.
++- `destinationSuitability = availabilityFactor * 0.70 + seasonFactor * 0.30`.
++- Qualified sources are official destinations, government/tourism boards, or contracted providers only.
++
++`seasonFactor` is evaluated before destination blending and uses the city-local date with this precedence:
++
++1. An explicit year-round or `is_seasonal = 0` record returns `100`.
++2. A normal inclusive interval with `season_start <= season_end` contains dates from start through end. A cross-year inclusive interval with `season_start > season_end` contains dates in `[season_start, December 31]` or `[January 1, season_end]`.
++3. A date outside that inclusive interval returns `0`, even when it is within 14 calendar days outside a boundary.
++4. For a date inside the interval, measure whole calendar days along the included interval to each boundary. If the minimum distance is `<= 14`, including either boundary at distance `0`, return `70`.
++5. Any other inside date returns `100`.
++
++The outside check therefore precedes the near-boundary check. Cross-year distance follows the year wrap, and leap-day arithmetic uses the actual city-local calendar year.
++
++`hazardPenalty` is the maximum applicable value, never the sum. Alert intervals are normalized UTC half-open intervals `[effective_at, expires_at)` with `effective_at < expires_at`. A score interval `[scoreStart, scoreEnd)` overlaps an active storm/typhoon alert exactly when `effective_at < scoreEnd AND expires_at > scoreStart`; equality at either touching boundary is not overlap. Cancelled alerts never apply.
++
++For an hourly row, `[scoreStart, scoreEnd)` is the real instant represented by `local_time` through exactly one hour later. Its penalty candidates are: overlapping alert `100`; the same city-local date's `weather_daily.precipitation_mm >= 50` or that hourly row's gust `>= 75km/h`, `60`; that row's temperature `>= 40°C` or `<= -15°C`, `40`; otherwise `0`. For a daily row, the interval is city-local midnight through the next city-local midnight converted to UTC, so DST days use their actual length. Its candidates are: any overlapping alert `100`; that daily row's precipitation `>= 50mm` or gust `>= 75km/h`, `60`; its maximum temperature `>= 40°C` or minimum temperature `<= -15°C`, `40`; otherwise `0`. Each hourly/daily penalty is the maximum candidate. A multi-date result uses only penalties already bound to its persisted included dates and source rows. Every score in one row uses the same immutable alert snapshot and hazard model version.
++
++The complete confidence gate and deterministic result are:
++
++```text
++combinedConfidence = weatherConfidence * 0.70 + destinationConfidence * 0.30
++
++score = round(
++  clamp(
++    weatherSuitability * 0.70 +
++    destinationSuitability * 0.30 -
++    hazardPenalty,
++    0,
++    100
++  )
++)
++```
++
++Both `weatherConfidence >= 0.8` and `combinedConfidence >= 0.8` are required; equality passes. Weather may be at most two hours old; destination verification may be at most 90 days old. Real-time opening status may be displayed only from an authorized source updated within 24 hours. Missing required fields, an unqualified or stale source, a non-calculable status, weather confidence below `0.8`, or combined confidence below `0.8` hides the score and excludes it from rankings. A parameter change requires a new `model_version` and an Accepted ADR; previous versions remain reproducible.
++
++Every `activity_scores` row freezes provenance for the exact window represented by that row. `anchor_local_date` is Today in the destination city's IANA time zone at `as_of`; the row selects Today, Tomorrow, Weekend, Next Week, or another approved multi-day window using the exact calendar and availability rules in [DATA-SCORE-001](#DATA-SCORE-001). `included_dates_json` is the canonical chronological unique array actually aggregated, never the requested interval with unavailable dates silently retained. Today and Tomorrow contain their one selected date; Weekend contains both required dates; Next Week and another approved multi-day window contain every score-eligible date actually used and require at least one.
++
++For each included date, weather source selection uses the complete `08:00..22:00` hourly set or the single daily fallback defined in DATA-SCORE-001; partial hourly sets are never mixed into a date. `source_kind` is `hourly` when every included date used complete hourly sets, `daily` when every date used daily fallback, and `mixed` otherwise. Canonical `source_row_keys_json` lists each included date's source kind and every `(table, snapshot_id, city_id, local_time|local_date)` weather key used by suitability or a numeric hazard candidate, including the same-date daily row when an hourly hazard evaluates daily precipitation. `source_start` and `source_end` are respectively the minimum inclusive and maximum exclusive UTC instants covered by those named weather rows; city-local day boundaries are converted with the actual IANA offset, including DST transitions.
++
++`alert_snapshot_id` is the exact normalized alert snapshot used for every included source interval and must reference the same `snapshot_id`; alert overlap is recomputed only from that snapshot. `model_version` freezes all activity suitability, confidence, season, window-aggregation, and rounding parameters, while `hazard_model_version` freezes alert-overlap and numeric-penalty parameters. `as_of` is captured once and selects the anchor, freshness, destination verification age, and season inputs; `evaluated_at` records completion and never changes input selection. A referenced `activity_destinations` row becomes immutable once used by a score; a destination-source change creates a new destination ID. Recalculation may not substitute later weather rows, alerts, included dates, destination rows, or model parameters.
++
++Roadmap: [REL-V1-DATA_ACTIVITY_001](11-Roadmap.md#REL-V1-DATA_ACTIVITY_001).
++
++#### Acceptance Criteria
++
++- Reference fixtures independently reproduce both renormalized weather formulas, all three confidence equations, destination mapping, final `70/30` blend, rounding, and `0..100` clamp.
++- Hazard fixtures prove simultaneous hazards use only the maximum of `100`, `60`, `40`, or `0`; hourly and DST-aware daily alert intervals overlap only by the strict half-open predicate, with boundary-touch and cancelled-alert cases excluded.
++- Boundary tests cover exactly 2 hours, 90 days, 24 hours, `weatherConfidence = 0.8`, and `combinedConfidence = 0.8`, plus values immediately beyond each boundary.
++- Missing required fields, unqualified/stale source, unavailable/unknown status, weather confidence below `0.8`, or combined confidence below `0.8` persists no visible score and no ranking entry.
++- Season fixtures cover year-round, both inclusive endpoints, 14 and 15 days inside each boundary, dates just outside each boundary, normal ranges, cross-year ranges across December/January, and leap-day arithmetic.
++- Activity-window fixtures prove `anchor_local_date` and `as_of` select the exact Today, Tomorrow, Weekend, Next Week, and partial multi-day included-date arrays, with complete hourly selection, daily fallback, mixed-source windows, and DST-aware UTC coverage.
++- Activity-score provenance validation rejects noncanonical included-date/source-row JSON, omitted suitability or hazard source rows, UTC ranges inconsistent with the named rows, an alert snapshot bound to another weather snapshot, or a mutable/replaced destination row.
++- Recalculation from persisted activity destination identity, anchor, `as_of`, included dates, source row keys and UTC range, alert snapshot, `model_version`, and `hazard_model_version` reproduces the same score, all three confidences, reason codes, and ranking eligibility without reading newer inputs.
++- A model-parameter change fails version checks unless it changes `model_version` and cites an Accepted ADR; a hazard-parameter change also requires a new `hazard_model_version`.
++
++## Relationships and operational records
++
++<!-- requirement
++id: DATA-RELATIONSHIP-001
++status: Active
++kind: Hard
++roadmap_ref: REL-MVP-DATA_RELATIONSHIP_001
++owner: Database
++verification: pnpm docs:check
++-->
++
++<a id="DATA-RELATIONSHIP-001"></a>
++
++### DATA-RELATIONSHIP-001 — Bounded destination and commercial relationships
++
++```sql
++CREATE TABLE city_relationships (
++  city_id TEXT NOT NULL REFERENCES cities(id),
++  related_city_id TEXT NOT NULL REFERENCES cities(id),
++  relation_type TEXT NOT NULL,
++  rank INTEGER NOT NULL,
++  PRIMARY KEY (city_id, related_city_id, relation_type)
++);
++
++CREATE TABLE affiliate_providers (
++  id TEXT PRIMARY KEY,
++  type TEXT NOT NULL,
++  enabled INTEGER NOT NULL DEFAULT 0,
++  whitelist_host TEXT NOT NULL
++);
++
++CREATE TABLE affiliate_offers (
++  id TEXT PRIMARY KEY,
++  provider_id TEXT NOT NULL REFERENCES affiliate_providers(id),
++  city_id TEXT REFERENCES cities(id),
++  target_url TEXT NOT NULL,
++  label TEXT NOT NULL,
++  amount REAL,
++  currency TEXT,
++  fetched_at TEXT,
++  created_at TEXT NOT NULL
++);
++```
++
++`relation_type` is one of `nearby`, `similar`, `better_weather`, or `cheaper`; a city cannot relate to itself, and rank is positive and deterministic within a relation type. Offer rows contain only authorized source data. When `amount` is present, `currency` and freshness metadata are mandatory. Database constraints and repository validation ensure a target host matches the referenced provider whitelist before storage.
++
++Roadmap: [REL-MVP-DATA_RELATIONSHIP_001](11-Roadmap.md#REL-MVP-DATA_RELATIONSHIP_001).
++
++#### Acceptance Criteria
++
++- Constraints reject self-relations, duplicate relation triples, unsupported relation types, and non-positive ranks.
++- Relationship query results are stable and bounded by rank for each type.
++- Offers cannot reference missing providers/cities or store an amount without currency and freshness metadata.
++- Repository tests reject target URLs whose normalized host does not equal the provider whitelist host.
++- Disabling or deleting optional relationship data does not delete canonical city or weather records.
++
++<!-- requirement
++id: DATA-OPERATIONS-001
++status: Active
++kind: Hard
++roadmap_ref: REL-MVP-DATA_OPERATIONS_001
++owner: Database
++verification: pnpm docs:check
++-->
++
++<a id="DATA-OPERATIONS-001"></a>
++
++### DATA-OPERATIONS-001 — Operational, analytics, flag, and SEO registry schema
++
++```sql
++CREATE TABLE sync_runs (
++  id TEXT PRIMARY KEY,
++  started_at TEXT NOT NULL,
++  finished_at TEXT,
++  status TEXT NOT NULL,
++  provider TEXT NOT NULL,
++  provider_switched INTEGER NOT NULL DEFAULT 0,
++  switch_reason TEXT,
++  enabled_cities_at_start INTEGER NOT NULL,
++  featured_cities_at_start INTEGER NOT NULL,
++  cities_valid_7day INTEGER NOT NULL DEFAULT 0,
++  featured_cities_valid_7day INTEGER NOT NULL DEFAULT 0,
++  cities_ok INTEGER NOT NULL DEFAULT 0,
++  cities_failed INTEGER NOT NULL DEFAULT 0,
++  duration_ms INTEGER
++);
++
++CREATE TABLE sync_run_city_scope (
++  run_id TEXT NOT NULL REFERENCES sync_runs(id),
++  city_id TEXT NOT NULL REFERENCES cities(id),
++  is_featured_at_start INTEGER NOT NULL CHECK (is_featured_at_start IN (0, 1)),
++  valid_7day INTEGER NOT NULL DEFAULT 0 CHECK (valid_7day IN (0, 1)),
++  PRIMARY KEY (run_id, city_id)
++);
++
++CREATE TABLE sync_failures (
++  id TEXT PRIMARY KEY,
++  run_id TEXT NOT NULL REFERENCES sync_runs(id),
++  city_id TEXT REFERENCES cities(id),
++  error_code TEXT NOT NULL,
++  detail TEXT,
++  created_at TEXT NOT NULL
++);
++
++CREATE TABLE sync_locks (
++  key TEXT PRIMARY KEY,
++  holder TEXT,
++  fencing_token INTEGER NOT NULL DEFAULT 0 CHECK (fencing_token >= 0),
++  acquired_at TEXT,
++  expires_at TEXT,
++  CHECK (
++    (holder IS NULL AND acquired_at IS NULL AND expires_at IS NULL)
++    OR (holder IS NOT NULL AND acquired_at IS NOT NULL AND expires_at IS NOT NULL)
++  )
++);
++
++CREATE TRIGGER trg_sync_locks_no_delete
++BEFORE DELETE ON sync_locks
++BEGIN
++  SELECT RAISE(ABORT, 'lock fencing-token high-water mark is permanent');
++END;
++
++CREATE TRIGGER trg_sync_locks_token_no_decrease
++BEFORE UPDATE OF fencing_token ON sync_locks
++WHEN NEW.fencing_token < OLD.fencing_token
++BEGIN
++  SELECT RAISE(ABORT, 'lock fencing token cannot decrease');
++END;
++
++CREATE TABLE feature_flags (
++  key TEXT PRIMARY KEY,
++  enabled INTEGER NOT NULL DEFAULT 0,
++  scope_json TEXT,
++  updated_at TEXT NOT NULL
++);
++
++CREATE TABLE seo_page_registry (
++  path TEXT PRIMARY KEY,
++  page_type TEXT NOT NULL,
++  locale TEXT NOT NULL,
++  indexable INTEGER NOT NULL,
++  lastmod TEXT NOT NULL,
++  content_hash TEXT NOT NULL,
++  in_sitemap INTEGER NOT NULL
++);
++
++CREATE TABLE analytics_events_daily (
++  event_date TEXT NOT NULL,
++  event_name TEXT NOT NULL,
++  dimension_key TEXT NOT NULL,
++  dimension_value TEXT NOT NULL,
++  event_count INTEGER NOT NULL,
++  updated_at TEXT NOT NULL,
++  PRIMARY KEY (event_date, event_name, dimension_key, dimension_value)
++);
++```
++
++The run-start transaction inserts one `sync_run_city_scope` row for every city with `cities.status = 'active'`, copies `is_featured`, and stores matching counts before provider I/O. For city `c`, `valid_7day = 1` only when the candidate has seven consecutive runtime-valid `weather_daily` rows from the local date containing `sync_runs.started_at` through local date plus six, and each row can derive all eight raw weather factors defined by [DATA-SCORE-001](#DATA-SCORE-001). Define `E` as all run scope rows, `F` as rows with `is_featured_at_start = 1`, and `V` as rows with `valid_7day = 1`. Activation requires `|E| > 0`, `100 * |V| >= 95 * |E|`, and `F subset-of V`; later city edits cannot alter E or F.
++
++Lock acquisition runs under `BEGIN IMMEDIATE`: ensure the persistent key row exists at token `0`, conditionally update it only when unheld or expired, set the new holder/times, increment `fencing_token = fencing_token + 1`, and require one `RETURNING fencing_token` row. Thus each successful acquisition is strictly monotonic and never reuses a token. Release updates holder/times to null only with the same `(key, holder, fencing_token)` and never deletes the row or resets the token. The publication activation/maintenance transaction must re-read and require the captured token, holder, and unexpired lease before changing active publication identity.
++
++These tables persist operational state only; their owning architecture, SEO, analytics, and security contracts determine meaning. `sync_failures.detail` is sanitized and excludes credentials and raw provider bodies. Daily analytics rows are aggregate counters and cannot store IP addresses, raw free-text searches, precise location, cookies, or reversible user identifiers.
++
++Roadmap: [REL-MVP-DATA_OPERATIONS_001](11-Roadmap.md#REL-MVP-DATA_OPERATIONS_001).
++
++#### Acceptance Criteria
++
++- Constraints and repository validation accept only documented sync statuses, nonnegative counters/durations, valid timestamps, booleans, and schema-valid JSON.
++- A sync failure record stores a stable code and sanitized detail with no credential or raw provider response.
++- Lock tests prove acquisition is conditional on unheld/expired state, every reacquisition returns a strictly greater fencing token, release checks holder and token, and neither release nor expiry resets the high-water mark.
++- Publication transaction tests reject a captured token after expiry, release, or any newer acquisition.
++- Unknown feature keys evaluate disabled at the repository boundary.
++- SEO registry `lastmod` changes only when its content hash meaningfully changes.
++- Analytics rows are aggregate, nonnegative, and reject prohibited raw identifiers and free text.
++
++## Indexes and migration
++
++<!-- requirement
++id: DATA-MIGRATION-001
++status: Active
++kind: Hard
++roadmap_ref: REL-MVP-DATA_MIGRATION_001
++owner: Database
++verification: pnpm docs:check
++-->
++
++<a id="DATA-MIGRATION-001"></a>
++
++### DATA-MIGRATION-001 — Ordered forward migrations, hot-path indexes, and retention
++
++Every schema change is an ordered, reviewable, forward migration. Production startup never performs destructive automatic migration. A migration is applied in preview first, its compatibility and query plans are verified, and production deployment records the migration version before application traffic changes. Destructive cleanup is a later explicit migration only after compatibility and rollback windows expire.
++
++Required indexes are:
++
++```sql
++CREATE UNIQUE INDEX idx_cities_country_slug
++  ON cities(country_id, slug);
++CREATE INDEX idx_weather_daily_city_snapshot_date
++  ON weather_daily(city_id, snapshot_id, local_date);
++CREATE INDEX idx_weather_hourly_city_snapshot_time
++  ON weather_hourly(city_id, snapshot_id, local_time);
++CREATE INDEX idx_weather_alerts_city_snapshot_interval
++  ON weather_alerts(city_id, alert_snapshot_id, effective_at, expires_at);
++CREATE INDEX idx_weather_snapshots_status
++  ON weather_snapshots(status);
++CREATE UNIQUE INDEX idx_weather_snapshots_single_active
++  ON weather_snapshots(status)
++  WHERE status = 'active';
++CREATE INDEX idx_city_theme_attributes_type_city
++  ON city_theme_attributes(attribute_type, city_id);
++CREATE INDEX idx_city_scores_snapshot_window_score
++  ON city_scores(snapshot_id, window, travel_score DESC);
++CREATE UNIQUE INDEX idx_ranking_snapshot_version_slice
++  ON ranking_snapshots(snapshot_id, ranking_version, theme, time_window, region_key);
++CREATE INDEX idx_ranking_entries_ranking_rank
++  ON ranking_entries(ranking_id, rank);
++CREATE INDEX idx_city_translations_locale_name
++  ON city_translations(locale, name);
++CREATE INDEX idx_city_relationships_city_type_rank
++  ON city_relationships(city_id, relation_type, rank);
++CREATE INDEX idx_activity_destinations_city_type
++  ON activity_destinations(city_id, activity_type);
++CREATE INDEX idx_activity_scores_city_type_date
++  ON activity_scores(city_id, activity_type, anchor_local_date, window);
++CREATE INDEX idx_seo_registry_type_locale_sitemap
++  ON seo_page_registry(page_type, locale, in_sitemap);
++```
++
++Alias search uses a derived, normalized, accent-folded index rather than interpolating `aliases_json`. Hot city, ranking, search, compare, sitemap, activity, and active-snapshot queries are checked with `EXPLAIN QUERY PLAN`.
++
++Canonical geography and stable URL identity use soft disable rather than destructive deletion. Weather snapshots, failed sync details, aggregate analytics, offers, and generated rankings have documented bounded retention implemented by maintenance jobs; cleanup never removes the active or required last-known-good snapshot.
++
++Roadmap: [REL-MVP-DATA_MIGRATION_001](11-Roadmap.md#REL-MVP-DATA_MIGRATION_001).
++
++#### Acceptance Criteria
++
++- A fresh database and an upgrade fixture both apply all ordered migrations successfully and produce the same schema version.
++- Production startup contains no destructive migration path, and deployment fails before traffic switch when an explicit migration fails.
++- `EXPLAIN QUERY PLAN` fixtures show indexed access for city, forecast, ranking, search, compare, activity, sitemap, and active-snapshot hot paths.
++- A backward-compatible application version can operate during the migration rollback window.
++- Retention cleanup preserves canonical identities, the active snapshot, and the required last-known-good snapshot while bounding disposable operational/history data.
++- A destructive cleanup requires a separate reviewed migration after the compatibility window rather than being folded into an additive change.
+
+## NEW FILE: docs/07-API-Spec.md
+--- /dev/null	2026-07-13 18:58:14.987676037 +0800
++++ docs/07-API-Spec.md	2026-07-17 20:24:19.851530607 +0800
+@@ -0,0 +1,655 @@
++---
++title: API Specification
++authority: API
++status: Draft
++last_updated: 2026-07-17
++---
++
++# API Specification
++
++> **Draft / Non-authoritative.** `SPEC.md` remains authoritative until the controlled documentation cutover. This document owns API request, response, error, authentication, and cache contracts. Endpoint documentation defines a stable shape, not product release activation; capability availability resolves through linked Product and Roadmap records.
++
++## Public reads
++
++<!-- requirement
++id: API-READ-001
++status: Active
++kind: Hard
++roadmap_ref: REL-MVP-API_READ_001
++owner: API
++verification: pnpm docs:check
++-->
++
++<a id="API-READ-001"></a>
++
++### API-READ-001 — Versioned read endpoint shapes
++
++All public read endpoints are namespaced under `/api/v1`, execute through application use cases, and read only from precomputed KV/D1 data. The documented shapes are:
++
++```text
++GET /api/v1/rankings?theme=&window=&region=&limit=&locale=
++GET /api/v1/countries/{countrySlug}
++GET /api/v1/cities/{countrySlug}/{citySlug}?window=&unit=&locale=
++GET /api/v1/cities/{cityId}/forecast?days=&unit=
++GET /api/v1/cities/{cityId}/hourly?date=&unit=
++GET /api/v1/map?theme=&window=&bounds=&zoom=
++GET /api/v1/search?q=&locale=&limit=
++GET /api/v1/compare?cityA=&cityB=&window=
++GET /api/v1/articles?cursor=&locale=&city=
++```
++
++The schemas below are exhaustive. Every property is required. A property can be JSON `null` only where its type explicitly contains `null`; no property is omitted. Arrays are always present and preserve the stated order; an empty result is `[]`. Numbers must be finite. Scores are integers in `0..100`, confidence is finite in `0..1`, latitude is `-90..90`, longitude is `-180..180`, and ranks are positive integers.
++
++```ts
++type IsoInstant = string; // RFC 3339 UTC form YYYY-MM-DDTHH:mm:ss[.sss]Z
++type OffsetDateTime = string; // RFC 3339 with required Z or numeric UTC offset
++type LocalDate = string; // valid Gregorian YYYY-MM-DD
++type Locale = "en" | "ja" | "ko" | "zh-cn" | "zh-tw";
++type Theme =
++  | "general"
++  | "outdoor"
++  | "beach"
++  | "walking"
++  | "hiking"
++  | "camping"
++  | "family"
++  | "photography"
++  | "night_view"
++  | "food_trip"
++  | "shopping"
++  | "theme_park"
++  | "mountain";
++type Region =
++  | "global"
++  | "primary"
++  | "secondary"
++  | "jp"
++  | "kr"
++  | "sg"
++  | "my"
++  | "th"
++  | "vn"
++  | "id"
++  | "ph"
++  | "hk"
++  | "tw"
++  | "north_america"
++  | "europe"
++  | "australia";
++type Unit = "metric" | "imperial";
++type Window = "today" | "tomorrow" | "weekend" | "next_week";
++type ScoreState = "available" | "limited_data" | "unavailable";
++type ReasonCode =
++  | "LOW_RAIN_CHANCE"
++  | "COMFORTABLE_TEMPERATURE"
++  | "LOW_HUMIDITY"
++  | "CALM_WIND"
++  | "HIGH_UV_CAUTION"
++  | "HEAVY_RAIN_RISK"
++  | "STORM_RISK"
++  | "CLEAR_NIGHT_SKY"
++  | "GOOD_GOLDEN_HOUR"
++  | "LIMITED_DATA"
++  | "STALE_DATA";
++
++interface Freshness {
++  dataUpdatedAt: IsoInstant;
++  stale: boolean;
++}
++
++interface WeatherIdentity {
++  snapshotId: string;
++  rankingVersion: string | null;
++  modelVersion: string;
++  freshness: Freshness;
++}
++
++interface ContentIdentity {
++  snapshotId: null;
++  rankingVersion: null;
++  modelVersion: null;
++  contentVersion: string;
++  freshness: Freshness;
++}
++```
++
++For `WeatherIdentity`, `rankingVersion` is a string only on Rankings and Map and is `null` on City, Forecast, Hourly, and Compare. For `ContentIdentity`, all three weather identity fields are always `null`. `freshness.dataUpdatedAt` is the oldest source update instant used by the representation. Capture `now` once at request start in UTC; with deployment's positive-integer `WEATHER_DATA_MAX_AGE_MINUTES`, `stale` is true **exactly if and only if** `now - dataUpdatedAt > WEATHER_DATA_MAX_AGE_MINUTES * 60 seconds`. Equality is fresh. Publication status, manifest age, cache TTL, CDN/KV/D1 source, and fallback selection never independently set `stale`; a future or invalid `dataUpdatedAt` makes the representation unavailable rather than fresh. Both freshness fields equal envelope `meta`. The response `unit` controls numeric display values: metric uses Celsius, millimetres, kilometres per hour, and metres; imperial uses Fahrenheit, inches, miles per hour, and miles.
++
++#### Success `data` schema — Rankings
++
++```ts
++interface RankingsData extends WeatherIdentity {
++  rankingVersion: string;
++  theme: Theme;
++  window: Window;
++  region: Region;
++  locale: Locale;
++  items: RankingItem[]; // ascending rank; length 0..validated limit
++}
++
++interface RankingItem {
++  rank: number;
++  cityId: string;
++  countrySlug: string;
++  citySlug: string;
++  cityName: string;
++  countryName: string;
++  score: number;
++  scoreState: "available";
++  reasonCodes: ReasonCode[];
++}
++```
++
++The returned `snapshotId` and `rankingVersion` are the exact D1 active publication pair. On an uncached read, a KV manifest may supply the model only after its complete identity and fencing token match D1; it never selects the pair. No item with a hidden or unavailable score enters `items`.
++
++#### Success `data` schema — Country
++
++```ts
++interface CountryData extends ContentIdentity {
++  locale: "en";
++  country: {
++    countryId: string;
++    slug: string;
++    iso2: string;
++    iso3: string;
++    name: string;
++    summary: string | null;
++    defaultTimezone: string;
++  };
++  cities: CountryCity[]; // ascending editorial rank, then cityId
++}
++
++interface CountryCity {
++  cityId: string;
++  citySlug: string;
++  name: string;
++  isFeatured: boolean;
++}
++```
++
++This endpoint has no locale input in v1, so `locale` is exactly `en`. An unknown country returns `RESOURCE_NOT_FOUND`, not an empty country object.
++
++#### Success `data` schema — City summary
++
++```ts
++interface CityData extends WeatherIdentity {
++  rankingVersion: null;
++  locale: Locale;
++  unit: Unit;
++  window: Window;
++  includedDates: LocalDate[]; // chronological; exact dates used by the score
++  city: {
++    cityId: string;
++    countryId: string;
++    countrySlug: string;
++    citySlug: string;
++    cityName: string;
++    countryName: string;
++    timezone: string;
++    latitude: number;
++    longitude: number;
++  };
++  score: {
++    value: number | null;
++    state: ScoreState;
++    confidence: number | null;
++    reasonCodes: ReasonCode[];
++  };
++  current: {
++    observedAt: IsoInstant;
++    weatherCode: number | null;
++    temperature: number | null;
++    apparentTemperature: number | null;
++    precipitation: number | null;
++    precipitationProbability: number | null;
++    humidity: number | null;
++    windSpeed: number | null;
++    windGust: number | null;
++    uvIndex: number | null;
++    cloudCover: number | null;
++    visibility: number | null;
++  };
++}
++```
++
++`score.value` and `score.confidence` are non-null exactly when `state` is `available` or `limited_data`; both are null when `state` is `unavailable`. `reasonCodes` is present in every state. A missing current raw measurement is represented only by its documented nullable property.
++
++#### Success `data` schema — Daily forecast
++
++```ts
++interface ForecastData extends WeatherIdentity {
++  rankingVersion: null;
++  cityId: string;
++  timezone: string;
++  unit: Unit;
++  requestedDays: number;
++  days: ForecastDay[]; // chronological, unique localDate, length 1..requestedDays
++}
++
++interface ForecastDay {
++  localDate: LocalDate;
++  weatherCode: number | null;
++  temperatureMin: number | null;
++  temperatureMax: number | null;
++  apparentTemperatureMin: number | null;
++  apparentTemperatureMax: number | null;
++  precipitation: number | null;
++  precipitationProbabilityMax: number | null;
++  humidityMean: number | null;
++  windSpeedMax: number | null;
++  windGustMax: number | null;
++  uvIndexMax: number | null;
++  cloudCoverMean: number | null;
++  visibilityMean: number | null;
++  sunriseLocal: OffsetDateTime | null;
++  sunsetLocal: OffsetDateTime | null;
++}
++```
++
++`requestedDays` equals the validated `days` query value. A syntactically valid city with no trustworthy forecast returns `DATA_UNAVAILABLE`, not `days: []`.
++
++#### Success `data` schema — Hourly forecast
++
++```ts
++interface HourlyData extends WeatherIdentity {
++  rankingVersion: null;
++  cityId: string;
++  timezone: string;
++  localDate: LocalDate;
++  unit: Unit;
++  hours: ForecastHour[]; // ascending instant; length >= 1; duplicate DST clock hours retain distinct offsets
++}
++
++interface ForecastHour {
++  localTime: OffsetDateTime;
++  weatherCode: number | null;
++  temperature: number | null;
++  apparentTemperature: number | null;
++  precipitation: number | null;
++  precipitationProbability: number | null;
++  humidity: number | null;
++  windSpeed: number | null;
++  windGust: number | null;
++  uvIndex: number | null;
++  cloudCover: number | null;
++  visibility: number | null;
++}
++```
++
++Every `localTime` carries its actual UTC offset. A resolved city/date with no trustworthy hourly rows returns `DATA_UNAVAILABLE`, not `hours: []`.
++
++#### Success `data` schema — Map
++
++```ts
++interface MapData extends WeatherIdentity {
++  rankingVersion: string;
++  theme: Theme;
++  window: Window;
++  zoom: number;
++  bounds: {
++    // exact canonical bounds represented by canonicalBoundsString
++    west: number;
++    south: number;
++    east: number;
++    north: number;
++  };
++  canonicalBoundsString: string; // west,south,east,north; each fixed to 6 decimals
++  canonicalBoundsHash: string; // base64url SHA-256 identity defined below
++  mapRegionKey: string; // derived as wm:{zoom}:{tileSetHash}
++  tileSetHash: string; // base64url SHA-256 of comma-joined tileIds
++  tileIds: number[]; // unique ascending canonical Web Mercator IDs; length 1..64
++  markers: MapMarker[]; // ascending cityId
++}
++
++interface MapMarker {
++  cityId: string;
++  countrySlug: string;
++  citySlug: string;
++  name: string;
++  latitude: number;
++  longitude: number;
++  score: number | null;
++  scoreState: ScoreState;
++  primaryReasonCode: ReasonCode | null;
++  dataUpdatedAt: IsoInstant;
++  stale: boolean;
++}
++```
++
++These are all marker fields. `score` is null exactly when `scoreState` is `unavailable`; `primaryReasonCode` is the first stable reason code or null when none exists. Each marker applies the same sole stale-age equation to its own `dataUpdatedAt`; top-level `dataUpdatedAt` is the oldest marker/source instant, so top-level stale is true whenever any included source is stale. `bounds`, `canonicalBoundsString`, `canonicalBoundsHash`, `mapRegionKey`, `tileSetHash`, and `tileIds` are the exact canonical identities used by the shared-cache key. Map data contains no forecast-day, forecast-hour, provider DTO, free text reason, or arbitrary property.
++
++#### Success `data` schema — Search
++
++```ts
++interface SearchData extends ContentIdentity {
++  query: string;
++  locale: Locale;
++  items: SearchItem[]; // relevance desc, searchWeight desc, kind asc, id asc; length 0..limit
++}
++
++interface SearchItem {
++  kind: "city" | "country" | "article";
++  id: string;
++  title: string;
++  subtitle: string | null;
++  path: string;
++  countryIso2: string | null;
++}
++```
++
++`query` is the validated trimmed query. `countryIso2` is non-null only for a city result. Search has no cursor in v1.
++
++#### Success `data` schema — Compare
++
++```ts
++interface CompareData extends WeatherIdentity {
++  rankingVersion: null;
++  window: Window;
++  includedDates: LocalDate[]; // chronological intersection used for both cities
++  cities: [CompareCity, CompareCity]; // lexicographic cityId order
++  scoreDifference: number | null;
++  winnerCityId: string | null;
++}
++
++interface CompareCity {
++  cityId: string;
++  countrySlug: string;
++  citySlug: string;
++  name: string;
++  score: number | null;
++  scoreState: ScoreState;
++  confidence: number | null;
++  reasonCodes: ReasonCode[];
++}
++```
++
++`scoreDifference = abs(cities[0].score - cities[1].score)` when both scores are non-null and is null otherwise. `winnerCityId` is the higher-score city ID and is null for a tie or a null score. A disabled or unapproved canonical pair returns `NOT_INDEXABLE`.
++
++#### Success `data` schema — Articles
++
++```ts
++interface ArticlesData extends ContentIdentity {
++  locale: Locale;
++  city: string | null;
++  items: ArticleSummary[]; // publishedAt desc, articleId asc; length 0..20
++  nextCursor: string | null;
++}
++
++interface ArticleSummary {
++  articleId: string;
++  slug: string;
++  title: string;
++  summary: string | null;
++  authorName: string | null;
++  publishedAt: IsoInstant;
++  updatedAt: IsoInstant;
++  citySlugs: string[]; // unique ascending slugs
++}
++```
++
++`city` is the validated city filter or null. `nextCursor` is a server-issued base64url token only when another page exists and is null on the final page. An empty page is valid only when `items` is `[]` and `nextCursor` is null.
++
++The Compare shape remains documented for compatibility, but Compare is a **Beta capability** governed by [PRD-FR-007](01-Product-PRD.md#PRD-FR-007); its presence here does not activate it in the baseline product. The article endpoint likewise does not override its owning Product release record.
++
++The map endpoint returns exactly `MapData` and `MapMarker`; it never returns full hourly arrays. Endpoint handlers never call a weather provider or compute a new score.
++
++Roadmap: [REL-MVP-API_READ_001](11-Roadmap.md#REL-MVP-API_READ_001).
++
++#### Acceptance Criteria
++
++- Contract tests cover every listed method, path, and parameter name under `/api/v1`.
++- Every handler reads through a use case backed by KV/D1 and observes zero weather-provider calls, including cache misses.
++- A map fixture remains compact and contains no hourly forecast array or provider DTO.
++- The Compare endpoint cannot be enabled as a baseline capability merely because its shape exists; availability resolves through its linked Product/Roadmap contract.
++- Unsupported versions or methods return a stable error rather than silently changing the v1 shape.
++
++<!-- requirement
++id: API-ENVELOPE-001
++status: Active
++kind: Hard
++roadmap_ref: REL-MVP-API_ENVELOPE_001
++owner: API
++verification: pnpm docs:check
++-->
++
++<a id="API-ENVELOPE-001"></a>
++
++### API-ENVELOPE-001 — Uniform success and error envelopes
++
++Successful reads return this exact generic envelope, where `data` is one of the nine endpoint schemas in [API-READ-001](#API-READ-001):
++
++```ts
++interface SuccessEnvelope<TData> {
++  data: TData;
++  meta: {
++    requestId: string;
++    generatedAt: IsoInstant;
++    dataUpdatedAt: IsoInstant;
++    stale: boolean;
++    snapshotId: string | null;
++    rankingVersion: string | null;
++    modelVersion: string | null;
++  };
++}
++```
++
++`meta.snapshotId`, `meta.rankingVersion`, and `meta.modelVersion` exactly equal their `data` fields. Content endpoints set all three to null. Weather endpoints set snapshot/model to non-null; Rankings and Map also set ranking to non-null, while City, Forecast, Hourly, and Compare set ranking to null.
++
++Errors return:
++
++```json
++{
++  "error": {
++    "code": "CITY_NOT_FOUND",
++    "message": "City not found",
++    "requestId": "550e8400-e29b-41d4-a716-446655440000"
++  }
++}
++```
++
++The request header is exactly `X-Request-ID`. An inbound value is valid only when the single parsed header value is `8..128` ASCII characters and matches anchored `[A-Za-z0-9_-]+`; it is propagated byte-for-byte with no trimming or case folding. A missing, duplicate/combined, empty, too-short, too-long, or otherwise invalid value is ignored and replaced at the edge by a newly generated RFC 4122 UUIDv4. The chosen value is immutable for the request.
++
++Every `2xx`, `3xx`, `4xx`, and `5xx` response returns that value in the `X-Request-ID` response header. Every success/error body that has a request-ID field uses the same value; bodyless `204`, `304`, redirects, and other bodyless responses still send the header. A CDN cache stores no request-specific ID: the edge overwrites `X-Request-ID` for each request after cache selection. Request ID never participates in an ETag, representation hash, or cache key.
++
++All date/time fields are ISO-8601 strings with explicit UTC offset; date-only parameters are ISO calendar dates interpreted under the endpoint's documented city context. `generatedAt` identifies envelope generation, `dataUpdatedAt` identifies source-data freshness, and `stale` uses only the max-age equation in API-READ-001.
++
++The complete stable v1 error-to-status mapping is:
++
++| Error code           | HTTP status | Exact use                                                                                    |
++| -------------------- | ----------: | -------------------------------------------------------------------------------------------- |
++| `INVALID_PARAMETER`  |         400 | Missing, malformed, duplicate, out-of-range, unsupported, or unknown path/query input        |
++| `COMPARE_SAME_CITY`  |         400 | Normalized `cityA` and `cityB` are identical                                                 |
++| `UNAUTHORIZED`       |         401 | Internal authentication is absent or invalid; include `WWW-Authenticate` where applicable    |
++| `FORBIDDEN`          |         403 | Authenticated principal is not authorized for the operation                                  |
++| `CITY_NOT_FOUND`     |         404 | A syntactically valid city identifier does not resolve                                       |
++| `RESOURCE_NOT_FOUND` |         404 | A syntactically valid non-city resource does not resolve                                     |
++| `NOT_INDEXABLE`      |         404 | A disabled/nonapproved Compare pair or intentionally undisclosed representation is requested |
++| `ENDPOINT_NOT_FOUND` |         404 | The path or API version is unsupported                                                       |
++| `METHOD_NOT_ALLOWED` |         405 | The path exists but the method is not `GET`; include the exact `Allow` header                |
++| `RATE_LIMITED`       |         429 | The applicable rate limit is exceeded; include integer-seconds `Retry-After`                 |
++| `INTERNAL_ERROR`     |         500 | An unhandled server fault occurs                                                             |
++| `DATA_UNAVAILABLE`   |         503 | No trustworthy D1-active or deployed fallback representation is available                    |
++
++Messages may be localized, but code, status, and shape remain stable. Every error response sends `Cache-Control: private, no-store` and no `ETag`, including validation, authentication, authorization, not-found, rate-limit, unavailable, and internal failures. No response exposes SQL, stack traces, credentials, provider bodies, internal paths, or unsanitized exceptions.
++
++Roadmap: [REL-MVP-API_ENVELOPE_001](11-Roadmap.md#REL-MVP-API_ENVELOPE_001).
++
++#### Acceptance Criteria
++
++- Schema tests accept the exact success/error shapes and reject a response containing both `data` and `error`.
++- Header tests propagate each valid `X-Request-ID` boundary value unchanged, replace missing/invalid/multiple values with a syntactically valid UUIDv4, and return the chosen value on every `2xx`/`3xx`/`4xx`/`5xx` path including bodyless `304`.
++- Cache tests prove `X-Request-ID` is applied per request and never stored as representation identity.
++- Date fixtures require ISO-8601 values and distinguish generation time from source update time.
++- Stable code-to-status mappings cover invalid input, missing city, same-city Compare, rate limit, authentication, authorization, unavailable data, and unhandled errors.
++- Redaction tests inject SQL, stack, secret, provider, and path text and prove none appears in a public envelope.
++
++## Validation and internal access
++
++<!-- requirement
++id: API-VALIDATION-001
++status: Active
++kind: Hard
++roadmap_ref: REL-MVP-API_VALIDATION_001
++owner: API
++verification: pnpm docs:check
++-->
++
++<a id="API-VALIDATION-001"></a>
++
++### API-VALIDATION-001 — Bounded normalized input and parameterized access
++
++Every path and query value is parsed by a runtime schema before use. The canonical v1 enum values are:
++
++```text
++locale = en | ja | ko | zh-cn | zh-tw
++unit = metric | imperial
++window = today | tomorrow | weekend | next_week
++theme = general | outdoor | beach | walking | hiking | camping | family |
++        photography | night_view | food_trip | shopping | theme_park | mountain
++region = global | primary | secondary | jp | kr | sg | my | th | vn | id | ph |
++         hk | tw | north_america | europe | australia
++```
++
++Enum input is ASCII-trimmed and case-folded to the listed canonical lower-case value. A slug is `1..80` ASCII characters matching `[a-z0-9]+(?:-[a-z0-9]+)*`. A `cityId` is `1..64` ASCII characters matching `[A-Za-z0-9_-]+`. Integers contain only decimal digits, with no sign, fraction, or exponent.
++
++#### Endpoint parameter contract
++
++| Endpoint                                      | Required and optional input; defaults and exact bounds                                                                                                                                                                                                                                                                                |
++| --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
++| `GET /api/v1/rankings`                        | Required: `theme`, `window`. Optional: `region` default `global`; `limit` integer `1..100` default `20`; `locale` default `en`.                                                                                                                                                                                                       |
++| `GET /api/v1/countries/{countrySlug}`         | `countrySlug` is a slug. No query parameters.                                                                                                                                                                                                                                                                                         |
++| `GET /api/v1/cities/{countrySlug}/{citySlug}` | Both path values are slugs. Optional: `window` default `today`; `unit` default `metric`; `locale` default `en`.                                                                                                                                                                                                                       |
++| `GET /api/v1/cities/{cityId}/forecast`        | `cityId` follows the ID grammar. Optional: `days` integer `1..14` default `7`; `unit` default `metric`.                                                                                                                                                                                                                               |
++| `GET /api/v1/cities/{cityId}/hourly`          | `cityId` follows the ID grammar. Required: `date`, an existing Gregorian date in strict `YYYY-MM-DD` form. Optional: `unit` default `metric`.                                                                                                                                                                                         |
++| `GET /api/v1/map`                             | Required: `theme`, `window`, `bounds`, `zoom`. `bounds` is exactly `west,south,east,north`; each coordinate follows the `boundsDecimal` grammar below, longitude is `-180..180`, latitude is `-85..85`, `west < east`, and `south < north`. `zoom` is integer `2..12`; the canonical box may intersect at most 64 Web Mercator tiles. |
++| `GET /api/v1/search`                          | Required: `q`, trimmed length `2..80` Unicode scalar values. Optional: `locale` default `en`; `limit` integer `1..20` default `10`.                                                                                                                                                                                                   |
++| `GET /api/v1/compare`                         | Required: `cityA`, `cityB`, each following the ID grammar. Optional: `window` default `today`. Identical normalized IDs return `COMPARE_SAME_CITY`; otherwise sort IDs lexicographically and require the canonical pair to be precomputed and approved.                                                                               |
++| `GET /api/v1/articles`                        | Optional: `cursor`, a server-issued base64url token of `1..256` characters matching `[A-Za-z0-9_-]+`; `locale` default `en`; `city`, a slug. Page size is fixed at `20`.                                                                                                                                                              |
++
++These are exhaustive per endpoint. Unknown parameters always return `INVALID_PARAMETER` with HTTP `400`; specifically, any query name not listed for that endpoint, including tracking parameters, is rejected and never ignored. A parameter appearing more than once, bracket/array syntax, an empty supplied value, or more than 20 total query pairs also returns `INVALID_PARAMETER` with HTTP `400`. Validation runs before cache lookup, D1 access, or provider access. Every listed endpoint accepts only `GET`; another method returns `METHOD_NOT_ALLOWED` with HTTP `405` and `Allow: GET`.
++
++Destination slugs and IDs are normalized deterministically. Search matching is case- and accent-insensitive over approved names and aliases only after the `2..80` bound passes. Compare rejects identical cities, normalizes valid pair order, and accepts only approved precomputed pairs where that capability is enabled.
++
++```text
++boundsDecimal = -?(?:0|[1-9]\d*)(?:\.\d{1,6})?
++```
++
++`boundsDecimal` is an anchored ASCII grammar: it has no sign other than the optional leading minus, no exponent, no leading zero before another integer digit, and at most six fractional digits.
++
++Map canonicalization occurs before D1/KV/CDN lookup. Parse each accepted decimal exactly, normalize negative zero to zero, and emit each coordinate with exactly six fractional digits in request order as `canonicalBoundsString = west,south,east,north`. Define `canonicalBoundsHash = base64url(SHA-256(UTF8("v1|" + canonicalBoundsString)))`. Equivalent accepted numeric spellings therefore share one bounds identity.
++
++For zoom `z`, let `n = 2^z`, `x(lon) = n * (lon + 180) / 360`, and `y(lat) = n * (1 - asinh(tan(lat * pi / 180)) / pi) / 2`. Treat the canonical box as `[west,east) × [south,north)`. Intersected tile coordinates are every integer `x` from `floor(x(west))` through `ceil(x(east)) - 1` and every integer `y` from `floor(y(north))` through `ceil(y(south)) - 1`, clamped to `0..n-1`. Encode `tileId = y * n + x`, de-duplicate, and sort ascending; reject zero or more than 64 IDs. Define `tileSetHash = base64url(SHA-256(UTF8(commaSeparatedCanonicalTileIds)))` and derive `mapRegionKey = "wm:" + z + ":" + tileSetHash`. No caller supplies region/tile identity. Payload and cache key carry this same canonical bounds hash, map region key, tile-set hash, and tile IDs.
++
++Every D1 query is parameterized; untrusted values never enter SQL through string interpolation. Invalid inputs return `INVALID_PARAMETER` without a database/provider call. Output serialization encodes untrusted text as data.
++
++Roadmap: [REL-MVP-API_VALIDATION_001](11-Roadmap.md#REL-MVP-API_VALIDATION_001).
++
++#### Acceptance Criteria
++
++- Boundary fixtures cover every endpoint row, every enum, numeric minimum/maximum and immediate neighbor, slug/ID/search/cursor length and grammar, strict date validity, map decimal/order/zoom/64-tile limits, and all defaults.
++- Map fixtures prove equivalent decimal spellings produce one six-decimal bounds string/hash; Web Mercator boundary, clamp, sort, tile hash, and derived region cases produce the exact payload/cache identity.
++- Unknown, duplicate, empty, bracketed, and twenty-first query pairs return `INVALID_PARAMETER` with HTTP `400` before cache, D1, or provider access.
++- Injection payloads in every path and query field reach only parameter bindings and cannot alter SQL structure.
++- Search normalization is deterministic, bounded, case-insensitive, and accent-insensitive over approved aliases.
++- Compare fixtures reject same-city and nonapproved pairs and canonicalize valid reversed pairs deterministically.
++- Method fixtures return `405`, `METHOD_NOT_ALLOWED`, and exactly `Allow: GET` for every documented path.
++
++<!-- requirement
++id: API-INTERNAL-001
++status: Active
++kind: Hard
++roadmap_ref: REL-MVP-API_INTERNAL_001
++owner: API
++verification: pnpm docs:check
++-->
++
++<a id="API-INTERNAL-001"></a>
++
++### API-INTERNAL-001 — Cron binding preference and strongly authenticated internal routes
++
++Sync and maintenance jobs execute through Cloudflare Cron bindings and service bindings rather than public HTTP endpoints. If an operational constraint requires an internal HTTP route, it lives outside the public `/api/v1` namespace and requires all of: independently managed strong credentials, request-body signing, a timestamp and nonce, a short replay window, constant-time signature verification, authorization for the named operation, strict rate limiting, and structured audit logging.
++
++Internal routes are default-deny, never authenticated by obscurity or a client-supplied role, and are not callable from browser bundles. Credentials are deployment secrets and never appear in URLs, logs, errors, or repositories. A request is rejected before work begins when authentication, authorization, timestamp, nonce, or signature validation fails.
++
++Roadmap: [REL-MVP-API_INTERNAL_001](11-Roadmap.md#REL-MVP-API_INTERNAL_001).
++
++#### Acceptance Criteria
++
++- The default sync and maintenance path has no public HTTP dependency and is invocable by its scheduled binding.
++- Missing, malformed, expired, replayed, incorrectly signed, or unauthorized internal requests are rejected before side effects.
++- Signature verification covers method, path, timestamp, nonce, and body digest and uses constant-time comparison.
++- Internal secrets are absent from client bundles, URLs, logs, public errors, and repository fixtures.
++- Audit events identify request/run ID, operation, authenticated principal, decision, and sanitized error code without recording the secret.
++
++## Public cache behavior
++
++<!-- requirement
++id: API-CACHE-001
++status: Active
++kind: Hard
++roadmap_ref: REL-MVP-API_CACHE_001
++owner: API
++verification: pnpm docs:check
++-->
++
++<a id="API-CACHE-001"></a>
++
++### API-CACHE-001 — Immutable internal cores and per-request envelopes
++
++The API has exactly two representation stages with different storage rules:
++
++1. **Worker-owned internal CoreData stage.** `CoreData` is the schema-validated endpoint representation before request-scoped derivation: it contains the complete immutable payload values, authoritative publication/content identity, `dataUpdatedAt`, and, for Map, each marker's `dataUpdatedAt`; it omits every `stale` value and the entire HTTP envelope, including `meta`, `requestId`, and `generatedAt`. Authorized background workers alone publish canonical serialized immutable `CoreData` to identity-bound KV keys under the listed worker-owned TTLs. API request paths may read those bytes but never put, delete, repair, or backfill KV. The ephemeral Cache API is not used for either CoreData or API responses. Internal KV TTL expiry is eviction policy only and never defines weather freshness.
++2. **Per-request HTTP envelope stage.** Every request resolves and schema-parses `CoreData`, dynamically derives all `stale` values from that request's captured `now`, inserts the request's chosen `requestId`, captures `generatedAt` when assembling a non-304 body, and creates the exact `SuccessEnvelope`. Every final HTTP success envelope is `Cache-Control: private, no-store`; a CDN never directly returns it, and no browser cache, shared cache, KV namespace, or Cache API may store or replay it. Errors and bodyless responses use the same no-store policy.
++
++The resolver executes this order for every public read, including a worker-populated KV CoreData hit:
++
++1. Select the immutable request ID under API-ENVELOPE-001 and validate/canonicalize every path and query input before any cache or database lookup.
++2. Capture request `now`. Read authoritative identity from D1: weather reads join the active pointer/snapshot and current publication fencing-token high-water mark; content reads resolve the authoritative `contentHash`/`contentVersion`. A KV manifest remains only a hint and cannot select identity.
++3. Derive the endpoint's internal key only from that D1 identity and canonical parameters. Fetch at most that key, schema-parse the bytes as `CoreData`, and verify its embedded identity and key fields exactly against D1. A parse, schema, checksum, identity, or fencing mismatch is a miss and cannot be served. On a miss, read only D1-active/content-authoritative rows and construct and parse the same `CoreData` schema for this request. Do not write KV, invoke Cache API, enqueue a request-path repair, or backfill any cache; continue serving D1-authoritative data on subsequent misses until an authorized worker repairs or republishes the immutable KV CoreData.
++4. Compute the validator only from canonical `CoreData` plus the verified immutable identity. Evaluate `If-None-Match` only after step 3 has resolved and parsed the core. A match returns a bodyless `304` with that validator, `Cache-Control: private, no-store`, `Vary: Accept-Encoding`, and the current request's `X-Request-ID`; it does not reuse the ID from any prior request. A non-match proceeds to step 5.
++5. Calculate top-level and nested `stale` fields solely by `now - dataUpdatedAt > WEATHER_DATA_MAX_AGE_MINUTES * 60 seconds`; equality is fresh. Then insert those booleans into the wire `data`, copy identity/freshness into `meta`, set this request's `requestId`, capture body `generatedAt`, and serialize the envelope. Cache source, core age, TTL, publication state, and fallback path never alter `stale`.
++
++For weather endpoints, `identity` is the exact object `{ snapshotId, rankingVersion, modelVersion }`, where `rankingVersion` is null except for Rankings and Map. For content endpoints it is `{ contentHash, contentVersion }`. The weak validator algorithm is exact:
++
++```text
++coreHash = base64url(SHA-256(canonicalJson({ identity, coreData })))
++ETag = 'W/"v1.' + coreHash + '"'
++```
++
++Canonical JSON recursively sorts object keys and preserves array order. `coreData` is exactly the parsed internal object, before injecting any `stale` property. The hash never includes `requestId`, `generatedAt`, or any `stale` value. Although `dataUpdatedAt` is part of immutable `CoreData`, no separately recomputed freshness field enters the hash. Search intentionally has no validator or worker-populated internal KV CoreData because its normalized query cardinality is user-driven.
++
++#### Endpoint internal-core and final-response contract
++
++Worker-owned internal KV `CoreData` TTL values below are seconds. `0 (disabled)` means workers publish no endpoint CoreData key and the API performs no internal KV lookup. All listed success responses also send the request's `X-Request-ID`; rows with an ETag send `Vary: Accept-Encoding`. The final HTTP column applies equally when dynamically calculated `stale` is true or false—there is no stale response-cache override.
++
++| Endpoint/result                                  | Worker-owned KV `CoreData` TTL | Worker-populated immutable KV `CoreData` key                                                                                                                           | Response validator | Final HTTP `Cache-Control` |
++| ------------------------------------------------ | -----------------------------: | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------ | -------------------------- |
++| `/rankings` success                              |                           3600 | `core:v1:rankings:{snapshotId}:{rankingVersion}:{modelVersion}:{theme}:{window}:{region}:{limit}:{locale}`                                                             | Core weak `ETag`   | `private, no-store`        |
++| `/countries/{countrySlug}` success               |                        2592000 | `core:v1:country:{contentHash}:{contentVersion}:{countrySlug}:en`                                                                                                      | Core weak `ETag`   | `private, no-store`        |
++| `/cities/{countrySlug}/{citySlug}` success       |                           3600 | `core:v1:summary:{snapshotId}:{modelVersion}:{countrySlug}:{citySlug}:{window}:{unit}:{locale}`                                                                        | Core weak `ETag`   | `private, no-store`        |
++| `/cities/{cityId}/forecast` success              |                           3600 | `core:v1:forecast:{snapshotId}:{modelVersion}:{cityId}:{days}:{unit}`                                                                                                  | Core weak `ETag`   | `private, no-store`        |
++| `/cities/{cityId}/hourly` success                |                           3600 | `core:v1:hourly:{snapshotId}:{modelVersion}:{cityId}:{date}:{unit}`                                                                                                    | Core weak `ETag`   | `private, no-store`        |
++| `/map` success                                   |                           3600 | `core:v1:map:{snapshotId}:{rankingVersion}:{modelVersion}:{theme}:{window}:{zoom}:{mapRegionKey}:{canonicalBoundsHash}:{tileSetHash}:{commaSeparatedCanonicalTileIds}` | Core weak `ETag`   | `private, no-store`        |
++| `/search` success                                |                   0 (disabled) | None                                                                                                                                                                   | No `ETag`          | `private, no-store`        |
++| `/compare` approved-pair success                 |                           3600 | `core:v1:compare:{snapshotId}:{modelVersion}:{lexicographicCityA}:{lexicographicCityB}:{window}`                                                                       | Core weak `ETag`   | `private, no-store`        |
++| `/articles` success                              |                          86400 | `core:v1:articles:{contentHash}:{contentVersion}:{cursorOrFirst}:{locale}:{cityOrAll}`                                                                                 | Core weak `ETag`   | `private, no-store`        |
++| Internal/authenticated/preview/personalized read |                   0 (disabled) | None                                                                                                                                                                   | No `ETag`          | `private, no-store`        |
++| Any error status                                 |                   0 (disabled) | None                                                                                                                                                                   | No `ETag`          | `private, no-store`        |
++
++`cursorOrFirst` is `first` when absent and otherwise the validated server-issued cursor; `cityOrAll` is `all` when absent. Map identity fields are derived by API-VALIDATION-001 and copied unchanged into `CoreData` and its key. Locale is explicit in each applicable key and is never inferred from `Accept-Language`. Equivalent canonical requests may reuse immutable internal core bytes, but their final envelopes independently recalculate freshness and have different request IDs and generation times. CORS uses an explicit allowed-origin and method policy and is never `*` for credentialed requests. Worker-owned KV TTLs cannot exceed [ARCH-CACHE-001](05-System-Architecture.md#ARCH-CACHE-001) or [ARCH-RENDER-001](05-System-Architecture.md#ARCH-RENDER-001).
++
++Roadmap: [REL-MVP-API_CACHE_001](11-Roadmap.md#REL-MVP-API_CACHE_001).
++
++#### Acceptance Criteria
++
++- Worker-publication storage spies prove authorized worker KV writes contain only schema-valid immutable `CoreData`, never `meta`, an envelope, response headers, `requestId`, `generatedAt`, or any `stale` property. API request spies prove zero storage mutations and zero ephemeral Cache API operations on hits and misses.
++- CDN routing tests prove every `/api/v1` request reaches the application handler and no final envelope is served as a direct CDN hit.
++- Every-request tests prove authoritative D1 identity is read before deriving an internal key, worker-populated bytes are parsed and identity-checked before use, and candidate/caller identities or mismatched manifests/cores cannot enter a key or response. Miss fixtures read only D1-active/content-authoritative rows, perform no backfill or repair side effect, and continue to use D1 until worker publication is repaired.
++- Boundary-clock tests reuse one core before, at, and after the max-age threshold: equality is fresh, only the later request is stale, and the internal bytes/key/ETag remain unchanged while request IDs and non-304 `generatedAt` values are assembled per request.
++- Validator fixtures assert the exact canonical `{ identity, coreData }` hash and prove changing any immutable core/identity value changes the ETag while changing `requestId`, `generatedAt`, request time, or a derived `stale` value does not.
++- Conditional-request tests prove `If-None-Match` is evaluated only after D1 identity validation and successful core parsing; a match returns bodyless `304` with `private, no-store`, the matching ETag, `Vary: Accept-Encoding`, and that request's current `X-Request-ID`.
++- Per-endpoint contract fixtures assert every listed worker-owned KV TTL, exact canonical core key, validator choice, and final response header; every final success envelope, bodyless `304`, internal/authenticated/preview/personalized response, and error is `private, no-store` and no final envelope enters shared storage.
++- Equivalent valid requests produce the exact listed internal key regardless of parameter order or accepted enum case; unknown/tracking and duplicate parameters return `400` before D1/internal-KV access and produce no key.
++- Map core/key fixtures assert byte-identical `canonicalBoundsHash`, `mapRegionKey`, `tileSetHash`, and ordered tile-ID identity.
++- CORS tests allow only configured origins/methods/headers and reject wildcard credentialed access.
++- Cache poisoning tests cover duplicate parameters, encoded delimiters, host/origin variance, unknown fields, malformed cursors, map tile amplification, and arbitrary search/Compare amplification.
+
+## NEW FILE: docs/08-Cloudflare-Deployment.md
+--- /dev/null	2026-07-13 18:58:14.987676037 +0800
++++ docs/08-Cloudflare-Deployment.md	2026-07-17 19:31:40.212291871 +0800
+@@ -0,0 +1,182 @@
++---
++title: Cloudflare Deployment
++authority: Deployment
++status: Draft
++last_updated: 2026-07-17
++---
++
++# Cloudflare Deployment
++
++> **Draft / Non-authoritative.** `SPEC.md` remains authoritative until the controlled documentation cutover. This document owns Cloudflare environments, configuration delivery, CI/CD, migrations during deployment, smoke checks, and rollback. It performs no actual provider, analytics, database, or infrastructure integration.
++
++## Platform boundary
++
++<!-- requirement
++id: DEP-FREE-001
++status: Active
++kind: Hard
++roadmap_ref: REL-MVP-DEP_FREE_001
++owner: Deployment
++verification: pnpm docs:check
++-->
++
++<a id="DEP-FREE-001"></a>
++
++### DEP-FREE-001 — Cloudflare-only free-plan-compatible core
++
++Core runtime infrastructure is Cloudflare-only: Pages/Workers runtime and CDN, D1, KV, Cron Triggers, and Cloudflare Web Analytics, with R2 bound only when an approved need exists. Weather ingestion uses bounded batches and the smallest required binding set. The core remains operable when optional commercial and external analytics integrations are absent.
++
++GA4 and Plausible are disabled-by-default, fully removable external adapters; they are not core infrastructure and their optional existence does not weaken the Cloudflare-only core rule. No documentation change here activates either adapter.
++
++Before each implementation phase and before production release, the owner reviews Cloudflare's **current** free-plan quotas, current official product availability, and expected request, CPU, D1, KV, Cron, bandwidth, and storage usage. Evidence records the review date, official source, measured/estimated usage, safety margin, and mitigation. Numeric quotas are not treated as permanent facts in code or this contract.
++
++Roadmap: [REL-MVP-DEP_FREE_001](11-Roadmap.md#REL-MVP-DEP_FREE_001).
++
++#### Acceptance Criteria
++
++- A deployment inventory shows that every core runtime, database, cache, schedule, and default analytics dependency is Cloudflare-hosted and free-plan compatible.
++- Removing GA4, Plausible, Affiliate, advertising, and R2 leaves core weather ingestion and reads operable.
++- A dated current-quota review covers all enabled Cloudflare products, expected usage, safety margin, and a no-cost mitigation for each identified risk.
++- CI rejects a fixed quota assumption presented as permanent configuration without current official evidence.
++- Load and batch-size evidence stays within the reviewed free-plan envelope before production approval.
++
++<!-- requirement
++id: DEP-PAGES-001
++status: Active
++kind: Hard
++roadmap_ref: REL-MVP-DEP_PAGES_001
++owner: Deployment
++verification: pnpm docs:check
++-->
++
++<a id="DEP-PAGES-001"></a>
++
++### DEP-PAGES-001 — Pages-first with controlled Workers fallback
++
++Cloudflare Pages is the preferred deployment path, using the current official Cloudflare-supported Next.js adapter. A preview environment must prove App Router routes, Server Components, SSG, SSR, ISR/revalidation, route handlers, D1/KV bindings, scheduled jobs, static assets, and rollback behavior before production promotion.
++
++If Pages is incompatible with a required capability, the team may switch to the current official Cloudflare Workers deployment target only after all three gates pass: reproducible compatibility evidence demonstrates the Pages blocker, an Accepted ADR records alternatives and consequences, and Product Owner approval confirms the change. The fallback must preserve the Cloudflare-only free-plan-compatible core and all route behavior; adapter preference alone is not sufficient evidence.
++
++Roadmap: [REL-MVP-DEP_PAGES_001](11-Roadmap.md#REL-MVP-DEP_PAGES_001).
++
++#### Acceptance Criteria
++
++- Preview evidence exercises App Router, Server Components, SSG, SSR, ISR/invalidation, API routes, D1, KV, Cron/service bindings, and static assets on Pages.
++- Production cannot promote an adapter/runtime combination that failed any required preview compatibility check.
++- A switch to Workers is blocked unless compatibility evidence, an Accepted ADR, and explicit Product Owner approval all exist.
++- The Workers fallback remains on Cloudflare and passes the same free-plan, behavior, smoke, and rollback checks.
++- Deployment documentation identifies the active target and adapter version without claiming unsupported compatibility.
++
++## Configuration
++
++<!-- requirement
++id: DEP-CONFIG-001
++status: Active
++kind: Hard
++roadmap_ref: REL-MVP-DEP_CONFIG_001
++owner: Deployment
++verification: pnpm docs:check
++-->
++
++<a id="DEP-CONFIG-001"></a>
++
++### DEP-CONFIG-001 — Exact typed configuration and secret handling
++
++The runtime configuration vocabulary is exactly:
++
++```text
++APP_ENV
++APP_BASE_URL
++DEFAULT_LOCALE
++SUPPORTED_LOCALES
++WEATHER_PRIMARY_PROVIDER
++WEATHER_FALLBACK_PROVIDER
++WEATHERAPI_SECRET          # secret; optional until the adapter is enabled
++WEATHER_DATA_MAX_AGE_MINUTES
++AFFILIATE_*_ENABLED
++AFFILIATE_*_ID             # secret or config according to provider classification
++ADS_ENABLED
++ADMIN_ENABLED
++CLOUDFLARE_ANALYTICS_ENABLED
++GA4_ENABLED
++PLAUSIBLE_ENABLED
++```
++
++A typed runtime schema parses every configured value. Production fails fast before serving traffic when a required value is missing, malformed, internally inconsistent, or enables an adapter without its required secret/binding. Development provides `.env.example` with names and safe placeholders only; real credentials use Cloudflare Secrets and environment-scoped bindings.
++
++Secrets never enter source control, build output, client bundles, public environment variables, URLs, logs, analytics, error pages, preview artifacts, or test snapshots. Preview and production use separate bindings and secrets. Disabled optional adapters require no secret and are omitted from browser/runtime integration paths.
++
++Roadmap: [REL-MVP-DEP_CONFIG_001](11-Roadmap.md#REL-MVP-DEP_CONFIG_001).
++
++#### Acceptance Criteria
++
++- Schema tests cover every exact name, valid value, invalid value, missing required value, and enablement/secret dependency.
++- Production startup fails before traffic on invalid configuration, while disabled optional adapters require no credential.
++- `.env.example` contains all applicable names and no real secret; secret scanning finds none in source, build, logs, bundles, artifacts, or snapshots.
++- Preview and production binding inventories are isolated and cannot resolve one another's secrets or data stores.
++- Unknown configuration names do not implicitly enable capabilities, and all `*_ENABLED` defaults are safe.
++
++## Delivery pipeline
++
++<!-- requirement
++id: DEP-CICD-001
++status: Active
++kind: Hard
++roadmap_ref: REL-MVP-DEP_CICD_001
++owner: Deployment
++verification: pnpm docs:check
++-->
++
++<a id="DEP-CICD-001"></a>
++
++### DEP-CICD-001 — Verified preview, migrations, Cron, and production promotion
++
++The delivery pipeline installs with the locked package manager, then runs format checking, lint/import boundaries, type checking, unit/integration tests, the documentation gate, production build, security/secret checks, and the separately owned performance/SEO/accessibility gates. It creates an immutable preview artifact before any production change.
++
++Database migrations are explicit, ordered deployment steps: validate and apply to preview, run migration/repository checks and smoke tests, then apply the reviewed production migration before traffic promotion. Application startup never performs destructive auto-migration. A migration failure stops promotion.
++
++Preview smoke checks cover homepage, country, city, ranking, search shell, `/explore` shell/map read model, public v1 success/error envelopes, KV hit and D1 fallback, stale behavior, unavailable behavior, static assets, security headers, no provider call on user reads, and scheduled weather/maintenance bindings without triggering an unapproved live integration. Production smoke checks repeat representative public reads, binding health, active snapshot/read-model freshness, error redaction, Cron registration, and previous-version availability immediately after promotion.
++
++Cron configuration registers the hourly weather sync and the approved maintenance schedule with environment separation and overlap protection. Smoke tests use fixtures or approved non-mutating checks unless a separately approved deployment explicitly authorizes live provider/database effects.
++
++Roadmap: [REL-MVP-DEP_CICD_001](11-Roadmap.md#REL-MVP-DEP_CICD_001).
++
++#### Acceptance Criteria
++
++- Every required static/test/build/security/document gate passes on the immutable artifact before preview deployment.
++- Preview migrations and migration tests pass before production migration; any failure stops promotion without traffic switch.
++- Preview and production smoke suites cover the listed routes, envelopes, cache/fallback/stale behavior, bindings, headers, redaction, and provider-call prohibition.
++- Scheduled bindings are present only in their intended environment, use the approved schedules, and cannot overlap an active run.
++- Production promotion reuses the verified artifact rather than rebuilding different code.
++- Pipeline evidence records command, exit status, artifact identity, environment, migration version, smoke result, and approval without exposing secrets.
++
++## Rollback
++
++<!-- requirement
++id: DEP-ROLLBACK-001
++status: Active
++kind: Hard
++roadmap_ref: REL-MVP-DEP_ROLLBACK_001
++owner: Deployment
++verification: pnpm docs:check
++-->
++
++<a id="DEP-ROLLBACK-001"></a>
++
++### DEP-ROLLBACK-001 — Application, configuration, data, and Cron rollback
++
++Every production promotion retains the previous known-good application artifact, configuration version, binding inventory, Cron configuration, migration version, active snapshot pointer, and cache/read-model version. Rollback restores the previous compatible application and configuration without rebuilding, disables a faulty new schedule or optional integration, and preserves the last active snapshot and last-known-good read models.
++
++Migrations are additive and backward-compatible through the rollback window. A failed release does not automatically reverse a data migration destructively; the previous application must operate against the migrated schema until a separately reviewed corrective migration is applied. Cache-version changes retain the previous readable prefix through that window.
++
++Rollback triggers include failed production smoke, binding or Cron failure, elevated error/unavailable rates, corrupt or missing active data, security regression, or an attributable performance/SEO gate failure. After rollback, the owner repeats production smoke checks, verifies active data and schedule state, records impact and evidence, and opens a decision log. A new architectural decision creates or updates an ADR; otherwise the record states `ADR: none — no new architectural decision`.
++
++Roadmap: [REL-MVP-DEP_ROLLBACK_001](11-Roadmap.md#REL-MVP-DEP_ROLLBACK_001).
++
++#### Acceptance Criteria
++
++- A rehearsal restores the previous immutable artifact and configuration without a rebuild and passes the production smoke suite.
++- The previous application remains compatible with the current schema and previous cache prefix throughout the declared rollback window.
++- Rollback preserves the active and last-known-good snapshots and does not publish a pending/failed candidate.
++- Faulty Cron and optional integrations can be disabled independently without deleting core data or credentials.
++- The rollback record includes trigger, artifact/config/migration versions, timing, user impact, smoke evidence, known limitations, next step, and the required ADR statement.

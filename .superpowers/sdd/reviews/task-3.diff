@@ -1,0 +1,459 @@
+# Task 3 filesystem review package
+
+
+## NEW FILE: docs/README.md
+--- /dev/null	2026-07-13 18:58:14.987676037 +0800
++++ docs/README.md	2026-07-17 19:08:30.402831582 +0800
+@@ -0,0 +1,118 @@
++---
++title: Documentation Governance
++authority: Governance
++status: Draft
++last_updated: 2026-07-17
++---
++
++# Documentation Governance
++
++> **Draft / Non-authoritative.** During migration, `SPEC.md` remains the sole implementation authority. Do not start or change product implementation from this document or any other Draft authority document.
++
++## Reading order
++
++During staging, read `SPEC.md` first and treat the Draft set only as migration material. After a successful controlled cutover, use this order:
++
++1. `docs/README.md` for governance, ownership, and conflict rules.
++2. `docs/00-Founder-Vision.md` for identity, market, value, and commercial direction.
++3. `docs/01-Product-PRD.md`, `docs/02-UX-Bible.md`, and `docs/03-SEO-Bible.md` for product and experience contracts.
++4. `docs/04-AI-Coding-Bible.md`, `docs/05-System-Architecture.md`, `docs/06-Database.md`, `docs/07-API-Spec.md`, `docs/08-Cloudflare-Deployment.md`, `docs/09-Engineering-Handbook.md`, and `docs/10-Growth-Bible.md` for delivery and domain contracts.
++5. `docs/11-Roadmap.md` for first release and lifecycle assignments.
++6. `docs/12-ADR/` for accepted architectural decisions and `docs/13-Requirements-Traceability.md` for source audit evidence.
++7. `.kiro/specs/where-not-rain/` only as derived implementation material; it never overrides an authority document.
++
++## Unique authority owners
++
++Each decision has exactly one owning document. Other documents may cite a Requirement ID but must not restate or redefine its normative contract.
++
++| Decision domain                                                         | Unique owner                           |
++| ----------------------------------------------------------------------- | -------------------------------------- |
++| Documentation governance and conflict protocol                          | `docs/README.md`                       |
++| Product vision, market, and revenue-model narrative                     | `docs/00-Founder-Vision.md`            |
++| Functional scope and product acceptance                                 | `docs/01-Product-PRD.md`               |
++| UX, design system, states, accessibility, and locale UX                 | `docs/02-UX-Bible.md`                  |
++| SEO, content, indexability, and quality gates                           | `docs/03-SEO-Bible.md`                 |
++| Coding-agent conduct, delivery protocol, and Definition of Done         | `docs/04-AI-Coding-Bible.md`           |
++| Architecture, data flow, rendering, caching, and recovery               | `docs/05-System-Architecture.md`       |
++| Data models, scoring, indexes, migrations, and retention                | `docs/06-Database.md`                  |
++| API requests, responses, validation, authentication, and rate contracts | `docs/07-API-Spec.md`                  |
++| Cloudflare environments, deployment, CI/CD, and rollback                | `docs/08-Cloudflare-Deployment.md`     |
++| Testing, performance, security, privacy, observability, and reliability | `docs/09-Engineering-Handbook.md`      |
++| Analytics, Affiliate, advertising, providers, and experiments           | `docs/10-Growth-Bible.md`              |
++| `first_release`, `lifecycle`, release order, and phase gates            | `docs/11-Roadmap.md`                   |
++| Accepted architecture exceptions                                        | `docs/12-ADR/`                         |
++| Historical-source classification and audit mappings                     | `docs/13-Requirements-Traceability.md` |
++
++## Requirement contract format
++
++Requirement IDs are stable and must not be reused. Every Active Hard requirement has a matching explicit HTML anchor, acceptance criteria, exactly one deterministic `roadmap_ref`, and an inline link to that Roadmap anchor. Domain metadata stores no release or lifecycle value.
++
++The following is an example only; its fence is required so it is not parsed as a real contract:
++
++```markdown
++<!-- requirement
++id: ENG-PERF-001
++status: Active
++kind: Hard
++roadmap_ref: REL-MVP-ENG_PERF_001
++owner: Engineering
++verification: pnpm docs:check
++-->
++
++<a id="ENG-PERF-001"></a>
++
++### ENG-PERF-001 — Performance release gate
++
++Roadmap: [REL-MVP-ENG_PERF_001](11-Roadmap.md#REL-MVP-ENG_PERF_001).
++
++#### Acceptance Criteria
++
++- The documented gate passes.
++```
++
++Metadata keys are exactly `id`, `status`, `kind`, `roadmap_ref`, `owner`, and `verification`. Requirement status is `Active`, `Deprecated`, or `Superseded`; kind is `Hard` or `Guidance`. A released ID remains present when deprecated or superseded.
++
++## Release registry format
++
++`docs/11-Roadmap.md` is the only location that stores `first_release` and `lifecycle`. Each Active Hard requirement has exactly one single-line JSON comment, a deterministic ID of `REL-${first_release}-${requirement_id.replaceAll("-", "_")}`, an explicit matching anchor, and one equivalent human-readable table row.
++
++The following fenced record is an example only:
++
++```markdown
++<!-- release: {"first_release":"MVP","id":"REL-MVP-ENG_PERF_001","lifecycle":"Continuous","requirement_id":"ENG-PERF-001"} -->
++```
++
++Allowed first releases are `MVP`, `Beta`, `V1`, and `V2`; allowed lifecycles are `Launch` and `Continuous`. Release order is MVP, then Beta, then V1, then V2.
++
++## Trace record format
++
++`docs/13-Requirements-Traceability.md` stores immutable source mappings. Release values are not repeated there; they resolve through each requirement's `roadmap_ref`.
++
++The following fenced record is an example only:
++
++```markdown
++<!-- trace: {"classification":"Hard","coverage":"Covered","line_end":691,"line_start":675,"rationale":"Direct migration","requirement_id":"ENG-PERF-001","source_excerpt":"# PERFORMANCE","source_sha256":"70e692e5dd1dee3ae167c9b95d7014bc521ec194a6cc14989a88c382c453924d"} -->
++```
++
++A trace record contains exactly `classification`, `coverage`, `line_end`, `line_start`, `rationale`, `requirement_id`, `source_excerpt`, and `source_sha256`. Changed or Rejected source material requires dated Product Owner approval and a non-empty rationale. Cutover is blocked while any record is marked Needs Decision.
++
++## Draft and cutover protocol
++
++1. New authority documents remain `status: Draft` and are non-authoritative while `SPEC.md` remains the sole implementation authority.
++2. Draft content may migrate existing contracts for review, but no developer or agent may use the staging worktree to begin product implementation.
++3. Staging validation must establish complete requirements, releases, traceability, links, and derived Kiro coverage before authority status changes.
++4. Cutover is one controlled logical batch: activate the complete authority set, replace `SPEC.md` with its governance index, refresh Kiro-derived files and the root README, then run active validation and regression checks.
++5. If any cutover check fails, restore the old `SPEC.md` authority marker and keep the new documents Draft; a partially activated set is never authoritative.
++6. After successful cutover, `weather.txt` is immutable historical input for audit and traceability, not an implementation authority.
++
++## Conflict resolution
++
++1. Identify the owner in the unique authority table; that owner's Requirement block controls the domain decision.
++2. Resolve release timing and lifecycle only through the requirement's `roadmap_ref` in `docs/11-Roadmap.md`.
++3. A Kiro-derived file, index, trace record, or non-owning domain document cannot override the owner.
++4. An Accepted ADR can supersede a contract only under the policy in `docs/12-ADR/README.md`; the authority document must change in the same cutover.
++5. If ownership is ambiguous or source intent cannot be proven, stop implementation, record the issue as Needs Decision, and request Product Owner resolution. Never silently delete, weaken, strengthen, or duplicate a contract.
++
++## Validation
++
++Use `pnpm docs:test` for parser and validator tests. Use `node tooling/docs/validate-docs.mjs --mode staging` during migration and `pnpm docs:check` only after the controlled activation batch. Validation evidence, known limitations, and the phase decision log must be recorded before a phase is declared complete.
+
+## NEW FILE: docs/00-Founder-Vision.md
+--- /dev/null	2026-07-13 18:58:14.987676037 +0800
++++ docs/00-Founder-Vision.md	2026-07-17 19:08:30.450920958 +0800
+@@ -0,0 +1,162 @@
++---
++title: Founder Vision
++authority: Vision
++status: Draft
++last_updated: 2026-07-17
++---
++
++# Founder Vision
++
++> **Draft / Non-authoritative.** `SPEC.md` remains authoritative until the controlled documentation cutover. This document defines direction, not implementation scope or release timing.
++
++## Product identity and position
++
++<!-- requirement
++id: VISION-POSITION-001
++status: Active
++kind: Hard
++roadmap_ref: REL-MVP-VISION_POSITION_001
++owner: Vision
++verification: pnpm docs:check
++-->
++
++<a id="VISION-POSITION-001"></a>
++
++### VISION-POSITION-001 — Travel Decision Engine positioning
++
++The product name is **Where Not Rain**, its slogan is **“Find Sunshine. Plan Better.”**, and its category is a weather-driven travel discovery platform. It is a **Travel Decision Engine**, not a traditional city-by-city weather lookup site: the experience helps travelers discover where conditions are best and move from discovery through an informed travel decision.
++
++Roadmap: [REL-MVP-VISION_POSITION_001](11-Roadmap.md#REL-MVP-VISION_POSITION_001).
++
++#### Acceptance Criteria
++
++- Public product identity uses Where Not Rain and “Find Sunshine. Plan Better.” unless an approved brand decision changes both the owning authority and affected product surfaces.
++- Product descriptions distinguish destination decision support from a conventional weather lookup site.
++- Claims about AI, weather, price, availability, or recommendation provenance are accurate and do not imply capabilities or evidence the product does not have.
++
++## Market
++
++<!-- requirement
++id: VISION-MARKET-001
++status: Active
++kind: Hard
++roadmap_ref: REL-MVP-VISION_MARKET_001
++owner: Vision
++verification: pnpm docs:check
++-->
++
++<a id="VISION-MARKET-001"></a>
++
++### VISION-MARKET-001 — Priority travel markets
++
++Primary markets are Japan, South Korea, Singapore, Malaysia, Thailand, Vietnam, Indonesia, the Philippines, Hong Kong, and Taiwan. Secondary expansion regions are North America, Europe, and Australia. Product discovery, localization, destination coverage, and commercial evaluation must respect this ordering unless the Vision authority records an approved market change.
++
++Roadmap: [REL-MVP-VISION_MARKET_001](11-Roadmap.md#REL-MVP-VISION_MARKET_001).
++
++#### Acceptance Criteria
++
++- Strategy and planning materials preserve all ten named primary markets and the three secondary expansion regions.
++- Market prioritization is visible when deciding localization, destination coverage, content, and partner evaluation.
++- A market-order change is documented in this authority rather than inferred from a one-off implementation decision.
++
++## User value
++
++<!-- requirement
++id: VISION-VALUE-001
++status: Active
++kind: Hard
++roadmap_ref: REL-MVP-VISION_VALUE_001
++owner: Vision
++verification: pnpm docs:check
++-->
++
++<a id="VISION-VALUE-001"></a>
++
++### VISION-VALUE-001 — Fast, explainable destination decisions
++
++Where Not Rain helps a traveler answer: Where should I travel this weekend? Where is sunny? Which city has the best outdoor weather? Where should I avoid? The target journey replaces repeated city searches with regional discovery, comparable and explainable destination signals, a confident selection, and optional travel booking or activity steps.
++
++Roadmap: [REL-MVP-VISION_VALUE_001](11-Roadmap.md#REL-MVP-VISION_VALUE_001).
++
++#### Acceptance Criteria
++
++- The core journey supports discovering multiple destinations before requiring a city choice.
++- Recommendations expose enough weather suitability and risk reasoning for a user to understand the decision.
++- Product proposals are rejected when they add complexity without improving a documented user decision or business priority.
++
++## Success priorities
++
++<!-- requirement
++id: VISION-METRICS-001
++status: Active
++kind: Hard
++roadmap_ref: REL-MVP-VISION_METRICS_001
++owner: Vision
++verification: pnpm docs:check
++-->
++
++<a id="VISION-METRICS-001"></a>
++
++### VISION-METRICS-001 — Measurable product outcomes
++
++Every feature must improve at least one of the founder priorities: **SEO, conversion, retention, revenue, or performance**. Decision efficiency and content quality are supporting measures. The product establishes baselines before interpreting change and reviews trends rather than presenting unsupported success claims.
++
++Roadmap: [REL-MVP-VISION_METRICS_001](11-Roadmap.md#REL-MVP-VISION_METRICS_001).
++
++#### Acceptance Criteria
++
++- Each feature proposal names at least one primary priority and an observable measure before implementation.
++- The measurement set covers decision efficiency, SEO, retention, conversion, content engagement, revenue where applicable, and web performance.
++- Reviews distinguish an established baseline from a target and do not fabricate prices, discounts, reviews, traffic, conversion, or recommendation evidence.
++
++## Commercial evolution
++
++<!-- requirement
++id: VISION-BUSINESS-001
++status: Active
++kind: Hard
++roadmap_ref: REL-MVP-VISION_BUSINESS_001
++owner: Vision
++verification: pnpm docs:check
++-->
++
++<a id="VISION-BUSINESS-001"></a>
++
++### VISION-BUSINESS-001 — Revenue-model narrative
++
++Commercial evolution follows three narrative stages. First, establish useful audience discovery with privacy-conscious analytics and carefully controlled advertising. Next, add relevant transaction partnerships across lodging, activities, transport, connectivity, and travel protection when contractual, regional, disclosure, privacy, security, and performance checks pass. Later, evaluate paid decision-support products such as longer-horizon trends and assisted planning when evidence supports user value.
++
++These stages describe revenue-model maturity only. They do not assign a product feature to a release, promise any provider integration, or authorize unsupported data claims; feature timing is owned solely by the Roadmap.
++
++Roadmap: [REL-MVP-VISION_BUSINESS_001](11-Roadmap.md#REL-MVP-VISION_BUSINESS_001).
++
++#### Acceptance Criteria
++
++- Commercial surfaces remain subordinate to a useful and trustworthy travel-decision journey.
++- A provider or premium concept is not treated as launched merely because it appears in this narrative.
++- Any enabled commercial capability has explicit disclosure, lawful and authorized data, privacy review, performance controls, and a safe disable path in its owning domain contract.
++
++## Cost and scale
++
++<!-- requirement
++id: VISION-COST-001
++status: Active
++kind: Hard
++roadmap_ref: REL-MVP-VISION_COST_001
++owner: Vision
++verification: pnpm docs:check
++-->
++
++<a id="VISION-COST-001"></a>
++
++### VISION-COST-001 — Sustainable low-cost operation
++
++Architecture and product choices prioritize scalability, low operating cost, mobile-first delivery, and compatibility with the Cloudflare Free plan. Free-plan compatibility is a design constraint, not permission to hard-code temporary quotas or compromise correctness, security, privacy, accessibility, or transparent degraded behavior.
++
++Roadmap: [REL-MVP-VISION_COST_001](11-Roadmap.md#REL-MVP-VISION_COST_001).
++
++#### Acceptance Criteria
++
++- Proposed capabilities include a current cost and Cloudflare Free-plan compatibility check in the owning technical authority.
++- Current provider quotas are revalidated before deployment and are not represented as permanent guarantees.
++- When a capability cannot operate safely within the approved constraints, it is disabled or degraded transparently rather than shifted into an unbounded user-request dependency.
+
+## NEW FILE: docs/11-Roadmap.md
+--- /dev/null	2026-07-13 18:58:14.987676037 +0800
++++ docs/11-Roadmap.md	2026-07-17 19:08:30.527062469 +0800
+@@ -0,0 +1,109 @@
++---
++title: Roadmap
++authority: Release
++status: Draft
++last_updated: 2026-07-17
++---
++
++# Roadmap
++
++> **Draft / Non-authoritative.** `SPEC.md` remains authoritative until the controlled documentation cutover. This registry is prepared for all Active Hard requirements planned in Tasks 3–6, including requirements whose Draft domain documents will be created in later tasks.
++
++## Release policy
++
++This document is the sole owner of `first_release` and `lifecycle`. Every Active Hard requirement has exactly one deterministic release ID: `REL-${first_release}-${requirement_id.replaceAll("-", "_")}`. Domain documents store only that ID as `roadmap_ref` and link to its explicit anchor here.
++
++Release order is **MVP → Beta → V1 → V2**. MVP contains every requirement except the explicitly approved delayed IDs represented below. Architecture, deployment, engineering, SEO, agent-delivery, analytics/privacy, and data-migration contracts have a Continuous lifecycle. Other feature contracts use Launch unless their acceptance criteria explicitly require ongoing operation.
++
++MVP provides typed static configuration and emergency kill switches. Dynamic segmentation, rollout, and experimentation Feature Flags begin in V1. Lighthouse scores of 100 remain product targets; enforceable CI and production thresholds are owned by the engineering performance contract.
++
++## Release registry
++
++The JSON comment in each row is the machine record; the four visible columns render the same values for human review.
++
++| Release ID                                                                | Requirement ID          | First release | Lifecycle  | Machine record                                                                                                                                   |
++| ------------------------------------------------------------------------- | ----------------------- | ------------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
++| <a id="REL-MVP-AGENT_BOUNDARY_001"></a>`REL-MVP-AGENT_BOUNDARY_001`       | `AGENT-BOUNDARY-001`    | MVP           | Continuous | <!-- release: {"first_release":"MVP","id":"REL-MVP-AGENT_BOUNDARY_001","lifecycle":"Continuous","requirement_id":"AGENT-BOUNDARY-001"} -->       |
++| <a id="REL-MVP-AGENT_DOCS_001"></a>`REL-MVP-AGENT_DOCS_001`               | `AGENT-DOCS-001`        | MVP           | Continuous | <!-- release: {"first_release":"MVP","id":"REL-MVP-AGENT_DOCS_001","lifecycle":"Continuous","requirement_id":"AGENT-DOCS-001"} -->               |
++| <a id="REL-MVP-AGENT_DOD_001"></a>`REL-MVP-AGENT_DOD_001`                 | `AGENT-DOD-001`         | MVP           | Continuous | <!-- release: {"first_release":"MVP","id":"REL-MVP-AGENT_DOD_001","lifecycle":"Continuous","requirement_id":"AGENT-DOD-001"} -->                 |
++| <a id="REL-MVP-AGENT_PROTOCOL_001"></a>`REL-MVP-AGENT_PROTOCOL_001`       | `AGENT-PROTOCOL-001`    | MVP           | Continuous | <!-- release: {"first_release":"MVP","id":"REL-MVP-AGENT_PROTOCOL_001","lifecycle":"Continuous","requirement_id":"AGENT-PROTOCOL-001"} -->       |
++| <a id="REL-MVP-API_CACHE_001"></a>`REL-MVP-API_CACHE_001`                 | `API-CACHE-001`         | MVP           | Launch     | <!-- release: {"first_release":"MVP","id":"REL-MVP-API_CACHE_001","lifecycle":"Launch","requirement_id":"API-CACHE-001"} -->                     |
++| <a id="REL-MVP-API_ENVELOPE_001"></a>`REL-MVP-API_ENVELOPE_001`           | `API-ENVELOPE-001`      | MVP           | Launch     | <!-- release: {"first_release":"MVP","id":"REL-MVP-API_ENVELOPE_001","lifecycle":"Launch","requirement_id":"API-ENVELOPE-001"} -->               |
++| <a id="REL-MVP-API_INTERNAL_001"></a>`REL-MVP-API_INTERNAL_001`           | `API-INTERNAL-001`      | MVP           | Launch     | <!-- release: {"first_release":"MVP","id":"REL-MVP-API_INTERNAL_001","lifecycle":"Launch","requirement_id":"API-INTERNAL-001"} -->               |
++| <a id="REL-MVP-API_READ_001"></a>`REL-MVP-API_READ_001`                   | `API-READ-001`          | MVP           | Launch     | <!-- release: {"first_release":"MVP","id":"REL-MVP-API_READ_001","lifecycle":"Launch","requirement_id":"API-READ-001"} -->                       |
++| <a id="REL-MVP-API_VALIDATION_001"></a>`REL-MVP-API_VALIDATION_001`       | `API-VALIDATION-001`    | MVP           | Launch     | <!-- release: {"first_release":"MVP","id":"REL-MVP-API_VALIDATION_001","lifecycle":"Launch","requirement_id":"API-VALIDATION-001"} -->           |
++| <a id="REL-MVP-ARCH_CACHE_001"></a>`REL-MVP-ARCH_CACHE_001`               | `ARCH-CACHE-001`        | MVP           | Continuous | <!-- release: {"first_release":"MVP","id":"REL-MVP-ARCH_CACHE_001","lifecycle":"Continuous","requirement_id":"ARCH-CACHE-001"} -->               |
++| <a id="REL-MVP-ARCH_DATAFLOW_001"></a>`REL-MVP-ARCH_DATAFLOW_001`         | `ARCH-DATAFLOW-001`     | MVP           | Continuous | <!-- release: {"first_release":"MVP","id":"REL-MVP-ARCH_DATAFLOW_001","lifecycle":"Continuous","requirement_id":"ARCH-DATAFLOW-001"} -->         |
++| <a id="REL-MVP-ARCH_FLAG_001"></a>`REL-MVP-ARCH_FLAG_001`                 | `ARCH-FLAG-001`         | MVP           | Continuous | <!-- release: {"first_release":"MVP","id":"REL-MVP-ARCH_FLAG_001","lifecycle":"Continuous","requirement_id":"ARCH-FLAG-001"} -->                 |
++| <a id="REL-V1-ARCH_FLAG_002"></a>`REL-V1-ARCH_FLAG_002`                   | `ARCH-FLAG-002`         | V1            | Continuous | <!-- release: {"first_release":"V1","id":"REL-V1-ARCH_FLAG_002","lifecycle":"Continuous","requirement_id":"ARCH-FLAG-002"} -->                   |
++| <a id="REL-MVP-ARCH_LAYERS_001"></a>`REL-MVP-ARCH_LAYERS_001`             | `ARCH-LAYERS-001`       | MVP           | Continuous | <!-- release: {"first_release":"MVP","id":"REL-MVP-ARCH_LAYERS_001","lifecycle":"Continuous","requirement_id":"ARCH-LAYERS-001"} -->             |
++| <a id="REL-MVP-ARCH_PROVIDER_001"></a>`REL-MVP-ARCH_PROVIDER_001`         | `ARCH-PROVIDER-001`     | MVP           | Continuous | <!-- release: {"first_release":"MVP","id":"REL-MVP-ARCH_PROVIDER_001","lifecycle":"Continuous","requirement_id":"ARCH-PROVIDER-001"} -->         |
++| <a id="REL-MVP-ARCH_RECOVERY_001"></a>`REL-MVP-ARCH_RECOVERY_001`         | `ARCH-RECOVERY-001`     | MVP           | Continuous | <!-- release: {"first_release":"MVP","id":"REL-MVP-ARCH_RECOVERY_001","lifecycle":"Continuous","requirement_id":"ARCH-RECOVERY-001"} -->         |
++| <a id="REL-MVP-ARCH_RENDER_001"></a>`REL-MVP-ARCH_RENDER_001`             | `ARCH-RENDER-001`       | MVP           | Continuous | <!-- release: {"first_release":"MVP","id":"REL-MVP-ARCH_RENDER_001","lifecycle":"Continuous","requirement_id":"ARCH-RENDER-001"} -->             |
++| <a id="REL-V1-DATA_ACTIVITY_001"></a>`REL-V1-DATA_ACTIVITY_001`           | `DATA-ACTIVITY-001`     | V1            | Launch     | <!-- release: {"first_release":"V1","id":"REL-V1-DATA_ACTIVITY_001","lifecycle":"Launch","requirement_id":"DATA-ACTIVITY-001"} -->               |
++| <a id="REL-MVP-DATA_GEOGRAPHY_001"></a>`REL-MVP-DATA_GEOGRAPHY_001`       | `DATA-GEOGRAPHY-001`    | MVP           | Launch     | <!-- release: {"first_release":"MVP","id":"REL-MVP-DATA_GEOGRAPHY_001","lifecycle":"Launch","requirement_id":"DATA-GEOGRAPHY-001"} -->           |
++| <a id="REL-MVP-DATA_MIGRATION_001"></a>`REL-MVP-DATA_MIGRATION_001`       | `DATA-MIGRATION-001`    | MVP           | Continuous | <!-- release: {"first_release":"MVP","id":"REL-MVP-DATA_MIGRATION_001","lifecycle":"Continuous","requirement_id":"DATA-MIGRATION-001"} -->       |
++| <a id="REL-MVP-DATA_OPERATIONS_001"></a>`REL-MVP-DATA_OPERATIONS_001`     | `DATA-OPERATIONS-001`   | MVP           | Launch     | <!-- release: {"first_release":"MVP","id":"REL-MVP-DATA_OPERATIONS_001","lifecycle":"Launch","requirement_id":"DATA-OPERATIONS-001"} -->         |
++| <a id="REL-MVP-DATA_RELATIONSHIP_001"></a>`REL-MVP-DATA_RELATIONSHIP_001` | `DATA-RELATIONSHIP-001` | MVP           | Launch     | <!-- release: {"first_release":"MVP","id":"REL-MVP-DATA_RELATIONSHIP_001","lifecycle":"Launch","requirement_id":"DATA-RELATIONSHIP-001"} -->     |
++| <a id="REL-MVP-DATA_SCORE_001"></a>`REL-MVP-DATA_SCORE_001`               | `DATA-SCORE-001`        | MVP           | Launch     | <!-- release: {"first_release":"MVP","id":"REL-MVP-DATA_SCORE_001","lifecycle":"Launch","requirement_id":"DATA-SCORE-001"} -->                   |
++| <a id="REL-MVP-DATA_WEATHER_001"></a>`REL-MVP-DATA_WEATHER_001`           | `DATA-WEATHER-001`      | MVP           | Launch     | <!-- release: {"first_release":"MVP","id":"REL-MVP-DATA_WEATHER_001","lifecycle":"Launch","requirement_id":"DATA-WEATHER-001"} -->               |
++| <a id="REL-MVP-DEP_CICD_001"></a>`REL-MVP-DEP_CICD_001`                   | `DEP-CICD-001`          | MVP           | Continuous | <!-- release: {"first_release":"MVP","id":"REL-MVP-DEP_CICD_001","lifecycle":"Continuous","requirement_id":"DEP-CICD-001"} -->                   |
++| <a id="REL-MVP-DEP_CONFIG_001"></a>`REL-MVP-DEP_CONFIG_001`               | `DEP-CONFIG-001`        | MVP           | Continuous | <!-- release: {"first_release":"MVP","id":"REL-MVP-DEP_CONFIG_001","lifecycle":"Continuous","requirement_id":"DEP-CONFIG-001"} -->               |
++| <a id="REL-MVP-DEP_FREE_001"></a>`REL-MVP-DEP_FREE_001`                   | `DEP-FREE-001`          | MVP           | Continuous | <!-- release: {"first_release":"MVP","id":"REL-MVP-DEP_FREE_001","lifecycle":"Continuous","requirement_id":"DEP-FREE-001"} -->                   |
++| <a id="REL-MVP-DEP_PAGES_001"></a>`REL-MVP-DEP_PAGES_001`                 | `DEP-PAGES-001`         | MVP           | Continuous | <!-- release: {"first_release":"MVP","id":"REL-MVP-DEP_PAGES_001","lifecycle":"Continuous","requirement_id":"DEP-PAGES-001"} -->                 |
++| <a id="REL-MVP-DEP_ROLLBACK_001"></a>`REL-MVP-DEP_ROLLBACK_001`           | `DEP-ROLLBACK-001`      | MVP           | Continuous | <!-- release: {"first_release":"MVP","id":"REL-MVP-DEP_ROLLBACK_001","lifecycle":"Continuous","requirement_id":"DEP-ROLLBACK-001"} -->           |
++| <a id="REL-MVP-ENG_BOT_001"></a>`REL-MVP-ENG_BOT_001`                     | `ENG-BOT-001`           | MVP           | Continuous | <!-- release: {"first_release":"MVP","id":"REL-MVP-ENG_BOT_001","lifecycle":"Continuous","requirement_id":"ENG-BOT-001"} -->                     |
++| <a id="REL-MVP-ENG_OBSERVABILITY_001"></a>`REL-MVP-ENG_OBSERVABILITY_001` | `ENG-OBSERVABILITY-001` | MVP           | Continuous | <!-- release: {"first_release":"MVP","id":"REL-MVP-ENG_OBSERVABILITY_001","lifecycle":"Continuous","requirement_id":"ENG-OBSERVABILITY-001"} --> |
++| <a id="REL-MVP-ENG_PERF_001"></a>`REL-MVP-ENG_PERF_001`                   | `ENG-PERF-001`          | MVP           | Continuous | <!-- release: {"first_release":"MVP","id":"REL-MVP-ENG_PERF_001","lifecycle":"Continuous","requirement_id":"ENG-PERF-001"} -->                   |
++| <a id="REL-MVP-ENG_PRIVACY_001"></a>`REL-MVP-ENG_PRIVACY_001`             | `ENG-PRIVACY-001`       | MVP           | Continuous | <!-- release: {"first_release":"MVP","id":"REL-MVP-ENG_PRIVACY_001","lifecycle":"Continuous","requirement_id":"ENG-PRIVACY-001"} -->             |
++| <a id="REL-MVP-ENG_RELIABILITY_001"></a>`REL-MVP-ENG_RELIABILITY_001`     | `ENG-RELIABILITY-001`   | MVP           | Continuous | <!-- release: {"first_release":"MVP","id":"REL-MVP-ENG_RELIABILITY_001","lifecycle":"Continuous","requirement_id":"ENG-RELIABILITY-001"} -->     |
++| <a id="REL-MVP-ENG_SECURITY_001"></a>`REL-MVP-ENG_SECURITY_001`           | `ENG-SECURITY-001`      | MVP           | Continuous | <!-- release: {"first_release":"MVP","id":"REL-MVP-ENG_SECURITY_001","lifecycle":"Continuous","requirement_id":"ENG-SECURITY-001"} -->           |
++| <a id="REL-MVP-ENG_TEST_001"></a>`REL-MVP-ENG_TEST_001`                   | `ENG-TEST-001`          | MVP           | Continuous | <!-- release: {"first_release":"MVP","id":"REL-MVP-ENG_TEST_001","lifecycle":"Continuous","requirement_id":"ENG-TEST-001"} -->                   |
++| <a id="REL-MVP-ENG_TYPESCRIPT_001"></a>`REL-MVP-ENG_TYPESCRIPT_001`       | `ENG-TYPESCRIPT-001`    | MVP           | Continuous | <!-- release: {"first_release":"MVP","id":"REL-MVP-ENG_TYPESCRIPT_001","lifecycle":"Continuous","requirement_id":"ENG-TYPESCRIPT-001"} -->       |
++| <a id="REL-MVP-GROW_ADS_001"></a>`REL-MVP-GROW_ADS_001`                   | `GROW-ADS-001`          | MVP           | Launch     | <!-- release: {"first_release":"MVP","id":"REL-MVP-GROW_ADS_001","lifecycle":"Launch","requirement_id":"GROW-ADS-001"} -->                       |
++| <a id="REL-MVP-GROW_AFF_001"></a>`REL-MVP-GROW_AFF_001`                   | `GROW-AFF-001`          | MVP           | Launch     | <!-- release: {"first_release":"MVP","id":"REL-MVP-GROW_AFF_001","lifecycle":"Launch","requirement_id":"GROW-AFF-001"} -->                       |
++| <a id="REL-MVP-GROW_ANALYTICS_001"></a>`REL-MVP-GROW_ANALYTICS_001`       | `GROW-ANALYTICS-001`    | MVP           | Continuous | <!-- release: {"first_release":"MVP","id":"REL-MVP-GROW_ANALYTICS_001","lifecycle":"Continuous","requirement_id":"GROW-ANALYTICS-001"} -->       |
++| <a id="REL-V1-GROW_EXPERIMENT_001"></a>`REL-V1-GROW_EXPERIMENT_001`       | `GROW-EXPERIMENT-001`   | V1            | Launch     | <!-- release: {"first_release":"V1","id":"REL-V1-GROW_EXPERIMENT_001","lifecycle":"Launch","requirement_id":"GROW-EXPERIMENT-001"} -->           |
++| <a id="REL-V1-GROW_PROVIDER_001"></a>`REL-V1-GROW_PROVIDER_001`           | `GROW-PROVIDER-001`     | V1            | Launch     | <!-- release: {"first_release":"V1","id":"REL-V1-GROW_PROVIDER_001","lifecycle":"Launch","requirement_id":"GROW-PROVIDER-001"} -->               |
++| <a id="REL-Beta-GROW_REPORT_001"></a>`REL-Beta-GROW_REPORT_001`           | `GROW-REPORT-001`       | Beta          | Continuous | <!-- release: {"first_release":"Beta","id":"REL-Beta-GROW_REPORT_001","lifecycle":"Continuous","requirement_id":"GROW-REPORT-001"} -->           |
++| <a id="REL-MVP-PRD_FR_001"></a>`REL-MVP-PRD_FR_001`                       | `PRD-FR-001`            | MVP           | Launch     | <!-- release: {"first_release":"MVP","id":"REL-MVP-PRD_FR_001","lifecycle":"Launch","requirement_id":"PRD-FR-001"} -->                           |
++| <a id="REL-MVP-PRD_FR_002"></a>`REL-MVP-PRD_FR_002`                       | `PRD-FR-002`            | MVP           | Launch     | <!-- release: {"first_release":"MVP","id":"REL-MVP-PRD_FR_002","lifecycle":"Launch","requirement_id":"PRD-FR-002"} -->                           |
++| <a id="REL-MVP-PRD_FR_003"></a>`REL-MVP-PRD_FR_003`                       | `PRD-FR-003`            | MVP           | Launch     | <!-- release: {"first_release":"MVP","id":"REL-MVP-PRD_FR_003","lifecycle":"Launch","requirement_id":"PRD-FR-003"} -->                           |
++| <a id="REL-MVP-PRD_FR_004"></a>`REL-MVP-PRD_FR_004`                       | `PRD-FR-004`            | MVP           | Launch     | <!-- release: {"first_release":"MVP","id":"REL-MVP-PRD_FR_004","lifecycle":"Launch","requirement_id":"PRD-FR-004"} -->                           |
++| <a id="REL-MVP-PRD_FR_005"></a>`REL-MVP-PRD_FR_005`                       | `PRD-FR-005`            | MVP           | Launch     | <!-- release: {"first_release":"MVP","id":"REL-MVP-PRD_FR_005","lifecycle":"Launch","requirement_id":"PRD-FR-005"} -->                           |
++| <a id="REL-MVP-PRD_FR_006"></a>`REL-MVP-PRD_FR_006`                       | `PRD-FR-006`            | MVP           | Launch     | <!-- release: {"first_release":"MVP","id":"REL-MVP-PRD_FR_006","lifecycle":"Launch","requirement_id":"PRD-FR-006"} -->                           |
++| <a id="REL-Beta-PRD_FR_007"></a>`REL-Beta-PRD_FR_007`                     | `PRD-FR-007`            | Beta          | Launch     | <!-- release: {"first_release":"Beta","id":"REL-Beta-PRD_FR_007","lifecycle":"Launch","requirement_id":"PRD-FR-007"} -->                         |
++| <a id="REL-Beta-PRD_FR_008"></a>`REL-Beta-PRD_FR_008`                     | `PRD-FR-008`            | Beta          | Launch     | <!-- release: {"first_release":"Beta","id":"REL-Beta-PRD_FR_008","lifecycle":"Launch","requirement_id":"PRD-FR-008"} -->                         |
++| <a id="REL-V1-PRD_FR_009"></a>`REL-V1-PRD_FR_009`                         | `PRD-FR-009`            | V1            | Launch     | <!-- release: {"first_release":"V1","id":"REL-V1-PRD_FR_009","lifecycle":"Launch","requirement_id":"PRD-FR-009"} -->                             |
++| <a id="REL-Beta-PRD_FR_010"></a>`REL-Beta-PRD_FR_010`                     | `PRD-FR-010`            | Beta          | Launch     | <!-- release: {"first_release":"Beta","id":"REL-Beta-PRD_FR_010","lifecycle":"Launch","requirement_id":"PRD-FR-010"} -->                         |
++| <a id="REL-MVP-PRD_FR_011"></a>`REL-MVP-PRD_FR_011`                       | `PRD-FR-011`            | MVP           | Launch     | <!-- release: {"first_release":"MVP","id":"REL-MVP-PRD_FR_011","lifecycle":"Launch","requirement_id":"PRD-FR-011"} -->                           |
++| <a id="REL-Beta-PRD_FR_012"></a>`REL-Beta-PRD_FR_012`                     | `PRD-FR-012`            | Beta          | Launch     | <!-- release: {"first_release":"Beta","id":"REL-Beta-PRD_FR_012","lifecycle":"Launch","requirement_id":"PRD-FR-012"} -->                         |
++| <a id="REL-Beta-PRD_FR_013"></a>`REL-Beta-PRD_FR_013`                     | `PRD-FR-013`            | Beta          | Launch     | <!-- release: {"first_release":"Beta","id":"REL-Beta-PRD_FR_013","lifecycle":"Launch","requirement_id":"PRD-FR-013"} -->                         |
++| <a id="REL-V1-PRD_FR_014"></a>`REL-V1-PRD_FR_014`                         | `PRD-FR-014`            | V1            | Launch     | <!-- release: {"first_release":"V1","id":"REL-V1-PRD_FR_014","lifecycle":"Launch","requirement_id":"PRD-FR-014"} -->                             |
++| <a id="REL-V2-PRD_FR_015"></a>`REL-V2-PRD_FR_015`                         | `PRD-FR-015`            | V2            | Launch     | <!-- release: {"first_release":"V2","id":"REL-V2-PRD_FR_015","lifecycle":"Launch","requirement_id":"PRD-FR-015"} -->                             |
++| <a id="REL-V2-PRD_FR_016"></a>`REL-V2-PRD_FR_016`                         | `PRD-FR-016`            | V2            | Launch     | <!-- release: {"first_release":"V2","id":"REL-V2-PRD_FR_016","lifecycle":"Launch","requirement_id":"PRD-FR-016"} -->                             |
++| <a id="REL-MVP-SEO_CONTENT_001"></a>`REL-MVP-SEO_CONTENT_001`             | `SEO-CONTENT-001`       | MVP           | Continuous | <!-- release: {"first_release":"MVP","id":"REL-MVP-SEO_CONTENT_001","lifecycle":"Continuous","requirement_id":"SEO-CONTENT-001"} -->             |
++| <a id="REL-MVP-SEO_INDEXABILITY_001"></a>`REL-MVP-SEO_INDEXABILITY_001`   | `SEO-INDEXABILITY-001`  | MVP           | Continuous | <!-- release: {"first_release":"MVP","id":"REL-MVP-SEO_INDEXABILITY_001","lifecycle":"Continuous","requirement_id":"SEO-INDEXABILITY-001"} -->   |
++| <a id="REL-MVP-SEO_PAGE_001"></a>`REL-MVP-SEO_PAGE_001`                   | `SEO-PAGE-001`          | MVP           | Continuous | <!-- release: {"first_release":"MVP","id":"REL-MVP-SEO_PAGE_001","lifecycle":"Continuous","requirement_id":"SEO-PAGE-001"} -->                   |
++| <a id="REL-MVP-SEO_QUALITY_001"></a>`REL-MVP-SEO_QUALITY_001`             | `SEO-QUALITY-001`       | MVP           | Continuous | <!-- release: {"first_release":"MVP","id":"REL-MVP-SEO_QUALITY_001","lifecycle":"Continuous","requirement_id":"SEO-QUALITY-001"} -->             |
++| <a id="REL-MVP-SEO_SITEMAP_001"></a>`REL-MVP-SEO_SITEMAP_001`             | `SEO-SITEMAP-001`       | MVP           | Continuous | <!-- release: {"first_release":"MVP","id":"REL-MVP-SEO_SITEMAP_001","lifecycle":"Continuous","requirement_id":"SEO-SITEMAP-001"} -->             |
++| <a id="REL-MVP-SEO_STRUCTURED_001"></a>`REL-MVP-SEO_STRUCTURED_001`       | `SEO-STRUCTURED-001`    | MVP           | Continuous | <!-- release: {"first_release":"MVP","id":"REL-MVP-SEO_STRUCTURED_001","lifecycle":"Continuous","requirement_id":"SEO-STRUCTURED-001"} -->       |
++| <a id="REL-MVP-UX_A11Y_001"></a>`REL-MVP-UX_A11Y_001`                     | `UX-A11Y-001`           | MVP           | Launch     | <!-- release: {"first_release":"MVP","id":"REL-MVP-UX_A11Y_001","lifecycle":"Launch","requirement_id":"UX-A11Y-001"} -->                         |
++| <a id="REL-MVP-UX_DESIGN_001"></a>`REL-MVP-UX_DESIGN_001`                 | `UX-DESIGN-001`         | MVP           | Launch     | <!-- release: {"first_release":"MVP","id":"REL-MVP-UX_DESIGN_001","lifecycle":"Launch","requirement_id":"UX-DESIGN-001"} -->                     |
++| <a id="REL-MVP-UX_HOME_001"></a>`REL-MVP-UX_HOME_001`                     | `UX-HOME-001`           | MVP           | Launch     | <!-- release: {"first_release":"MVP","id":"REL-MVP-UX_HOME_001","lifecycle":"Launch","requirement_id":"UX-HOME-001"} -->                         |
++| <a id="REL-MVP-UX_IA_001"></a>`REL-MVP-UX_IA_001`                         | `UX-IA-001`             | MVP           | Launch     | <!-- release: {"first_release":"MVP","id":"REL-MVP-UX_IA_001","lifecycle":"Launch","requirement_id":"UX-IA-001"} -->                             |
++| <a id="REL-MVP-UX_I18N_001"></a>`REL-MVP-UX_I18N_001`                     | `UX-I18N-001`           | MVP           | Launch     | <!-- release: {"first_release":"MVP","id":"REL-MVP-UX_I18N_001","lifecycle":"Launch","requirement_id":"UX-I18N-001"} -->                         |
++| <a id="REL-Beta-UX_I18N_002"></a>`REL-Beta-UX_I18N_002`                   | `UX-I18N-002`           | Beta          | Launch     | <!-- release: {"first_release":"Beta","id":"REL-Beta-UX_I18N_002","lifecycle":"Launch","requirement_id":"UX-I18N-002"} -->                       |
++| <a id="REL-MVP-UX_STATE_001"></a>`REL-MVP-UX_STATE_001`                   | `UX-STATE-001`          | MVP           | Launch     | <!-- release: {"first_release":"MVP","id":"REL-MVP-UX_STATE_001","lifecycle":"Launch","requirement_id":"UX-STATE-001"} -->                       |
++| <a id="REL-MVP-VISION_BUSINESS_001"></a>`REL-MVP-VISION_BUSINESS_001`     | `VISION-BUSINESS-001`   | MVP           | Launch     | <!-- release: {"first_release":"MVP","id":"REL-MVP-VISION_BUSINESS_001","lifecycle":"Launch","requirement_id":"VISION-BUSINESS-001"} -->         |
++| <a id="REL-MVP-VISION_COST_001"></a>`REL-MVP-VISION_COST_001`             | `VISION-COST-001`       | MVP           | Launch     | <!-- release: {"first_release":"MVP","id":"REL-MVP-VISION_COST_001","lifecycle":"Launch","requirement_id":"VISION-COST-001"} -->                 |
++| <a id="REL-MVP-VISION_MARKET_001"></a>`REL-MVP-VISION_MARKET_001`         | `VISION-MARKET-001`     | MVP           | Launch     | <!-- release: {"first_release":"MVP","id":"REL-MVP-VISION_MARKET_001","lifecycle":"Launch","requirement_id":"VISION-MARKET-001"} -->             |
++| <a id="REL-MVP-VISION_METRICS_001"></a>`REL-MVP-VISION_METRICS_001`       | `VISION-METRICS-001`    | MVP           | Launch     | <!-- release: {"first_release":"MVP","id":"REL-MVP-VISION_METRICS_001","lifecycle":"Launch","requirement_id":"VISION-METRICS-001"} -->           |
++| <a id="REL-MVP-VISION_POSITION_001"></a>`REL-MVP-VISION_POSITION_001`     | `VISION-POSITION-001`   | MVP           | Launch     | <!-- release: {"first_release":"MVP","id":"REL-MVP-VISION_POSITION_001","lifecycle":"Launch","requirement_id":"VISION-POSITION-001"} -->         |
++| <a id="REL-MVP-VISION_VALUE_001"></a>`REL-MVP-VISION_VALUE_001`           | `VISION-VALUE-001`      | MVP           | Launch     | <!-- release: {"first_release":"MVP","id":"REL-MVP-VISION_VALUE_001","lifecycle":"Launch","requirement_id":"VISION-VALUE-001"} -->               |
++
++## Phase gates
++
++Each delivery phase records a decision summary, verification evidence, known limitations, and the next step. A phase may advance only after its exact verification commands have run and the responsible reviewer has approved the evidence. A checkbox or existing file is not proof of completion.
++
++Draft migration does not authorize product implementation. The complete staged set must pass parser, requirement, release, trace, link, and derived-coverage checks before the controlled cutover. Active release work then follows the order MVP, Beta, V1, and V2; later-release details are planned only when their release enters delivery.
+
+## MODIFIED FILE: docs/12-ADR/README.md
+--- .superpowers/sdd/snapshots/task-3/ADR-README.md	2026-07-17 19:05:26.141920037 +0800
++++ docs/12-ADR/README.md	2026-07-17 19:08:30.539084813 +0800
+@@ -1,11 +1,37 @@
+-# Architecture Decision Records
+-
+-This directory holds Architecture Decision Records (ADRs) for Where Not Rain.
+-
+-Each ADR is a numbered Markdown file (e.g. `ADR-001-cloudflare-deployment-target.md`)
+-capturing a significant architectural decision, its context, and consequences.
+-
+-Planned records referenced by the design:
+-
+-- **ADR-001** — Cloudflare deployment target (Pages vs. Workers runtime for the
+-  Next-on-Cloudflare adapter). Recorded during the deployment phase (task 23.1).
++# Architecture Decision Records
++
++This directory holds Architecture Decision Records (ADRs) for Where Not Rain. An ADR captures a new architecture decision or a change to an existing architecture decision; routine implementation, confirmation of an existing contract, and phase completion do not require an ADR.
++
++## Phase decision log
++
++Every delivery phase must produce a decision log, whether or not it creates an ADR. The phase log records:
++
++- decision summary;
++- validation commands, results, and evidence;
++- known limitations;
++- next step; and
++- ADR disposition.
++
++When the phase introduces no new or changed architecture decision, its exact disposition is:
++
++`ADR: none — no new architectural decision`
++
++A decision log is delivery evidence. It is not an architecture exception and does not replace an ADR when the ADR threshold is met.
++
++## ADR threshold and format
++
++Create or update a numbered Markdown ADR only when the phase makes a new architecture decision or changes an existing one. Each ADR records title, status, date, context, decision, alternatives considered, consequences, Cloudflare Free-plan impact, security/SEO/performance impact, and upgrade path. Proposed material does not override an authority contract.
++
++## Superseding contracts
++
++Only an ADR with status **Accepted** may supersede an existing contract, and only when all of the following are true:
++
++1. the ADR explicitly names every superseded Requirement ID;
++2. the ADR explains the replacement decision and consequences; and
++3. each owning authority document is updated in the same controlled cutover.
++
++Until all three conditions hold, the existing authority Requirement remains controlling. An ADR cannot silently change release timing or lifecycle; those values remain owned by `docs/11-Roadmap.md`.
++
++## Naming
++
++Use a stable numbered filename such as `ADR-001-cloudflare-deployment-target.md`. If an Accepted ADR is later replaced, preserve its history and status rather than deleting or renumbering it.

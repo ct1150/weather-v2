@@ -1,0 +1,876 @@
+# Task 4 filesystem review package
+
+
+## NEW FILE: docs/01-Product-PRD.md
+--- /dev/null	2026-07-13 18:58:14.987676037 +0800
++++ docs/01-Product-PRD.md	2026-07-17 19:19:18.765014711 +0800
+@@ -0,0 +1,432 @@
++---
++title: Product PRD
++authority: Product
++status: Draft
++last_updated: 2026-07-17
++---
++
++# Product PRD
++
++> **Draft / Non-authoritative.** `SPEC.md` remains authoritative until the controlled documentation cutover. This document stages functional scope and product acceptance only; release timing is resolved exclusively through each Roadmap link.
++
++## Destination discovery
++
++<!-- requirement
++id: PRD-FR-001
++status: Active
++kind: Hard
++roadmap_ref: REL-MVP-PRD_FR_001
++owner: Product
++verification: pnpm docs:check
++-->
++
++<a id="PRD-FR-001"></a>
++
++### PRD-FR-001 — Travel Radar
++
++The homepage Travel Radar presents the best destinations for **Today**, **Tomorrow**, **This Weekend**, and **Next Week**. It is a deterministic, explainable recommendation product based on the latest successful weather and score data; the name or presentation must not imply a live generative-AI decision when no such capability produced it.
++
++Each destination card includes city, country, weather condition, Travel Score, minimum and maximum temperature, rain probability, at least one recommendation reason, data update time, and a destination-detail link.
++
++Roadmap: [REL-MVP-PRD_FR_001](11-Roadmap.md#REL-MVP-PRD_FR_001).
++
++#### Acceptance Criteria
++
++- Results use only the most recent successfully activated data and exclude destinations that fail the applicable score-confidence rules.
++- Selecting a time window updates a shareable URL state, and browser back and forward navigation restores the selected window.
++- Weekend and next-week labels show exact city-local dates so their meaning is unambiguous.
++- Every result exposes at least one data-derived reason such as low rain chance or comfortable temperature; unsupported natural-language claims are not shown.
++- Stale results remain usable only with a visible `Updated ... ago` or equivalent stale indication and are never presented as live data.
++- The recommendation cards and their required fields are available in crawlable primary page content without requiring the user to load the map.
++
++<!-- requirement
++id: PRD-FR-002
++status: Active
++kind: Hard
++roadmap_ref: REL-MVP-PRD_FR_002
++owner: Product
++verification: pnpm docs:check
++-->
++
++<a id="PRD-FR-002"></a>
++
++### PRD-FR-002 — Weather Explorer
++
++Weather Explorer provides a map-led destination discovery experience with city markers, clustering, zoom, hover, click, and theme filtering. Its core filters are Sunny, Beach, Hiking, Photography, Family, and Night View. Additional seasonal or activity themes appear only when their separately governed data and product contracts are available.
++
++Map colors communicate suitability and risk: green for sunny or suitable, yellow for cloudy or moderate, red for rain or unsuitable conditions, and purple for storm or severe-convective risk. Text and icon labels carry the same meaning so color is never the only signal.
++
++Roadmap: [REL-MVP-PRD_FR_002](11-Roadmap.md#REL-MVP-PRD_FR_002).
++
++#### Acceptance Criteria
++
++- The map loads progressively after the primary decision content and does not need to be present for the user to discover ranked destinations.
++- Devices without WebGL, low-capability devices, and map-script failures receive an accessible ranked-list fallback with equivalent destination links and active-filter meaning.
++- Marker and cluster payloads remain compact and exclude full hourly forecasts.
++- Changing theme updates marker meaning, color, and destination ordering from the same selected theme.
++- Markers are keyboard reachable, expose readable city and score labels, and open operable detail surfaces.
++- Loading, empty, partial, stale, offline, error, and retry outcomes use the shared UX state contract rather than leaving a blank map.
++
++<!-- requirement
++id: PRD-FR-003
++status: Active
++kind: Hard
++roadmap_ref: REL-MVP-PRD_FR_003
++owner: Product
++verification: pnpm docs:check
++-->
++
++<a id="PRD-FR-003"></a>
++
++### PRD-FR-003 — City Page
++
++A city page uses the stable route `/{countrySlug}/{citySlug}` and turns weather data into a travel decision. Its core content is a hero and weather summary, Travel Score with reasons, seven-day forecast, hourly overview, rain, temperature, humidity, wind and UV detail, travel recommendations, and available activity-suitability signals.
++
++Commercial blocks, related destinations, related articles, and FAQ are conditional sections: they appear only when their owning capability is active and the page has valid, relevant data. Potential commercial categories include lodging, attractions or activities, tours, car rental, connectivity, and insurance.
++
++Roadmap: [REL-MVP-PRD_FR_003](11-Roadmap.md#REL-MVP-PRD_FR_003).
++
++#### Acceptance Criteria
++
++- Primary page content includes the city identity, applicable local dates, weather summary, Travel Score, and score explanation before optional interactive enhancement.
++- Data update time, city time zone, and displayed unit system are visible or directly discoverable.
++- Missing or low-confidence activity data hides the affected score or section instead of fabricating suitability.
++- Commercial sections identify their commercial nature, can be disabled, and disappear when no valid offer data exists; no false recommendation or blank placeholder is shown.
++- Related destinations and articles are deduplicated, explain their relevance where applicable, and link only to valid destinations.
++- FAQ questions and answers are specific to visible city data and do not repeat a city-name-swapped template.
++- Partial, stale, unavailable, and error states preserve the last trustworthy decision context and clearly identify unavailable details.
++
++<!-- requirement
++id: PRD-FR-004
++status: Active
++kind: Hard
++roadmap_ref: REL-MVP-PRD_FR_004
++owner: Product
++verification: pnpm docs:check
++-->
++
++<a id="PRD-FR-004"></a>
++
++### PRD-FR-004 — Country Page
++
++A country page uses `/{countrySlug}` and provides a unique country overview, available destination coverage, best cities, regional weather context, applicable theme rankings, useful seasonal guidance, and links to relevant city or editorial content.
++
++Roadmap: [REL-MVP-PRD_FR_004](11-Roadmap.md#REL-MVP-PRD_FR_004).
++
++#### Acceptance Criteria
++
++- A public country page has a unique summary, at least one valid city data set, and meaningful internal links; otherwise it is withheld from indexing or not generated.
++- City results can be sorted and can use pagination or progressive loading without hiding the primary country summary.
++- Weather and ranking claims expose their data update context and do not claim complete national coverage when coverage is partial.
++- Seasonal and editorial modules appear only when their underlying capability and source quality are available.
++- Empty and partial states explain destination coverage rather than displaying empty rankings.
++
++<!-- requirement
++id: PRD-FR-005
++status: Active
++kind: Hard
++roadmap_ref: REL-MVP-PRD_FR_005
++owner: Product
++verification: pnpm docs:check
++-->
++
++<a id="PRD-FR-005"></a>
++
++### PRD-FR-005 — Fuzzy Search
++
++Search discovers countries, cities, known aliases, and destination terms across supported display languages. Suggestions begin after two entered characters and identify each result's type, country, and current weather summary when available.
++
++Roadmap: [REL-MVP-PRD_FR_005](11-Roadmap.md#REL-MVP-PRD_FR_005).
++
++#### Acceptance Criteria
++
++- Matching is case-insensitive and accent-insensitive and covers localized names and approved aliases without changing the canonical destination route.
++- The suggestion list and result selection are fully operable by keyboard, expose an accessible result count, and retain a visible focus state.
++- Input length and result count are bounded; normalization is deterministic; user input is handled as data rather than executable query syntax.
++- A result clearly identifies whether it is a country, city, or available editorial destination and never invents a match.
++- No result state, a partial service result, and a search error each provide a clear next action.
++- Search measurement, when enabled, does not require storing personal information or presenting raw free text as a public page.
++
++<!-- requirement
++id: PRD-FR-006
++status: Active
++kind: Hard
++roadmap_ref: REL-MVP-PRD_FR_006
++owner: Product
++verification: pnpm docs:check
++-->
++
++<a id="PRD-FR-006"></a>
++
++### PRD-FR-006 — Destination Rankings
++
++The baseline ranking product provides `/best-weather`, `/best-weekend`, `/best-beach`, `/best-hiking`, `/best-family`, and `/best-photo`. Every ranking is generated from real destination data and an implemented, explainable scoring model. Additional food, shopping, seasonal, or risk rankings require their own valid model and content contract before publication.
++
++Roadmap: [REL-MVP-PRD_FR_006](11-Roadmap.md#REL-MVP-PRD_FR_006).
++
++#### Acceptance Criteria
++
++- Weather-sensitive rankings recalculate after each successfully activated data sync; every published ranking is refreshed at least daily.
++- Each page explains its ranking method, data timestamp, time window, and geographic coverage.
++- Ranking entries use valid scores and reasons, and destinations below the applicable confidence threshold do not enter a top ranking.
++- An unimplemented theme, insufficient candidate set, or insufficient unique explanation produces `noindex` or no page rather than a thin ranking.
++- The product does not create arbitrary city-by-theme pages merely to increase index count.
++- Ranking links resolve to valid destination pages and preserve the selected time window where that context matters.
++
++## Planned decision tools
++
++<!-- requirement
++id: PRD-FR-007
++status: Active
++kind: Hard
++roadmap_ref: REL-Beta-PRD_FR_007
++owner: Product
++verification: pnpm docs:check
++-->
++
++<a id="PRD-FR-007"></a>
++
++### PRD-FR-007 — Compare Cities
++
++Compare Cities uses `/compare/{cityA}-vs-{cityB}` to compare weather, temperature, rain, Travel Score, UV, humidity, wind, Walking, Food, and Shopping signals. Price information appears only when an authorized source supplies the amount, currency, and freshness context.
++
++Roadmap: [REL-Beta-PRD_FR_007](11-Roadmap.md#REL-Beta-PRD_FR_007).
++
++#### Acceptance Criteria
++
++- City order is normalized deterministically, and the reverse order redirects permanently to one canonical URL.
++- Comparing a city with itself returns a not-found outcome or an accessible prompt to select another city.
++- The comparison identifies which city is better suited to applicable activities using visible source data and reasons rather than a generic winner claim.
++- Missing dimensions are marked unavailable and do not silently award either city an advantage.
++- Only precomputed, explicitly approved city pairs with real user or search value are indexable; arbitrary pairs are not added to the index surface.
++- The comparison remains absent from the baseline destination journey until its Roadmap record is the active delivery scope.
++
++<!-- requirement
++id: PRD-FR-008
++status: Active
++kind: Hard
++roadmap_ref: REL-Beta-PRD_FR_008
++owner: Product
++verification: pnpm docs:check
++-->
++
++<a id="PRD-FR-008"></a>
++
++### PRD-FR-008 — Weekend Planner
++
++Weekend Planner accepts an origin city, a specific weekend, and travel preferences, then returns candidate destinations with applicable weather, travel time, budget information, and commercial entry points when trustworthy data exists.
++
++Roadmap: [REL-Beta-PRD_FR_008](11-Roadmap.md#REL-Beta-PRD_FR_008).
++
++#### Acceptance Criteria
++
++- The selected weekend is expressed as exact dates and evaluated in each candidate city's local time.
++- Each recommendation includes weather suitability and a reason tied to the user's stated preferences.
++- Travel-time, transport, price, and budget fields appear only from authorized sources with appropriate currency and freshness context.
++- When current price data is unavailable, the product uses a neutral action such as “Check price” and never presents an estimate as a live quote.
++- The planner handles no-match, partial-data, and stale-data outcomes without fabricating a complete itinerary.
++
++<!-- requirement
++id: PRD-FR-009
++status: Active
++kind: Hard
++roadmap_ref: REL-V1-PRD_FR_009
++owner: Product
++verification: pnpm docs:check
++-->
++
++<a id="PRD-FR-009"></a>
++
++### PRD-FR-009 — Seasonal Travel
++
++Seasonal Travel covers Cherry Blossom, Autumn, Snow, Ski, Beach, Rainy Season, Typhoon, and Aurora discovery. A seasonal page combines weather with explicit seasonal or destination evidence; weather alone cannot establish bloom, foliage, snow, ski operation, storm impact, or aurora visibility.
++
++Roadmap: [REL-V1-PRD_FR_009](11-Roadmap.md#REL-V1-PRD_FR_009).
++
++#### Acceptance Criteria
++
++- Every displayed seasonal status names or links its qualified source and shows when that evidence was verified or updated.
++- Destination-specific seasonality uses explicit maintained rules or trusted destination, government, tourism-board, or contracted-provider data.
++- Missing, expired, contradictory, or low-confidence seasonal evidence hides the status and excludes the destination from the affected ranking.
++- Typhoon and other safety-sensitive pages distinguish forecast information from emergency guidance and prioritize official sources.
++- Each indexable seasonal page has sufficient candidates, unique explanation, and current evidence; otherwise it is not indexed or not generated.
++
++<!-- requirement
++id: PRD-FR-010
++status: Active
++kind: Hard
++roadmap_ref: REL-Beta-PRD_FR_010
++owner: Product
++verification: pnpm docs:check
++-->
++
++<a id="PRD-FR-010"></a>
++
++### PRD-FR-010 — Growth-loop recommendations
++
++Eligible city pages may recommend up to three nearby cities, three similar cities, three cities with better weather for the selected context, and three cheaper cities when trustworthy cost data exists. They may also surface relevant guides, lodging and attraction entry points, FAQ, and related articles.
++
++Roadmap: [REL-Beta-PRD_FR_010](11-Roadmap.md#REL-Beta-PRD_FR_010).
++
++#### Acceptance Criteria
++
++- Recommendation groups are deduplicated against the current city and one another, and every destination link resolves to an active page.
++- Nearby, similar, and better-weather labels derive from the corresponding relationship and current comparison context; each recommendation exposes a concise reason.
++- “Cheaper” is used only with qualified, comparable cost data and visible currency and freshness context.
++- Optional editorial and commercial items are hidden when no valid data exists.
++- Recommendation links use stable routes and do not create unbounded filter or query URL spaces.
++
++## Commercial and operational surfaces
++
++<!-- requirement
++id: PRD-FR-011
++status: Active
++kind: Hard
++roadmap_ref: REL-MVP-PRD_FR_011
++owner: Product
++verification: pnpm docs:check
++-->
++
++<a id="PRD-FR-011"></a>
++
++### PRD-FR-011 — Commercial surfaces and disclosure
++
++The product may expose reusable commercial surfaces for lodging, activities, flights, connectivity, insurance, car rental, and advertising. These surfaces are optional enhancements to a complete travel-decision experience, not prerequisites for core weather content.
++
++Roadmap: [REL-MVP-PRD_FR_011](11-Roadmap.md#REL-MVP-PRD_FR_011).
++
++#### Acceptance Criteria
++
++- Every commercial recommendation or outbound action has a clear, proximate disclosure that remains understandable in all supported locales and input modes.
++- A commercial surface appears only with valid configured data and can be disabled globally or at its supported placement without removing core destination information.
++- Disabled, unavailable, or unfilled surfaces leave no misleading recommendation, unusable control, blank reserved content block, or layout shift.
++- Displayed price, availability, rating, or discount claims come only from authorized current data and include necessary currency or qualification.
++- Commercial tracking does not block the user's outbound navigation.
++- User-facing components do not expose provider-specific implementation fields as the product contract.
++
++<!-- requirement
++id: PRD-FR-012
++status: Active
++kind: Hard
++roadmap_ref: REL-Beta-PRD_FR_012
++owner: Product
++verification: pnpm docs:check
++-->
++
++<a id="PRD-FR-012"></a>
++
++### PRD-FR-012 — Protected read-only Admin
++
++The `/admin` product surface is disabled by default and, when enabled, provides read-only operational views for weather-update status, cache status, aggregate commercial activity, top cities and countries, broken links, SEO health, and sanitized logs.
++
++Roadmap: [REL-Beta-PRD_FR_012](11-Roadmap.md#REL-Beta-PRD_FR_012).
++
++#### Acceptance Criteria
++
++- A hidden route is never treated as access control; every enabled Admin view requires the approved identity, authorization, and audit controls.
++- Production exposes no Admin data before those controls are implemented and verified.
++- This requirement provides no data mutation, sync trigger, configuration update, or other write operation.
++- Views contain only the minimum operational and aggregate information needed and do not expose secrets, raw credentials, personal data, or unsanitized provider errors.
++- Disabled and unauthorized requests reveal neither dashboard data nor internal implementation detail.
++
++## Editorial and assisted products
++
++<!-- requirement
++id: PRD-FR-013
++status: Active
++kind: Hard
++roadmap_ref: REL-Beta-PRD_FR_013
++owner: Product
++verification: pnpm docs:check
++-->
++
++<a id="PRD-FR-013"></a>
++
++### PRD-FR-013 — Articles and RSS
++
++The editorial product provides an article index, stable article pages, and an RSS feed. Supported editorial themes include Best Weather This Week, Weekend Destinations, Cherry Blossom Weather, Autumn Foliage, Beach Guides, Travel by Month, and Rainy Season Guides.
++
++Roadmap: [REL-Beta-PRD_FR_013](11-Roadmap.md#REL-Beta-PRD_FR_013).
++
++#### Acceptance Criteria
++
++- Published articles have stable slugs, title, summary, body, author or reviewer attribution, publication or update time, and applicable source attribution.
++- Each article can link to relevant active cities automatically, while an editor can review, remove, reorder, or replace those links.
++- RSS includes only published, canonical articles and updates an item when meaningful editorial content changes.
++- Draft, preview, rejected, and unreviewed articles are excluded from public listings, RSS, and indexing.
++- Publication satisfies the editorial, factual-source, and safety rules in [SEO-CONTENT-001](03-SEO-Bible.md#SEO-CONTENT-001).
++
++<!-- requirement
++id: PRD-FR-014
++status: Active
++kind: Hard
++roadmap_ref: REL-V1-PRD_FR_014
++owner: Product
++verification: pnpm docs:check
++-->
++
++<a id="PRD-FR-014"></a>
++
++### PRD-FR-014 — Travel News editorial workflow
++
++Travel News supports human-reviewed coverage of significant weather and travel events such as typhoons, heavy rain, festivals, fireworks, cherry blossom, and autumn leaves. Automation or AI may assist research and drafting but cannot publish factual travel or safety content autonomously.
++
++Roadmap: [REL-V1-PRD_FR_014](11-Roadmap.md#REL-V1-PRD_FR_014).
++
++#### Acceptance Criteria
++
++- Every item moves through an explicit draft and human-review step before publication, and the record identifies its reviewer and review time.
++- Weather, seasonal, event, closure, and safety claims retain qualified sources and visible update times.
++- High-risk weather and disaster coverage prioritizes official sources, distinguishes information from emergency advice, and includes a non-emergency-service notice.
++- Material source changes or expired evidence return an item to review or remove it from publication.
++- Assisted text is checked for unsupported facts, duplicate or thin content, misleading certainty, and unsafe recommendations before release.
++
++<!-- requirement
++id: PRD-FR-015
++status: Active
++kind: Hard
++roadmap_ref: REL-V2-PRD_FR_015
++owner: Product
++verification: pnpm docs:check
++-->
++
++<a id="PRD-FR-015"></a>
++
++### PRD-FR-015 — AI Travel Match
++
++AI Travel Match accepts trip constraints such as dates, duration, origin, budget, and travel style and returns destinations with weather suitability, reasons, and optional lodging, activity, transport, or budget context when reliable data is available.
++
++Roadmap: [REL-V2-PRD_FR_015](11-Roadmap.md#REL-V2-PRD_FR_015).
++
++#### Acceptance Criteria
++
++- The result distinguishes deterministic weather and destination data from generated explanation and identifies the evidence behind each recommendation.
++- Budget, price, travel-time, hotel, activity, and transport claims appear only from authorized sources and are never invented to complete an answer.
++- The capability communicates uncertainty, missing constraints, unavailable data, and stale inputs instead of presenting false precision.
++- Safety-sensitive requests do not replace official guidance or emergency services, and applicable responses direct users to qualified sources.
++- Failure or unavailability of an AI service does not remove access to baseline destination and weather discovery.
++
++<!-- requirement
++id: PRD-FR-016
++status: Active
++kind: Hard
++roadmap_ref: REL-V2-PRD_FR_016
++owner: Product
++verification: pnpm docs:check
++-->
++
++<a id="PRD-FR-016"></a>
++
++### PRD-FR-016 — 30-Day Outlook
++
++The 30-Day Outlook presents a longer-horizon trend or probability product. It is not called a forecast in product claims and must not represent uncertain long-range conditions as deterministic daily weather.
++
++Roadmap: [REL-V2-PRD_FR_016](11-Roadmap.md#REL-V2-PRD_FR_016).
++
++#### Acceptance Criteria
++
++- Every outlook labels the horizon, model or source, generation time, geographic scope, and available confidence or probability.
++- Presentation uses ranges, trends, scenarios, or probabilities appropriate to source capability rather than precise unsupported daily outcomes.
++- A visible disclaimer explains that the outlook is uncertain and is not a substitute for a current short-range forecast or official warning.
++- Missing confidence, expired source data, or an unsupported location produces an unavailable state instead of a fabricated outlook.
++- Product metadata, headings, and user-facing calls to action consistently use **30-Day Outlook** or **30-Day Trend**, not **30-Day Forecast**.
+
+## NEW FILE: docs/02-UX-Bible.md
+--- /dev/null	2026-07-13 18:58:14.987676037 +0800
++++ docs/02-UX-Bible.md	2026-07-17 19:19:26.642142520 +0800
+@@ -0,0 +1,228 @@
++---
++title: UX Bible
++authority: UX
++status: Draft
++last_updated: 2026-07-17
++---
++
++# UX Bible
++
++> **Draft / Non-authoritative.** `SPEC.md` remains authoritative until the controlled documentation cutover. This document stages information architecture, interaction, design-system, state, accessibility, and locale-experience contracts; it does not assign release timing.
++
++## Information architecture
++
++<!-- requirement
++id: UX-IA-001
++status: Active
++kind: Hard
++roadmap_ref: REL-MVP-UX_IA_001
++owner: UX
++verification: pnpm docs:check
++-->
++
++<a id="UX-IA-001"></a>
++
++### UX-IA-001 — Stable discovery information architecture
++
++The navigation model moves from broad weather-led discovery to a country, city, ranking, comparison, planner, or editorial decision. Primary route families are:
++
++- `/` for homepage discovery and Travel Radar;
++- `/explore` for Weather Explorer and `/search` for search outcomes;
++- `/best-weather`, `/best-weekend`, `/best-beach`, `/best-hiking`, `/best-family`, and `/best-photo` for baseline rankings;
++- named seasonal or activity landings only when their product and data contracts are available;
++- `/{countrySlug}` and `/{countrySlug}/{citySlug}` for country and city decisions;
++- `/compare/{cityA}-vs-{cityB}`, planner, article, and news surfaces when their Roadmap-selected capabilities are active;
++- `/admin` for the separately protected operational surface and `/api/*` outside user navigation.
++
++Roadmap: [REL-MVP-UX_IA_001](11-Roadmap.md#REL-MVP-UX_IA_001).
++
++#### Acceptance Criteria
++
++- Global navigation prioritizes Home, Explore, Search, core rankings, and direct destination access before optional commercial or editorial destinations.
++- Every primary content page provides a visible path back to broader discovery and at least one meaningful next destination action.
++- Country and city slugs remain stable English ASCII identifiers while localized names appear in page content.
++- Filters and query parameters do not create new primary navigation nodes or unbounded user-visible route families.
++- Unavailable future capabilities are omitted or clearly unavailable; they are not represented as working navigation.
++- Mobile and desktop navigation expose the same destinations and accessible names even when their visual controls differ.
++
++## Homepage journey
++
++<!-- requirement
++id: UX-HOME-001
++status: Active
++kind: Hard
++roadmap_ref: REL-MVP-UX_HOME_001
++owner: UX
++verification: pnpm docs:check
++-->
++
++<a id="UX-HOME-001"></a>
++
++### UX-HOME-001 — Mobile-first homepage decision flow
++
++The homepage uses this decision order: hero (`Where is NOT raining?`), search, Travel Radar, time-window selection, progressive Weather Explorer, applicable weekend or theme rankings, sunny and rainy city context, popular destinations, recently updated content, eligible editorial content, and footer. Sections whose owning product capability is unavailable are omitted without disrupting the remaining order.
++
++Roadmap: [REL-MVP-UX_HOME_001](11-Roadmap.md#REL-MVP-UX_HOME_001).
++
++#### Acceptance Criteria
++
++- On mobile, search and at least the first three destination recommendations precede the map and optional secondary content.
++- The primary destination decision remains usable before Weather Explorer loads and when it never loads.
++- Time-window controls are adjacent to or clearly associated with the recommendations they update and expose exact dates where the label could be ambiguous.
++- A user can move from a recommendation, search result, or ranking entry to a city page with one clear primary action.
++- Optional editorial and commercial sections never displace the core search and recommendation path above them.
++- Reordering at responsive breakpoints preserves heading order, keyboard order, and the meaning of the mobile-first sequence.
++
++## Design system
++
++<!-- requirement
++id: UX-DESIGN-001
++status: Active
++kind: Hard
++roadmap_ref: REL-MVP-UX_DESIGN_001
++owner: UX
++verification: pnpm docs:check
++-->
++
++<a id="UX-DESIGN-001"></a>
++
++### UX-DESIGN-001 — Semantic visual and motion system
++
++The visual language is clean, restrained, rounded, data-trustworthy, and mobile first. References such as Apple Weather, Airbnb, Google Travel, Linear, Notion, Vercel, Stripe, and Arc Browser may inform principles but their protected visual assets are not copied. Glass effects are limited to local hierarchy and never reduce contrast, legibility, or performance.
++
++The shared system uses CSS variables and Tailwind semantic tokens rather than component-local brand values:
++
++| Token group | Required vocabulary                                                                                                                                                  |
++| ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
++| Color       | `background`, `foreground`, `surface`, `surface-elevated`, `muted`, `primary`, `primary-foreground`, `success`, `warning`, `danger`, `storm`, `border`, `focus-ring` |
++| Typography  | `display`, `heading-1` through `heading-4`, `body`, `body-small`, `label`, `caption`                                                                                 |
++| Spacing     | 4 px base scale: `1`, `2`, `3`, `4`, `6`, `8`, `10`, `12`, `16`, `20`, `24`                                                                                          |
++| Radius      | `sm` 8 px, `md` 12 px, `lg` 16 px, `xl` 24 px, `pill` 999 px                                                                                                         |
++| Shadow      | `sm`, `md`, `floating`; dark surfaces prefer borders over heavy shadows                                                                                              |
++| Motion      | `fast` 120 ms, `normal` 200 ms, `slow` 320 ms                                                                                                                        |
++| Breakpoints | documented mobile-first Tailwind breakpoint vocabulary                                                                                                               |
++
++Roadmap: [REL-MVP-UX_DESIGN_001](11-Roadmap.md#REL-MVP-UX_DESIGN_001).
++
++#### Acceptance Criteria
++
++- Shared components consume semantic tokens; arbitrary brand colors, spacing, radii, shadows, and motion values are not scattered through page code.
++- System, light, and dark themes preserve the same semantic hierarchy and content meaning.
++- Final color pairs, focus indicators, text, controls, weather states, and overlays satisfy WCAG 2.2 AA contrast requirements.
++- Motion uses the documented durations, communicates state rather than decoration, and has a non-animated reduced-motion alternative.
++- Responsive layouts start from the smallest supported viewport and do not require horizontal page scrolling for core content.
++- Icons have consistent sizing and meaning and do not replace an accessible text label where the meaning is not otherwise explicit.
++
++## Async and degraded states
++
++<!-- requirement
++id: UX-STATE-001
++status: Active
++kind: Hard
++roadmap_ref: REL-MVP-UX_STATE_001
++owner: UX
++verification: pnpm docs:check
++-->
++
++<a id="UX-STATE-001"></a>
++
++### UX-STATE-001 — Complete asynchronous state contract
++
++Every asynchronous data surface defines **Skeleton**, **Loading**, **Empty**, **Partial Data**, **Stale Data**, **Error**, **Offline**, and **Retry** behavior. A state communicates what is known, what is unavailable, whether displayed data is current, and what action the user can take.
++
++Roadmap: [REL-MVP-UX_STATE_001](11-Roadmap.md#REL-MVP-UX_STATE_001).
++
++#### Acceptance Criteria
++
++- Skeleton geometry approximates final content and reserves only necessary space so transition to content does not create avoidable layout shift.
++- Loading indicators have an accessible status message and do not conceal already usable trustworthy content.
++- Empty states distinguish “no matching result” from “data unavailable” and provide an appropriate search, filter-reset, or navigation action.
++- Partial Data identifies unavailable fields without treating missing values as zero, safe, or optimal.
++- Stale Data remains visibly time-qualified everywhere it appears and never uses styling that implies a fresh observation.
++- Error messages use the selected user language, expose no stack, credential, internal provider message, or sensitive implementation detail, and offer retry only when retry is meaningful.
++- Offline behavior retains available local or rendered content, labels network-dependent actions, and restores normal state after connectivity returns.
++- Retry controls prevent accidental duplicate actions, maintain focus, and report the resulting success or continued failure.
++
++## Accessibility
++
++<!-- requirement
++id: UX-A11Y-001
++status: Active
++kind: Hard
++roadmap_ref: REL-MVP-UX_A11Y_001
++owner: UX
++verification: pnpm docs:check
++-->
++
++<a id="UX-A11Y-001"></a>
++
++### UX-A11Y-001 — WCAG 2.2 AA core journeys
++
++Core homepage, search, ranking, explorer fallback, country, city, locale, and commercial-disclosure journeys target WCAG 2.2 AA and remain complete with keyboard and assistive technology.
++
++Roadmap: [REL-MVP-UX_A11Y_001](11-Roadmap.md#REL-MVP-UX_A11Y_001).
++
++#### Acceptance Criteria
++
++- All interactive controls are keyboard reachable and operable in a logical order, with a visible focus indicator and no keyboard trap.
++- Heading levels, landmarks, lists, tables, form labels, validation messages, and live status announcements use appropriate semantics.
++- Pointer targets are at least 44 × 44 CSS px, or have equivalent spacing and target behavior permitted by WCAG 2.2 AA.
++- Color is never the sole carrier of weather, risk, ranking, selection, success, warning, or error meaning.
++- Maps, charts, score visualizations, flags, and weather icons provide equivalent text; the map has a list fallback capable of completing the same destination-selection task.
++- Content remains understandable at text zoom and responsive reflow, and focus is not obscured by sticky headers, dialogs, or overlays.
++- `prefers-reduced-motion` disables nonessential animation and avoids motion-only state changes.
++- Automated accessibility checks are supplemented by keyboard and screen-reader review of the core journeys.
++
++## Internationalization and localization
++
++<!-- requirement
++id: UX-I18N-001
++status: Active
++kind: Hard
++roadmap_ref: REL-MVP-UX_I18N_001
++owner: UX
++verification: pnpm docs:check
++-->
++
++<a id="UX-I18N-001"></a>
++
++### UX-I18N-001 — Five-locale core experience
++
++The core localized experience supports English, Japanese, Korean, Simplified Chinese, and Traditional Chinese. English uses unprefixed routes; other core locales use `/ja`, `/ko`, `/zh-cn`, and `/zh-tw`. Slugs remain stable English ASCII identifiers while destination names, labels, reasons, metadata inputs, and messages are localized.
++
++Roadmap: [REL-MVP-UX_I18N_001](11-Roadmap.md#REL-MVP-UX_I18N_001).
++
++#### Acceptance Criteria
++
++- User-facing UI strings are dictionary-backed and are not hard-coded into reusable components or domain records.
++- A first visit may suggest the browser language but does not force a redirect that removes user choice or destabilizes a shared URL.
++- A visible language control changes locale while preserving the corresponding destination or product context when that localized page exists.
++- Dates, times, numbers, temperatures, wind speeds, and currencies use locale-aware formatting; weather dates and times use the destination's local time zone rather than the server time zone.
++- Users can select °C or °F for display while labels remain explicit; unit choice and language preference persist without storing personal information.
++- Missing translation keys fall back to English and are reported in development or validation rather than producing a blank label.
++- Localized SEO and safety text receives human or defined quality review and is not generated by unreviewed low-quality runtime translation.
++
++<!-- requirement
++id: UX-I18N-002
++status: Active
++kind: Hard
++roadmap_ref: REL-Beta-UX_I18N_002
++owner: UX
++verification: pnpm docs:check
++-->
++
++<a id="UX-I18N-002"></a>
++
++### UX-I18N-002 — Thai and Vietnamese experience
++
++The expanded localized experience adds Thai at `/th` and Vietnamese at `/vi` under the same route stability, formatting, fallback, content-quality, and accessibility rules as the core locales.
++
++Roadmap: [REL-Beta-UX_I18N_002](11-Roadmap.md#REL-Beta-UX_I18N_002).
++
++#### Acceptance Criteria
++
++- Thai and Vietnamese dictionaries cover the complete core journey, including weather reasons, async states, validation, disclosure, stale-data, and safety messaging, before either locale is publicly selectable.
++- Locale-aware dates, numbers, units, currency, line wrapping, font coverage, and control sizing are reviewed with representative Thai and Vietnamese content.
++- `/th` and `/vi` preserve canonical destination slugs and map to the same underlying country and city identity as other locales.
++- Missing keys use the explicit English fallback and are reported; mixed-language output is not accepted as complete locale coverage.
++- Public localized content and metadata pass human or defined quality review before becoming indexable.
+
+## NEW FILE: docs/03-SEO-Bible.md
+--- /dev/null	2026-07-13 18:58:14.987676037 +0800
++++ docs/03-SEO-Bible.md	2026-07-17 19:19:26.694350117 +0800
+@@ -0,0 +1,199 @@
++---
++title: SEO Bible
++authority: SEO
++status: Draft
++last_updated: 2026-07-17
++---
++
++# SEO Bible
++
++> **Draft / Non-authoritative.** `SPEC.md` remains authoritative until the controlled documentation cutover. This document owns SEO, content quality, and indexability. Rendering mode, revalidation, invalidation, fallback, and cache behavior are owned only by [ARCH-RENDER-001](05-System-Architecture.md#ARCH-RENDER-001) and are intentionally not repeated here.
++
++## Page signals
++
++<!-- requirement
++id: SEO-PAGE-001
++status: Active
++kind: Hard
++roadmap_ref: REL-MVP-SEO_PAGE_001
++owner: SEO
++verification: pnpm docs:check
++-->
++
++<a id="SEO-PAGE-001"></a>
++
++### SEO-PAGE-001 — Unique page metadata and canonical signals
++
++Every public index candidate provides a unique title and description, canonical URL, Open Graph metadata, Twitter Card metadata, document language, applicable locale alternates, breadcrumb context, visible update or publication time, qualified data-source context, crawlable primary content, and meaningful internal links.
++
++English is the unprefixed locale. Localized alternates use their approved locale prefixes, preserve stable ASCII destination slugs, include a self-referencing alternate, and include `x-default` where the locale set has a default destination.
++
++Roadmap: [REL-MVP-SEO_PAGE_001](11-Roadmap.md#REL-MVP-SEO_PAGE_001).
++
++#### Acceptance Criteria
++
++- Titles and descriptions identify the page's actual destination, theme, time context, or editorial subject and are not duplicates produced by swapping a city name into otherwise identical text.
++- Every index candidate emits one absolute self-consistent canonical URL; alternate host, locale, parameter, and reverse-comparison forms do not compete with it.
++- `hreflang` links are bidirectional across available translations, use valid locale codes, point to canonical localized URLs, and omit nonexistent translations.
++- Open Graph and Twitter values match visible page identity and do not claim unavailable weather, prices, reviews, or images.
++- Primary decision content, update context, and source context are available to a crawler without requiring a map interaction.
++- Breadcrumbs and internal links reflect valid information-architecture parents and do not link to inactive or fabricated destinations.
++
++<!-- requirement
++id: SEO-STRUCTURED-001
++status: Active
++kind: Hard
++roadmap_ref: REL-MVP-SEO_STRUCTURED_001
++owner: SEO
++verification: pnpm docs:check
++-->
++
++<a id="SEO-STRUCTURED-001"></a>
++
++### SEO-STRUCTURED-001 — Visible-content structured data
++
++Structured data uses only schema types that match the page and its visible content. Applicable types are `WebSite`, `Organization`, `BreadcrumbList`, `Place`, `FAQPage`, and `Article`. Structured data is a machine-readable projection of the page, not a place to add invisible claims.
++
++Roadmap: [REL-MVP-SEO_STRUCTURED_001](11-Roadmap.md#REL-MVP-SEO_STRUCTURED_001).
++
++#### Acceptance Criteria
++
++- Every JSON-LD entity has a stable identity and values consistent with the canonical URL, document language, visible title, and visible content.
++- `BreadcrumbList` contains the same valid hierarchy and labels available to users.
++- `Place` facts come from the page's qualified destination data and do not include invented ratings, prices, opening states, or attractions.
++- `FAQPage` includes only questions and answers visibly rendered on that page and excludes generic city-name-swapped FAQ text.
++- `Article` uses the visible headline, author or reviewer attribution, publication and modification dates, image where available, and canonical article URL.
++- Review, rating, and Event schema are absent unless the page visibly contains eligible first-party data that satisfies the applicable schema policy.
++- Generated JSON-LD is syntactically valid, contains no secrets or internal identifiers, and is tested against representative page data and missing optional fields.
++
++## Programmatic quality
++
++<!-- requirement
++id: SEO-QUALITY-001
++status: Active
++kind: Hard
++roadmap_ref: REL-MVP-SEO_QUALITY_001
++owner: SEO
++verification: pnpm docs:check
++-->
++
++<a id="SEO-QUALITY-001"></a>
++
++### SEO-QUALITY-001 — Programmatic page quality gate
++
++A programmatic country, city, ranking, seasonal, comparison, or intent page becomes an index candidate only when all applicable quality conditions pass. The gate requires an active underlying entity, acceptable freshness and confidence, unique visible primary content, at least one useful weather or destination summary, an explanation of the score or page purpose, and meaningful valid internal links.
++
++Comparison pages additionally require a precomputed approved pair. Theme and seasonal pages additionally require a sufficient candidate set, a valid implemented model or qualified seasonal evidence, and a unique explanation. City weather or travel intent variants must add independently useful content rather than duplicate the canonical city page.
++
++Roadmap: [REL-MVP-SEO_QUALITY_001](11-Roadmap.md#REL-MVP-SEO_QUALITY_001).
++
++#### Acceptance Criteria
++
++- Indexability is the conjunction of every applicable condition; one failed required condition fails the gate.
++- Missing, stale beyond policy, low-confidence, inactive, or unsupported entities do not pass by substituting placeholder or generated prose.
++- A page fails when its body is materially a duplicate template with only a destination or theme token changed.
++- Rankings and theme pages fail when candidate coverage is too small or their explanation cannot state a real method, time, and coverage context.
++- Failed pages use the indexability outcome defined by SEO-INDEXABILITY-001 and are excluded from sitemap inclusion.
++- Gate decisions are deterministic for the same qualified inputs, expose a machine-testable reason, and are covered by positive and negative test fixtures.
++
++## Discovery feeds
++
++<!-- requirement
++id: SEO-SITEMAP-001
++status: Active
++kind: Hard
++roadmap_ref: REL-MVP-SEO_SITEMAP_001
++owner: SEO
++verification: pnpm docs:check
++-->
++
++<a id="SEO-SITEMAP-001"></a>
++
++### SEO-SITEMAP-001 — Sitemap and crawler discovery
++
++A sitemap index partitions eligible canonical URLs by page type and locale so individual sitemap files remain bounded and operable. Sitemap generation consumes the canonical page registry and the SEO quality and indexability outcomes rather than enumerating every route permutation.
++
++Roadmap: [REL-MVP-SEO_SITEMAP_001](11-Roadmap.md#REL-MVP-SEO_SITEMAP_001).
++
++#### Acceptance Criteria
++
++- Only canonical URLs that currently pass the applicable quality gate and permit indexing are included.
++- Search results, arbitrary filter or query combinations, Admin, API, preview, draft, unreviewed article, and failed-quality URLs are excluded.
++- `lastmod` changes only when visible primary weather context, ranking output, destination content, or editorial content changes meaningfully; a routine full-site timestamp refresh is forbidden.
++- Removed, redirected, inactive, or newly noindexed URLs leave the next generated sitemap set.
++- Every sitemap and the sitemap index contain valid absolute URLs, correct locale partitioning, valid XML, and no duplicate canonical URL.
++- Robots directives advertise the sitemap index and do not use crawling blocks as a substitute for required page-level `noindex` handling.
++
++## Editorial quality
++
++<!-- requirement
++id: SEO-CONTENT-001
++status: Active
++kind: Hard
++roadmap_ref: REL-MVP-SEO_CONTENT_001
++owner: SEO
++verification: pnpm docs:check
++-->
++
++<a id="SEO-CONTENT-001"></a>
++
++### SEO-CONTENT-001 — Reviewed, sourced, and safe content
++
++Editorial and programmatic prose must provide useful travel-decision value and retain evidence for factual weather, seasonal, destination, price, availability, and safety claims. AI or automation may assist drafting and linking but cannot publish factual travel or safety content without human or explicitly approved editorial review.
++
++Weather-led editorial types may include Best Weather This Week, Weekend Destinations, Cherry Blossom Weather, Autumn Foliage, Beach Guides, Travel by Month, and Rainy Season Guides. Editors may override automatically suggested city links.
++
++Roadmap: [REL-MVP-SEO_CONTENT_001](11-Roadmap.md#REL-MVP-SEO_CONTENT_001).
++
++#### Acceptance Criteria
++
++- A public article identifies its author or reviewer, publication or modification date, and qualified sources for weather, seasonal, event, price, availability, and safety facts.
++- Weather and seasonal assertions display an update time and do not extend beyond the capability or confidence of their source.
++- Typhoon, disaster, closure, extreme-weather, and other high-risk content prioritizes official government, meteorological, destination, or emergency sources and includes a clear non-emergency-service statement.
++- Assisted drafts receive review for factual support, misleading certainty, duplication, harmful travel advice, and source validity before publication.
++- Materially changed or expired evidence triggers review, correction, noindex, or withdrawal rather than preserving a stale claim for traffic.
++- Automatically proposed city and article links are relevant, valid, deduplicated, and editable by a reviewer.
++- Unreviewed drafts, mass city-name substitutions, unsupported safety conclusions, and fabricated prices, reviews, events, or destination facts are never published.
++
++## Indexability policy
++
++The table below owns only indexability and quality. It contains no rendering mode, revalidation, invalidation, fallback, TTL, or cache-header fields; those remain solely in [ARCH-RENDER-001](05-System-Architecture.md#ARCH-RENDER-001).
++
++| Route class                                       | Indexability                                 | Required quality outcome                                                                                   |
++| ------------------------------------------------- | -------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
++| Methodology, legal, and stable marketing pages    | `index,follow` after gate                    | Unique complete purpose, current policy content, metadata, and valid links                                 |
++| Homepage, country, city, and weather-led rankings | `index,follow` after gate                    | Active qualified data, unique decision content, update/source context, and valid internal links            |
++| Seasonal and other theme landings                 | `index,follow` after gate                    | Qualified evidence or implemented model, sufficient candidates, and unique explanation                     |
++| Published articles                                | `index,follow` after gate                    | Human-reviewed canonical article with qualified sources and complete editorial metadata                    |
++| Approved city comparisons                         | `index,follow` after gate                    | Precomputed allowlisted pair, substantive comparison, canonical ordering, and valid data                   |
++| Weather Explorer stable page                      | Stable page may be `index,follow` after gate | Crawlable explanatory content and destination links; filter states do not become separate index candidates |
++| Search results and arbitrary query/filter states  | `noindex,follow`                             | Canonicalize to the stable page where appropriate; never treat free-text results as landing pages          |
++| Admin and preview pages                           | `noindex`                                    | No public discovery or sitemap inclusion; access controls remain separately required                       |
++| API and other non-HTML resources                  | Not an HTML index candidate                  | No sitemap inclusion and no claim of page quality                                                          |
++
++<!-- requirement
++id: SEO-INDEXABILITY-001
++status: Active
++kind: Hard
++roadmap_ref: REL-MVP-SEO_INDEXABILITY_001
++owner: SEO
++verification: pnpm docs:check
++-->
++
++<a id="SEO-INDEXABILITY-001"></a>
++
++### SEO-INDEXABILITY-001 — Bounded canonical index surface
++
++The index surface is an explicit set of stable, canonical, quality-approved pages. Search results, arbitrary filters, tracking parameters, preview and draft states, operational surfaces, APIs, reverse comparison forms, and unsupported destination-theme combinations do not create independent index candidates.
++
++Roadmap: [REL-MVP-SEO_INDEXABILITY_001](11-Roadmap.md#REL-MVP-SEO_INDEXABILITY_001).
++
++#### Acceptance Criteria
++
++- A page is `index,follow` only when its route class permits indexing and SEO-QUALITY-001 passes; otherwise it is `noindex,follow`, `noindex`, redirected, or not generated as specified by the route class.
++- Search and arbitrary query results are `noindex,follow`; stable filter parameters canonicalize to the appropriate stable landing page, and tracking parameters never alter canonical identity.
++- Admin and preview HTML use `noindex`; API resources are excluded from HTML indexing and all sitemap sets.
++- A reverse valid comparison permanently resolves to the one canonical pair order, while non-allowlisted or same-city comparisons are not index candidates.
++- Locale alternates are indexable only when their localized visible content passes the same quality gate; unavailable translations are omitted rather than mapped to unrelated content.
++- Noindex, canonical, hreflang, internal-link, and sitemap outcomes remain mutually consistent for each registered URL.
++- Indexability tests cover every table row and both passing and failing quality outcomes without asserting or duplicating rendering or cache behavior.

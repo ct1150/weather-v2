@@ -1,0 +1,77 @@
+
+> where-not-rain@0.0.0 lint /root/test/weather
+> pnpm -r lint
+
+Scope: 17 of 18 workspace projects
+packages/analytics lint$ eslint .
+packages/config lint$ eslint .
+packages/domain lint$ eslint .
+packages/i18n lint$ eslint .
+packages/i18n lint: (node:2442313) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///root/test/weather/eslint.config.js?mtime=1784175753542 is not specified and it doesn't parse as CommonJS.
+packages/i18n lint: Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+packages/i18n lint: To eliminate this warning, add "type": "module" to /root/test/weather/package.json.
+packages/i18n lint: (Use `node --trace-warnings ...` to show where the warning was created)
+packages/analytics lint: (node:2442296) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///root/test/weather/eslint.config.js?mtime=1784175753542 is not specified and it doesn't parse as CommonJS.
+packages/analytics lint: Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+packages/analytics lint: To eliminate this warning, add "type": "module" to /root/test/weather/package.json.
+packages/analytics lint: (Use `node --trace-warnings ...` to show where the warning was created)
+packages/config lint: (node:2442301) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///root/test/weather/eslint.config.js?mtime=1784175753542 is not specified and it doesn't parse as CommonJS.
+packages/config lint: Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+packages/config lint: To eliminate this warning, add "type": "module" to /root/test/weather/package.json.
+packages/config lint: (Use `node --trace-warnings ...` to show where the warning was created)
+packages/domain lint: (node:2442307) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///root/test/weather/eslint.config.js?mtime=1784175753542 is not specified and it doesn't parse as CommonJS.
+packages/domain lint: Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+packages/domain lint: To eliminate this warning, add "type": "module" to /root/test/weather/package.json.
+packages/domain lint: (Use `node --trace-warnings ...` to show where the warning was created)
+packages/i18n lint: Done
+packages/test-utils lint$ eslint .
+packages/analytics lint: Done
+packages/config lint: Done
+packages/domain lint: Done
+packages/test-utils lint: (node:2442391) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///root/test/weather/eslint.config.js?mtime=1784175753542 is not specified and it doesn't parse as CommonJS.
+packages/test-utils lint: Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+packages/test-utils lint: To eliminate this warning, add "type": "module" to /root/test/weather/package.json.
+packages/test-utils lint: (Use `node --trace-warnings ...` to show where the warning was created)
+packages/test-utils lint: Done
+packages/db lint$ eslint .
+packages/seo lint$ eslint .
+packages/ui lint$ eslint .
+packages/weather lint$ eslint .
+packages/seo lint: (node:2442471) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///root/test/weather/eslint.config.js?mtime=1784175753542 is not specified and it doesn't parse as CommonJS.
+packages/seo lint: Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+packages/seo lint: To eliminate this warning, add "type": "module" to /root/test/weather/package.json.
+packages/seo lint: (Use `node --trace-warnings ...` to show where the warning was created)
+packages/db lint: (node:2442466) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///root/test/weather/eslint.config.js?mtime=1784175753542 is not specified and it doesn't parse as CommonJS.
+packages/db lint: Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+packages/db lint: To eliminate this warning, add "type": "module" to /root/test/weather/package.json.
+packages/db lint: (Use `node --trace-warnings ...` to show where the warning was created)
+packages/weather lint: (node:2442483) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///root/test/weather/eslint.config.js?mtime=1784175753542 is not specified and it doesn't parse as CommonJS.
+packages/weather lint: Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+packages/weather lint: To eliminate this warning, add "type": "module" to /root/test/weather/package.json.
+packages/weather lint: (Use `node --trace-warnings ...` to show where the warning was created)
+packages/ui lint: (node:2442477) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///root/test/weather/eslint.config.js?mtime=1784175753542 is not specified and it doesn't parse as CommonJS.
+packages/ui lint: Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+packages/ui lint: To eliminate this warning, add "type": "module" to /root/test/weather/package.json.
+packages/ui lint: (Use `node --trace-warnings ...` to show where the warning was created)
+packages/seo lint: Done
+packages/ui lint: Done
+packages/weather lint: Done
+packages/db lint: Done
+apps/web lint$ eslint .
+workers/maintenance lint$ eslint .
+workers/weather-sync lint$ eslint .
+apps/web lint: (node:2442574) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///root/test/weather/eslint.config.js?mtime=1784175753542 is not specified and it doesn't parse as CommonJS.
+apps/web lint: Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+apps/web lint: To eliminate this warning, add "type": "module" to /root/test/weather/package.json.
+apps/web lint: (Use `node --trace-warnings ...` to show where the warning was created)
+workers/maintenance lint: (node:2442580) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///root/test/weather/eslint.config.js?mtime=1784175753542 is not specified and it doesn't parse as CommonJS.
+workers/maintenance lint: Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+workers/maintenance lint: To eliminate this warning, add "type": "module" to /root/test/weather/package.json.
+workers/maintenance lint: (Use `node --trace-warnings ...` to show where the warning was created)
+workers/weather-sync lint: (node:2442586) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///root/test/weather/eslint.config.js?mtime=1784175753542 is not specified and it doesn't parse as CommonJS.
+workers/weather-sync lint: Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+workers/weather-sync lint: To eliminate this warning, add "type": "module" to /root/test/weather/package.json.
+workers/weather-sync lint: (Use `node --trace-warnings ...` to show where the warning was created)
+apps/web lint: Done
+workers/maintenance lint: Done
+workers/weather-sync lint: Done
