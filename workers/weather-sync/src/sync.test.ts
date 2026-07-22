@@ -306,4 +306,64 @@ describe("runSync — fenced ingestion and activation", () => {
       .first()) as { provider: string };
     expect(snap.provider).toBe("open-meteo");
   });
+
+  it("tolerates a failing KV write: activation succeeds and the run stays 'success'", async () => {
+    // A provider that reports id 'open-meteo' without contacting the network.
+    const openMeteoLike = {
+      id: "open-meteo",
+      async fetchForecast(req: ForecastRequest) {
+        return new FakeWeatherProvider().fetchForecast(req);
+      },
+      async healthCheck() {
+        return { ok: true, providerId: "open-meteo", latencyMs: 0, checkedAt: TS };
+      },
+    } as unknown as WeatherProvider;
+
+    // The KV binding is present but its write fails. This must NOT crash runSync
+    // nor clobber the successful activation (docs/15 §1.3 "only after a successful
+    // activation"; resilience requirement from the QA task).
+    const failingKv = {
+      put: vi.fn(async (_key: string, _value: string) => {
+        throw new Error("KV namespace temporarily unavailable");
+      }),
+    };
+
+    let report: Awaited<ReturnType<typeof runSync>>;
+    try {
+      report = await runSync(
+        { ...deps, provider: openMeteoLike, kv: failingKv },
+        { now: () => new Date(TS), days: 7, startDate: "2026-07-20", makeSnapshotId: makeId },
+      );
+    } catch (err) {
+      throw new Error(
+        `runSync should tolerate a KV write failure but threw: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+    }
+
+    // The sync actually succeeded and activated.
+    expect(report.status).toBe("success");
+    expect(report.activated).toBe(true);
+    expect(report.snapshotId).not.toBeNull();
+
+    // The run record must NOT be clobbered to "failed" with zeroed counters.
+    const run = (await db
+      .prepare("SELECT status, cities_ok, cities_failed FROM sync_runs WHERE id = ?")
+      .bind(report.runId)
+      .first()) as { status: string; cities_ok: number; cities_failed: number };
+    expect(run.status).toBe("success");
+    expect(run.cities_ok).toBe(2);
+
+    // The active pointer points at the newly activated snapshot (not left stale).
+    const pointers = (await db
+      .prepare("SELECT snapshot_id FROM active_weather_snapshot WHERE pointer_key = 'weather'")
+      .all()) as { results: ReadonlyArray<{ snapshot_id: string }> };
+    expect(pointers.results).toHaveLength(1);
+    expect(pointers.results[0]?.snapshot_id).toBe(report.snapshotId);
+
+    // The lock is still released despite the KV failure.
+    const reacquire = await lock.acquire("weather-sync", "recovery", 900000, Date.parse(TS));
+    expect(reacquire.acquired).toBe(true);
+  });
 });

@@ -306,3 +306,57 @@ describe("OpenMeteoProvider — real, key-free adapter", () => {
     expect(health.providerId).toBe("open-meteo");
   });
 });
+
+// ---------------------------------------------------------------------------
+// Open-Meteo adapter — boundary resilience (QA second-layer verification).
+// These assert behaviors called out by the increment PRD/design that the
+// engineer's baseline suite did not yet pin down.
+// ---------------------------------------------------------------------------
+
+describe("OpenMeteoProvider — boundary resilience (QA)", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  const REQ: ForecastRequest = {
+    cityId: "lisbon",
+    latitude: 38.72,
+    longitude: -9.14,
+    timezone: "Europe/Lisbon",
+    days: 2,
+    startDate: "2026-07-20",
+  };
+
+  it("retries on HTTP 5xx and succeeds on a later attempt", async () => {
+    let calls = 0;
+    const fetchFn = vi.fn(async () => {
+      calls += 1;
+      if (calls < 2) {
+        return new Response(JSON.stringify({ error: "boom" }), { status: 503 });
+      }
+      return new Response(JSON.stringify(openMeteoFixture()), { status: 200 });
+    });
+    vi.stubGlobal("fetch", fetchFn);
+    const [forecast] = await new OpenMeteoProvider().fetchForecast(REQ);
+    expect(forecast.days).toHaveLength(2);
+    // First attempt 5xx, second attempt 200 -> single retry, two calls total.
+    expect(fetchFn).toHaveBeenCalledTimes(2);
+  });
+
+  it("aborts the in-flight fetch via AbortController when the response is slow (no hang)", async () => {
+    let capturedSignal: AbortSignal | undefined;
+    const fetchFn = vi.fn((_url: string, opts?: { signal?: AbortSignal }) => {
+      capturedSignal = opts?.signal;
+      return new Promise<never>((_resolve, reject) => {
+        opts?.signal?.addEventListener("abort", () => reject(new Error("aborted")));
+      });
+    });
+    vi.stubGlobal("fetch", fetchFn);
+    const provider = new OpenMeteoProvider({ timeoutMs: 20, maxRetries: 2, baseBackoffMs: 5 });
+    await expect(provider.fetchForecast(REQ)).rejects.toBeInstanceOf(ProviderRequestError);
+    // 1 initial + 2 retries, then give up.
+    expect(fetchFn).toHaveBeenCalledTimes(3);
+    // The slow request was actually aborted (wired to AbortController), not left hanging.
+    expect(capturedSignal?.aborted).toBe(true);
+  });
+});
