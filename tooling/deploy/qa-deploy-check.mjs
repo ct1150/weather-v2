@@ -77,9 +77,7 @@ check(
   "preview deploy must use --env preview",
 );
 check(
-  previewDeploy == null ||
-    previewDeploy.if == null ||
-    !/refs\/heads\/main/.test(previewDeploy.if),
+  previewDeploy == null || previewDeploy.if == null || !/refs\/heads\/main/.test(previewDeploy.if),
   "preview deploy must NOT be gated by push-to-main (no cron in preview)",
 );
 
@@ -88,7 +86,8 @@ const prodDeploy = steps.find((s) => /wrangler deploy --env production/.test(run
 check(prodDeploy != null, "no 'wrangler deploy --env production' step");
 check(
   prodDeploy == null ||
-    (prodDeploy.if && /github\.event_name == 'push'/.test(prodDeploy.if) &&
+    (prodDeploy.if &&
+      /github\.event_name == 'push'/.test(prodDeploy.if) &&
       /refs\/heads\/main/.test(prodDeploy.if)),
   "production deploy must be gated to `push` on `refs/heads/main` (cron registration)",
 );

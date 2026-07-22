@@ -71,7 +71,19 @@ jobs:
         run: pnpm typecheck
 
       - name: Unit / integration tests
-        run: pnpm test
+        run: |
+          # NOTE: pnpm's recursive runner (`pnpm -r`, which the root `pnpm test` script
+          # expands to) swallows sub-package test failures and returns exit 0 — a known
+          # pnpm@10 quirk (confirmed: `pnpm -r test` exits 0 even when a package fails,
+          # whereas `pnpm --filter <pkg> test` correctly exits non-zero). To keep this
+          # gate fail-closed (DEP-CICD-001), we capture the aggregated output and fail
+          # the job whenever any package reports a test failure. Covers all packages
+          # automatically (no brittle per-package enumeration).
+          pnpm test 2>&1 | tee test-results.log
+          if grep -qiE "Tests +[0-9]+ failed|Test Files +[0-9]+ failed|FAIL " test-results.log; then
+            echo "::error::Unit/integration tests failed — gate is fail-closed, failing the job."
+            exit 1
+          fi
 
       - name: Documentation gate
         run: pnpm docs:check

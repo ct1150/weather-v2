@@ -469,11 +469,17 @@ export async function runSync(deps: SyncDeps, options: SyncOptions = {}): Promis
 
     // Write the (environment-isolated) KV "sync health" signal only after a successful
     // activation. Skipped when no KV binding is present (e.g. local/preview without one).
+    // The signal is best-effort (docs/15 §1.3): a KV write failure MUST NOT roll back an
+    // already-successful sync/activation, nor make runSync throw.
     if (deps.kv) {
-      await deps.kv.put(
-        "sync-health",
-        JSON.stringify({ lastSuccessAt: nowIso, provider: deps.provider.id, status: "ok" }),
-      );
+      try {
+        await deps.kv.put(
+          "sync-health",
+          JSON.stringify({ lastSuccessAt: nowIso, provider: deps.provider.id, status: "ok" }),
+        );
+      } catch (kvErr) {
+        console.error("sync-health KV write failed (non-fatal):", kvErr);
+      }
     }
 
     const valid7 = cities.filter((c) => validCityIds.has(c.id) && days >= 7).length;
