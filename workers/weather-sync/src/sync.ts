@@ -7,7 +7,7 @@
 //   3. freezes the enabled/featured city set E/F at run start;
 //   4. fetches and normalizes each city via the provider, isolating failures;
 //   5. transactionally persists a PENDING snapshot with its daily/hourly rows;
-//   6. activates (bootstrap when unbootstrapped, replace otherwise) under BEGIN IMMEDIATE;
+//   6. activates (bootstrap when unbootstrapped, replace otherwise) under a D1 batch
 //   7. releases the lock in all terminal paths (success, partial, or failure).
 // A candidate is rejected when no city validated or any featured city failed, so the
 // active publication identity can never point at a partial generation.
@@ -205,13 +205,13 @@ async function updateRun(
     .run();
 }
 
-async function insertDaily(
+function buildDailyInsert(
   db: D1DatabaseLike,
   snapshotId: string,
   cityId: string,
   d: NormalizedDaily,
-): Promise<void> {
-  await db
+): ReturnType<D1DatabaseLike["prepare"]> {
+  return db
     .prepare(
       "INSERT INTO weather_daily (snapshot_id, city_id, local_date, weather_code, temp_min_c, temp_max_c, " +
         "apparent_min_c, apparent_max_c, precipitation_mm, precipitation_probability_max, humidity_mean, " +
@@ -237,17 +237,16 @@ async function insertDaily(
       d.visibilityMeanM,
       d.sunriseLocal,
       d.sunsetLocal,
-    )
-    .run();
+    );
 }
 
-async function insertHourly(
+function buildHourlyInsert(
   db: D1DatabaseLike,
   snapshotId: string,
   cityId: string,
   h: NormalizedHourly,
-): Promise<void> {
-  await db
+): ReturnType<D1DatabaseLike["prepare"]> {
+  return db
     .prepare(
       "INSERT INTO weather_hourly (snapshot_id, city_id, local_time, weather_code, temperature_c, " +
         "apparent_temperature_c, precipitation_mm, precipitation_probability, humidity, wind_speed_kph, " +
@@ -269,13 +268,29 @@ async function insertHourly(
       h.uvIndex,
       h.cloudCover,
       h.visibilityM,
-    )
-    .run();
+    );
 }
 
 interface PendingRow {
   readonly cityId: string;
   readonly day: NormalizedDaily;
+}
+
+/**
+ * Run many prepared statements atomically in chunks. Cloudflare D1's `batch()` accepts
+ * at most 100 statements per call, so larger sets are split. This replaces the old
+ * `BEGIN IMMEDIATE` / `COMMIT` SQL-transaction pattern, which D1 rejects with
+ * "please use ... transactionSync() APIs instead of the SQL BEGIN TRANSACTION".
+ * Each chunk is atomic; a thrown error aborts the whole persist/activate.
+ */
+const MAX_D1_BATCH = 100;
+async function runBatched(
+  db: D1DatabaseLike,
+  statements: ReadonlyArray<ReturnType<D1DatabaseLike["prepare"]>>,
+): Promise<void> {
+  for (let i = 0; i < statements.length; i += MAX_D1_BATCH) {
+    await db.batch(statements.slice(i, i + MAX_D1_BATCH));
+  }
 }
 
 async function persistCandidate(
@@ -289,22 +304,19 @@ async function persistCandidate(
   dailyRows: ReadonlyArray<PendingRow>,
   hourlyRows: ReadonlyArray<{ readonly cityId: string; readonly hour: NormalizedHourly }>,
 ): Promise<void> {
-  await db.exec("BEGIN IMMEDIATE;");
-  try {
-    await db
+  const statements: Array<ReturnType<D1DatabaseLike["prepare"]>> = [
+    db
       .prepare(
         "INSERT INTO weather_snapshots (id, provider, fetched_at, valid_from, valid_to, status, checksum, created_at) " +
           "VALUES (?, ?, ?, ?, ?, 'pending', ?, ?)",
       )
-      .bind(snapshotId, providerId, nowIso, validFrom, validTo, checksum, nowIso)
-      .run();
-    for (const { cityId, day } of dailyRows) await insertDaily(db, snapshotId, cityId, day);
-    for (const { cityId, hour } of hourlyRows) await insertHourly(db, snapshotId, cityId, hour);
-    await db.exec("COMMIT;");
-  } catch (err) {
-    await db.exec("ROLLBACK;");
-    throw err;
-  }
+      .bind(snapshotId, providerId, nowIso, validFrom, validTo, checksum, nowIso),
+  ];
+  for (const { cityId, day } of dailyRows)
+    statements.push(buildDailyInsert(db, snapshotId, cityId, day));
+  for (const { cityId, hour } of hourlyRows)
+    statements.push(buildHourlyInsert(db, snapshotId, cityId, hour));
+  await runBatched(db, statements);
 }
 
 async function activate(
@@ -314,50 +326,46 @@ async function activate(
   bootstrapped: boolean,
   token: number,
 ): Promise<void> {
-  await db.exec("BEGIN IMMEDIATE;");
-  try {
-    if (!bootstrapped) {
-      await db
-        .prepare("UPDATE weather_snapshots SET status = 'active' WHERE id = ?")
-        .bind(snapshotId)
-        .run();
-      await db
+  const statements: Array<ReturnType<D1DatabaseLike["prepare"]>> = [];
+  if (!bootstrapped) {
+    statements.push(
+      db.prepare("UPDATE weather_snapshots SET status = 'active' WHERE id = ?").bind(snapshotId),
+    );
+    statements.push(
+      db
         .prepare(
           "INSERT INTO active_weather_snapshot (pointer_key, snapshot_id, ranking_version, model_version, " +
             "publication_fencing_token, published_at, activated_at) VALUES ('weather', ?, ?, ?, ?, ?, ?)",
         )
-        .bind(snapshotId, RANKING_VERSION, MODEL_VERSION, token, nowIso, nowIso)
-        .run();
-      await db
+        .bind(snapshotId, RANKING_VERSION, MODEL_VERSION, token, nowIso, nowIso),
+    );
+    statements.push(
+      db
         .prepare(
           "UPDATE weather_publication_state SET bootstrapped = 1, updated_at = ? WHERE state_key = 'weather'",
         )
-        .bind(nowIso)
-        .run();
-    } else {
-      await db
-        .prepare(
-          "UPDATE weather_snapshots SET status = 'superseded' WHERE id = (" +
-            "SELECT snapshot_id FROM active_weather_snapshot WHERE pointer_key = 'weather')",
-        )
-        .run();
-      await db
-        .prepare("UPDATE weather_snapshots SET status = 'active' WHERE id = ?")
-        .bind(snapshotId)
-        .run();
-      await db
+        .bind(nowIso),
+    );
+  } else {
+    statements.push(
+      db.prepare(
+        "UPDATE weather_snapshots SET status = 'superseded' WHERE id = (" +
+          "SELECT snapshot_id FROM active_weather_snapshot WHERE pointer_key = 'weather')",
+      ),
+    );
+    statements.push(
+      db.prepare("UPDATE weather_snapshots SET status = 'active' WHERE id = ?").bind(snapshotId),
+    );
+    statements.push(
+      db
         .prepare(
           "UPDATE active_weather_snapshot SET snapshot_id = ?, ranking_version = ?, model_version = ?, " +
             "publication_fencing_token = ?, published_at = ?, activated_at = ? WHERE pointer_key = 'weather'",
         )
-        .bind(snapshotId, RANKING_VERSION, MODEL_VERSION, token, nowIso, nowIso)
-        .run();
-    }
-    await db.exec("COMMIT;");
-  } catch (err) {
-    await db.exec("ROLLBACK;");
-    throw err;
+        .bind(snapshotId, RANKING_VERSION, MODEL_VERSION, token, nowIso, nowIso),
+    );
   }
+  await runBatched(db, statements);
 }
 
 /**

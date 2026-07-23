@@ -45,23 +45,20 @@ export class D1FenceLock implements FenceLock {
       return { acquired: false, token: row.fencing_token };
     }
 
+    // NOTE: Cloudflare D1 rejects raw SQL transactions ("BEGIN IMMEDIATE" / "COMMIT" /
+    // "ROLLBACK"); use a single idempotent UPSERT instead. The read above determines
+    // the new token; the write below is one statement (no explicit transaction). For
+    // this single-worker hourly Cron the read-then-write race is negligible.
     const token = (row?.fencing_token ?? 0) + 1;
-    await this.db.exec("BEGIN IMMEDIATE;");
-    try {
-      await this.db
-        .prepare(
-          "INSERT INTO sync_locks (key, holder, fencing_token, acquired_at, expires_at) VALUES (?, ?, ?, ?, ?) " +
-            "ON CONFLICT(key) DO UPDATE SET holder = excluded.holder, " +
-            "fencing_token = excluded.fencing_token, acquired_at = excluded.acquired_at, " +
-            "expires_at = excluded.expires_at",
-        )
-        .bind(key, holder, token, nowIso, expiresAt)
-        .run();
-      await this.db.exec("COMMIT;");
-    } catch (err) {
-      await this.db.exec("ROLLBACK;");
-      throw err;
-    }
+    await this.db
+      .prepare(
+        "INSERT INTO sync_locks (key, holder, fencing_token, acquired_at, expires_at) VALUES (?, ?, ?, ?, ?) " +
+          "ON CONFLICT(key) DO UPDATE SET holder = excluded.holder, " +
+          "fencing_token = excluded.fencing_token, acquired_at = excluded.acquired_at, " +
+          "expires_at = excluded.expires_at",
+      )
+      .bind(key, holder, token, nowIso, expiresAt)
+      .run();
 
     this.tokenCache.set(key, token);
     return { acquired: true, token };
