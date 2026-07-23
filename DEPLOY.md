@@ -73,3 +73,42 @@ wrangler kv namespace create wnr-weather-sync --env preview
 
 - 本沙箱默认无 Cloudflare 网络/令牌：第 1 步的 `wrangler` 建资源与 `wrangler deploy` 无法在此执行，
   需在用户自有环境完成；代码质量门（测试/构建）可在沙箱内独立验证。
+
+## 六、种子数据（tourist cities）
+
+生产 D1 在 `0001_weather.sql` 迁移之后，`countries` / `cities` 表默认是空的。
+워ker 只同步 `status='active'` 的城市，因此首次上线前必须先灌入地理种子数据，
+否则没有任何城市可供同步（精选城市激活门槛会失败）。
+
+种子文件位于 **`packages/db/seeds/0001_cities_jp_kr_sea.sql`**，独立于 `migrations/`，
+**不会**被 CI 自动应用（CI 只执行 `d1 migrations apply 0001`，且明确禁止 `0002`）。
+
+### 覆盖范围
+
+- **9 个国家**：日本、韩国、泰国、越南、新加坡、马来西亚、印度尼西亚、菲律宾、柬埔寨
+- **32 个城市**：其中 11 座 `is_featured=1`（东京、首尔、济州岛、曼谷、普吉岛、新加坡、吉隆坡、巴厘岛、胡志明市、长滩岛、暹粒）
+- 每个国家/城市都写入 `en` + `zh` 两条翻译（`country_translations` / `city_translations`）
+
+### 手动执行（在已登录 `wrangler` 的机器上）
+
+```bash
+# 生产库
+pnpm --filter @wnr/weather-sync seed:prod
+
+# 预览库
+pnpm --filter @wnr/weather-sync seed:preview
+```
+
+- 命令走 `workers/weather-sync/wrangler.toml` 解析 `wnr-weather` 的 D1 id（production / preview 各自解析）。
+- 全部 `INSERT` 使用 **`INSERT OR IGNORE`**，命令**幂等**：重复执行不会报错、不会重复插入，可安全多次运行或在 CI 失败后重试。
+- 插入顺序保证外键正确：先 `countries` → `country_translations`，再 `countries` → `cities` → `city_translations`。
+
+### 重置（仅演示 / 空库时）
+
+```bash
+# 注意：下面两条会清空所有地理数据，仅用于本地空库或演示重置，生产环境慎用
+pnpm --filter @wnr/weather-sync exec wrangler d1 execute wnr-weather --env production --command "DELETE FROM cities; DELETE FROM countries;"
+# 之后重新跑 seed:prod
+```
+
+> 真实生产环境请勿随意 `DELETE`，种子本身幂等且可重复执行，无需重置。
