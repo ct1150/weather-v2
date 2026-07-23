@@ -30,6 +30,15 @@ wrangler kv namespace create wnr-weather-sync --env preview
 - `<WNR-WEATHER-PRODUCTION-D1-ID>` / `<WNR-WEATHER-PREVIEW-D1-ID>`
 - `<WNR-WEATHER-SYNC-PRODUCTION-KV-ID>` / `<WNR-WEATHER-SYNC-PREVIEW-KV-ID>`
 
+> ⚠️ **Pages 项目也必须一次性创建**（否则 `wrangler pages deploy` 会在非交互 CI 里交互式询问而失败）：
+>
+> ```bash
+> wrangler pages project create where-not-rain --production-branch main
+> ```
+>
+> 项目是 account 级、与 D1/KV 独立；创建一次即可，`pages deploy` 后续会复用该已存在项目（不再询问）。
+> 本仓库的 `where-not-rain` 项目已于 2026-07-23 创建，CI 直接复用即可。
+
 > 若由协作 AI 在沙箱执行，需先在沙箱 WSL 环境导出 `CLOUDFLARE_API_TOKEN` 与 `CLOUDFLARE_ACCOUNT_ID`，
 > 否则 `wrangler` 无法认证（GitHub Secrets 仅作用于 CI，不会注入本地沙箱）。
 
