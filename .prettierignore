@@ -1,12 +1,32 @@
-node_modules
-dist
-.next
-out
-coverage
-.artifacts
-.wrangler
-.kiro
-.superpowers
+# Session-private agent/run directories
+.workbuddy/
+.superpowers/
+.artifacts/
+
+# Build outputs
+node_modules/
+**/dist/
+**/out/
+**/.next/
+**/tsconfig.tsbuildinfo
+**/.wrangler/
+
+# OS / editor
 *.log
+
+# Kiro spec/agent/skill scaffolding (AI tool artifacts, not project code)
+.kiro/
+.superpowers/
+
+# Generated lockfile
 pnpm-lock.yaml
-weather.txt
+
+# Docs won't be prettier-enforced
+docs/
+*.md
+DEPLOY.md
+README.md
+SPEC.md
+
+# Misc top-level scaffolding (no source semantics)
+Code

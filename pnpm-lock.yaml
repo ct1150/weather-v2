@@ -158,6 +158,9 @@ importers:
       '@wnr/vitest-config':
         specifier: workspace:*
         version: link:../../tooling/vitest-config
+      globals:
+        specifier: ^14.0.0
+        version: 14.0.0
 
   packages/domain:
     devDependencies:

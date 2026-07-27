@@ -116,7 +116,7 @@ afterAll(() => {
   if (existsSync(CSS_OUT)) {
     try {
       unlinkSync(CSS_OUT);
-    } catch (err) {
+    } catch {
       // best-effort cleanup; ignore
     }
   }

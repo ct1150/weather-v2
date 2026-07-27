@@ -24,7 +24,8 @@
     "@wnr/tsconfig": "workspace:*",
     "@wnr/eslint-config": "workspace:*",
     "@wnr/vitest-config": "workspace:*",
-    "@wnr/test-utils": "workspace:*"
+    "@wnr/test-utils": "workspace:*",
+    "globals": "^14.0.0"
   },
   "files": [
     "dist"
