@@ -1,0 +1,35 @@
+// apps/web/src/app/sitemap.ts
+//
+// Static-export sitemap (SEO-SITEMAP-001). Enumerates every canonical,
+// quality-passing route from the build-time baked dataset across all five
+// locales, emitting hreflang alternates via `alternates.languages`.
+//
+// Next's App Router emits this as `out/sitemap.xml` during `next build`
+// (static export compatible — no request-time data path).
+
+import type { MetadataRoute } from "next";
+import { getBakedDataset } from "../build/bake";
+import { localizedSitemapEntries } from "./seo";
+
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const dataset = await getBakedDataset();
+  const lastModified = dataset.dataUpdatedAt;
+  const changeFrequency = "weekly" as const;
+
+  const entries: MetadataRoute.Sitemap = [
+    ...localizedSitemapEntries("/", { lastModified, changeFrequency }),
+    ...localizedSitemapEntries("/explore", { lastModified, changeFrequency }),
+  ];
+
+  for (const country of dataset.countries) {
+    const countryPath = `/${country.slug}`;
+    entries.push(...localizedSitemapEntries(countryPath, { lastModified, changeFrequency }));
+    const cities = dataset.citiesByCountry.get(country.id) ?? [];
+    for (const city of cities) {
+      const cityPath = `/${country.slug}/${city.city.slug}`;
+      entries.push(...localizedSitemapEntries(cityPath, { lastModified, changeFrequency }));
+    }
+  }
+
+  return entries;
+}

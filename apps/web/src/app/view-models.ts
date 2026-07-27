@@ -85,6 +85,24 @@ export interface ExploreMarkerViewModel {
   readonly path: string;
 }
 
+/**
+ * Compact read model shared by the interactive MapLibre map and the accessible
+ * ranked list (PRD-FR-002). One model feeds both the map markers and the
+ * crawlable list fallback so they never diverge.
+ */
+export interface ExplorerMapMarker {
+  readonly id: string;
+  readonly latitude: number;
+  readonly longitude: number;
+  readonly label: string;
+  /** Canonical destination href the marker navigates to on activation. */
+  readonly path: string;
+  /** Travel Score 0..100, or null when hidden/unavailable. */
+  readonly score: number | null;
+  /** Active theme meaning (e.g. "general", "beach"). */
+  readonly theme: string;
+}
+
 export interface ExplorerViewModel {
   readonly theme: string;
   readonly window: Window;

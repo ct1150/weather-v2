@@ -89,6 +89,7 @@ All checkboxes are intentionally unchecked. A task may be checked only after its
     Verify: test -f apps/web/src/app/explore/page.tsx && test -f apps/web/src/app/explore/explorer.test.ts && pnpm --filter @wnr/web exec vitest run --passWithNoTests=false src/app/explore/explorer.test.ts && pnpm --filter @wnr/web build
     Expected: command exits 0 after Explorer and its targeted tests exist, with map/fallback/accessibility tests and the production web build passing
     Evidence: 2026-07-21 — exit 0 — independent re-verify (lead): vitest src/app/explore/explorer.test.ts 7 passed; pnpm --filter @wnr/web build exit 0; weather.txt sha256 MATCH; pnpm -r build exit 0
+    Evidence: 2026-07-23 — exit 0 — G1 gap closure: Explorer map upgraded from static SVG poster to interactive MapLibre GL (maplibre-gl v4, no-key OpenFreeMap "liberty" style), clustered GeoJSON markers colored by score/theme, keyboard + reduced-motion aware, WebGL-absent graceful degrade, wired into explore page + homepage progressive enhancement. Added apps/web/src/components/ExplorerMap.tsx + explorer-map.test.tsx (RTL/jsdom, maplibre-gl mocked) + JsonLd server component. QA independent re-verify: 11/11 new tests green; pnpm -r test 146 web tests no regression; weather.txt sha256 MATCH
 
 - [x] 13. Build country and city decision pages
   - Implement the authority-owned acceptance criteria test-first; keep later-release capability paths disabled and omit unsupported behavior.
@@ -124,6 +125,7 @@ All checkboxes are intentionally unchecked. A task may be checked only after its
     Verify: test -f packages/seo/src/page-signals.ts && test -f packages/seo/src/page-signals.test.ts && pnpm --filter @wnr/seo exec vitest run --passWithNoTests=false src/page-signals.test.ts && pnpm --filter @wnr/seo build
     Expected: command exits 0 after SEO builders/gates and targeted tests exist, with SEO/indexability/sitemap tests and the seo build passing
     Evidence: 2026-07-21 — exit 0 — independent re-verify (lead): vitest src/page-signals.test.ts 18 passed; pnpm --filter @wnr/seo build exit 0; pnpm -r test + pnpm -r build exit 0; weather.txt sha256 MATCH
+    Evidence: 2026-07-23 — exit 0 — G2 gap closure: @wnr/seo wired into the live site (was orphaned — zero imports in apps/web before this). Added apps/web/src/app/seo.ts bridge + sitemap.ts (300 hreflang entries across 60 URLs × 5 locales) + robots.ts (Host+Sitemap) + JsonLd JSON-LD (TouristDestination / Place) + canonical/hreflang alternates on home/explore/country/city. SEO now emits real sitemap.xml, robots.txt, structured data, and localized alternates. QA independent re-verify: seo-wiring.test.ts 1/1 green; smart-route NoOne; weather.txt sha256 MATCH
 
 - [x] 18. Implement disclosed Affiliate and zero-shift ad surfaces
   - Implement the authority-owned acceptance criteria test-first; keep later-release capability paths disabled and omit unsupported behavior.

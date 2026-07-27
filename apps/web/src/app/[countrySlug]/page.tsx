@@ -6,12 +6,17 @@
 // exported via `generateStaticParams`.
 
 import type { ReactElement } from "react";
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import type { CountryPageViewModel, DestinationLinkViewModel } from "../view-models";
 import { getBakedDataset, buildConfig, projectCountry } from "../../build/bake";
+import { JsonLd } from "../../components/JsonLd";
+import { buildAlternates, routeRobots, localeUrl } from "../seo";
 
 export interface CountryPageProps {
   readonly viewModel: CountryPageViewModel;
+  /** Server-rendered JSON-LD schema.org node. */
+  readonly jsonLd?: Readonly<Record<string, unknown>>;
 }
 
 function CityList({
@@ -41,12 +46,14 @@ function CityList({
   );
 }
 
-export function CountryPage({ viewModel }: CountryPageProps) {
+export function CountryPage({ viewModel, jsonLd }: CountryPageProps) {
   const { country, cities, rankings, relatedLinks, state } = viewModel;
   const isReady = state === "ready" || state === "stale";
 
   return (
     <main className="mx-auto max-w-5xl px-4 py-8">
+      {jsonLd !== undefined ? <JsonLd schema={jsonLd} /> : null}
+
       <h1 className="text-3xl font-semibold text-foreground">{country.name}</h1>
       {country.summary !== null ? (
         <p className="mt-2 max-w-2xl text-body text-muted">{country.summary}</p>
@@ -104,10 +111,14 @@ export async function generateMetadata({
   params,
 }: {
   params: { countrySlug: string };
-}): Promise<{ title: string }> {
+}): Promise<Metadata> {
   const dataset = await getBakedDataset();
   const country = dataset.countries.find((c) => c.slug === params.countrySlug);
-  return { title: country ? `${country.name.en} — Where Not Rain` : "Where Not Rain" };
+  return {
+    title: country ? `${country.name.en} — Where Not Rain` : "Where Not Rain",
+    alternates: buildAlternates(`/${params.countrySlug}`),
+    robots: routeRobots("country", true),
+  };
 }
 
 export default async function Page({
@@ -120,5 +131,22 @@ export default async function Page({
   if (country === undefined) notFound();
   const config = buildConfig();
   const viewModel = projectCountry(dataset, params.countrySlug, config.defaultLocale);
-  return <CountryPage viewModel={viewModel} />;
+
+  const firstCity = (dataset.citiesByCountry.get(country.id) ?? [])[0];
+  const jsonLd: Record<string, unknown> = {
+    "@context": "https://schema.org",
+    "@type": "TouristDestination",
+    name: country.name.en,
+    description: `Travel-weather guide for ${country.name.en}.`,
+    url: localeUrl("en", `/${country.slug}`),
+  };
+  if (firstCity !== undefined) {
+    jsonLd.geo = {
+      "@type": "GeoCoordinates",
+      latitude: firstCity.city.latitude,
+      longitude: firstCity.city.longitude,
+    };
+  }
+
+  return <CountryPage viewModel={viewModel} jsonLd={jsonLd} />;
 }

@@ -50,8 +50,7 @@ const SECONDARY_CLASSES = [
 // Compile globals.css with the real Tailwind CLI. Try the common entry points
 // so the test is resilient to how tailwindcss is exposed in this workspace.
 function compileTailwind() {
-  const base =
-    " -i " + CSS_IN + " -o " + CSS_OUT + " -c " + TAILWIND_CONFIG;
+  const base = " -i " + CSS_IN + " -o " + CSS_OUT + " -c " + TAILWIND_CONFIG;
   const attempts = [
     "pnpm exec tailwindcss" + base,
     "npx tailwindcss" + base,
@@ -67,8 +66,7 @@ function compileTailwind() {
     }
   }
   throw new Error(
-    "Tailwind CLI failed to compile globals.css via all entry points: " +
-      String(lastError)
+    "Tailwind CLI failed to compile globals.css via all entry points: " + String(lastError),
   );
 }
 
@@ -101,16 +99,15 @@ test("tailwind compiles semantic utility classes into the CSS bundle", () => {
   expect(css.length).toBeGreaterThan(1000);
 
   for (const cls of PRIMARY_CLASSES) {
-    expect(
-      cssHasClass(css, cls),
-      "primary semantic class missing from compiled CSS: " + cls
-    ).toBe(true);
+    expect(cssHasClass(css, cls), "primary semantic class missing from compiled CSS: " + cls).toBe(
+      true,
+    );
   }
 
   for (const cls of SECONDARY_CLASSES) {
     expect(
       cssHasClass(css, cls),
-      "secondary semantic class missing from compiled CSS: " + cls
+      "secondary semantic class missing from compiled CSS: " + cls,
     ).toBe(true);
   }
 });

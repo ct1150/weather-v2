@@ -43,6 +43,7 @@ import type {
   CityHeaderViewModel,
   ExplorerViewModel,
   ExploreMarkerViewModel,
+  ExplorerMapMarker,
   DestinationLinkViewModel,
 } from "../app/view-models";
 
@@ -436,6 +437,33 @@ export function projectCity(
 
 function scoreViewModelFallback(): ScoreViewModel {
   return { value: null, state: "unavailable", confidence: null, reasonCodes: [] };
+}
+
+/**
+ * Project the homepage "progressive map" markers (PRD-FR-001, PRD-FR-002):
+ * one `ExplorerMapMarker` per featured city, sharing the exact lat/long/score
+ * that the ranked cards and the explorer list use. The homepage progressive map
+ * is the same compact read model as the explorer map.
+ */
+export function projectHomeMapMarkers(
+  dataset: BakedDataset,
+  config: BuildConfig,
+): ReadonlyArray<ExplorerMapMarker> {
+  return dataset.cities
+    .filter((b) => b.city.isFeatured)
+    .map((b) => {
+      const day0 = b.forecast.days[0];
+      const score = day0 === undefined ? null : computeCityScore(day0, config.modelVersion);
+      return {
+        id: b.city.id,
+        latitude: b.city.latitude,
+        longitude: b.city.longitude,
+        label: b.city.name[config.defaultLocale] ?? b.city.name.en,
+        path: `/${b.country.slug}/${b.city.slug}`,
+        score: score === null || score.hidden ? null : score.score,
+        theme: "general",
+      } satisfies ExplorerMapMarker;
+    });
 }
 
 /** Project the Weather Explorer view (decorative map + crawlable list). */

@@ -5,6 +5,7 @@
 // the `CityPageViewModel`. Statically exported via `generateStaticParams`.
 
 import type { ReactElement } from "react";
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import type {
   CityPageViewModel,
@@ -13,9 +14,13 @@ import type {
   WeatherSummaryViewModel,
 } from "../../view-models";
 import { getBakedDataset, buildConfig, projectCity } from "../../../build/bake";
+import { JsonLd } from "../../../components/JsonLd";
+import { buildAlternates, routeRobots, localeUrl } from "../../seo";
 
 export interface CityPageProps {
   readonly viewModel: CityPageViewModel;
+  /** Server-rendered JSON-LD schema.org node. */
+  readonly jsonLd?: Readonly<Record<string, unknown>>;
 }
 
 function renderScoreValue(score: ScoreViewModel): string {
@@ -58,7 +63,7 @@ function WeatherSummary({
   );
 }
 
-export function CityPage({ viewModel }: CityPageProps) {
+export function CityPage({ viewModel, jsonLd }: CityPageProps) {
   const {
     city,
     weather,
@@ -73,6 +78,8 @@ export function CityPage({ viewModel }: CityPageProps) {
 
   return (
     <main className="mx-auto max-w-5xl px-4 py-8">
+      {jsonLd !== undefined ? <JsonLd schema={jsonLd} /> : null}
+
       <h1 className="text-3xl font-semibold text-foreground">
         {city.cityName}, {city.countryName}
       </h1>
@@ -194,7 +201,7 @@ export async function generateMetadata({
   params,
 }: {
   params: { countrySlug: string; citySlug: string };
-}): Promise<{ title: string }> {
+}): Promise<Metadata> {
   const dataset = await getBakedDataset();
   const baked = dataset.cities.find(
     (b) => b.city.slug === params.citySlug && b.country.slug === params.countrySlug,
@@ -203,6 +210,8 @@ export async function generateMetadata({
     title: baked
       ? `${baked.city.name.en}, ${baked.country.name.en} — Where Not Rain`
       : "Where Not Rain",
+    alternates: buildAlternates(`/${params.countrySlug}/${params.citySlug}`),
+    robots: routeRobots("city", true),
   };
 }
 
@@ -218,5 +227,19 @@ export default async function Page({
   if (baked === undefined) notFound();
   const config = buildConfig();
   const viewModel = projectCity(dataset, params.countrySlug, params.citySlug, config.defaultLocale);
-  return <CityPage viewModel={viewModel} />;
+
+  const jsonLd: Record<string, unknown> = {
+    "@context": "https://schema.org",
+    "@type": "Place",
+    name: `${baked.city.name.en}, ${baked.country.name.en}`,
+    description: `Weather and Travel Score for ${baked.city.name.en}.`,
+    url: localeUrl("en", `/${params.countrySlug}/${params.citySlug}`),
+    geo: {
+      "@type": "GeoCoordinates",
+      latitude: baked.city.latitude,
+      longitude: baked.city.longitude,
+    },
+  };
+
+  return <CityPage viewModel={viewModel} jsonLd={jsonLd} />;
 }

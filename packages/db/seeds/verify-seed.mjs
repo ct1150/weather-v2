@@ -25,21 +25,21 @@
 //   - D1's local SQLite rejects compound SELECTs with more than a handful of UNION ALL
 //     terms ("too many terms in compound SELECT"), so queries are split into <=5 terms.
 
-import { describe, it, before } from 'node:test';
-import assert from 'node:assert/strict';
-import { execSync } from 'node:child_process';
-import fs from 'node:fs';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { describe, it, before } from "node:test";
+import assert from "node:assert/strict";
+import { execSync } from "node:child_process";
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // Resolve repo root from this file: packages/db/seeds -> up 3 levels.
-const ROOT = path.resolve(__dirname, '..', '..', '..');
-const MIGRATION_FILE = path.join(ROOT, 'packages/db/migrations/0001_weather.sql');
-const SEED_FILE = path.join(__dirname, '0001_cities_jp_kr_sea.sql');
-const WORKER_DIR = path.join(ROOT, 'workers/weather-sync');
-const D1_LOCAL_DIR = path.join(WORKER_DIR, '.wrangler', 'state', 'v3', 'd1');
+const ROOT = path.resolve(__dirname, "..", "..", "..");
+const MIGRATION_FILE = path.join(ROOT, "packages/db/migrations/0001_weather.sql");
+const SEED_FILE = path.join(__dirname, "0001_cities_jp_kr_sea.sql");
+const WORKER_DIR = path.join(ROOT, "workers/weather-sync");
+const D1_LOCAL_DIR = path.join(WORKER_DIR, ".wrangler", "state", "v3", "d1");
 
 // --- Expected invariants (the source of truth for this QA gate) ---
 const EXPECTED = {
@@ -72,7 +72,7 @@ const Q_INTEGRITY =
 
 function runWrangler(args) {
   // `pnpm exec wrangler` is resolved from WORKER_DIR where the `wnr-weather` binding lives.
-  return execSync(`pnpm exec wrangler ${args}`, { cwd: WORKER_DIR, encoding: 'utf8' });
+  return execSync(`pnpm exec wrangler ${args}`, { cwd: WORKER_DIR, encoding: "utf8" });
 }
 
 function applyFile(file) {
@@ -80,9 +80,7 @@ function applyFile(file) {
 }
 
 function queryCounts(sql) {
-  const out = runWrangler(
-    `d1 execute wnr-weather --local --json --command ${JSON.stringify(sql)}`
-  );
+  const out = runWrangler(`d1 execute wnr-weather --local --json --command ${JSON.stringify(sql)}`);
   const match = out.match(/\[[\s\S]*\]/);
   if (!match) {
     throw new Error(`Could not parse wrangler JSON output:\n${out}`);
@@ -102,7 +100,7 @@ before(() => {
     console.log(`[setup] Resetting local D1 state: ${D1_LOCAL_DIR}`);
     fs.rmSync(D1_LOCAL_DIR, { recursive: true, force: true });
   } else {
-    console.log('[setup] WNR_SEED_TEST_NO_RESET=1 — keeping existing local D1 state');
+    console.log("[setup] WNR_SEED_TEST_NO_RESET=1 — keeping existing local D1 state");
   }
 
   console.log(`[setup] Applying migration: ${MIGRATION_FILE}`);
@@ -112,51 +110,51 @@ before(() => {
   applyFile(SEED_FILE);
 
   countsAfterFirstSeed = { ...queryCounts(Q_COUNTS), ...queryCounts(Q_INTEGRITY) };
-  console.log('[setup] Counts after 1st seed:', JSON.stringify(countsAfterFirstSeed));
+  console.log("[setup] Counts after 1st seed:", JSON.stringify(countsAfterFirstSeed));
 });
 
-describe('seed integrity: 0001_cities_jp_kr_sea.sql', () => {
-  it('row counts match expected invariants (countries/cities/translations/featured)', () => {
-    assert.equal(countsAfterFirstSeed.countries, EXPECTED.countries, 'countries');
+describe("seed integrity: 0001_cities_jp_kr_sea.sql", () => {
+  it("row counts match expected invariants (countries/cities/translations/featured)", () => {
+    assert.equal(countsAfterFirstSeed.countries, EXPECTED.countries, "countries");
     assert.equal(
       countsAfterFirstSeed.country_translations,
       EXPECTED.country_translations,
-      'country_translations'
+      "country_translations",
     );
-    assert.equal(countsAfterFirstSeed.cities, EXPECTED.cities, 'cities');
+    assert.equal(countsAfterFirstSeed.cities, EXPECTED.cities, "cities");
     assert.equal(
       countsAfterFirstSeed.city_translations,
       EXPECTED.city_translations,
-      'city_translations'
+      "city_translations",
     );
-    assert.equal(countsAfterFirstSeed.featured, EXPECTED.featured, 'featured');
+    assert.equal(countsAfterFirstSeed.featured, EXPECTED.featured, "featured");
   });
 
-  it('every one of the 32 cities is status = active (sync gate)', () => {
+  it("every one of the 32 cities is status = active (sync gate)", () => {
     assert.equal(countsAfterFirstSeed.active_cities, EXPECTED.active_cities);
   });
 
-  it('every featured city is active (hard activation gate)', () => {
+  it("every featured city is active (hard activation gate)", () => {
     assert.equal(countsAfterFirstSeed.featured_not_active, EXPECTED.featured_not_active);
   });
 
-  it('zero foreign-key orphans', () => {
+  it("zero foreign-key orphans", () => {
     assert.equal(countsAfterFirstSeed.orphan_cities, EXPECTED.orphan_cities);
     assert.equal(countsAfterFirstSeed.orphan_city_tr, EXPECTED.orphan_city_tr);
     assert.equal(countsAfterFirstSeed.orphan_country_tr, EXPECTED.orphan_country_tr);
   });
 
-  it('idempotency: re-running the seed leaves every count unchanged', () => {
-    console.log('[idempotency] Applying seed (2nd pass)');
+  it("idempotency: re-running the seed leaves every count unchanged", () => {
+    console.log("[idempotency] Applying seed (2nd pass)");
     applyFile(SEED_FILE);
     const after = { ...queryCounts(Q_COUNTS), ...queryCounts(Q_INTEGRITY) };
-    console.log('[idempotency] Counts after 2nd seed:', JSON.stringify(after));
+    console.log("[idempotency] Counts after 2nd seed:", JSON.stringify(after));
 
     for (const key of Object.keys(EXPECTED)) {
       assert.equal(
         after[key],
         countsAfterFirstSeed[key],
-        `idempotency mismatch for ${key} (expected ${countsAfterFirstSeed[key]}, got ${after[key]})`
+        `idempotency mismatch for ${key} (expected ${countsAfterFirstSeed[key]}, got ${after[key]})`,
       );
     }
   });

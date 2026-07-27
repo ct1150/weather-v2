@@ -26,13 +26,17 @@
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
+    "@testing-library/dom": "^10.4.0",
+    "@testing-library/react": "^16.1.0",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
     "@wnr/eslint-config": "workspace:*",
     "@wnr/tailwind-config": "workspace:*",
     "@wnr/tsconfig": "workspace:*",
     "@wnr/vitest-config": "workspace:*",
-    "@types/react": "^18.3.12",
-    "@types/react-dom": "^18.3.1",
     "autoprefixer": "^10.4.0",
+    "jsdom": "^25.0.1",
+    "maplibre-gl": "^4.7.1",
     "postcss": "^8.4.0",
     "tailwindcss": "^3.4.0"
   }

@@ -1,6 +1,7 @@
 // apps/web/src/app/page.tsx
 //
-// Travel Radar homepage (PRD-FR-001, UX-HOME-001, VISION-VALUE-001, UX-STATE-001).
+// Travel Radar homepage (PRD-FR-001, UX-HOME-001, VISION-VALUE-001,
+// UX-STATE-001, SEO-STRUCTURED-001).
 //
 // App Router page (system_design.md T03): at build time it bakes the dataset and
 // projects the `TravelRadarViewModel`, then renders the pure presentational
@@ -10,15 +11,33 @@
 // is a static export there is no client runtime to re-render on the query string;
 // the selector links are decorative and the page is rendered for the default
 // window. (Switching to Next-on-Pages + a route handler would make it live.)
+//
+// Progressive enhancement: crawlable recommendation cards render FIRST; the
+// MapLibre map hydrates AFTER them and the JSON-LD structured data is
+// server-rendered into the static HTML.
 
 import type { ReactElement } from "react";
-import type { TravelRadarViewModel, WindowControl } from "./view-models";
+import type { Metadata } from "next";
+import type { TravelRadarViewModel, WindowControl, ExplorerMapMarker } from "./view-models";
 import type { Window } from "../api/v1/schemas";
-import { getBakedDataset, buildConfig, projectHome, buildWindowControls } from "../build/bake";
+import {
+  getBakedDataset,
+  buildConfig,
+  projectHome,
+  buildWindowControls,
+  projectHomeMapMarkers,
+} from "../build/bake";
+import { ExplorerMap } from "../components/ExplorerMap";
+import { JsonLd } from "../components/JsonLd";
+import { buildAlternates, routeRobots, localeUrl } from "./seo";
 
 export interface TravelRadarPageProps {
   readonly viewModel: TravelRadarViewModel;
   readonly windowControls: ReadonlyArray<WindowControl>;
+  /** Progressive-map markers (same compact read model as the explorer map). */
+  readonly mapMarkers?: ReadonlyArray<ExplorerMapMarker>;
+  /** Server-rendered JSON-LD schema.org node. */
+  readonly jsonLd?: Readonly<Record<string, unknown>>;
 }
 
 function renderScore(score: TravelRadarViewModel["cards"][number]["score"]): string {
@@ -30,12 +49,20 @@ function renderScore(score: TravelRadarViewModel["cards"][number]["score"]): str
   return String(score.value);
 }
 
-export function TravelRadarPage({ viewModel, windowControls }: TravelRadarPageProps) {
+export function TravelRadarPage({
+  viewModel,
+  windowControls,
+  mapMarkers,
+  jsonLd,
+}: TravelRadarPageProps) {
   const { cards, freshness, state } = viewModel;
   const showCards = state === "ready" || state === "stale";
+  const showMap = showCards && (mapMarkers?.length ?? 0) > 0;
 
   return (
     <main className="mx-auto max-w-5xl px-4 py-8">
+      {jsonLd !== undefined ? <JsonLd schema={jsonLd} /> : null}
+
       <h1 className="text-3xl font-semibold text-foreground">Where is NOT raining?</h1>
       <p className="mt-2 max-w-2xl text-body text-muted">
         Deterministic travel recommendations from the latest successfully activated weather and
@@ -147,6 +174,13 @@ export function TravelRadarPage({ viewModel, windowControls }: TravelRadarPagePr
         </section>
       ) : null}
 
+      {/* Progressive MapLibre enhancement (PRD-FR-001). Rendered AFTER the
+          crawlable cards; it shares the same compact read model and degrades
+          gracefully if WebGL/script is unavailable. */}
+      {showMap ? (
+        <ExplorerMap markers={mapMarkers ?? []} theme="general" windowLabel="Today" />
+      ) : null}
+
       <footer className="mt-12 border-t border-border pt-6 text-caption text-muted">
         Recommendations use the latest activated weather and Travel Score; stale results remain
         usable but are labeled.
@@ -155,11 +189,45 @@ export function TravelRadarPage({ viewModel, windowControls }: TravelRadarPagePr
   );
 }
 
+export async function generateMetadata(): Promise<Metadata> {
+  return {
+    title: "Where is NOT raining?",
+    alternates: buildAlternates("/"),
+    robots: routeRobots("homepage", true),
+  };
+}
+
 export default async function Page(): Promise<ReactElement> {
   const dataset = await getBakedDataset();
   const config = buildConfig();
   const activeWindow: Window = "today";
   const viewModel = projectHome(dataset, config, activeWindow);
   const windowControls = buildWindowControls(dataset, config, activeWindow);
-  return <TravelRadarPage viewModel={viewModel} windowControls={windowControls} />;
+  const mapMarkers = projectHomeMapMarkers(dataset, config);
+
+  const featured = dataset.cities.find((b) => b.city.isFeatured);
+  const jsonLd: Record<string, unknown> = {
+    "@context": "https://schema.org",
+    "@type": "TouristDestination",
+    name: "Where Not Rain",
+    description:
+      "Deterministic, explainable destination recommendations from the latest weather and Travel Score.",
+    url: localeUrl("en", "/"),
+  };
+  if (featured !== undefined) {
+    jsonLd.geo = {
+      "@type": "GeoCoordinates",
+      latitude: featured.city.latitude,
+      longitude: featured.city.longitude,
+    };
+  }
+
+  return (
+    <TravelRadarPage
+      viewModel={viewModel}
+      windowControls={windowControls}
+      mapMarkers={mapMarkers}
+      jsonLd={jsonLd}
+    />
+  );
 }

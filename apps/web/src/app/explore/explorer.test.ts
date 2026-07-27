@@ -74,9 +74,12 @@ describe("Weather Explorer — accessible non-map list fallback", () => {
     expect(html).toContain('href="/jp/osaka"');
   });
 
-  it("marks the map as decorative (aria-hidden) so the list is its accessible equivalent", () => {
-    expect(html).toContain('aria-hidden="true"');
-    expect(html).toContain('aria-label="Map preview"');
+  it("renders the interactive map enhancement after the accessible list", () => {
+    // The map is a progressive enhancement; the ranked list stays the
+    // accessible, crawlable primary content (PRD-FR-002, UX-A11Y-001).
+    expect(html).toContain('aria-label="Interactive weather map"');
+    expect(html).toContain('data-testid="explorer-map"');
+    expect(html).toContain('aria-label="All destinations"');
   });
 
   it("does not eagerly pull an external map resource (ENG-PERF-001)", () => {
