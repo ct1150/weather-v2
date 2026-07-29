@@ -67,6 +67,20 @@ jobs:
       - name: Lint
         run: pnpm lint
 
+      # Build library packages FIRST so their emitted .d.ts / dist artifacts exist
+      # when typecheck runs. `@wnr/db` / `@wnr/analytics` import `@wnr/test-utils`
+      # and `@wnr/config` via `workspace:*`; those packages' `package.json` expose
+      # `./dist/index.d.ts` and `tsc` resolves them through the pnpm workspace
+      # symlink. On a fresh CI checkout (no dist yet) `tsc --noEmit` would fail with
+      # TS2307 "Cannot find module '@wnr/test-utils' or its corresponding type
+      # declarations" if typecheck ran before any build. This step pre-builds only
+      # the library packages (NOT the @wnr/web static export NOR the @wnr/weather-sync
+      # worker — those have their own dedicated `Build *` steps below and must not be
+      # double-built; @wnr/maintenance has no build script either). Order is fixed via
+      # the four negation filters.
+      - name: Build library packages (emit dist + .d.ts for typecheck)
+        run: pnpm -r --filter '!@wnr/web' --filter '!@wnr/weather-sync' --filter '!@wnr/maintenance' build
+
       - name: Typecheck
         run: pnpm typecheck
 
