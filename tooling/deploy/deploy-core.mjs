@@ -25,9 +25,21 @@ export const PRODUCTION_URL = "https://where-not-rain.pages.dev";
 /** Cloudflare Cron schedule for production (hourly weather sync + maintenance). */
 export const PRODUCTION_CRON_SCHEDULE = "0 * * * *";
 
-/** True only when `url` is the module invoked directly on the CLI. */
+/**
+ * True only when `url` is the module invoked directly on the CLI
+ * (i.e. `node ./tooling/deploy/preview-smoke.mjs ...`). Returns false
+ * cleanly when this module is imported via `node -e "await import(...)"`
+ * or from another module — in those cases `process.argv[1]` may be
+ * undefined or a non-path token, so `pathToFileURL` cannot be used.
+ */
 export function isMain(url) {
-  return url === pathToFileURL(process.argv[1]).href;
+  const entry = process.argv[1];
+  if (typeof entry !== "string" || entry === "") return false;
+  try {
+    return url === pathToFileURL(entry).href;
+  } catch {
+    return false;
+  }
 }
 
 /** Thrown by any pipeline step that must stop promotion (fail-closed). */
