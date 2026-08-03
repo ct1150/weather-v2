@@ -363,7 +363,11 @@ async function persistScoresAndRankings(
   ];
 
   const firstDate = dailyRows[0]?.day.localDate;
-  const ranked: Array<{ readonly cityId: string; readonly score: number; readonly reasons: string }> = [];
+  const ranked: Array<{
+    readonly cityId: string;
+    readonly score: number;
+    readonly reasons: string;
+  }> = [];
   for (const { cityId, day } of dailyRows) {
     const result = calculateTravelScore({
       row: toWeatherRow(day),
@@ -415,7 +419,16 @@ async function persistScoresAndRankings(
         "INSERT INTO ranking_snapshots (id, snapshot_id, ranking_version, theme, time_window, region_key, generated_at, expires_at, model_version) " +
           "VALUES (?, ?, ?, ?, ?, 'global', ?, ?, ?)",
       )
-      .bind(rankingId, snapshotId, rankingVersion, GENERAL_THEME, TODAY_WINDOW, fetchedAt, fetchedAt, MODEL_VERSION),
+      .bind(
+        rankingId,
+        snapshotId,
+        rankingVersion,
+        GENERAL_THEME,
+        TODAY_WINDOW,
+        fetchedAt,
+        fetchedAt,
+        MODEL_VERSION,
+      ),
   );
   ranked
     .sort((a, b) => b.score - a.score || a.cityId.localeCompare(b.cityId))
@@ -583,13 +596,7 @@ export async function runSync(deps: SyncDeps, options: SyncOptions = {}): Promis
       dailyRows,
       hourlyRows,
     );
-    await persistScoresAndRankings(
-      deps.db,
-      snapshotId,
-      RANKING_VERSION,
-      nowIso,
-      dailyRows,
-    );
+    await persistScoresAndRankings(deps.db, snapshotId, RANKING_VERSION, nowIso, dailyRows);
 
     const bootstrapped = await isBootstrapped(deps.db);
     await activate(deps.db, snapshotId, nowIso, bootstrapped, token);

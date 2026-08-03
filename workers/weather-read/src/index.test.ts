@@ -20,7 +20,9 @@ async function seedPublishedRanking(db: D1DatabaseLike): Promise<void> {
     .bind(PUBLISHED_AT, PUBLISHED_AT)
     .run();
   await db
-    .prepare("INSERT INTO country_translations (country_id, locale, name) VALUES ('jp', 'en', 'Japan')")
+    .prepare(
+      "INSERT INTO country_translations (country_id, locale, name) VALUES ('jp', 'en', 'Japan')",
+    )
     .run();
   await db
     .prepare(
@@ -29,7 +31,9 @@ async function seedPublishedRanking(db: D1DatabaseLike): Promise<void> {
     .bind(PUBLISHED_AT, PUBLISHED_AT)
     .run();
   await db
-    .prepare("INSERT INTO city_translations (city_id, locale, name) VALUES ('tokyo', 'en', 'Tokyo')")
+    .prepare(
+      "INSERT INTO city_translations (city_id, locale, name) VALUES ('tokyo', 'en', 'Tokyo')",
+    )
     .run();
   await db
     .prepare(
@@ -38,15 +42,21 @@ async function seedPublishedRanking(db: D1DatabaseLike): Promise<void> {
     .bind(PUBLISHED_AT, PUBLISHED_AT, PUBLISHED_AT, PUBLISHED_AT)
     .run();
   await db
-    .prepare("INSERT INTO active_weather_snapshot (pointer_key, snapshot_id, ranking_version, model_version, publication_fencing_token, published_at, activated_at) VALUES ('weather', 'snapshot-1', 'rv1', 'mv1', 1, ?, ?)")
+    .prepare(
+      "INSERT INTO active_weather_snapshot (pointer_key, snapshot_id, ranking_version, model_version, publication_fencing_token, published_at, activated_at) VALUES ('weather', 'snapshot-1', 'rv1', 'mv1', 1, ?, ?)",
+    )
     .bind(PUBLISHED_AT, PUBLISHED_AT)
     .run();
   await db
-    .prepare("INSERT INTO ranking_snapshots (id, snapshot_id, ranking_version, theme, time_window, region_key, generated_at, expires_at, model_version) VALUES ('ranking-1', 'snapshot-1', 'rv1', 'general', 'today', 'global', ?, ?, 'mv1')")
+    .prepare(
+      "INSERT INTO ranking_snapshots (id, snapshot_id, ranking_version, theme, time_window, region_key, generated_at, expires_at, model_version) VALUES ('ranking-1', 'snapshot-1', 'rv1', 'general', 'today', 'global', ?, ?, 'mv1')",
+    )
     .bind(PUBLISHED_AT, PUBLISHED_AT)
     .run();
   await db
-    .prepare("INSERT INTO ranking_entries (ranking_id, city_id, rank, score, reason_codes_json) VALUES ('ranking-1', 'tokyo', 1, 88, '[\"LOW_RAIN_CHANCE\"]')")
+    .prepare(
+      "INSERT INTO ranking_entries (ranking_id, city_id, rank, score, reason_codes_json) VALUES ('ranking-1', 'tokyo', 1, 88, '[\"LOW_RAIN_CHANCE\"]')",
+    )
     .run();
 }
 
@@ -80,13 +90,18 @@ describe("weather-read public API", () => {
   });
 
   it("fails closed when no active publication exists", async () => {
-    const response = await handleRequest(new Request("https://read.example/api/v1/rankings"), { DB: db });
+    const response = await handleRequest(new Request("https://read.example/api/v1/rankings"), {
+      DB: db,
+    });
     expect(response.status).toBe(503);
     await expect(response.json()).resolves.toEqual({ error: { code: "DATA_UNAVAILABLE" } });
   });
 
   it("rejects unsupported ranking filters instead of silently returning another dataset", async () => {
-    const response = await handleRequest(new Request("https://read.example/api/v1/rankings?theme=beach"), { DB: db });
+    const response = await handleRequest(
+      new Request("https://read.example/api/v1/rankings?theme=beach"),
+      { DB: db },
+    );
     expect(response.status).toBe(400);
   });
 });

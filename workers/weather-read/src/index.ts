@@ -95,12 +95,18 @@ async function readTodayRanking(
 }
 
 /** Handle a public request; exported separately for deterministic integration tests. */
-export async function handleRequest(request: Request, env: WorkerEnv, now = new Date()): Promise<Response> {
-  if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: headers(env) });
+export async function handleRequest(
+  request: Request,
+  env: WorkerEnv,
+  now = new Date(),
+): Promise<Response> {
+  if (request.method === "OPTIONS")
+    return new Response(null, { status: 204, headers: headers(env) });
   if (request.method !== "GET") return json({ error: { code: "METHOD_NOT_ALLOWED" } }, 405, env);
 
   const url = new URL(request.url);
-  if (url.pathname !== "/api/v1/rankings") return json({ error: { code: "RESOURCE_NOT_FOUND" } }, 404, env);
+  if (url.pathname !== "/api/v1/rankings")
+    return json({ error: { code: "RESOURCE_NOT_FOUND" } }, 404, env);
   if ((url.searchParams.get("theme") ?? "general") !== "general") {
     return json({ error: { code: "INVALID_PARAMETER", field: "theme" } }, 400, env);
   }
