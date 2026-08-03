@@ -1,0 +1,27 @@
+{
+  "name": "@wnr/weather-read",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@wnr/eslint-config": "workspace:*",
+    "@wnr/test-utils": "workspace:*",
+    "@wnr/tsconfig": "workspace:*",
+    "@wnr/vitest-config": "workspace:*"
+  },
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": ["dist"]
+}

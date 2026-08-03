@@ -128,6 +128,19 @@ describe("runSync — fenced ingestion and activation", () => {
     };
     expect(hourly.c).toBe(14 * 24);
 
+    // The public read path consumes persisted scores/rankings; it must never
+    // recalculate them from raw weather on a user request.
+    const scores = (await db.prepare("SELECT COUNT(*) AS c FROM city_scores").first()) as {
+      c: number;
+    };
+    expect(scores.c).toBe(14); // 2 cities * 7 local days
+    const rankings = (await db
+      .prepare("SELECT rank, score FROM ranking_entries ORDER BY rank")
+      .all()) as { results: ReadonlyArray<{ rank: number; score: number }> };
+    expect(rankings.results).toHaveLength(2);
+    expect(rankings.results[0]?.rank).toBe(1);
+    expect(rankings.results[0]?.score).toBeGreaterThanOrEqual(rankings.results[1]?.score ?? 0);
+
     const run = (await db
       .prepare("SELECT status, cities_ok, cities_failed FROM sync_runs WHERE id=?")
       .bind(report.runId)

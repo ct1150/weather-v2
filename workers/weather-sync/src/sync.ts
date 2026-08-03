@@ -16,6 +16,7 @@ import type { D1DatabaseLike } from "@wnr/test-utils";
 import type { WeatherProvider } from "@wnr/weather";
 import type { RuntimeConfig } from "@wnr/config";
 import type { NormalizedDaily, NormalizedHourly } from "@wnr/weather";
+import { calculateTravelScore, type WeatherRow } from "@wnr/domain";
 
 const LOCK_KEY = "weather-sync";
 const LOCK_TTL_MS = 15 * 60 * 1000;
@@ -276,6 +277,25 @@ interface PendingRow {
   readonly day: NormalizedDaily;
 }
 
+/** The only MVP ranking materialized by ingestion: general suitability for each local day. */
+const GENERAL_THEME = "general";
+const TODAY_WINDOW = "today";
+
+function toWeatherRow(day: NormalizedDaily): WeatherRow {
+  return {
+    precipitationProbability: day.precipitationProbabilityMax,
+    precipitationMm: day.precipitationMm,
+    temperatureC: day.tempMaxC,
+    apparentTemperatureC: day.apparentMaxC,
+    humidity: day.humidityMean,
+    windSpeedKph: day.windSpeedMaxKph,
+    windGustKph: day.windGustMaxKph,
+    uvIndex: day.uvIndexMax,
+    cloudCover: day.cloudCoverMean,
+    visibilityM: day.visibilityMeanM,
+  };
+}
+
 /**
  * Run many prepared statements atomically in chunks. Cloudflare D1's `batch()` accepts
  * at most 100 statements per call, so larger sets are split. This replaces the old
@@ -316,6 +336,98 @@ async function persistCandidate(
     statements.push(buildDailyInsert(db, snapshotId, cityId, day));
   for (const { cityId, hour } of hourlyRows)
     statements.push(buildHourlyInsert(db, snapshotId, cityId, hour));
+  await runBatched(db, statements);
+}
+
+/**
+ * Materialize score rows and the homepage's general ranking before activation.
+ * The read path only selects these immutable rows; it never derives a score from
+ * weather data. An empty alert snapshot is still persisted so the score foreign
+ * key captures the exact hazard-input generation used for this MVP calculation.
+ */
+async function persistScoresAndRankings(
+  db: D1DatabaseLike,
+  snapshotId: string,
+  rankingVersion: string,
+  fetchedAt: string,
+  dailyRows: ReadonlyArray<PendingRow>,
+): Promise<void> {
+  const alertSnapshotId = `${snapshotId}-alerts`;
+  const statements: Array<ReturnType<D1DatabaseLike["prepare"]>> = [
+    db
+      .prepare(
+        "INSERT INTO weather_alert_snapshots (id, weather_snapshot_id, captured_at, source_range_start, source_range_end, checksum) " +
+          "VALUES (?, ?, ?, ?, ?, ?)",
+      )
+      .bind(alertSnapshotId, snapshotId, fetchedAt, fetchedAt, fetchedAt, "no-alerts"),
+  ];
+
+  const firstDate = dailyRows[0]?.day.localDate;
+  const ranked: Array<{ readonly cityId: string; readonly score: number; readonly reasons: string }> = [];
+  for (const { cityId, day } of dailyRows) {
+    const result = calculateTravelScore({
+      row: toWeatherRow(day),
+      modelVersion: MODEL_VERSION,
+      fetchedAt,
+      asOf: fetchedAt,
+    });
+    if (result.score === null) continue;
+    const reasons = JSON.stringify(result.reasonCodes);
+    statements.push(
+      db
+        .prepare(
+          "INSERT INTO city_scores (snapshot_id, alert_snapshot_id, city_id, anchor_local_date, window, as_of, " +
+            "included_dates_json, source_kind, source_row_keys_json, source_start, source_end, travel_score, " +
+            "confidence, reason_codes_json, score_model_version, hazard_model_version) " +
+            "VALUES (?, ?, ?, ?, ?, ?, ?, 'daily', ?, ?, ?, ?, ?, ?, ?, ?)",
+        )
+        .bind(
+          snapshotId,
+          alertSnapshotId,
+          cityId,
+          day.localDate,
+          TODAY_WINDOW,
+          fetchedAt,
+          JSON.stringify([day.localDate]),
+          JSON.stringify([`${cityId}:${day.localDate}`]),
+          day.localDate,
+          day.localDate,
+          result.score,
+          result.confidence,
+          reasons,
+          MODEL_VERSION,
+          "none",
+        ),
+    );
+    if (day.localDate === firstDate) ranked.push({ cityId, score: result.score, reasons });
+  }
+
+  // The first day is the same provider-local forecast day for every city in this
+  // bounded MVP feed. It is the only day shown by the initial public ranking API.
+  if (firstDate === undefined) {
+    await runBatched(db, statements);
+    return;
+  }
+  const rankingId = `${snapshotId}-general-today-global`;
+  statements.push(
+    db
+      .prepare(
+        "INSERT INTO ranking_snapshots (id, snapshot_id, ranking_version, theme, time_window, region_key, generated_at, expires_at, model_version) " +
+          "VALUES (?, ?, ?, ?, ?, 'global', ?, ?, ?)",
+      )
+      .bind(rankingId, snapshotId, rankingVersion, GENERAL_THEME, TODAY_WINDOW, fetchedAt, fetchedAt, MODEL_VERSION),
+  );
+  ranked
+    .sort((a, b) => b.score - a.score || a.cityId.localeCompare(b.cityId))
+    .forEach((entry, index) => {
+      statements.push(
+        db
+          .prepare(
+            "INSERT INTO ranking_entries (ranking_id, city_id, rank, score, reason_codes_json) VALUES (?, ?, ?, ?, ?)",
+          )
+          .bind(rankingId, entry.cityId, index + 1, entry.score, entry.reasons),
+      );
+    });
   await runBatched(db, statements);
 }
 
@@ -470,6 +582,13 @@ export async function runSync(deps: SyncDeps, options: SyncOptions = {}): Promis
       deps.provider.id,
       dailyRows,
       hourlyRows,
+    );
+    await persistScoresAndRankings(
+      deps.db,
+      snapshotId,
+      RANKING_VERSION,
+      nowIso,
+      dailyRows,
     );
 
     const bootstrapped = await isBootstrapped(deps.db);
