@@ -16,7 +16,7 @@ database_name = "wnr-weather-preview"
 database_id = "2f3b76f0-e0e2-4a5a-bcb5-c4b233c56afe"
 
 [env.production]
-vars = { WEB_ORIGIN = "https://where-not-rain.pages.dev" }
+vars = { WEB_ORIGIN = "https://868656.xyz" }
 
 [[env.production.d1_databases]]
 binding = "DB"

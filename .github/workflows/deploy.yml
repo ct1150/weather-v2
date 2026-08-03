@@ -110,6 +110,9 @@ jobs:
       # --- Build (static export -> apps/web/out/ AND worker -> dist/) -------
       - name: Build web (Next.js static export)
         env:
+          # Custom production domain used by canonical URLs, JSON-LD, sitemap,
+          # and hreflang output in the statically exported site.
+          APP_BASE_URL: https://868656.xyz
           # Inlined at build time into the static HTML (DEP-CONFIG-001). Optional: when
           # unset, the analytics component renders nothing (zero integration by default).
           NEXT_PUBLIC_CLOUDFLARE_ANALYTICS_ENABLED: ${{ secrets.NEXT_PUBLIC_CLOUDFLARE_ANALYTICS_ENABLED }}
