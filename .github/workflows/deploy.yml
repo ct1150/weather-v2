@@ -34,6 +34,11 @@ concurrency:
 env:
   PNPM_VERSION: "10.11.0"
   NODE_VERSION: "22"
+  # Cloudflare account that owns wnr-weather, wnr-weather-preview, and both
+  # weather-sync KV namespaces. Account IDs are identifiers, not credentials;
+  # keeping this explicit prevents a stale repository Secret from targeting a
+  # different account during D1 migrations or Worker deployment.
+  CLOUDFLARE_ACCOUNT_ID: "b266970852cbc371061c94c5b1fe76a9"
   # Single source of truth for the sync-worker adapter (docs/15 §7). Injected into the
   # deployed Worker via `wrangler deploy --var` below.
   WEATHER_PRIMARY_PROVIDER: "open-meteo"
@@ -157,7 +162,6 @@ jobs:
         if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           # Idempotent: wrangler skips already-applied migrations. The single migration
           # file is packages/db/migrations/0001_weather.sql (no 0002 exists).
@@ -167,14 +171,12 @@ jobs:
         if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: pnpm --filter @wnr/weather-sync seed:preview
 
       - name: Deploy weather-sync Worker (preview, NO Cron)
         if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           WEATHER_PRIMARY_PROVIDER: ${{ env.WEATHER_PRIMARY_PROVIDER }}
         run: |
           # `--env preview` uses the [env.preview] block, which has NO `crons` binding.
@@ -186,7 +188,6 @@ jobs:
         if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: pnpm --filter @wnr/weather-read exec wrangler deploy --env preview
 
       - name: Extended preview smoke (KV hit / D1 fallback / no user-path provider call)
@@ -200,7 +201,6 @@ jobs:
         if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: pnpm --filter @wnr/web exec wrangler pages deploy out --branch ${{ github.event.pull_request.number }} --project-name where-not-rain
 
       # =====================================================================
@@ -211,7 +211,6 @@ jobs:
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           # Idempotent. Single migration = packages/db/migrations/0001_weather.sql.
           pnpm --filter @wnr/weather-sync exec wrangler d1 migrations apply wnr-weather --env production --remote
@@ -220,14 +219,12 @@ jobs:
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: pnpm --filter @wnr/weather-sync seed:prod
 
       - name: Deploy weather-sync Worker (production, Cron registered)
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           WEATHER_PRIMARY_PROVIDER: ${{ env.WEATHER_PRIMARY_PROVIDER }}
         run: |
           # `--env production` uses the [env.production] block, which declares
@@ -239,14 +236,12 @@ jobs:
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: pnpm --filter @wnr/weather-read exec wrangler deploy --env production
 
       - name: Deploy to production (main)
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: pnpm --filter @wnr/web exec wrangler pages deploy out --project-name where-not-rain --branch main
 
       - name: Production smoke (active snapshot freshness / Cron registered)
