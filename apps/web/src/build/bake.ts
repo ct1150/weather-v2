@@ -216,11 +216,15 @@ export function createBuildWeatherProvider(
   rawProvider: unknown = process.env.WEATHER_PRIMARY_PROVIDER,
   nodeEnv: string | undefined = process.env.NODE_ENV,
 ): WeatherProvider {
+  // CI defines the production provider at workflow scope. Tests must still remain
+  // deterministic and network-free even when that variable is inherited.
+  if (nodeEnv === "test") return createWeatherProvider("fake");
+
   const configured = resolveProviderName(rawProvider);
   if (rawProvider !== undefined && rawProvider !== null && configured === null) {
     throw new Error(`Unknown WEATHER_PRIMARY_PROVIDER: ${String(rawProvider)}`);
   }
-  const selected: WeatherProviderName = configured ?? (nodeEnv === "test" ? "fake" : "open-meteo");
+  const selected: WeatherProviderName = configured ?? "open-meteo";
   if (selected === "weatherapi") {
     throw new Error("WEATHER_PRIMARY_PROVIDER=weatherapi is not enabled");
   }

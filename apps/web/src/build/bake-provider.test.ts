@@ -5,6 +5,7 @@ import { createBuildWeatherProvider } from "./bake";
 describe("build weather provider selection", () => {
   it("uses deterministic fake weather only in the test environment", () => {
     expect(createBuildWeatherProvider(undefined, "test").id).toBe("fake");
+    expect(createBuildWeatherProvider("open-meteo", "test").id).toBe("fake");
   });
 
   it("defaults every user-facing build to real Open-Meteo weather", () => {
