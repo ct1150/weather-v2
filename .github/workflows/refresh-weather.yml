@@ -1,0 +1,62 @@
+name: Refresh weather pages
+
+on:
+  schedule:
+    # Static pages stay useful without running the full deployment pipeline.
+    - cron: "17 */6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: refresh-weather-pages
+  cancel-in-progress: true
+
+env:
+  PNPM_VERSION: "10.11.0"
+  NODE_VERSION: "22"
+  CLOUDFLARE_ACCOUNT_ID: "b266970852cbc371061c94c5b1fe76a9"
+  WEATHER_PRIMARY_PROVIDER: "open-meteo"
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build workspace libraries
+        run: pnpm -r --filter '!@wnr/web' --filter '!@wnr/weather-sync' --filter '!@wnr/maintenance' build
+
+      - name: Bake latest real forecast
+        env:
+          APP_BASE_URL: https://868656.xyz
+          NEXT_PUBLIC_CLOUDFLARE_ANALYTICS_ENABLED: ${{ secrets.NEXT_PUBLIC_CLOUDFLARE_ANALYTICS_ENABLED }}
+          NEXT_PUBLIC_CLOUDFLARE_ANALYTICS_TOKEN: ${{ secrets.NEXT_PUBLIC_CLOUDFLARE_ANALYTICS_TOKEN }}
+        run: pnpm --filter @wnr/web build
+
+      - name: Verify weather decision artifact
+        run: |
+          grep -q 'peak rain chance' apps/web/out/jp.html
+          grep -q 'Forecast data by' apps/web/out/jp.html
+          grep -q 'Open-Meteo' apps/web/out/jp.html
+
+      - name: Publish refreshed pages
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: pnpm --filter @wnr/web exec wrangler pages deploy out --project-name where-not-rain --branch main
