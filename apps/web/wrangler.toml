@@ -20,7 +20,7 @@ pages_build_output_dir = "out"
 [env.preview]
 vars = { APP_ENV = "preview", DEFAULT_LOCALE = "en", SUPPORTED_LOCALES = "en,ja,ko,zh-cn,zh-tw" }
 
-# Production environment — carries the approved hourly Cron + maintenance schedule.
+# Production environment — static site config; scheduled ingestion is owned by weather-sync.
 [env.production]
 vars = { APP_ENV = "production", DEFAULT_LOCALE = "en", SUPPORTED_LOCALES = "en,ja,ko,zh-cn,zh-tw" }
 

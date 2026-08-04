@@ -45,10 +45,10 @@ const D1_LOCAL_DIR = path.join(WORKER_DIR, ".wrangler", "state", "v3", "d1");
 const EXPECTED = {
   countries: 9, // JP, KR, TH, VN, SG, MY, ID, PH, KH
   country_translations: 18, // 9 countries x (en, zh)
-  cities: 32, // total seeded cities
-  city_translations: 64, // 32 cities x (en, zh)
-  featured: 11, // is_featured = 1 cities (hard activation gate)
-  active_cities: 32, // every city must be status = 'active' (sync gate)
+  cities: 44, // 36 active phase-one cities + 8 soft-disabled phase-two identities
+  city_translations: 88, // 44 cities x (en, zh)
+  featured: 13, // curated cross-region homepage set
+  active_cities: 36, // bounded phase-one sync scope
   featured_not_active: 0, // every featured city must be active
   orphan_cities: 0, // cities with a missing country_id
   orphan_city_tr: 0, // city_translations with a missing city_id
@@ -130,7 +130,7 @@ describe("seed integrity: 0001_cities_jp_kr_sea.sql", () => {
     assert.equal(countsAfterFirstSeed.featured, EXPECTED.featured, "featured");
   });
 
-  it("every one of the 32 cities is status = active (sync gate)", () => {
+  it("keeps exactly 36 phase-one cities active for the sync gate", () => {
     assert.equal(countsAfterFirstSeed.active_cities, EXPECTED.active_cities);
   });
 

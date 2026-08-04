@@ -44,6 +44,8 @@ export interface WeatherSummaryViewModel {
   readonly temperatureMax: number | null;
   /** 0..100; null when unavailable. */
   readonly rainProbability: number | null;
+  /** Expected precipitation total for the city-local day, in millimetres. */
+  readonly precipitationMm?: number | null;
   readonly observedAt: string;
 }
 

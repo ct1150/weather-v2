@@ -20,6 +20,7 @@ export interface CountrySeed {
   readonly slug: string;
   readonly defaultTimezone: string;
   readonly name: Record<Locale, string>;
+  readonly summary?: Partial<Record<Locale, string>>;
 }
 
 /** A city in the static geography seed. */

@@ -126,7 +126,7 @@ describe("runSync — fenced ingestion and activation", () => {
     const hourly = (await db.prepare("SELECT COUNT(*) AS c FROM weather_hourly").first()) as {
       c: number;
     };
-    expect(hourly.c).toBe(14 * 24);
+    expect(hourly.c).toBe(2 * 24); // featured city only, next 48 hours
 
     // The public read path consumes persisted scores/rankings; it must never
     // recalculate them from raw weather on a user request.

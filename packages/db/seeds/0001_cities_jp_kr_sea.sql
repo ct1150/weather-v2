@@ -156,3 +156,59 @@ INSERT OR IGNORE INTO city_translations (city_id, locale, name, summary) VALUES
   ('kh-siem-reap', 'zh', '暹粒', '吴哥窟寺庙群的门户。'),
   ('kh-phnom-penh', 'en', 'Phnom Penh', 'Riverside capital of Cambodia.'),
   ('kh-phnom-penh', 'zh', '金边', '柬埔寨滨河首都。');
+
+-- ---------------------------------------------------------------------------
+-- 5. Phase-one weather-map expansion and bounded ingestion profile
+-- ---------------------------------------------------------------------------
+-- These additions bring the public catalogue to 36 weather-distinct destinations.
+-- Second-phase catalogue rows remain preserved but inactive so the scheduled worker
+-- does not spend D1 writes on destinations that are not yet exposed by the web app.
+INSERT OR IGNORE INTO cities (id, country_id, slug, latitude, longitude, timezone, population, is_featured, status, search_weight, created_at, updated_at) VALUES
+  ('jp-hiroshima', 'jp', 'hiroshima', 34.3853, 132.4553, 'Asia/Tokyo', 1190000, 0, 'active', 1.0, '2026-08-05T00:00:00Z', '2026-08-05T00:00:00Z'),
+  ('jp-kanazawa', 'jp', 'kanazawa', 36.5613, 136.6562, 'Asia/Tokyo', 460000, 0, 'active', 1.0, '2026-08-05T00:00:00Z', '2026-08-05T00:00:00Z'),
+  ('kr-gyeongju', 'kr', 'gyeongju', 35.8562, 129.2247, 'Asia/Seoul', 250000, 0, 'active', 1.0, '2026-08-05T00:00:00Z', '2026-08-05T00:00:00Z'),
+  ('kr-gangneung', 'kr', 'gangneung', 37.7519, 128.8761, 'Asia/Seoul', 210000, 0, 'active', 1.0, '2026-08-05T00:00:00Z', '2026-08-05T00:00:00Z'),
+  ('kr-jeonju', 'kr', 'jeonju', 35.8242, 127.1480, 'Asia/Seoul', 650000, 0, 'active', 1.0, '2026-08-05T00:00:00Z', '2026-08-05T00:00:00Z'),
+  ('th-koh-samui', 'th', 'koh-samui', 9.5120, 100.0136, 'Asia/Bangkok', 70000, 0, 'active', 1.0, '2026-08-05T00:00:00Z', '2026-08-05T00:00:00Z'),
+  ('th-chiang-rai', 'th', 'chiang-rai', 19.9105, 99.8406, 'Asia/Bangkok', 78000, 0, 'active', 1.0, '2026-08-05T00:00:00Z', '2026-08-05T00:00:00Z'),
+  ('vn-da-lat', 'vn', 'da-lat', 11.9404, 108.4583, 'Asia/Ho_Chi_Minh', 425000, 0, 'active', 1.0, '2026-08-05T00:00:00Z', '2026-08-05T00:00:00Z'),
+  ('vn-phu-quoc', 'vn', 'phu-quoc', 10.2899, 103.9840, 'Asia/Ho_Chi_Minh', 180000, 0, 'active', 1.0, '2026-08-05T00:00:00Z', '2026-08-05T00:00:00Z'),
+  ('id-lombok', 'id', 'lombok', -8.5833, 116.1167, 'Asia/Makassar', 3600000, 0, 'active', 1.0, '2026-08-05T00:00:00Z', '2026-08-05T00:00:00Z'),
+  ('id-labuan-bajo', 'id', 'labuan-bajo', -8.4964, 119.8877, 'Asia/Makassar', 260000, 0, 'active', 1.0, '2026-08-05T00:00:00Z', '2026-08-05T00:00:00Z'),
+  ('my-kota-kinabalu', 'my', 'kota-kinabalu', 5.9804, 116.0735, 'Asia/Kuching', 500000, 0, 'active', 1.0, '2026-08-05T00:00:00Z', '2026-08-05T00:00:00Z');
+
+INSERT OR IGNORE INTO city_translations (city_id, locale, name, summary) VALUES
+  ('jp-hiroshima', 'en', 'Hiroshima', 'Setouchi gateway for culture, islands and regional food.'),
+  ('jp-hiroshima', 'zh', '广岛', '濑户内文化、岛屿与地方美食门户。'),
+  ('jp-kanazawa', 'en', 'Kanazawa', 'Sea of Japan arts city known for gardens and winter weather.'),
+  ('jp-kanazawa', 'zh', '金泽', '日本海沿岸艺术之城，以庭园与冬季天气著称。'),
+  ('kr-gyeongju', 'en', 'Gyeongju', 'Historic capital filled with tombs, temples and heritage.'),
+  ('kr-gyeongju', 'zh', '庆州', '古都遗址、陵墓与寺庙集中。'),
+  ('kr-gangneung', 'en', 'Gangneung', 'East-coast beach city between mountains and sea.'),
+  ('kr-gangneung', 'zh', '江陵', '山海之间的韩国东海岸度假城市。'),
+  ('kr-jeonju', 'en', 'Jeonju', 'Food and hanok destination in southwestern Korea.'),
+  ('kr-jeonju', 'zh', '全州', '韩国西南部的美食与韩屋旅行地。'),
+  ('th-koh-samui', 'en', 'Koh Samui', 'Gulf island whose wet season differs from the Andaman coast.'),
+  ('th-koh-samui', 'zh', '苏梅岛', '泰国湾海岛，雨季节奏不同于安达曼海岸。'),
+  ('th-chiang-rai', 'en', 'Chiang Rai', 'Northern mountain gateway of temples and tea country.'),
+  ('th-chiang-rai', 'zh', '清莱', '通往泰北山地、寺庙与茶园的门户。'),
+  ('vn-da-lat', 'en', 'Da Lat', 'Cool highland escape of pine forests and flowers.'),
+  ('vn-da-lat', 'zh', '大叻', '松林与花田环绕的清凉高原度假地。'),
+  ('vn-phu-quoc', 'en', 'Phu Quoc', 'Southern island destination for beaches and sunsets.'),
+  ('vn-phu-quoc', 'zh', '富国岛', '以海滩与日落闻名的越南南部海岛。'),
+  ('id-lombok', 'en', 'Lombok', 'Quieter island alternative with beaches and Mount Rinjani.'),
+  ('id-lombok', 'zh', '龙目岛', '拥有海滩与林贾尼火山的静谧海岛。'),
+  ('id-labuan-bajo', 'en', 'Labuan Bajo / Komodo', 'Harbour gateway to Komodo National Park.'),
+  ('id-labuan-bajo', 'zh', '拉布安巴焦 / 科莫多', '前往科莫多国家公园的港口门户。'),
+  ('my-kota-kinabalu', 'en', 'Kota Kinabalu', 'Sabah coast gateway to islands and Mount Kinabalu.'),
+  ('my-kota-kinabalu', 'zh', '亚庇', '通往沙巴海岛与神山的海岸门户。');
+
+UPDATE cities SET status = 'inactive', is_featured = 0, updated_at = '2026-08-05T00:00:00Z'
+WHERE id IN ('kr-incheon', 'th-pattaya', 'vn-hoi-an', 'my-langkawi', 'my-malacca', 'id-jakarta', 'kh-siem-reap', 'kh-phnom-penh');
+
+UPDATE cities SET is_featured = 0, updated_at = '2026-08-05T00:00:00Z';
+UPDATE cities SET is_featured = 1, updated_at = '2026-08-05T00:00:00Z'
+WHERE id IN ('jp-tokyo', 'jp-osaka', 'jp-sapporo', 'kr-seoul', 'kr-jeju', 'th-bangkok', 'th-phuket', 'th-chiang-mai', 'vn-da-nang', 'id-bali', 'my-kuala-lumpur', 'ph-boracay', 'sg-singapore');
+
+UPDATE cities SET latitude = -8.6705, timezone = 'Asia/Makassar', updated_at = '2026-08-05T00:00:00Z'
+WHERE id = 'id-bali';

@@ -48,6 +48,7 @@ function city(
   rainByDay: ReadonlyArray<number>,
   latitude: number,
   longitude: number,
+  rainMmByDay: ReadonlyArray<number> = [],
 ): CountryWeatherCityViewModel {
   return {
     cityId,
@@ -64,6 +65,7 @@ function city(
         temperatureMin: 20 + index,
         temperatureMax: 28 + index,
         rainProbability: rain,
+        precipitationMm: rainMmByDay[index] ?? null,
         observedAt: "2026-08-04T00:00:00.000Z",
       },
       score: score(90 - rain),
@@ -127,6 +129,38 @@ describe("CountryWeatherExplorer", () => {
     );
     expect(screen.getByLabelText("Osaka weather summary").textContent).toContain("15% peak rain");
     expect(container.querySelector(".country-city-grid button")?.textContent).toMatch(/^#1Osaka/);
+  });
+
+  it("re-ranks every city for an exact date range without opening a detail page", () => {
+    const { container } = renderExplorer();
+
+    fireEvent.change(screen.getByLabelText("First travel date"), { target: { value: "1" } });
+    fireEvent.change(screen.getByLabelText("Last travel date"), { target: { value: "3" } });
+
+    expect(window.location.search).toBe("?from=1&to=3");
+    expect(screen.getAllByText("Custom trip · Aug 5–Aug 7")).toHaveLength(2);
+    expect(screen.getByLabelText("Osaka weather summary").textContent).toContain("3/3");
+    expect(container.querySelector(".country-city-grid button")?.textContent).toMatch(/^#1Osaka/);
+    expect(window.location.pathname).toBe("/jp");
+  });
+
+  it("uses expected rain amount before peak probability for tropical decisions", () => {
+    const { container } = render(
+      <CountryWeatherExplorer
+        country={{ slug: "th", name: "Thailand" }}
+        countries={[{ slug: "th", name: "Thailand", path: "/th" }]}
+        cities={[
+          city("brief-shower", "Brief shower", [95], 13.7, 100.5, [1]),
+          city("heavy-rain", "Heavy rain", [55], 18.7, 98.9, [25]),
+        ]}
+        updatedLabel="Updated now"
+      />,
+    );
+
+    expect(container.querySelector(".country-city-grid button")?.textContent).toMatch(
+      /^#1Brief shower/,
+    );
+    expect(screen.getByText("1 mm expected · 95% peak chance")).toBeTruthy();
   });
 
   it("selects a city from a map marker and updates the inline inspector without navigating", async () => {

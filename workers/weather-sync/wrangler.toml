@@ -57,11 +57,11 @@ id = "e64e70b675e146b09cf5ef8e0d545968"
 preview_id = "0e6b63643dc44a9eb0ccc809f6a82043"
 
 # ===========================================================================
-# Production environment — hourly Cron registered HERE ONLY (DEP-CICD-001).
+# Production environment — six-hour Cron registered HERE ONLY (DEP-CICD-001).
 # MUST re-declare bindings (wrangler does not inherit from top level).
 # ===========================================================================
 [env.production]
-crons = ["0 * * * *"]
+crons = ["17 */6 * * *"]
 
 [[env.production.d1_databases]]
 binding = "DB"

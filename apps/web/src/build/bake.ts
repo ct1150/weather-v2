@@ -113,6 +113,7 @@ function weatherSummary(day: NormalizedDaily): WeatherSummaryViewModel {
     temperatureMin: day.tempMinC,
     temperatureMax: day.tempMaxC,
     rainProbability: day.precipitationProbabilityMax,
+    precipitationMm: day.precipitationMm,
     observedAt: `${day.localDate}T12:00:00Z`,
   };
 }
@@ -405,7 +406,7 @@ export function projectCountry(
         countryId: country.id,
         slug: country.slug,
         name: country.name[locale] ?? country.name.en,
-        summary: null,
+        summary: country.summary?.[locale] ?? country.summary?.en ?? null,
         defaultTimezone: country.defaultTimezone,
       }
     : {

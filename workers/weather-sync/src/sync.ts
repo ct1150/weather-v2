@@ -1,4 +1,4 @@
-// workers/weather-sync — fenced hourly ingestion and activation (ARCH-DATAFLOW-001,
+// workers/weather-sync — fenced six-hour ingestion and activation (ARCH-DATAFLOW-001,
 // ARCH-RECOVERY-001, DATA-OPERATIONS-001, ENG-RELIABILITY-001).
 //
 // This is the ONLY path allowed to import @wnr/weather and contact providers. A run:
@@ -6,7 +6,7 @@
 //   2. acquires the owner-aware D1 fence lock (15-min TTL) and aborts if already held;
 //   3. freezes the enabled/featured city set E/F at run start;
 //   4. fetches and normalizes each city via the provider, isolating failures;
-//   5. transactionally persists a PENDING snapshot with its daily/hourly rows;
+//   5. persists a PENDING snapshot with daily rows for all cities and 48-hour rows for featured cities;
 //   6. activates (bootstrap when unbootstrapped, replace otherwise) under a D1 batch
 //   7. releases the lock in all terminal paths (success, partial, or failure).
 // A candidate is rejected when no city validated or any featured city failed, so the
@@ -22,6 +22,8 @@ const LOCK_KEY = "weather-sync";
 const LOCK_TTL_MS = 15 * 60 * 1000;
 const RANKING_VERSION = "rv1";
 const MODEL_VERSION = "mv1";
+/** Keep fine-grained data only where it powers the highest-value near-term UI. */
+const FEATURED_HOURLY_DAYS = 2;
 
 /** Owner-aware fence lock port. Mirrors the D1 sync_locks contract (DATA-OPERATIONS-001). */
 export interface FenceLock {
@@ -553,9 +555,11 @@ export async function runSync(deps: SyncDeps, options: SyncOptions = {}): Promis
         });
         const forecast = forecasts[0];
         if (!forecast) throw new Error("provider returned no forecast");
-        for (const d of forecast.days) {
+        for (const [dayIndex, d] of forecast.days.entries()) {
           dailyRows.push({ cityId: city.id, day: d });
-          for (const h of d.hourly) hourlyRows.push({ cityId: city.id, hour: h });
+          if (city.isFeatured && dayIndex < FEATURED_HOURLY_DAYS) {
+            for (const h of d.hourly) hourlyRows.push({ cityId: city.id, hour: h });
+          }
         }
         validCityIds.add(city.id);
       } catch {

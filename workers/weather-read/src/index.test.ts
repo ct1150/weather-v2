@@ -97,6 +97,23 @@ describe("weather-read public API", () => {
     await expect(response.json()).resolves.toEqual({ error: { code: "DATA_UNAVAILABLE" } });
   });
 
+  it("keeps a six-hour publication fresh but marks it stale after the retry margin", async () => {
+    await seedPublishedRanking(db);
+    const withinCadence = await handleRequest(
+      new Request("https://read.example/api/v1/rankings"),
+      { DB: db },
+      new Date("2026-08-03T06:59:59.000Z"),
+    );
+    const beyondMargin = await handleRequest(
+      new Request("https://read.example/api/v1/rankings"),
+      { DB: db },
+      new Date("2026-08-03T07:00:01.000Z"),
+    );
+
+    await expect(withinCadence.json()).resolves.toMatchObject({ meta: { stale: false } });
+    await expect(beyondMargin.json()).resolves.toMatchObject({ meta: { stale: true } });
+  });
+
   it("rejects unsupported ranking filters instead of silently returning another dataset", async () => {
     const response = await handleRequest(
       new Request("https://read.example/api/v1/rankings?theme=beach"),

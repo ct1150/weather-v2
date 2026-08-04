@@ -79,18 +79,18 @@ verification: pnpm docs:check
 
 <a id="ARCH-DATAFLOW-001"></a>
 
-### ARCH-DATAFLOW-001 — Scheduled write path and precomputed read path
+### ARCH-DATAFLOW-001 — Scheduled tiered write path and precomputed read path
 
-The hourly weather flow is the only weather write path:
+The six-hour weather flow is the only weather write path. It uses tiered persistence so broad daily destination coverage remains within the Cloudflare free-plan envelope:
 
 ```text
-Cron Trigger (hourly)
+Cron Trigger (every six hours, minute 17)
   1. acquire the owner-aware D1 "weather-sync" lock with a 15-minute expiry; abort if held
   2. create the run and freeze E = enabled city IDs and F = featured IDs at run start
   3. fetch bounded city batches; after primary exhaustion, use the configured fallback
   4. validate provider DTOs and normalize them to internal types
   5. record each failed city and continue with valid cities
-  6. transactionally persist the pending snapshot, daily/hourly weather, scores, and one new rankingVersion in D1
+  6. transactionally persist the pending snapshot, seven daily rows for every valid city, at most two local days of hourly rows for featured cities, scores, and one new rankingVersion in D1
   7. validate all records and activation coverage against frozen E and F; fail the candidate on any gate failure
   8. write and checksum-read-back immutable weather keys scoped by snapshotId and ranking/map keys scoped by snapshotId + rankingVersion
   9. acquire the owner-aware D1 `weather-publication` lock and capture its newly incremented monotonic `fencing_token = T`
@@ -100,6 +100,8 @@ Cron Trigger (hourly)
 ```
 
 At step 2, an enabled city is exactly a `cities` row whose `status = 'active'`; `E` is that set captured before the first provider fetch, and `F = {city in E | is_featured = 1}` uses the same run-start rows. Let `d0(city)` be the city-local calendar date containing `sync_runs.started_at`. A city belongs to `V` only when the candidate contains runtime-valid daily weather for every date `d0(city)` through `d0(city) + 6`, inclusive, and every row contains the raw inputs required to derive rain, temperature, comfort, humidity, wind, UV, cloud, and visibility factors. Activation requires `|E| > 0`, `100 * |V| >= 95 * |E|`, and `F subset-of V`. The integer inequality is the exact `>= 95%` test; `F subset-of V` is exact 100% featured coverage and passes vacuously when `F` is empty. City enablement changes after run start do not change this denominator.
+
+Hourly persistence is intentionally bounded to the first two city-local forecast dates for F. Daily fallback remains authoritative for longer windows and non-featured cities. Missing hourly coverage is represented as unavailable and never inferred from partial rows. This tiering and cadence are governed by [ADR-001](12-ADR/ADR-001-tiered-six-hour-weather-ingestion.md).
 
 Step 8 uses high-entropy `snapshotId` and `rankingVersion` values that have never appeared in a manifest, response, log, or public URL. No candidate write overwrites an active key. The candidate becomes discoverable only through step 11, after record validation, coverage validation, immutable-key read-back verification, and D1 activation have succeeded.
 

@@ -34,7 +34,7 @@ relation: docs/14-Fullstack-Increment-PRD.md, docs/system_design.md, docs/08-Clo
   - `fetch`：保留一个**手动触发 / 健康检查**端点（仅用于运维按需触发与 CI 冒烟 Profiling，不做用户读取——满足 PRD-INC-003 "无用户请求期 provider 调用"）。
 - **D1 绑定**：`env.DB`（`wrangler.toml` 的 `[[d1_databases]] binding = "DB"`），指向 `database_name = "wnr-weather"`，`migrations_dir = "../../packages/db/migrations"`。`sync.ts` 继续使用 `D1DatabaseLike`（来自 `@wnr/test-utils`）以保持单测可注入；真实 `D1Database` 结构兼容该接口。
 - **KV 绑定**：`env.WEATHER_SYNC_KV`（`[[kv_namespaces]] binding = "WEATHER_SYNC_KV"`），预览/生产各一个**隔离命名空间**。
-- **Cron**：在 `workers/weather-sync/wrangler.toml` **顶层** `crons = ["0 * * * *"]`（每小时），**仅 production 环境注册**（preview env 块不声明 scheduled）。
+- **Cron**：在 `workers/weather-sync/wrangler.toml` production 环境注册 `crons = ["17 */6 * * *"]`（每 6 小时）；逐小时数据仅保留重点城市未来 48 小时，详见 ADR-001。
 
 ### 1.2 Open-Meteo 适配器
 
@@ -69,7 +69,7 @@ relation: docs/14-Fullstack-Increment-PRD.md, docs/system_design.md, docs/08-Clo
 
 - `packages/weather/src/open-meteo.ts` — `OpenMeteoProvider`（实现 `WeatherProvider`）+ `createWeatherProvider(name?)` 工厂（按 `WEATHER_PRIMARY_PROVIDER` 选择 `open-meteo` | `fake`）。**并入 `packages/weather`**，不另起包；`index.ts` 已 `export * from "./provider.js"`，需补 `export * from "./open-meteo.js"`。
 - `packages/domain/src/weather-code.ts` — 规范化的 **WMO weather_code → {label, icon}** 映射（覆盖 Open-Meteo 完整 WMO 码集 0,1,2,3,45,48,51–67,71–77,80–86,95,96,99）。（_注：PRD 假设该映射在 `packages/domain`，实际现状在 `apps/web/src/build/bake.ts` 的 `conditionLabel`（仅 0..3）。本期新建规范模块并让 `bake.ts` 消费，向前兼容真实 WMO 码。详见 §8 #1。_）
-- `workers/weather-sync/wrangler.toml` — **新建**：`[[d1_databases]]`（DB）、`[[kv_namespaces]]`（WEATHER_SYNC_KV）、顶层 `crons`（仅 production 注册）。
+- `workers/weather-sync/wrangler.toml` — `[[d1_databases]]`（DB）、`[[kv_namespaces]]`（WEATHER_SYNC_KV）及仅 production 注册的六小时 `crons`。
 - `apps/web/src/components/CloudflareAnalytics.tsx` — Analytics 注入组件（条件渲染）。
 - `.env.example` — 增补 `WEATHER_PRIMARY_PROVIDER=open-meteo`、`CLOUDFLARE_ANALYTICS_ENABLED`、`NEXT_PUBLIC_CLOUDFLARE_ANALYTICS_TOKEN`（占位/公开），保留禁用项注释。
 
@@ -132,7 +132,7 @@ relation: docs/14-Fullstack-Increment-PRD.md, docs/system_design.md, docs/08-Clo
 - **Source files**：`workers/weather-sync/wrangler.toml`（新）、`workers/weather-sync/src/index.ts`（改：增 `scheduled`+`fetch` 默认导出）、`workers/weather-sync/src/sync.ts`（改：`SyncDeps.kv`、provider 列值 `'fake'`→`deps.provider.id`、KV `sync-health` 写入）、`workers/weather-sync/src/sync.test.ts`（改：增 KV 写入断言）
 - **Dependencies**：T01
 - **验收要点**：
-  - `wrangler.toml`：`name = "wnr-weather-sync"`；`[[d1_databases]] binding="DB" database_name="wnr-weather" migrations_dir="../../packages/db/migrations"`；`[[kv_namespaces]] binding="WEATHER_SYNC_KV"`（preview/prod 各一隔离 NS，用 `id` 区分）；顶层 `crons = ["0 * * * *"]` **仅 production 环境块内声明**（preview 块无 scheduled）。
+  - `wrangler.toml`：`name = "wnr-weather-sync"`；D1/KV 保持 preview/prod 隔离；`crons = ["17 */6 * * *"]` 仅在 production 环境声明。
   - `index.ts`：`scheduled(event, env, ctx)` 依据 `env.WEATHER_PRIMARY_PROVIDER` 构造 provider，调用 `runSync({ db: env.DB, provider, lock: new D1FenceLock(env.DB), config, kv: env.WEATHER_SYNC_KV })`；`fetch` 提供手动触发/健康检查（非用户读取路径）。
   - `sync.ts`：`SyncDeps` 增可选 `kv: { put(key, value): Promise<unknown> }`；`insertRun`/`persistCandidate` 的 `'fake'` 改为 `deps.provider.id`；`activate` 成功后 `await deps.kv?.put("sync-health", JSON.stringify({ lastSuccessAt: nowIso, provider: deps.provider.id, status: "ok" }))`。
   - 单测：`runSync` 成功后断言 `kv.put` 被调用且内容为 `{status:"ok", provider:"open-meteo", ...}`；preview 路径（无 KV）不报错。
@@ -202,7 +202,7 @@ relation: docs/14-Fullstack-Increment-PRD.md, docs/system_design.md, docs/08-Clo
 - **KV key 约定**：固定键 `sync-health`，值为 JSON `{ lastSuccessAt: string(ISO), provider: string, status: "ok" }`；因命名空间已按环境隔离，单键即可。
 - **Analytics 变量命名**：规范词表名 `CLOUDFLARE_ANALYTICS_ENABLED`（DEP-CONFIG-001）；静态导出须内联，故构建期经 Pages 公开 env var 注入 `NEXT_PUBLIC_CLOUDFLARE_ANALYTICS_ENABLED`（值 `"true"`/`"false"`），beacon token 经 `NEXT_PUBLIC_CLOUDFLARE_ANALYTICS_TOKEN`（**公开**，非 secret）。
 - **迁移契约**：CI **只 apply `0001_weather.sql`**；**不存在 `0002`**；production startup 不自动迁移（DATA-MIGRATION-001）。
-- **Cron 注册**：顶层 `crons = ["0 * * * *"]` **仅 production**；preview 无 scheduled binding（沿用 apps/web/wrangler.toml 注释约定）。
+- **Cron 注册**：`crons = ["17 */6 * * *"]` **仅 production**；preview 无 scheduled binding。
 - **失败隔离 / 门禁**：沿用 `sync.ts` 候选门禁（citiesOk>0 且 featured 全成功才激活）+ 栅栏锁 15min TTL；新版失败不替换 active，页面始终读上一 active 快照。
 - **Secrets 边界**：`CLOUDFLARE_API_TOKEN` / `CLOUDFLARE_ACCOUNT_ID` 仅 GitHub Actions Secrets；Analytics token 为公开 beacon，放 Pages 公开 env var；`WEATHERAPI_SECRET` 保持禁用、不写入仓库/构建产物。
 

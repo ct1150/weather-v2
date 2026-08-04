@@ -4,7 +4,8 @@
 import type { D1DatabaseLike } from "@wnr/test-utils";
 
 const DEFAULT_ORIGIN = "https://where-not-rain.pages.dev";
-const MAX_AGE_MS = 60 * 60 * 1000;
+/** Six-hour schedule plus one-hour delivery/retry tolerance. */
+const MAX_AGE_MS = 7 * 60 * 60 * 1000;
 
 export interface WorkerEnv {
   readonly DB: D1DatabaseLike;

@@ -23,7 +23,7 @@ The monorepo layout and package boundaries are authoritative via the domain docu
 
 ```
 apps/web              Next.js App Router app (UI + read APIs) — never imports @wnr/weather
-workers/weather-sync  Hourly Cron ingestion + scoring + read-model writer (only provider caller)
+workers/weather-sync  Six-hour tiered ingestion + scoring + read-model writer (only provider caller)
 workers/maintenance   Ranking refresh, sitemap, health, cleanup
 packages/ui           Shared components, design tokens, AsyncState primitives
 packages/domain       Entities, ports, pure Travel Score logic (no framework deps)

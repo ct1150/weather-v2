@@ -281,6 +281,30 @@
     @apply text-white/55;
   }
 
+  .country-custom-range {
+    @apply mt-2 flex flex-wrap items-center gap-2 text-[10px] font-bold uppercase tracking-[0.1em] text-muted;
+  }
+
+  .country-custom-range > span:first-child {
+    @apply w-full sm:w-auto;
+  }
+
+  .country-custom-range label {
+    @apply relative;
+  }
+
+  .country-custom-range select {
+    @apply min-h-9 appearance-none rounded-lg border border-border bg-surface-elevated px-3 pr-7 text-xs font-bold normal-case tracking-normal text-foreground outline-none transition-colors focus:border-primary;
+    background-image:
+      linear-gradient(45deg, transparent 50%, rgb(var(--wnr-muted)) 50%),
+      linear-gradient(135deg, rgb(var(--wnr-muted)) 50%, transparent 50%);
+    background-position:
+      calc(100% - 12px) 15px,
+      calc(100% - 8px) 15px;
+    background-repeat: no-repeat;
+    background-size: 4px 4px;
+  }
+
   .country-data-age {
     @apply text-xs text-muted lg:pb-3;
   }
@@ -331,13 +355,21 @@
     @apply relative;
   }
 
+  .country-weather-marker::before {
+    content: "";
+    @apply pointer-events-none absolute left-1/2 top-full z-0 h-px bg-current opacity-45;
+    width: var(--marker-leader-length, 0);
+    transform: rotate(var(--marker-leader-angle, 0));
+    transform-origin: left center;
+  }
+
   .country-weather-marker::after {
     content: "";
     @apply absolute left-1/2 top-full h-3 w-3 -translate-x-1/2 -translate-y-2 rotate-45 border-b border-r border-current bg-white;
   }
 
   .country-weather-marker-button {
-    @apply relative z-10 min-w-28 rounded-xl border-2 bg-white px-3 py-2 text-left text-foreground transition-transform duration-200;
+    @apply relative z-10 min-w-20 rounded-lg border-2 bg-white px-2.5 py-1.5 text-left text-foreground transition-transform duration-200;
     box-shadow: 0 8px 24px rgb(18 35 62 / 0.2);
   }
 
@@ -357,11 +389,11 @@
   }
 
   .country-weather-marker-button strong {
-    @apply text-xs font-bold;
+    @apply text-[11px] font-bold;
   }
 
   .country-weather-marker-button span {
-    @apply mt-0.5 text-[10px] font-semibold;
+    @apply mt-0.5 text-[9px] font-semibold;
   }
 
   .country-weather-marker.risk-good,

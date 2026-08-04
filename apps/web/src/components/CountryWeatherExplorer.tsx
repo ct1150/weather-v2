@@ -37,11 +37,32 @@ interface CitySummary {
   readonly days: ReadonlyArray<CountryWeatherDayViewModel>;
   readonly dryDays: number;
   readonly maxRain: number | null;
+  readonly totalRainMm: number | null;
   readonly temperatureMin: number | null;
   readonly temperatureMax: number | null;
   readonly score: number | null;
   readonly risk: Risk;
 }
+
+/** Pixel nudges keep dense tourism corridors legible without hiding a destination. */
+const MARKER_OFFSETS: Readonly<Record<string, [number, number]>> = {
+  osaka: [42, 62],
+  kyoto: [-30, -82],
+  kanazawa: [58, -62],
+  hiroshima: [-84, -34],
+  fukuoka: [-72, 38],
+  tokyo: [82, 16],
+  gyeongju: [34, -20],
+  busan: [-34, 18],
+  krabi: [-32, 18],
+  phuket: [34, -18],
+  "da-nang": [34, -18],
+  "da-lat": [50, -34],
+  "ho-chi-minh": [58, 42],
+  "phu-quoc": [-52, 16],
+  bali: [-38, 16],
+  lombok: [38, -16],
+};
 
 export interface CountryWeatherExplorerProps {
   readonly country: CountryHeaderViewModel;
@@ -52,35 +73,44 @@ export interface CountryWeatherExplorerProps {
 
 function daysForWindow(
   city: CountryWeatherCityViewModel,
-  windowKind: Window,
+  indices: ReadonlyArray<number>,
 ): ReadonlyArray<CountryWeatherDayViewModel> {
-  return WINDOW_INDICES[windowKind]
+  return indices
     .map((index) => city.days[index])
     .filter((day): day is CountryWeatherDayViewModel => day !== undefined);
 }
 
 function referenceDays(
   cities: ReadonlyArray<CountryWeatherCityViewModel>,
-  windowKind: Window,
+  indices: ReadonlyArray<number>,
 ): ReadonlyArray<CountryWeatherDayViewModel> {
   const city = cities[0];
-  return city === undefined ? [] : daysForWindow(city, windowKind);
+  return city === undefined ? [] : daysForWindow(city, indices);
 }
 
 function numericValues(values: ReadonlyArray<number | null>): number[] {
   return values.filter((value): value is number => value !== null);
 }
 
-function summarize(city: CountryWeatherCityViewModel, windowKind: Window): CitySummary {
-  const days = daysForWindow(city, windowKind);
+function summarize(city: CountryWeatherCityViewModel, indices: ReadonlyArray<number>): CitySummary {
+  const days = daysForWindow(city, indices);
   const rainValues = numericValues(days.map((day) => day.weather.rainProbability));
+  const rainAmounts = numericValues(days.map((day) => day.weather.precipitationMm ?? null));
   const minimums = numericValues(days.map((day) => day.weather.temperatureMin));
   const maximums = numericValues(days.map((day) => day.weather.temperatureMax));
   const scores = numericValues(days.map((day) => day.score.value));
-  const dryDays = days.filter(
-    (day) => day.weather.rainProbability !== null && day.weather.rainProbability <= 45,
-  ).length;
+  const dryDays = days.filter((day) => {
+    const chance = day.weather.rainProbability;
+    const amount = day.weather.precipitationMm;
+    return amount !== undefined && amount !== null
+      ? amount <= 2.5 || ((chance ?? 100) <= 45 && amount < 5)
+      : chance !== null && chance <= 45;
+  }).length;
   const maxRain = rainValues.length > 0 ? Math.max(...rainValues) : null;
+  const totalRainMm =
+    rainAmounts.length > 0
+      ? Math.round(rainAmounts.reduce((total, value) => total + value, 0) * 10) / 10
+      : null;
   const temperatureMin = minimums.length > 0 ? Math.min(...minimums) : null;
   const temperatureMax = maximums.length > 0 ? Math.max(...maximums) : null;
   const score =
@@ -88,14 +118,24 @@ function summarize(city: CountryWeatherCityViewModel, windowKind: Window): CityS
       ? Math.round(scores.reduce((total, value) => total + value, 0) / scores.length)
       : null;
   const risk: Risk =
-    maxRain === null
+    totalRainMm === null && maxRain === null
       ? "unknown"
-      : dryDays === days.length && maxRain <= 35
+      : dryDays === days.length && (totalRainMm ?? 0) <= days.length * 2.5
         ? "good"
-        : dryDays >= Math.ceil(days.length / 2) && maxRain <= 70
+        : dryDays >= Math.ceil(days.length / 2) || (totalRainMm ?? Infinity) <= days.length * 8
           ? "mixed"
           : "wet";
-  return { city, days, dryDays, maxRain, temperatureMin, temperatureMax, score, risk };
+  return {
+    city,
+    days,
+    dryDays,
+    maxRain,
+    totalRainMm,
+    temperatureMin,
+    temperatureMax,
+    score,
+    risk,
+  };
 }
 
 function shortDate(value: string): string {
@@ -113,16 +153,25 @@ function rangeLabel(days: ReadonlyArray<CountryWeatherDayViewModel>): string {
 }
 
 function rainLabel(summary: CitySummary): string {
-  if (summary.maxRain === null) return "Rain data unavailable";
-  if (summary.days.length === 1) return `${summary.maxRain}% peak rain chance`;
-  return `${summary.dryDays}/${summary.days.length} lower-rain days · max ${summary.maxRain}%`;
+  if (summary.totalRainMm === null && summary.maxRain === null) return "Rain data unavailable";
+  if (summary.totalRainMm === null) {
+    return summary.days.length === 1
+      ? `${summary.maxRain}% peak rain chance`
+      : `${summary.dryDays}/${summary.days.length} lower-rain days · max ${summary.maxRain}%`;
+  }
+  if (summary.days.length === 1) {
+    return `${summary.totalRainMm} mm expected · ${summary.maxRain ?? "—"}% peak chance`;
+  }
+  return `${summary.dryDays}/${summary.days.length} lighter-rain days · ${summary.totalRainMm ?? "—"} mm total`;
 }
 
 function mapMarkerLabel(summary: CitySummary): string {
   if (summary.days.length === 1) {
-    return summary.maxRain === null ? "No rain data" : `${summary.maxRain}% peak rain`;
+    return summary.totalRainMm === null
+      ? `${summary.maxRain ?? "—"}% peak`
+      : `${summary.totalRainMm} mm · ${summary.maxRain ?? "—"}% peak`;
   }
-  return `${summary.dryDays}/${summary.days.length} dry · ${summary.maxRain ?? "—"}% max`;
+  return `${summary.dryDays}/${summary.days.length} light · ${summary.totalRainMm ?? "—"} mm`;
 }
 
 function WeatherIcon({ condition }: { condition: string }): ReactElement {
@@ -170,6 +219,7 @@ export function CountryWeatherExplorer({
   updatedLabel,
 }: CountryWeatherExplorerProps): ReactElement {
   const [activeWindow, setActiveWindow] = useState<Window>("today");
+  const [customRange, setCustomRange] = useState<{ start: number; end: number } | null>(null);
   const [selectedCityId, setSelectedCityId] = useState("");
   const [mapReady, setMapReady] = useState(false);
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
@@ -177,32 +227,61 @@ export function CountryWeatherExplorer({
   const mapModuleRef = useRef<typeof MapLibreModule | null>(null);
   const markerRefs = useRef<MapLibreMarker[]>([]);
 
+  const selectedIndices = useMemo(() => {
+    if (customRange === null) return WINDOW_INDICES[activeWindow];
+    return Array.from(
+      { length: customRange.end - customRange.start + 1 },
+      (_, index) => customRange.start + index,
+    );
+  }, [activeWindow, customRange]);
   const summaries = useMemo(
     () =>
       cities
-        .map((city) => summarize(city, activeWindow))
+        .map((city) => summarize(city, selectedIndices))
         .sort((left, right) => {
           if (right.dryDays !== left.dryDays) return right.dryDays - left.dryDays;
+          if ((left.totalRainMm ?? Infinity) !== (right.totalRainMm ?? Infinity))
+            return (left.totalRainMm ?? Infinity) - (right.totalRainMm ?? Infinity);
           if ((left.maxRain ?? 101) !== (right.maxRain ?? 101))
             return (left.maxRain ?? 101) - (right.maxRain ?? 101);
           return (right.score ?? -1) - (left.score ?? -1);
         }),
-    [activeWindow, cities],
+    [cities, selectedIndices],
   );
   const selected =
     summaries.find((summary) => summary.city.cityId === selectedCityId) ?? summaries[0] ?? null;
-  const exactDates = rangeLabel(referenceDays(cities, activeWindow));
+  const exactDates = rangeLabel(referenceDays(cities, selectedIndices));
+  const rangeName = customRange === null ? WINDOW_LABELS[activeWindow] : "Custom trip";
 
   useEffect(() => {
-    const requested = new URLSearchParams(window.location.search).get("window") as Window | null;
-    if (requested !== null && WINDOWS.includes(requested)) setActiveWindow(requested);
-    const onPopState = (): void => {
-      const next = new URLSearchParams(window.location.search).get("window") as Window | null;
-      if (next !== null && WINDOWS.includes(next)) setActiveWindow(next);
+    const restoreUrlState = (): void => {
+      const params = new URLSearchParams(window.location.search);
+      const from = Number(params.get("from"));
+      const to = Number(params.get("to"));
+      const finalIndex = Math.max(0, (cities[0]?.days.length ?? 1) - 1);
+      if (
+        params.has("from") &&
+        params.has("to") &&
+        Number.isInteger(from) &&
+        Number.isInteger(to) &&
+        from >= 0 &&
+        to >= from &&
+        to <= finalIndex
+      ) {
+        setCustomRange({ start: from, end: to });
+        return;
+      }
+      const requested = params.get("window") as Window | null;
+      if (requested !== null && WINDOWS.includes(requested)) {
+        setActiveWindow(requested);
+        setCustomRange(null);
+      }
     };
+    restoreUrlState();
+    const onPopState = (): void => restoreUrlState();
     window.addEventListener("popstate", onPopState);
     return () => window.removeEventListener("popstate", onPopState);
-  }, []);
+  }, [cities]);
 
   useEffect(() => {
     const container = mapContainerRef.current;
@@ -263,7 +342,15 @@ export function CountryWeatherExplorer({
       button.append(name, detail);
       button.addEventListener("click", () => setSelectedCityId(summary.city.cityId));
       shell.append(button);
-      return new module.Marker({ element: shell, anchor: "bottom" })
+      const offset = MARKER_OFFSETS[summary.city.cityId] ?? [0, 0];
+      const leaderLength = Math.hypot(offset[0], offset[1]);
+      shell.style.setProperty("--marker-leader-length", `${leaderLength}px`);
+      shell.style.setProperty("--marker-leader-angle", `${Math.atan2(-offset[1], -offset[0])}rad`);
+      return new module.Marker({
+        element: shell,
+        anchor: "bottom",
+        offset,
+      })
         .setLngLat([summary.city.longitude, summary.city.latitude])
         .addTo(map);
     });
@@ -271,9 +358,21 @@ export function CountryWeatherExplorer({
 
   function selectWindow(windowKind: Window): void {
     setActiveWindow(windowKind);
+    setCustomRange(null);
     setSelectedCityId("");
     const url = new URL(window.location.href);
     url.searchParams.set("window", windowKind);
+    window.history.pushState({}, "", url);
+  }
+
+  function selectCustomRange(start: number, end: number): void {
+    const next = { start: Math.min(start, end), end: Math.max(start, end) };
+    setCustomRange(next);
+    setSelectedCityId("");
+    const url = new URL(window.location.href);
+    url.searchParams.delete("window");
+    url.searchParams.set("from", String(next.start));
+    url.searchParams.set("to", String(next.end));
     window.history.pushState({}, "", url);
   }
 
@@ -299,20 +398,62 @@ export function CountryWeatherExplorer({
           <p className="country-control-label">Travel dates</p>
           <div className="country-window-tabs" role="group" aria-label="Travel dates">
             {WINDOWS.map((windowKind) => {
-              const dates = rangeLabel(referenceDays(cities, windowKind));
+              const dates = rangeLabel(referenceDays(cities, WINDOW_INDICES[windowKind]));
               return (
                 <button
                   key={windowKind}
                   type="button"
                   onClick={() => selectWindow(windowKind)}
-                  aria-pressed={activeWindow === windowKind}
-                  className={`country-window-button focus-ring ${activeWindow === windowKind ? "is-active" : ""}`}
+                  aria-pressed={customRange === null && activeWindow === windowKind}
+                  className={`country-window-button focus-ring ${customRange === null && activeWindow === windowKind ? "is-active" : ""}`}
                 >
                   <span>{WINDOW_LABELS[windowKind]}</span>
                   <small>{dates}</small>
                 </button>
               );
             })}
+          </div>
+          <div className="country-custom-range" aria-label="Choose an exact travel date range">
+            <span>Or choose exact dates</span>
+            <label>
+              <span className="sr-only">First travel date</span>
+              <select
+                aria-label="First travel date"
+                value={customRange?.start ?? selectedIndices[0] ?? 0}
+                onChange={(event) =>
+                  selectCustomRange(
+                    Number(event.target.value),
+                    customRange?.end ?? Number(event.target.value),
+                  )
+                }
+              >
+                {(cities[0]?.days ?? []).map((day, index) => (
+                  <option key={day.localDate} value={index}>
+                    {shortDate(day.localDate)}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <span aria-hidden="true">→</span>
+            <label>
+              <span className="sr-only">Last travel date</span>
+              <select
+                aria-label="Last travel date"
+                value={customRange?.end ?? selectedIndices[selectedIndices.length - 1] ?? 0}
+                onChange={(event) =>
+                  selectCustomRange(
+                    customRange?.start ?? Number(event.target.value),
+                    Number(event.target.value),
+                  )
+                }
+              >
+                {(cities[0]?.days ?? []).map((day, index) => (
+                  <option key={day.localDate} value={index}>
+                    {shortDate(day.localDate)}
+                  </option>
+                ))}
+              </select>
+            </label>
           </div>
         </div>
         <p className="country-data-age">{updatedLabel}</p>
@@ -330,14 +471,14 @@ export function CountryWeatherExplorer({
               </h2>
             </div>
             <p className="text-xs font-semibold text-muted">
-              {WINDOW_LABELS[activeWindow]} · {exactDates}
+              {rangeName} · {exactDates}
             </p>
           </div>
           <div
             ref={mapContainerRef}
             className="country-weather-map"
             role="region"
-            aria-label={`${country.name} city weather map for ${WINDOW_LABELS[activeWindow]}`}
+            aria-label={`${country.name} city weather map for ${rangeName}`}
             data-testid="country-weather-map"
           />
           <div className="country-map-legend" aria-label="Map risk legend">
@@ -369,7 +510,7 @@ export function CountryWeatherExplorer({
                   {selected.city.cityName}
                 </h2>
                 <p className="mt-1 text-sm text-white/55">
-                  {WINDOW_LABELS[activeWindow]} · {rangeLabel(selected.days)}
+                  {rangeName} · {rangeLabel(selected.days)}
                 </p>
               </div>
               <div className="text-right">
@@ -385,8 +526,10 @@ export function CountryWeatherExplorer({
                 </strong>
               </div>
               <div>
-                <span>Highest rain chance</span>
-                <strong>{selected.maxRain ?? "—"}%</strong>
+                <span>Expected rain · peak chance</span>
+                <strong>
+                  {selected.totalRainMm ?? "—"} mm · {selected.maxRain ?? "—"}%
+                </strong>
               </div>
               <div>
                 <span>Temperature</span>
@@ -434,7 +577,7 @@ export function CountryWeatherExplorer({
             <h2 className="section-title mt-3">All {country.name} travel cities</h2>
           </div>
           <p className="text-xs text-muted">
-            Sorted by lower-rain days, worst-day risk, then score
+            Sorted by lighter-rain days, expected amount, then score
           </p>
         </div>
         <ul className="country-city-grid">

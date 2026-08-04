@@ -137,7 +137,7 @@ Database migrations are explicit, ordered deployment steps: validate and apply t
 
 Preview smoke checks cover homepage, country, city, ranking, search shell, `/explore` shell/map read model, public v1 success/error envelopes, KV hit and D1 fallback, stale behavior, unavailable behavior, static assets, security headers, no provider call on user reads, and scheduled weather/maintenance bindings without triggering an unapproved live integration. Production smoke checks repeat representative public reads, binding health, active snapshot/read-model freshness, error redaction, Cron registration, and previous-version availability immediately after promotion.
 
-Cron configuration registers the hourly weather sync and the approved maintenance schedule with environment separation and overlap protection. Smoke tests use fixtures or approved non-mutating checks unless a separately approved deployment explicitly authorizes live provider/database effects.
+Cron configuration registers the six-hour weather sync at minute 17 and the approved maintenance schedule with environment separation and overlap protection. Featured hourly storage is limited to two local forecast days; all active cities retain seven daily dates. Smoke tests use fixtures or approved non-mutating checks unless a separately approved deployment explicitly authorizes live provider/database effects. The free-plan rationale is recorded in [ADR-001](12-ADR/ADR-001-tiered-six-hour-weather-ingestion.md).
 
 Roadmap: [REL-MVP-DEP_CICD_001](11-Roadmap.md#REL-MVP-DEP_CICD_001).
 

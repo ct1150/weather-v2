@@ -231,7 +231,7 @@ jobs:
           WEATHER_PRIMARY_PROVIDER: ${{ env.WEATHER_PRIMARY_PROVIDER }}
         run: |
           # `--env production` uses the [env.production] block, which declares
-          # `crons = ["0 * * * *"]` (hourly). No Cron is registered for preview.
+          # `crons = ["17 */6 * * *"]` (every six hours). No Cron is registered for preview.
           pnpm --filter @wnr/weather-sync exec wrangler deploy --env production \
             --var WEATHER_PRIMARY_PROVIDER=${{ env.WEATHER_PRIMARY_PROVIDER }}
 
