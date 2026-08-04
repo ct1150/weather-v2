@@ -11,6 +11,7 @@ import { notFound } from "next/navigation";
 import type { CountryPageViewModel, DestinationLinkViewModel } from "../view-models";
 import { getBakedDataset, buildConfig, projectCountry } from "../../build/bake";
 import { JsonLd } from "../../components/JsonLd";
+import { CountryWeatherExplorer } from "../../components/CountryWeatherExplorer";
 import { buildAlternates, routeRobots, localeUrl } from "../seo";
 
 export interface CountryPageProps {
@@ -54,8 +55,22 @@ function CityList({
 }
 
 export function CountryPage({ viewModel, jsonLd }: CountryPageProps) {
-  const { country, cities, rankings, relatedLinks, state } = viewModel;
+  const {
+    country,
+    cities,
+    rankings,
+    relatedLinks,
+    weatherCities,
+    availableCountries,
+    dataUpdatedLabel,
+    state,
+  } = viewModel;
   const isReady = state === "ready" || state === "stale";
+  const hasWeatherConsole =
+    isReady &&
+    weatherCities !== undefined &&
+    weatherCities.length > 0 &&
+    availableCountries !== undefined;
 
   return (
     <main id="main-content" className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-10">
@@ -66,13 +81,13 @@ export function CountryPage({ viewModel, jsonLd }: CountryPageProps) {
           <a href="/" className="text-xs font-bold text-primary hover:underline focus-ring">
             ← Back to Travel Radar
           </a>
-          <p className="eyebrow mt-7">Country guide</p>
-          <h1 className="mt-4 text-4xl font-bold tracking-[-0.04em] text-foreground sm:text-6xl">
-            {country.name}
+          <p className="eyebrow mt-7">Country weather map</p>
+          <h1 className="mt-4 max-w-4xl text-4xl font-bold tracking-[-0.045em] text-foreground sm:text-6xl">
+            Choose the best-weather city in {country.name}
           </h1>
           <p className="mt-4 max-w-2xl text-base leading-7 text-muted sm:text-lg">
             {country.summary ??
-              `Compare weather across ${cities.length} destinations and choose the city that best fits your travel dates.`}
+              `Choose your travel dates, then compare all ${cities.length} listed cities directly on the map—no page hopping required.`}
           </p>
         </div>
       </section>
@@ -89,7 +104,14 @@ export function CountryPage({ viewModel, jsonLd }: CountryPageProps) {
         </p>
       ) : null}
 
-      {isReady ? (
+      {hasWeatherConsole ? (
+        <CountryWeatherExplorer
+          country={country}
+          countries={availableCountries}
+          cities={weatherCities}
+          updatedLabel={dataUpdatedLabel ?? "Latest available data"}
+        />
+      ) : isReady ? (
         <>
           <section aria-label="Cities" className="mt-12">
             <p className="eyebrow">Browse the country</p>

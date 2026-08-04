@@ -355,6 +355,27 @@ export function projectCountry(
     .slice(0, 4)
     .map((b) => destinationLink(b.city, b.country, locale));
 
+  const availableCountries = dataset.countries.map((item) => ({
+    slug: item.slug,
+    name: item.name[locale] ?? item.name.en,
+    path: `/${item.slug}`,
+  }));
+
+  const weatherCities = countryCities.map((baked) => ({
+    cityId: baked.city.id,
+    cityName: baked.city.name[locale] ?? baked.city.name.en,
+    countryName: baked.country.name[locale] ?? baked.country.name.en,
+    path: `/${baked.country.slug}/${baked.city.slug}`,
+    latitude: baked.city.latitude,
+    longitude: baked.city.longitude,
+    timezone: baked.city.timezone,
+    days: baked.forecast.days.map((day) => ({
+      localDate: day.localDate,
+      weather: weatherSummary(day),
+      score: scoreViewModel(computeCityScore(day, TRAVEL_SCORE_MODEL_VERSION)),
+    })),
+  }));
+
   const header: CountryHeaderViewModel = country
     ? {
         countryId: country.id,
@@ -376,6 +397,9 @@ export function projectCountry(
     cities: cityLinks,
     rankings,
     relatedLinks,
+    availableCountries,
+    weatherCities,
+    dataUpdatedLabel: freshness(dataset, buildConfig()).updatedLabel,
     state: "ready",
   };
 }

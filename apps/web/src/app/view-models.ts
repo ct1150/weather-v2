@@ -135,7 +135,33 @@ export interface CountryPageViewModel {
   readonly cities: ReadonlyArray<DestinationLinkViewModel>;
   readonly rankings: ReadonlyArray<RankingSectionViewModel>;
   readonly relatedLinks: ReadonlyArray<DestinationLinkViewModel>;
+  readonly availableCountries?: ReadonlyArray<CountryOptionViewModel>;
+  readonly weatherCities?: ReadonlyArray<CountryWeatherCityViewModel>;
+  readonly dataUpdatedLabel?: string;
   readonly state: AsyncStateKind;
+}
+
+export interface CountryOptionViewModel {
+  readonly slug: string;
+  readonly name: string;
+  readonly path: string;
+}
+
+export interface CountryWeatherDayViewModel {
+  readonly localDate: LocalDate;
+  readonly weather: WeatherSummaryViewModel;
+  readonly score: ScoreViewModel;
+}
+
+export interface CountryWeatherCityViewModel {
+  readonly cityId: string;
+  readonly cityName: string;
+  readonly countryName: string;
+  readonly path: string;
+  readonly latitude: number;
+  readonly longitude: number;
+  readonly timezone: string;
+  readonly days: ReadonlyArray<CountryWeatherDayViewModel>;
 }
 
 export interface CityHeaderViewModel {

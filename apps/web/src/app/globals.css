@@ -234,6 +234,225 @@
     background: rgb(var(--wnr-primary) / 0.055);
   }
 
+  .country-weather-console {
+    @apply mt-6;
+  }
+
+  .country-console-toolbar {
+    @apply relative z-20 grid gap-4 rounded-2xl border border-border bg-white p-4 sm:p-5 lg:grid-cols-[190px_minmax(0,1fr)_auto] lg:items-end;
+    box-shadow: 0 12px 34px rgb(18 35 62 / 0.09);
+  }
+
+  .country-select-label,
+  .country-control-label {
+    @apply block text-[10px] font-bold uppercase tracking-[0.14em] text-muted;
+  }
+
+  .country-select {
+    @apply mt-2 min-h-11 w-full appearance-none rounded-xl border border-border bg-surface-elevated px-3 text-sm font-bold text-foreground;
+    background-image:
+      linear-gradient(45deg, transparent 50%, rgb(var(--wnr-muted)) 50%),
+      linear-gradient(135deg, rgb(var(--wnr-muted)) 50%, transparent 50%);
+    background-position:
+      calc(100% - 16px) 19px,
+      calc(100% - 11px) 19px;
+    background-repeat: no-repeat;
+    background-size: 5px 5px;
+  }
+
+  .country-window-tabs {
+    @apply mt-2 flex gap-2 overflow-x-auto pb-1;
+  }
+
+  .country-window-button {
+    @apply min-h-11 shrink-0 rounded-xl border border-border bg-white px-3 py-2 text-left text-xs font-bold text-foreground transition-colors hover:border-primary/30 hover:bg-surface-elevated;
+  }
+
+  .country-window-button small {
+    @apply ml-1.5 font-medium text-muted;
+  }
+
+  .country-window-button.is-active {
+    @apply border-foreground bg-foreground text-white;
+    box-shadow: 0 6px 16px rgb(18 35 62 / 0.18);
+  }
+
+  .country-window-button.is-active small {
+    @apply text-white/55;
+  }
+
+  .country-data-age {
+    @apply text-xs text-muted lg:pb-3;
+  }
+
+  .country-map-layout {
+    @apply mt-4 grid gap-4 lg:grid-cols-[minmax(0,1.55fr)_minmax(300px,0.65fr)];
+  }
+
+  .country-map-stage {
+    @apply relative overflow-hidden rounded-2xl border border-border bg-white;
+    box-shadow: 0 16px 42px rgb(18 35 62 / 0.1);
+  }
+
+  .country-map-heading {
+    @apply flex flex-col gap-2 border-b border-border bg-white px-4 py-4 sm:flex-row sm:items-end sm:justify-between sm:px-5;
+  }
+
+  .country-weather-map {
+    @apply h-[420px] w-full bg-surface-elevated sm:h-[520px];
+  }
+
+  .country-map-legend {
+    @apply absolute bottom-3 left-3 z-10 flex flex-wrap gap-2 rounded-xl border border-white/80 bg-white/90 px-3 py-2 text-[10px] font-bold text-muted backdrop-blur;
+    box-shadow: 0 6px 20px rgb(18 35 62 / 0.14);
+  }
+
+  .country-map-legend span {
+    @apply flex items-center gap-1.5;
+  }
+
+  .country-map-legend i {
+    @apply block h-2 w-2 rounded-full;
+  }
+
+  .legend-good {
+    background: rgb(var(--wnr-success));
+  }
+
+  .legend-mixed {
+    background: rgb(var(--wnr-warning));
+  }
+
+  .legend-wet {
+    background: rgb(var(--wnr-accent));
+  }
+
+  .country-weather-marker {
+    @apply relative;
+  }
+
+  .country-weather-marker::after {
+    content: "";
+    @apply absolute left-1/2 top-full h-3 w-3 -translate-x-1/2 -translate-y-2 rotate-45 border-b border-r border-current bg-white;
+  }
+
+  .country-weather-marker-button {
+    @apply relative z-10 min-w-28 rounded-xl border-2 bg-white px-3 py-2 text-left text-foreground transition-transform duration-200;
+    box-shadow: 0 8px 24px rgb(18 35 62 / 0.2);
+  }
+
+  .country-weather-marker-button:hover,
+  .country-weather-marker-button:focus-visible,
+  .country-weather-marker-button[data-selected="true"] {
+    transform: translateY(-3px) scale(1.04);
+    outline: none;
+    box-shadow:
+      0 10px 30px rgb(18 35 62 / 0.25),
+      0 0 0 3px rgb(var(--wnr-primary) / 0.22);
+  }
+
+  .country-weather-marker-button strong,
+  .country-weather-marker-button span {
+    @apply block whitespace-nowrap;
+  }
+
+  .country-weather-marker-button strong {
+    @apply text-xs font-bold;
+  }
+
+  .country-weather-marker-button span {
+    @apply mt-0.5 text-[10px] font-semibold;
+  }
+
+  .country-weather-marker.risk-good,
+  .country-city-choice.risk-good {
+    color: rgb(var(--wnr-success));
+  }
+
+  .country-weather-marker.risk-mixed,
+  .country-city-choice.risk-mixed {
+    color: rgb(var(--wnr-warning));
+  }
+
+  .country-weather-marker.risk-wet,
+  .country-city-choice.risk-wet {
+    color: rgb(var(--wnr-accent));
+  }
+
+  .country-weather-marker.risk-unknown,
+  .country-city-choice.risk-unknown {
+    color: rgb(var(--wnr-muted));
+  }
+
+  .country-weather-marker-button {
+    border-color: currentColor;
+  }
+
+  .country-city-inspector {
+    @apply flex min-h-[420px] flex-col rounded-2xl bg-foreground p-5 text-white sm:p-6 lg:min-h-0;
+    box-shadow: 0 16px 42px rgb(18 35 62 / 0.2);
+  }
+
+  .country-inspector-summary {
+    @apply mt-6 grid grid-cols-3 gap-2 border-y border-white/10 py-4 lg:grid-cols-1;
+  }
+
+  .country-inspector-summary div {
+    @apply min-w-0 lg:flex lg:items-center lg:justify-between;
+  }
+
+  .country-inspector-summary span {
+    @apply block text-[10px] leading-4 text-white/50;
+  }
+
+  .country-inspector-summary strong {
+    @apply mt-1 block text-sm text-white lg:mt-0;
+  }
+
+  .country-daily-strip {
+    @apply mt-4 divide-y divide-white/10;
+  }
+
+  .country-daily-strip li {
+    @apply flex items-center justify-between gap-4 py-3;
+  }
+
+  .country-day-icon {
+    @apply grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-white/10 text-white;
+  }
+
+  .country-day-icon svg {
+    @apply h-6 w-6;
+  }
+
+  .country-detail-link {
+    @apply mt-auto flex min-h-11 items-center justify-between border-t border-white/10 pt-4 text-sm font-bold text-white;
+  }
+
+  .country-city-list-section {
+    @apply mt-10;
+  }
+
+  .country-city-grid {
+    @apply mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3;
+  }
+
+  .country-city-choice {
+    @apply flex min-h-20 w-full items-center gap-3 rounded-2xl border border-border bg-white p-4 transition hover:-translate-y-0.5 hover:border-current;
+    box-shadow: 0 6px 22px rgb(18 35 62 / 0.05);
+  }
+
+  .country-city-choice[aria-pressed="true"] {
+    border-color: currentColor;
+    box-shadow:
+      0 10px 28px rgb(18 35 62 / 0.11),
+      inset 3px 0 0 currentColor;
+  }
+
+  .country-city-rank {
+    @apply grid h-8 w-8 shrink-0 place-items-center rounded-full bg-surface-elevated text-[10px] font-bold text-muted;
+  }
+
   .info-panel {
     @apply rounded-2xl border border-border/80 bg-white p-5 sm:p-6;
     box-shadow: 0 7px 26px rgb(31 46 78 / 0.05);
