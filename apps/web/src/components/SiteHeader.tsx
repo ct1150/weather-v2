@@ -35,10 +35,14 @@ export function SiteHeader(): ReactElement {
           <span className="text-[15px] font-bold tracking-[-0.02em] text-foreground sm:text-base">
             Where Not Rain
           </span>
+          <span className="hidden rounded-full border border-border bg-surface-elevated px-2 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-muted md:inline">
+            Travel weather
+          </span>
         </a>
         <nav aria-label="Main navigation" className="flex items-center gap-1">
           <a href="/" className="nav-link focus-ring">
-            Radar
+            <span className="hidden sm:inline">Forecast radar</span>
+            <span className="sm:hidden">Radar</span>
           </a>
           <a href="/explore" className="nav-link focus-ring">
             <span className="hidden sm:inline">Explore map</span>

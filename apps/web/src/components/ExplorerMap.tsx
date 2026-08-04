@@ -290,9 +290,8 @@ export function ExplorerMap({ markers, theme, windowLabel }: ExplorerMapProps): 
           </h2>
         </div>
         <p className="max-w-xl text-xs leading-5 text-muted sm:text-right">
-          An interactive enhancement for {windowLabel || "this window"}
-          {theme ? ` · ${theme}` : ""}. The destination list above is the accessible, crawlable
-          equivalent.
+          See how options cluster for {windowLabel || "this window"}
+          {theme ? ` · ${theme}` : ""}. Prefer a simple comparison? Use the destination list above.
         </p>
       </div>
       <div

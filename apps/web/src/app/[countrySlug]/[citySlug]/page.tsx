@@ -32,6 +32,61 @@ function renderScoreValue(score: ScoreViewModel): string {
   return String(score.value);
 }
 
+function reasonLabel(reason: string): string {
+  return reason
+    .toLowerCase()
+    .split("_")
+    .map((word) => (word === "uv" ? "UV" : word.charAt(0).toUpperCase() + word.slice(1)))
+    .join(" ");
+}
+
+function isCautionReason(reason: string): boolean {
+  return /RISK|CAUTION|LIMITED|UNAVAILABLE/i.test(reason);
+}
+
+function formatObservation(value: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return `${new Intl.DateTimeFormat("en", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    timeZone: "UTC",
+  }).format(date)} UTC`;
+}
+
+function WeatherGlyph({ condition }: { condition: string }): ReactElement {
+  const cloudy = /cloud|overcast|fog|rain|storm|shower/i.test(condition);
+  return (
+    <span
+      className="grid h-14 w-14 place-items-center rounded-2xl bg-surface-elevated text-primary"
+      aria-hidden="true"
+    >
+      <svg viewBox="0 0 32 32" fill="none" className="h-8 w-8">
+        {cloudy ? (
+          <path
+            d="M7.5 22h16a5 5 0 0 0 .2-10 8 8 0 0 0-15 2.8A3.8 3.8 0 0 0 7.5 22Z"
+            fill="currentColor"
+            opacity=".82"
+          />
+        ) : (
+          <>
+            <circle cx="16" cy="16" r="5.5" fill="currentColor" />
+            <path
+              d="M16 4v3m0 18v3M4 16h3m18 0h3M7.5 7.5l2.2 2.2m12.6 12.6 2.2 2.2m0-17-2.2 2.2M9.7 22.3l-2.2 2.2"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+            />
+          </>
+        )}
+      </svg>
+    </span>
+  );
+}
+
 function WeatherSummary({
   weather,
   unit,
@@ -49,29 +104,26 @@ function WeatherSummary({
           </p>
           <p className="mt-2 text-2xl font-bold text-foreground">{weather.conditionLabel}</p>
         </div>
-        <span
-          className="grid h-14 w-14 place-items-center rounded-2xl bg-[#eef3ff] text-2xl"
-          aria-hidden="true"
-        >
-          ☀️
-        </span>
+        <WeatherGlyph condition={weather.conditionLabel} />
       </div>
       <dl className="mt-6 grid grid-cols-2 gap-3 text-sm">
-        <div className="rounded-xl bg-surface-elevated p-3">
+        <div className="metric-block">
           <dt className="text-xs text-muted">Temperature</dt>
           <dd className="mt-1 font-bold text-foreground">
             {weather.temperatureMin !== null ? `${weather.temperatureMin}${degree}` : "–"} /{" "}
             {weather.temperatureMax !== null ? `${weather.temperatureMax}${degree}` : "–"}
           </dd>
         </div>
-        <div className="rounded-xl bg-surface-elevated p-3">
+        <div className="metric-block">
           <dt className="text-xs text-muted">Rain chance</dt>
           <dd className="mt-1 font-bold text-foreground">
             {weather.rainProbability !== null ? `${weather.rainProbability}%` : "—"}
           </dd>
         </div>
       </dl>
-      <p className="mt-4 text-xs text-muted">Observed at {weather.observedAt}</p>
+      <p className="mt-4 text-xs text-muted">
+        Updated <time dateTime={weather.observedAt}>{formatObservation(weather.observedAt)}</time>
+      </p>
     </div>
   );
 }
@@ -84,6 +136,7 @@ export function CityPage({ viewModel, jsonLd }: CityPageProps) {
     score,
     forecastState,
     localDates,
+    forecastDays,
     unit,
     relatedLinks,
     commercial,
@@ -146,19 +199,31 @@ export function CityPage({ viewModel, jsonLd }: CityPageProps) {
               <span className="mb-1 text-sm font-semibold text-muted">/ 100</span>
             ) : null}
           </div>
-          <p className="mt-4 text-sm">
-            {score.reasonCodes.length > 0 ? (
-              <span className="rounded-full bg-[#f4f7ff] px-3 py-1.5 text-xs font-semibold text-primary">
-                {score.reasonCodes.join(", ")}
-              </span>
-            ) : null}
-          </p>
+          {score.reasonCodes.length > 0 ? (
+            <ul className="mt-5 flex flex-wrap gap-2" aria-label="Travel Score reasons">
+              {score.reasonCodes.map((reason) => (
+                <li
+                  key={reason}
+                  aria-label={`Reason: ${reason}`}
+                  className={`rounded-full border px-3 py-1.5 text-xs font-semibold ${isCautionReason(reason) ? "signal-caution" : "signal-good"}`}
+                >
+                  {reasonLabel(reason)}
+                </li>
+              ))}
+            </ul>
+          ) : null}
         </section>
       </div>
 
       {/* Forecast window */}
       <section aria-label="Forecast" className="info-panel mt-5">
-        <h2 className="text-lg font-bold text-foreground">Forecast window</h2>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="eyebrow">Plan the days</p>
+            <h2 className="section-title mt-3">7-day trip outlook</h2>
+          </div>
+          <p className="text-xs text-muted">Dates and weather use {city.timezone}</p>
+        </div>
         {forecastState === "loading" ? (
           <p role="status" className="mt-2 text-body text-muted">
             Loading forecast…
@@ -172,8 +237,51 @@ export function CityPage({ viewModel, jsonLd }: CityPageProps) {
         {forecastState === "empty" ? (
           <p className="mt-2 text-body text-muted">No forecast available.</p>
         ) : null}
-        {forecastState === "ready" && localDates.length > 0 ? (
-          <p className="mt-2 text-body text-muted">Covering {localDates.join(", ")}</p>
+        {forecastState === "ready" && (forecastDays?.length ?? 0) > 0 ? (
+          <ol className="forecast-timeline mt-6">
+            {forecastDays?.map((day, index) => (
+              <li key={day.localDate} className="forecast-day">
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted">
+                    {index === 0 ? "Today" : index === 1 ? "Tomorrow" : `Day ${index + 1}`}
+                  </p>
+                  <time
+                    dateTime={day.localDate}
+                    className="mt-1 block text-sm font-bold text-foreground"
+                  >
+                    {day.localDate}
+                  </time>
+                </div>
+                <div className="sm:text-center">
+                  <p className="text-sm font-semibold text-foreground">
+                    {day.weather.conditionLabel}
+                  </p>
+                  <p className="mt-1 text-xs text-muted">
+                    {day.weather.temperatureMin ?? "–"}° / {day.weather.temperatureMax ?? "–"}°
+                  </p>
+                </div>
+                <div className="flex items-center justify-between gap-5 sm:justify-end">
+                  <span
+                    className={
+                      day.weather.rainProbability !== null && day.weather.rainProbability <= 45
+                        ? "text-sm font-bold text-success"
+                        : "text-sm font-bold text-accent"
+                    }
+                  >
+                    {day.weather.rainProbability ?? "—"}% rain
+                  </span>
+                  <span className="min-w-12 text-right text-sm font-bold text-foreground">
+                    {renderScoreValue(day.score)}
+                    <span className="block text-[9px] uppercase tracking-[0.1em] text-muted">
+                      Score
+                    </span>
+                  </span>
+                </div>
+              </li>
+            ))}
+          </ol>
+        ) : forecastState === "ready" && localDates.length > 0 ? (
+          <p className="mt-4 text-body text-muted">Covering {localDates.join(", ")}</p>
         ) : null}
       </section>
 
@@ -245,9 +353,7 @@ export async function generateMetadata({
     (b) => b.city.slug === params.citySlug && b.country.slug === params.countrySlug,
   );
   return {
-    title: baked
-      ? `${baked.city.name.en}, ${baked.country.name.en} — Where Not Rain`
-      : "Where Not Rain",
+    title: baked ? `${baked.city.name.en}, ${baked.country.name.en}` : "Destination",
     alternates: buildAlternates(`/${params.countrySlug}/${params.citySlug}`),
     robots: routeRobots("city", true),
   };

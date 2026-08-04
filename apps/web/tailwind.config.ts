@@ -15,6 +15,8 @@ const config: Config = {
         body: "rgb(var(--wnr-body) / <alpha-value>)",
         muted: "rgb(var(--wnr-muted) / <alpha-value>)",
         primary: "rgb(var(--wnr-primary) / <alpha-value>)",
+        success: "rgb(var(--wnr-success) / <alpha-value>)",
+        accent: "rgb(var(--wnr-accent) / <alpha-value>)",
         border: "rgb(var(--wnr-border) / <alpha-value>)",
         surface: "rgb(var(--wnr-surface) / <alpha-value>)",
         "surface-elevated": "rgb(var(--wnr-surface-elevated) / <alpha-value>)",

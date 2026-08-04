@@ -429,6 +429,13 @@ export function projectCity(
     score: baked === undefined ? scoreViewModelFallback() : scoreViewModel(baked.score),
     forecastState: "ready",
     localDates: baked ? baked.forecast.days.map((d) => d.localDate) : [],
+    forecastDays: baked
+      ? baked.forecast.days.map((day) => ({
+          localDate: day.localDate,
+          weather: weatherSummary(day),
+          score: scoreViewModel(computeCityScore(day, TRAVEL_SCORE_MODEL_VERSION)),
+        }))
+      : [],
     unit: "metric",
     relatedLinks,
     commercial: [],
@@ -448,12 +455,14 @@ function scoreViewModelFallback(): ScoreViewModel {
 export function projectHomeMapMarkers(
   dataset: BakedDataset,
   config: BuildConfig,
+  window: Window = "today",
 ): ReadonlyArray<ExplorerMapMarker> {
+  const primaryDayIndex = WINDOW_DAYS[window][0] ?? 0;
   return dataset.cities
     .filter((b) => b.city.isFeatured)
     .map((b) => {
-      const day0 = b.forecast.days[0];
-      const score = day0 === undefined ? null : computeCityScore(day0, config.modelVersion);
+      const day = b.forecast.days[primaryDayIndex] ?? b.forecast.days[0];
+      const score = day === undefined ? null : computeCityScore(day, config.modelVersion);
       return {
         id: b.city.id,
         latitude: b.city.latitude,

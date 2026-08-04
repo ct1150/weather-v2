@@ -149,6 +149,12 @@ export interface CityHeaderViewModel {
   readonly longitude: number;
 }
 
+export interface CityForecastDayViewModel {
+  readonly localDate: LocalDate;
+  readonly weather: WeatherSummaryViewModel;
+  readonly score: ScoreViewModel;
+}
+
 export interface CityPageViewModel {
   readonly city: CityHeaderViewModel;
   readonly weather: WeatherSummaryViewModel | null;
@@ -156,6 +162,8 @@ export interface CityPageViewModel {
   readonly score: ScoreViewModel;
   readonly forecastState: AsyncStateKind;
   readonly localDates: ReadonlyArray<LocalDate>;
+  /** Detailed, city-local daily outlook when the baked provider exposes it. */
+  readonly forecastDays?: ReadonlyArray<CityForecastDayViewModel>;
   readonly unit: "metric" | "imperial";
   readonly relatedLinks: ReadonlyArray<DestinationLinkViewModel>;
   readonly commercial: ReadonlyArray<string>;

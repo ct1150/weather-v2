@@ -7,10 +7,9 @@
 // projects the `TravelRadarViewModel`, then renders the pure presentational
 // component. No request-time data path — the page is statically exported.
 //
-// The time-window selector carries its state in the href, but because this phase
-// is a static export there is no client runtime to re-render on the query string;
-// the selector links are decorative and the page is rendered for the default
-// window. (Switching to Next-on-Pages + a route handler would make it live.)
+// Every time-window read model is baked into the static page. A small client
+// controller switches between those deterministic models and preserves the
+// selected window in the shareable URL without a request-time data path.
 //
 // Progressive enhancement: crawlable recommendation cards render FIRST; the
 // MapLibre map hydrates AFTER them and the JSON-LD structured data is
@@ -20,6 +19,7 @@ import type { ReactElement } from "react";
 import type { Metadata } from "next";
 import type { TravelRadarViewModel, WindowControl, ExplorerMapMarker } from "./view-models";
 import type { Window } from "../api/v1/schemas";
+import type { SearchCandidate } from "../search/search-destinations";
 import {
   getBakedDataset,
   buildConfig,
@@ -27,8 +27,16 @@ import {
   buildWindowControls,
   projectHomeMapMarkers,
 } from "../build/bake";
+import { DestinationSearch } from "../components/DestinationSearch";
 import { ExplorerMap } from "../components/ExplorerMap";
 import { JsonLd } from "../components/JsonLd";
+import {
+  TravelRadarPanel,
+  WeatherGlyph,
+  isCautionReason,
+  reasonLabel,
+} from "../components/TravelRadarPanel";
+import { WindowExperience } from "../components/WindowExperience";
 import { buildAlternates, routeRobots, localeUrl } from "./seo";
 
 export interface TravelRadarPageProps {
@@ -36,6 +44,12 @@ export interface TravelRadarPageProps {
   readonly windowControls: ReadonlyArray<WindowControl>;
   /** Progressive-map markers (same compact read model as the explorer map). */
   readonly mapMarkers?: ReadonlyArray<ExplorerMapMarker>;
+  readonly searchCandidates?: ReadonlyArray<SearchCandidate>;
+  readonly windowViews?: ReadonlyArray<{
+    readonly viewModel: TravelRadarViewModel;
+    readonly windowControls: ReadonlyArray<WindowControl>;
+    readonly mapMarkers: ReadonlyArray<ExplorerMapMarker>;
+  }>;
   /** Server-rendered JSON-LD schema.org node. */
   readonly jsonLd?: Readonly<Record<string, unknown>>;
 }
@@ -49,117 +63,91 @@ function renderScore(score: TravelRadarViewModel["cards"][number]["score"]): str
   return String(score.value);
 }
 
-function reasonLabel(reason: string): string {
-  return reason
-    .toLowerCase()
-    .split("_")
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(" ");
-}
-
-function WeatherGlyph({ condition }: { condition: string }): ReactElement {
-  const rainy = /rain|storm|shower/i.test(condition);
-  const cloudy = /cloud|overcast|fog/i.test(condition);
-  return (
-    <span
-      className="grid h-12 w-12 place-items-center rounded-2xl bg-[#eef3ff] text-primary"
-      aria-hidden="true"
-    >
-      <svg viewBox="0 0 32 32" fill="none" className="h-7 w-7">
-        {rainy || cloudy ? (
-          <>
-            <path
-              d="M8.2 21h15.1a4.7 4.7 0 0 0 .1-9.4A7.5 7.5 0 0 0 9.3 14 3.6 3.6 0 0 0 8.2 21Z"
-              fill="currentColor"
-              opacity=".82"
-            />
-            {rainy ? (
-              <path
-                d="m11 24-1.2 2m6.8-2-1.2 2m6.8-2L21 26"
-                stroke="currentColor"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-              />
-            ) : null}
-          </>
-        ) : (
-          <>
-            <circle cx="16" cy="16" r="5.5" fill="currentColor" />
-            <path
-              d="M16 4v3m0 18v3M4 16h3m18 0h3M7.5 7.5l2.2 2.2m12.6 12.6 2.2 2.2m0-17-2.2 2.2M9.7 22.3l-2.2 2.2"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-            />
-          </>
-        )}
-      </svg>
-    </span>
-  );
+function tripVerdict(rainProbability: number | null): string {
+  if (rainProbability === null) return "Check details";
+  if (rainProbability <= 20) return "Strong dry-weather pick";
+  if (rainProbability <= 45) return "A workable weather window";
+  return "Rain is likely — compare before booking";
 }
 
 export function TravelRadarPage({
   viewModel,
   windowControls,
   mapMarkers,
+  searchCandidates,
+  windowViews,
   jsonLd,
 }: TravelRadarPageProps) {
   const { cards, freshness, state } = viewModel;
   const showCards = state === "ready" || state === "stale";
   const showMap = showCards && (mapMarkers?.length ?? 0) > 0;
+  const rankedCards = [...cards].sort(
+    (left, right) => (right.score.value ?? -1) - (left.score.value ?? -1),
+  );
+  const bestOption = rankedCards[0] ?? null;
+  const bestRain = bestOption?.weather.rainProbability ?? null;
 
   return (
     <main id="main-content" className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-10">
       {jsonLd !== undefined ? <JsonLd schema={jsonLd} /> : null}
 
       <section className="hero-panel">
-        <div className="relative z-10 max-w-3xl">
-          <p className="eyebrow">Weather-led travel inspiration</p>
-          <h1 className="mt-5 text-4xl font-bold leading-[1.05] tracking-[-0.045em] text-foreground sm:text-6xl">
-            Where is NOT raining?
-          </h1>
-          <p className="mt-5 max-w-2xl text-base leading-7 text-muted sm:text-lg">
-            Find your next clear-sky escape with transparent recommendations built from fresh
-            weather forecasts and a practical Travel Score.
-          </p>
-          <div className="mt-7 flex flex-wrap items-center gap-3">
-            <a
-              href="#recommendations"
-              className="rounded-full bg-primary px-5 py-3 text-sm font-bold text-white shadow-lg shadow-primary/20 transition hover:-translate-y-0.5 hover:bg-[#203f8d] focus-ring"
-            >
-              See best destinations
-            </a>
-            <a
-              href="/explore"
-              className="rounded-full border border-border bg-white px-5 py-3 text-sm font-bold text-foreground transition hover:border-primary/30 hover:bg-surface-elevated focus-ring"
-            >
-              Explore the map <span aria-hidden="true">→</span>
-            </a>
-          </div>
-        </div>
-
-        <div className="relative z-10 mt-9 border-t border-border/70 pt-5">
-          <p className="mb-3 text-xs font-bold uppercase tracking-[0.12em] text-muted">Plan for</p>
-          <nav aria-label="Time window" className="flex gap-2 overflow-x-auto pb-1">
-            {windowControls.map((wc) => (
+        <div className="relative z-10 grid gap-8 lg:grid-cols-[1.25fr_0.75fr] lg:items-end">
+          <div>
+            <p className="eyebrow">Your weather-first trip briefing</p>
+            <h1 className="mt-5 max-w-3xl text-4xl font-bold leading-[1.02] tracking-[-0.05em] text-foreground sm:text-6xl lg:text-[4.25rem]">
+              Where is NOT raining?
+            </h1>
+            <p className="mt-5 max-w-2xl text-base leading-7 text-muted sm:text-lg">
+              Compare the weather that can change a trip: rain risk, comfortable temperatures, and
+              the trade-offs behind every ranking.
+            </p>
+            {searchCandidates !== undefined && searchCandidates.length > 0 ? (
+              <DestinationSearch candidates={searchCandidates} />
+            ) : null}
+            <div className="mt-5 flex flex-wrap items-center gap-3">
               <a
-                key={wc.window}
-                href={wc.href}
-                aria-current={wc.selected ? "true" : undefined}
-                className={`shrink-0 rounded-full border px-4 py-2.5 text-sm font-semibold transition focus-ring ${wc.selected ? "border-primary bg-primary text-white shadow-md shadow-primary/20" : "border-border bg-surface text-foreground hover:border-primary/30 hover:bg-surface-elevated"}`}
-                aria-label={
-                  wc.exactDates.length > 0 ? `${wc.label} (${wc.exactDates.join(", ")})` : wc.label
-                }
+                href="#recommendations"
+                className="rounded-full bg-foreground px-5 py-3 text-sm font-bold text-white shadow-lg shadow-foreground/15 transition hover:-translate-y-0.5 hover:bg-primary focus-ring"
               >
-                <span>{wc.label}</span>
-                {wc.exactDates.length > 0 ? (
-                  <span className={`ml-2 text-xs ${wc.selected ? "text-white/75" : "text-muted"}`}>
-                    {wc.exactDates.join(" – ")}
-                  </span>
-                ) : null}
+                Compare ranked options
               </a>
-            ))}
-          </nav>
+              <a
+                href="/explore"
+                className="rounded-full border border-border bg-white px-5 py-3 text-sm font-bold text-foreground transition hover:border-primary/30 hover:bg-surface-elevated focus-ring"
+              >
+                Explore the map <span aria-hidden="true">→</span>
+              </a>
+            </div>
+          </div>
+          {bestOption !== null ? (
+            <aside className="decision-board" aria-label="Best available option">
+              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/60">
+                Best available today
+              </p>
+              <div className="mt-5 flex items-end justify-between gap-4">
+                <div>
+                  <p className="text-3xl font-bold tracking-[-0.04em]">
+                    {bestOption.destination.cityName}
+                  </p>
+                  <p className="mt-1 text-sm text-white/65">{bestOption.destination.countryName}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-3xl font-bold">{renderScore(bestOption.score)}</p>
+                  <p className="text-[10px] uppercase tracking-[0.12em] text-white/55">
+                    Travel Score
+                  </p>
+                </div>
+              </div>
+              <div className="mt-6 border-t border-white/15 pt-4">
+                <p className="text-sm font-semibold text-white">{tripVerdict(bestRain)}</p>
+                <p className="mt-1 text-xs leading-5 text-white/60">
+                  {bestRain === null ? "Rain probability unavailable" : `${bestRain}% rain chance`}{" "}
+                  · {freshness.updatedLabel}
+                </p>
+              </div>
+            </aside>
+          ) : null}
         </div>
       </section>
 
@@ -179,32 +167,90 @@ export function TravelRadarPage({
         <p className="mt-8 text-body text-muted">No destinations match this window yet.</p>
       ) : null}
 
-      {showCards ? (
+      {showCards && windowViews !== undefined ? (
+        <WindowExperience
+          initialWindow={viewModel.window}
+          panels={windowViews.map((windowView) => ({
+            window: windowView.viewModel.window,
+            panel: (
+              <TravelRadarPanel
+                viewModel={windowView.viewModel}
+                windowControls={windowView.windowControls}
+                mapMarkers={windowView.mapMarkers}
+              />
+            ),
+          }))}
+        />
+      ) : null}
+
+      {showCards && windowViews === undefined ? (
         <section
           id="recommendations"
           aria-label="Recommended destinations"
           className="mt-14 scroll-mt-24"
         >
-          <div className="mb-6 flex items-end justify-between gap-4">
+          <div className="mb-5 flex items-end justify-between gap-4">
             <div>
               <p className="eyebrow">Travel radar</p>
-              <h2 className="section-title mt-3">Clearer skies, ranked for you</h2>
+              <h2 className="section-title mt-3">Best available weather, ranked</h2>
             </div>
-            <p className="hidden text-sm text-muted sm:block">{cards.length} places compared</p>
+            <p className="hidden text-sm text-muted sm:block">
+              {cards.length} places checked · {freshness.updatedLabel}
+            </p>
           </div>
+          <div className="window-strip mb-6">
+            <div className="flex items-center justify-between gap-3 px-1 pb-3">
+              <p className="text-xs font-bold uppercase tracking-[0.14em] text-foreground">
+                When are you going?
+              </p>
+              <p className="hidden text-xs text-muted sm:block">
+                Dates use each destination’s local calendar
+              </p>
+            </div>
+            <nav aria-label="Time window" className="flex gap-2 overflow-x-auto pb-1">
+              {windowControls.map((wc) => (
+                <a
+                  key={wc.window}
+                  href={wc.href}
+                  aria-current={wc.selected ? "true" : undefined}
+                  className={`min-h-11 shrink-0 rounded-full border px-4 py-2.5 text-sm font-semibold transition focus-ring ${wc.selected ? "border-foreground bg-foreground text-white shadow-md shadow-foreground/15" : "border-border bg-surface text-foreground hover:border-primary/30 hover:bg-surface-elevated"}`}
+                  aria-label={
+                    wc.exactDates.length > 0
+                      ? `${wc.label} (${wc.exactDates.join(", ")})`
+                      : wc.label
+                  }
+                >
+                  <span>{wc.label}</span>
+                  {wc.exactDates.length > 0 ? (
+                    <span
+                      className={`ml-2 text-xs ${wc.selected ? "text-white/65" : "text-muted"}`}
+                    >
+                      {wc.exactDates.join(" – ")}
+                    </span>
+                  ) : null}
+                </a>
+              ))}
+            </nav>
+          </div>
+          <p className="mb-4 max-w-2xl text-sm leading-6 text-muted">
+            Rankings show the strongest options in the current dataset, even when every destination
+            has trade-offs. Review the warnings before booking.
+          </p>
           <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {cards.map((card, index) => (
+            {rankedCards.map((card, index) => (
               <li key={card.destination.cityId}>
                 <article className="destination-card">
                   <div className="flex items-start justify-between gap-4">
                     <WeatherGlyph condition={card.weather.conditionLabel} />
-                    <div className="text-right">
-                      <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted">
-                        Travel Score
-                      </span>
-                      <p className="text-2xl font-bold leading-none text-foreground">
-                        {renderScore(card.score)}
-                      </p>
+                    <div className="score-orbit">
+                      <div>
+                        <p className="text-lg font-bold leading-none text-foreground">
+                          {renderScore(card.score)}
+                        </p>
+                        <span className="text-[8px] font-bold uppercase tracking-[0.08em] text-muted">
+                          Score
+                        </span>
+                      </div>
                     </div>
                   </div>
                   <p className="mt-5 text-xs font-bold uppercase tracking-[0.12em] text-muted">
@@ -223,8 +269,14 @@ export function TravelRadarPage({
                     {card.weather.conditionLabel}
                   </p>
 
-                  <dl className="relative mt-5 grid grid-cols-2 gap-3 rounded-xl bg-surface-elevated p-3 text-sm">
-                    <div className="border-r border-border">
+                  <p
+                    className={`relative mt-4 inline-flex rounded-full border px-2.5 py-1 text-[11px] font-bold ${card.weather.rainProbability !== null && card.weather.rainProbability <= 45 ? "signal-good" : "signal-caution"}`}
+                  >
+                    {tripVerdict(card.weather.rainProbability)}
+                  </p>
+
+                  <dl className="relative mt-4 grid grid-cols-2 gap-2 text-sm">
+                    <div className="metric-block">
                       <dt className="text-xs text-muted">Temperature</dt>
                       <dd className="mt-0.5 font-bold text-foreground">
                         {card.weather.temperatureMin !== null
@@ -236,7 +288,7 @@ export function TravelRadarPage({
                           : "–"}
                       </dd>
                     </div>
-                    <div className="pl-1">
+                    <div className="metric-block">
                       <dt className="text-xs text-muted">Rain chance</dt>
                       <dd className="mt-0.5 font-bold text-foreground">
                         {card.weather.rainProbability !== null
@@ -255,7 +307,7 @@ export function TravelRadarPage({
                         <li
                           key={rc}
                           aria-label={`Reason: ${rc}`}
-                          className="rounded-full border border-[#dce5fa] bg-[#f4f7ff] px-2.5 py-1 text-[11px] font-semibold text-primary"
+                          className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold ${isCautionReason(rc) ? "signal-caution" : "signal-good"}`}
                         >
                           {reasonLabel(rc)}
                         </li>
@@ -263,12 +315,15 @@ export function TravelRadarPage({
                     </ul>
                   ) : null}
 
-                  <p className="relative mt-4 border-t border-border/70 pt-3 text-xs text-muted">
+                  <p className="relative mt-4 text-xs text-muted">
                     {freshness.updatedLabel}
                     {freshness.stale ? (
                       <span className="ml-2 font-medium text-warning">Stale data</span>
                     ) : null}
                   </p>
+                  <span className="trip-action" aria-hidden="true">
+                    See trip weather <span>→</span>
+                  </span>
                 </article>
               </li>
             ))}
@@ -279,7 +334,7 @@ export function TravelRadarPage({
       {/* Progressive MapLibre enhancement (PRD-FR-001). Rendered AFTER the
           crawlable cards; it shares the same compact read model and degrades
           gracefully if WebGL/script is unavailable. */}
-      {showMap ? (
+      {showMap && windowViews === undefined ? (
         <ExplorerMap markers={mapMarkers ?? []} theme="general" windowLabel="Today" />
       ) : null}
 
@@ -305,7 +360,21 @@ export default async function Page(): Promise<ReactElement> {
   const activeWindow: Window = "today";
   const viewModel = projectHome(dataset, config, activeWindow);
   const windowControls = buildWindowControls(dataset, config, activeWindow);
-  const mapMarkers = projectHomeMapMarkers(dataset, config);
+  const mapMarkers = projectHomeMapMarkers(dataset, config, activeWindow);
+  const windows: ReadonlyArray<Window> = ["today", "tomorrow", "weekend", "next_week"];
+  const windowViews = windows.map((window) => ({
+    viewModel: projectHome(dataset, config, window),
+    windowControls: buildWindowControls(dataset, config, window),
+    mapMarkers: projectHomeMapMarkers(dataset, config, window),
+  }));
+  const searchCandidates: SearchCandidate[] = dataset.cities.map((baked) => ({
+    cityId: baked.city.id,
+    names: Object.values(baked.city.name),
+    countryNames: Object.values(baked.country.name),
+    countrySlug: baked.country.slug,
+    citySlug: baked.city.slug,
+    path: `/${baked.country.slug}/${baked.city.slug}`,
+  }));
 
   const featured = dataset.cities.find((b) => b.city.isFeatured);
   const jsonLd: Record<string, unknown> = {
@@ -329,6 +398,8 @@ export default async function Page(): Promise<ReactElement> {
       viewModel={viewModel}
       windowControls={windowControls}
       mapMarkers={mapMarkers}
+      searchCandidates={searchCandidates}
+      windowViews={windowViews}
       jsonLd={jsonLd}
     />
   );

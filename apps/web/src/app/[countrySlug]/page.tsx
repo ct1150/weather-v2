@@ -22,9 +22,11 @@ export interface CountryPageProps {
 function CityList({
   items,
   emptyLabel,
+  ranked = false,
 }: {
   items: ReadonlyArray<DestinationLinkViewModel>;
   emptyLabel: string;
+  ranked?: boolean;
 }) {
   if (items.length === 0) {
     return <p className="mt-2 text-body text-muted">{emptyLabel}</p>;
@@ -35,9 +37,9 @@ function CityList({
         <li key={dest.cityId}>
           <a href={dest.path} className="destination-link focus-ring">
             <span>
-              <span className="mr-3 text-xs font-bold text-muted">
-                {String(index + 1).padStart(2, "0")}
-              </span>
+              {ranked ? (
+                <span className="mr-3 text-xs font-bold text-muted">#{index + 1}</span>
+              ) : null}
               <span className="font-bold text-foreground">{dest.cityName}</span>
               <span className="ml-2 text-xs text-muted">{dest.countryName}</span>
             </span>
@@ -68,11 +70,10 @@ export function CountryPage({ viewModel, jsonLd }: CountryPageProps) {
           <h1 className="mt-4 text-4xl font-bold tracking-[-0.04em] text-foreground sm:text-6xl">
             {country.name}
           </h1>
-          {country.summary !== null ? (
-            <p className="mt-4 max-w-2xl text-base leading-7 text-muted sm:text-lg">
-              {country.summary}
-            </p>
-          ) : null}
+          <p className="mt-4 max-w-2xl text-base leading-7 text-muted sm:text-lg">
+            {country.summary ??
+              `Compare weather across ${cities.length} destinations and choose the city that best fits your travel dates.`}
+          </p>
         </div>
       </section>
 
@@ -100,7 +101,11 @@ export function CountryPage({ viewModel, jsonLd }: CountryPageProps) {
             <section key={ranking.theme} aria-label={ranking.title} className="mt-12">
               <p className="eyebrow">Curated picks</p>
               <h2 className="section-title mt-3">{ranking.title}</h2>
-              <CityList items={ranking.items} emptyLabel="No destinations in this ranking yet." />
+              <CityList
+                items={ranking.items}
+                emptyLabel="No destinations in this ranking yet."
+                ranked
+              />
             </section>
           ))}
 
@@ -135,7 +140,7 @@ export async function generateMetadata({
   const dataset = await getBakedDataset();
   const country = dataset.countries.find((c) => c.slug === params.countrySlug);
   return {
-    title: country ? `${country.name.en} — Where Not Rain` : "Where Not Rain",
+    title: country ? country.name.en : "Country guide",
     alternates: buildAlternates(`/${params.countrySlug}`),
     robots: routeRobots("country", true),
   };

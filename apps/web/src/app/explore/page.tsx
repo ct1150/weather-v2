@@ -96,13 +96,10 @@ export function ExplorerPage({ viewModel }: ExplorerPageProps) {
           </h2>
           {list.length > 0 ? (
             <ul className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {list.map((dest, index) => (
+              {list.map((dest) => (
                 <li key={dest.cityId}>
                   <a href={dest.path} className="destination-link focus-ring">
                     <span>
-                      <span className="mr-3 text-xs font-bold text-muted">
-                        {String(index + 1).padStart(2, "0")}
-                      </span>
                       <span className="font-bold text-foreground">{dest.cityName}</span>
                       <span className="ml-2 text-xs text-muted">{dest.countryName}</span>
                     </span>
