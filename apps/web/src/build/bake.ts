@@ -2,17 +2,18 @@
 //
 // Build-time data pipeline (system_design.md §1.4 / class diagram `BakePipeline`).
 //
-// Deterministically synthesizes weather with the MVP FAKE adapter
-// (`FakeWeatherProvider`, network-free, no credentials) and computes the Travel
-// Score with `@wnr/domain`, then bakes everything into a `BakedDataset` that is
-// projected onto the display view models consumed by the App Router pages.
+// Fetches real weather from the configured provider for production builds and
+// computes the Travel Score with `@wnr/domain`, then bakes everything into a
+// `BakedDataset` projected onto the App Router page view models. Tests retain a
+// deterministic fake provider so they remain network-free and reproducible.
 //
 // This runs ONCE at `next build` time (memoized via `getBakedDataset`). The static
 // export freezes the result into HTML, so the deployed site needs no runtime data
 // path, no D1/KV, and no Workers — satisfying DEP-FREE-001.
 
-import { FakeWeatherProvider } from "@wnr/weather";
-import type { NormalizedDaily } from "@wnr/weather";
+import { createWeatherProvider } from "@wnr/weather";
+import type { NormalizedDaily, WeatherProvider, WeatherProviderName } from "@wnr/weather";
+import { resolveProviderName } from "@wnr/config";
 import { calculateTravelScore, describeWeatherCode } from "@wnr/domain";
 import type { TravelScoreInput, WeatherRow } from "@wnr/domain";
 import { computeStale } from "../api/v1/schemas";
@@ -147,12 +148,12 @@ function destinationLink(
 // ---------------------------------------------------------------------------
 
 /**
- * Aggregates `FakeWeatherProvider` (deterministic weather) and `@wnr/domain`
- * (Travel Score) over the geography seed into a single `BakedDataset`.
+ * Aggregates the selected weather provider and `@wnr/domain` (Travel Score)
+ * over the geography seed into a single `BakedDataset`.
  */
 export class BakePipeline {
   constructor(
-    private readonly provider: FakeWeatherProvider,
+    private readonly provider: WeatherProvider,
     private readonly seed: GeographySeed,
     private readonly config: BuildConfig,
   ) {}
@@ -207,11 +208,30 @@ export class BakePipeline {
 
 let cachePromise: Promise<BakedDataset> | null = null;
 
+/**
+ * Resolve the build-time provider without silently shipping synthetic weather.
+ * Vitest stays deterministic; every user-facing build defaults to real Open-Meteo.
+ */
+export function createBuildWeatherProvider(
+  rawProvider: unknown = process.env.WEATHER_PRIMARY_PROVIDER,
+  nodeEnv: string | undefined = process.env.NODE_ENV,
+): WeatherProvider {
+  const configured = resolveProviderName(rawProvider);
+  if (rawProvider !== undefined && rawProvider !== null && configured === null) {
+    throw new Error(`Unknown WEATHER_PRIMARY_PROVIDER: ${String(rawProvider)}`);
+  }
+  const selected: WeatherProviderName = configured ?? (nodeEnv === "test" ? "fake" : "open-meteo");
+  if (selected === "weatherapi") {
+    throw new Error("WEATHER_PRIMARY_PROVIDER=weatherapi is not enabled");
+  }
+  return createWeatherProvider(selected);
+}
+
 /** Returns the baked dataset, computing it once and caching the promise. */
 export function getBakedDataset(): Promise<BakedDataset> {
   if (cachePromise !== null) return cachePromise;
   const config = buildConfig();
-  const provider = new FakeWeatherProvider();
+  const provider = createBuildWeatherProvider();
   const pipeline = new BakePipeline(provider, geographySeed, config);
   cachePromise = pipeline.bake();
   return cachePromise;

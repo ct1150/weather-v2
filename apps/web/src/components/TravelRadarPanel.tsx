@@ -193,7 +193,7 @@ export function TravelRadarPanel({
                     </dd>
                   </div>
                   <div className="metric-block">
-                    <dt className="text-xs text-muted">Rain chance</dt>
+                    <dt className="text-xs text-muted">Peak rain chance</dt>
                     <dd className="mt-0.5 font-bold text-foreground">
                       {card.weather.rainProbability !== null
                         ? `${card.weather.rainProbability}%`

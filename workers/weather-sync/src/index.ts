@@ -1,7 +1,8 @@
 // workers/weather-sync — hourly Cron ingestion + scoring + read-model writer.
 //
-// This is the ONLY code path allowed to import @wnr/weather and contact weather
-// providers (Requirement 9.2). It exposes the standard Cloudflare Worker module shape:
+// This is the runtime ingestion path allowed to contact weather providers. The static
+// site may also fetch the same key-free provider during its controlled build, but never
+// from an end-user browser. This worker exposes the standard Cloudflare module shape:
 //   - `scheduled`: the hourly Cron entry (registered in production only; see wrangler.toml).
 //   - `fetch`:    a manual trigger / health endpoint for ops and CI smoke profiling.
 //                 It is NOT a user read path (satisfies PRD-INC-003 "no provider call on

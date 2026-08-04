@@ -115,7 +115,7 @@ function WeatherSummary({
           </dd>
         </div>
         <div className="metric-block">
-          <dt className="text-xs text-muted">Rain chance</dt>
+          <dt className="text-xs text-muted">Peak rain chance</dt>
           <dd className="mt-1 font-bold text-foreground">
             {weather.rainProbability !== null ? `${weather.rainProbability}%` : "—"}
           </dd>
@@ -268,7 +268,7 @@ export function CityPage({ viewModel, jsonLd }: CityPageProps) {
                         : "text-sm font-bold text-accent"
                     }
                   >
-                    {day.weather.rainProbability ?? "—"}% rain
+                    {day.weather.rainProbability ?? "—"}% peak rain
                   </span>
                   <span className="min-w-12 text-right text-sm font-bold text-foreground">
                     {renderScoreValue(day.score)}
@@ -330,7 +330,9 @@ export function CityPage({ viewModel, jsonLd }: CityPageProps) {
 
       <footer className="page-footer">
         <span>Where Not Rain · Weather-led travel inspiration</span>
-        <span>Latest activated data · Stale results are always labeled</span>
+        <span>
+          Forecast data by <a href="https://open-meteo.com/">Open-Meteo</a> · Derived Travel Score
+        </span>
       </footer>
     </main>
   );

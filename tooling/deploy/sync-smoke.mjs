@@ -38,8 +38,15 @@ try {
     console.error("SYNC-SMOKE: worker response missing the expected runSync report shape");
     process.exit(1);
   }
+  if (body.status !== "success" || body.activated !== true || body.citiesFailed !== 0) {
+    console.error(
+      `SYNC-SMOKE: unhealthy sync report — status=${String(body.status)}, ` +
+        `activated=${String(body.activated)}, citiesFailed=${String(body.citiesFailed)}`,
+    );
+    process.exit(1);
+  }
   console.log(
-    `SYNC-SMOKE: OK — worker booted and reported status="${body.status}" (runId=${body.runId})`,
+    `SYNC-SMOKE: OK — real forecast activated for ${body.citiesOk} cities (runId=${body.runId})`,
   );
   process.exit(0);
 } catch (err) {

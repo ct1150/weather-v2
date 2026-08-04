@@ -114,13 +114,13 @@ function rangeLabel(days: ReadonlyArray<CountryWeatherDayViewModel>): string {
 
 function rainLabel(summary: CitySummary): string {
   if (summary.maxRain === null) return "Rain data unavailable";
-  if (summary.days.length === 1) return `${summary.maxRain}% rain`;
+  if (summary.days.length === 1) return `${summary.maxRain}% peak rain chance`;
   return `${summary.dryDays}/${summary.days.length} lower-rain days · max ${summary.maxRain}%`;
 }
 
 function mapMarkerLabel(summary: CitySummary): string {
   if (summary.days.length === 1) {
-    return summary.maxRain === null ? "No rain data" : `${summary.maxRain}% rain`;
+    return summary.maxRain === null ? "No rain data" : `${summary.maxRain}% peak rain`;
   }
   return `${summary.dryDays}/${summary.days.length} dry · ${summary.maxRain ?? "—"}% max`;
 }
@@ -411,7 +411,7 @@ export function CountryWeatherExplorer({
                   </div>
                   <div className="text-right">
                     <p className="text-xs font-bold text-white">
-                      {day.weather.rainProbability ?? "—"}% rain
+                      {day.weather.rainProbability ?? "—"}% peak rain
                     </p>
                     <p className="mt-0.5 text-[11px] text-white/50">
                       {day.weather.temperatureMin ?? "–"}–{day.weather.temperatureMax ?? "–"}°

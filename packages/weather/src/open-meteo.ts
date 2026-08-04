@@ -219,7 +219,6 @@ export function buildOpenMeteoUrl(
   params.set("end_date", addDays(req.startDate, Math.max(0, req.days - 1)));
   params.set("daily", DAILY_FIELDS.join(","));
   params.set("hourly", HOURLY_FIELDS.join(","));
-  params.set("forecast_days", String(req.days));
   return `${endpoint}?${params.toString()}`;
 }
 

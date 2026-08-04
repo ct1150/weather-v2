@@ -143,7 +143,9 @@ export function CountryPage({ viewModel, jsonLd }: CountryPageProps) {
 
       <footer className="page-footer">
         <span>Where Not Rain · Weather-led travel inspiration</span>
-        <span>Latest activated weather and Travel Score</span>
+        <span>
+          Forecast data by <a href="https://open-meteo.com/">Open-Meteo</a> · Derived Travel Score
+        </span>
       </footer>
     </main>
   );

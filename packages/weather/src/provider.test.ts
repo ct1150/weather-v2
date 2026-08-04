@@ -244,6 +244,8 @@ describe("OpenMeteoProvider — real, key-free adapter", () => {
     expect(calledUrl).toContain("timezone=Europe%2FLisbon");
     expect(calledUrl).toContain("start_date=2026-07-20");
     expect(calledUrl).toContain("end_date=2026-07-21");
+    // Open-Meteo rejects forecast_days when explicit start/end dates are present.
+    expect(calledUrl).not.toContain("forecast_days=");
   });
 
   it("returns an empty list and never hits the network for zero days", async () => {

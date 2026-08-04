@@ -108,9 +108,9 @@ describe("CountryWeatherExplorer", () => {
     expect(
       (screen.getByRole("combobox", { name: "Choose country" }) as HTMLSelectElement).value,
     ).toBe("/jp");
-    expect(screen.getByRole("button", { name: /Tokyo.*25% rain/i })).toBeTruthy();
-    expect(screen.getByRole("button", { name: /Osaka.*40% rain/i })).toBeTruthy();
-    expect(screen.getByRole("button", { name: /Sapporo.*55% rain/i })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /Tokyo.*25% peak rain/i })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /Osaka.*40% peak rain/i })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /Sapporo.*55% peak rain/i })).toBeTruthy();
     expect(screen.getByTestId("country-weather-map")).toBeTruthy();
     await waitFor(() => expect(maplibre.Map).toHaveBeenCalledTimes(1));
     await waitFor(() => expect(maplibre.markerElements).toHaveLength(3));
@@ -125,7 +125,7 @@ describe("CountryWeatherExplorer", () => {
     expect(screen.getByRole("button", { name: /Tomorrow/ }).getAttribute("aria-pressed")).toBe(
       "true",
     );
-    expect(screen.getByLabelText("Osaka weather summary").textContent).toContain("15% rain");
+    expect(screen.getByLabelText("Osaka weather summary").textContent).toContain("15% peak rain");
     expect(container.querySelector(".country-city-grid button")?.textContent).toMatch(/^#1Osaka/);
   });
 

@@ -123,7 +123,9 @@ export function ExplorerPage({ viewModel }: ExplorerPageProps) {
 
       <footer className="page-footer">
         <span>Where Not Rain · Weather-led travel inspiration</span>
-        <span>The list is the accessible view; the map is a visual aid</span>
+        <span>
+          Forecast data by <a href="https://open-meteo.com/">Open-Meteo</a> · Derived Travel Score
+        </span>
       </footer>
     </main>
   );

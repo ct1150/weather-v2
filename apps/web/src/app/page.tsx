@@ -289,7 +289,7 @@ export function TravelRadarPage({
                       </dd>
                     </div>
                     <div className="metric-block">
-                      <dt className="text-xs text-muted">Rain chance</dt>
+                      <dt className="text-xs text-muted">Peak rain chance</dt>
                       <dd className="mt-0.5 font-bold text-foreground">
                         {card.weather.rainProbability !== null
                           ? `${card.weather.rainProbability}%`
@@ -340,7 +340,9 @@ export function TravelRadarPage({
 
       <footer className="page-footer">
         <span>Where Not Rain · Weather-led travel inspiration</span>
-        <span>Latest activated data · Stale results are always labeled</span>
+        <span>
+          Forecast data by <a href="https://open-meteo.com/">Open-Meteo</a> · Derived Travel Score
+        </span>
       </footer>
     </main>
   );
