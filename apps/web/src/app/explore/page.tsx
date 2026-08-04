@@ -45,12 +45,30 @@ export function ExplorerPage({ viewModel }: ExplorerPageProps) {
   const mapMarkers = toMapMarkers(viewModel);
 
   return (
-    <main className="mx-auto max-w-5xl px-4 py-8">
-      <h1 className="text-3xl font-semibold text-foreground">Weather Explorer</h1>
-      <p className="mt-2 max-w-2xl text-body text-muted">
-        {activeFilterMeaning} · {windowLabel}
-        {theme ? ` · ${theme}` : ""}
-      </p>
+    <main id="main-content" className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-10">
+      <section className="hero-panel !p-6 sm:!p-9">
+        <div className="relative z-10 flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="eyebrow">Discover by weather</p>
+            <h1 className="mt-4 text-4xl font-bold tracking-[-0.04em] text-foreground sm:text-5xl">
+              Weather Explorer
+            </h1>
+            <p className="mt-3 max-w-2xl text-base text-muted">
+              Browse every destination, then use the map to see where your best options cluster.
+            </p>
+          </div>
+          <div className="shrink-0 rounded-2xl border border-border/80 bg-surface-elevated px-5 py-4">
+            <p className="text-[10px] font-bold uppercase tracking-[0.13em] text-muted">
+              Active view
+            </p>
+            <p className="mt-1 text-sm font-bold text-foreground">{activeFilterMeaning}</p>
+            <p className="mt-0.5 text-xs text-muted">
+              {windowLabel}
+              {theme ? ` · ${theme}` : ""}
+            </p>
+          </div>
+        </div>
+      </section>
 
       {state === "loading" ? (
         <p role="status" className="mt-8 text-body text-muted">
@@ -71,20 +89,26 @@ export function ExplorerPage({ viewModel }: ExplorerPageProps) {
       {/* Accessible, crawlable primary content. Always present — the map is
           only an enhancement and must never replace this decision path. */}
       {state === "ready" || state === "stale" ? (
-        <section aria-label="All destinations" className="mt-8">
-          <h2 className="text-heading-3 font-semibold text-foreground">
+        <section aria-label="All destinations" className="mt-12">
+          <p className="eyebrow">Destination index</p>
+          <h2 className="section-title mt-3">
             All destinations{list.length > 0 ? ` (${list.length})` : ""}
           </h2>
           {list.length > 0 ? (
-            <ul className="mt-3 grid gap-3 sm:grid-cols-2">
-              {list.map((dest) => (
+            <ul className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {list.map((dest, index) => (
                 <li key={dest.cityId}>
-                  <a
-                    href={dest.path}
-                    className="block rounded-lg border border-border bg-surface p-3 text-primary hover:bg-surface-elevated focus-ring"
-                  >
-                    <span className="font-medium">{dest.cityName}</span>
-                    <span className="ml-2 text-body-small text-muted">{dest.countryName}</span>
+                  <a href={dest.path} className="destination-link focus-ring">
+                    <span>
+                      <span className="mr-3 text-xs font-bold text-muted">
+                        {String(index + 1).padStart(2, "0")}
+                      </span>
+                      <span className="font-bold text-foreground">{dest.cityName}</span>
+                      <span className="ml-2 text-xs text-muted">{dest.countryName}</span>
+                    </span>
+                    <span aria-hidden="true" className="text-lg text-primary">
+                      →
+                    </span>
                   </a>
                 </li>
               ))}
@@ -100,8 +124,9 @@ export function ExplorerPage({ viewModel }: ExplorerPageProps) {
         <ExplorerMap markers={mapMarkers} theme={theme} windowLabel={windowLabel} />
       ) : null}
 
-      <footer className="mt-12 border-t border-border pt-6 text-caption text-muted">
-        The destination list is the authoritative, accessible view; the map is a visual aid.
+      <footer className="page-footer">
+        <span>Where Not Rain · Weather-led travel inspiration</span>
+        <span>The list is the accessible view; the map is a visual aid</span>
       </footer>
     </main>
   );

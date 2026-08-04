@@ -41,24 +41,37 @@ function WeatherSummary({
 }) {
   const degree = unit === "metric" ? "°C" : "°F";
   return (
-    <div>
-      <p className="text-body">{weather.conditionLabel}</p>
-      <dl className="mt-3 grid grid-cols-2 gap-2 text-body-small">
+    <div className="info-panel h-full">
+      <div className="flex items-center justify-between gap-4">
         <div>
-          <dt className="text-caption text-muted">Temperature</dt>
-          <dd className="font-medium">
+          <p className="text-xs font-bold uppercase tracking-[0.12em] text-muted">
+            Current condition
+          </p>
+          <p className="mt-2 text-2xl font-bold text-foreground">{weather.conditionLabel}</p>
+        </div>
+        <span
+          className="grid h-14 w-14 place-items-center rounded-2xl bg-[#eef3ff] text-2xl"
+          aria-hidden="true"
+        >
+          ☀️
+        </span>
+      </div>
+      <dl className="mt-6 grid grid-cols-2 gap-3 text-sm">
+        <div className="rounded-xl bg-surface-elevated p-3">
+          <dt className="text-xs text-muted">Temperature</dt>
+          <dd className="mt-1 font-bold text-foreground">
             {weather.temperatureMin !== null ? `${weather.temperatureMin}${degree}` : "–"} /{" "}
             {weather.temperatureMax !== null ? `${weather.temperatureMax}${degree}` : "–"}
           </dd>
         </div>
-        <div>
-          <dt className="text-caption text-muted">Rain chance</dt>
-          <dd className="font-medium">
+        <div className="rounded-xl bg-surface-elevated p-3">
+          <dt className="text-xs text-muted">Rain chance</dt>
+          <dd className="mt-1 font-bold text-foreground">
             {weather.rainProbability !== null ? `${weather.rainProbability}%` : "—"}
           </dd>
         </div>
       </dl>
-      <p className="mt-2 text-caption text-muted">Observed at {weather.observedAt}</p>
+      <p className="mt-4 text-xs text-muted">Observed at {weather.observedAt}</p>
     </div>
   );
 }
@@ -77,53 +90,75 @@ export function CityPage({ viewModel, jsonLd }: CityPageProps) {
   } = viewModel;
 
   return (
-    <main className="mx-auto max-w-5xl px-4 py-8">
+    <main id="main-content" className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-10">
       {jsonLd !== undefined ? <JsonLd schema={jsonLd} /> : null}
 
-      <h1 className="text-3xl font-semibold text-foreground">
-        {city.cityName}, {city.countryName}
-      </h1>
-      <p className="mt-2 text-caption text-muted">
-        {city.timezone} · {city.latitude.toFixed(2)}, {city.longitude.toFixed(2)}
-      </p>
-
-      {/* Current weather (DATA-WEATHER-001) */}
-      <section aria-label="Current weather" className="mt-8">
-        <h2 className="text-heading-3 font-semibold text-foreground">Weather now</h2>
-        {weatherState === "loading" ? (
-          <p role="status" className="mt-2 text-body text-muted">
-            Loading weather…
+      <section className="hero-panel !p-6 sm:!p-10">
+        <div className="relative z-10">
+          <a
+            href={`/${city.countrySlug}`}
+            className="text-xs font-bold text-primary hover:underline focus-ring"
+          >
+            ← Explore {city.countryName}
+          </a>
+          <p className="eyebrow mt-7">Destination forecast</p>
+          <h1 className="mt-4 text-4xl font-bold tracking-[-0.04em] text-foreground sm:text-6xl">
+            {`${city.cityName}, ${city.countryName}`}
+          </h1>
+          <p className="mt-4 text-sm text-muted">
+            {city.timezone} · {city.latitude.toFixed(2)}, {city.longitude.toFixed(2)}
           </p>
-        ) : null}
-        {weatherState === "error" ? (
-          <p role="alert" className="mt-2 text-body text-danger">
-            We couldn’t load the current weather.
-          </p>
-        ) : null}
-        {weatherState === "empty" ? (
-          <p className="mt-2 text-body text-muted">No current weather available.</p>
-        ) : null}
-        {weatherState === "ready" && weather !== null ? (
-          <div className="mt-2">
-            <WeatherSummary weather={weather} unit={unit} />
-          </div>
-        ) : null}
+        </div>
       </section>
 
-      {/* Travel Score */}
-      <section aria-label="Travel Score" className="mt-8">
-        <h2 className="text-heading-3 font-semibold text-foreground">Travel Score</h2>
-        <p className="mt-2 text-body">
-          <span className="font-medium">{renderScoreValue(score)}</span>
-          {score.reasonCodes.length > 0 ? (
-            <span className="ml-2 text-caption text-muted">{score.reasonCodes.join(", ")}</span>
+      <div className="mt-10 grid gap-5 md:grid-cols-2">
+        {/* Current weather (DATA-WEATHER-001) */}
+        <section aria-label="Current weather">
+          <h2 className="sr-only">Weather now</h2>
+          {weatherState === "loading" ? (
+            <p role="status" className="mt-2 text-body text-muted">
+              Loading weather…
+            </p>
           ) : null}
-        </p>
-      </section>
+          {weatherState === "error" ? (
+            <p role="alert" className="mt-2 text-body text-danger">
+              We couldn’t load the current weather.
+            </p>
+          ) : null}
+          {weatherState === "empty" ? (
+            <p className="mt-2 text-body text-muted">No current weather available.</p>
+          ) : null}
+          {weatherState === "ready" && weather !== null ? (
+            <div>
+              <WeatherSummary weather={weather} unit={unit} />
+            </div>
+          ) : null}
+        </section>
+
+        {/* Travel Score */}
+        <section aria-label="Travel Score" className="info-panel h-full">
+          <p className="text-xs font-bold uppercase tracking-[0.12em] text-muted">Travel Score</p>
+          <div className="mt-3 flex items-end gap-2">
+            <span className="text-5xl font-bold tracking-[-0.05em] text-foreground">
+              {renderScoreValue(score)}
+            </span>
+            {score.value !== null ? (
+              <span className="mb-1 text-sm font-semibold text-muted">/ 100</span>
+            ) : null}
+          </div>
+          <p className="mt-4 text-sm">
+            {score.reasonCodes.length > 0 ? (
+              <span className="rounded-full bg-[#f4f7ff] px-3 py-1.5 text-xs font-semibold text-primary">
+                {score.reasonCodes.join(", ")}
+              </span>
+            ) : null}
+          </p>
+        </section>
+      </div>
 
       {/* Forecast window */}
-      <section aria-label="Forecast" className="mt-8">
-        <h2 className="text-heading-3 font-semibold text-foreground">Forecast</h2>
+      <section aria-label="Forecast" className="info-panel mt-5">
+        <h2 className="text-lg font-bold text-foreground">Forecast window</h2>
         {forecastState === "loading" ? (
           <p role="status" className="mt-2 text-body text-muted">
             Loading forecast…
@@ -144,13 +179,13 @@ export function CityPage({ viewModel, jsonLd }: CityPageProps) {
 
       {/* Commercial / affiliate links — clearly disclosed (no effect on ranking). */}
       {commercial.length > 0 ? (
-        <section aria-label="Travel services" className="mt-8">
-          <h2 className="text-heading-3 font-semibold text-foreground">Travel services</h2>
+        <section aria-label="Travel services" className="info-panel mt-5">
+          <h2 className="text-lg font-bold text-foreground">Travel services</h2>
           <ul className="mt-2 flex flex-wrap gap-2">
             {commercial.map((item, index) => (
               <li
                 key={index}
-                className="rounded-pill border border-border px-3 py-1 text-caption text-muted"
+                className="rounded-full border border-border bg-surface-elevated px-3 py-1.5 text-xs font-semibold text-foreground"
               >
                 {item}
               </li>
@@ -164,17 +199,20 @@ export function CityPage({ viewModel, jsonLd }: CityPageProps) {
 
       {/* Related destinations */}
       {relatedLinks.length > 0 ? (
-        <section aria-label="Related destinations" className="mt-8">
-          <h2 className="text-heading-3 font-semibold text-foreground">Related destinations</h2>
-          <ul className="mt-2 grid gap-2 sm:grid-cols-2">
+        <section aria-label="Related destinations" className="mt-12">
+          <p className="eyebrow">Keep exploring</p>
+          <h2 className="section-title mt-3">Related destinations</h2>
+          <ul className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {relatedLinks.map((dest: DestinationLinkViewModel) => (
               <li key={dest.cityId}>
-                <a
-                  href={dest.path}
-                  className="block rounded-lg border border-border bg-surface p-3 text-primary hover:bg-surface-elevated focus-ring"
-                >
-                  <span className="font-medium">{dest.cityName}</span>
-                  <span className="ml-2 text-body-small text-muted">{dest.countryName}</span>
+                <a href={dest.path} className="destination-link focus-ring">
+                  <span>
+                    <span className="font-bold text-foreground">{dest.cityName}</span>
+                    <span className="ml-2 text-xs text-muted">{dest.countryName}</span>
+                  </span>
+                  <span aria-hidden="true" className="text-lg text-primary">
+                    →
+                  </span>
                 </a>
               </li>
             ))}
@@ -182,9 +220,9 @@ export function CityPage({ viewModel, jsonLd }: CityPageProps) {
         </section>
       ) : null}
 
-      <footer className="mt-12 border-t border-border pt-6 text-caption text-muted">
-        Weather and Travel Score use the latest activated data; stale results remain usable but are
-        labeled.
+      <footer className="page-footer">
+        <span>Where Not Rain · Weather-led travel inspiration</span>
+        <span>Latest activated data · Stale results are always labeled</span>
       </footer>
     </main>
   );

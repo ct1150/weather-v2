@@ -30,15 +30,20 @@ function CityList({
     return <p className="mt-2 text-body text-muted">{emptyLabel}</p>;
   }
   return (
-    <ul className="mt-2 grid gap-2 sm:grid-cols-2">
-      {items.map((dest) => (
+    <ul className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      {items.map((dest, index) => (
         <li key={dest.cityId}>
-          <a
-            href={dest.path}
-            className="block rounded-lg border border-border bg-surface p-3 text-primary hover:bg-surface-elevated focus-ring"
-          >
-            <span className="font-medium">{dest.cityName}</span>
-            <span className="ml-2 text-body-small text-muted">{dest.countryName}</span>
+          <a href={dest.path} className="destination-link focus-ring">
+            <span>
+              <span className="mr-3 text-xs font-bold text-muted">
+                {String(index + 1).padStart(2, "0")}
+              </span>
+              <span className="font-bold text-foreground">{dest.cityName}</span>
+              <span className="ml-2 text-xs text-muted">{dest.countryName}</span>
+            </span>
+            <span aria-hidden="true" className="text-lg text-primary">
+              →
+            </span>
           </a>
         </li>
       ))}
@@ -51,13 +56,25 @@ export function CountryPage({ viewModel, jsonLd }: CountryPageProps) {
   const isReady = state === "ready" || state === "stale";
 
   return (
-    <main className="mx-auto max-w-5xl px-4 py-8">
+    <main id="main-content" className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-10">
       {jsonLd !== undefined ? <JsonLd schema={jsonLd} /> : null}
 
-      <h1 className="text-3xl font-semibold text-foreground">{country.name}</h1>
-      {country.summary !== null ? (
-        <p className="mt-2 max-w-2xl text-body text-muted">{country.summary}</p>
-      ) : null}
+      <section className="hero-panel !p-6 sm:!p-10">
+        <div className="relative z-10 max-w-3xl">
+          <a href="/" className="text-xs font-bold text-primary hover:underline focus-ring">
+            ← Back to Travel Radar
+          </a>
+          <p className="eyebrow mt-7">Country guide</p>
+          <h1 className="mt-4 text-4xl font-bold tracking-[-0.04em] text-foreground sm:text-6xl">
+            {country.name}
+          </h1>
+          {country.summary !== null ? (
+            <p className="mt-4 max-w-2xl text-base leading-7 text-muted sm:text-lg">
+              {country.summary}
+            </p>
+          ) : null}
+        </div>
+      </section>
 
       {state === "loading" ? (
         <p role="status" className="mt-8 text-body text-muted">
@@ -73,30 +90,33 @@ export function CountryPage({ viewModel, jsonLd }: CountryPageProps) {
 
       {isReady ? (
         <>
-          <section aria-label="Cities" className="mt-8">
-            <h2 className="text-heading-3 font-semibold text-foreground">Cities</h2>
+          <section aria-label="Cities" className="mt-12">
+            <p className="eyebrow">Browse the country</p>
+            <h2 className="section-title mt-3">Cities</h2>
             <CityList items={cities} emptyLabel="No cities listed yet." />
           </section>
 
           {rankings.map((ranking) => (
-            <section key={ranking.theme} aria-label={ranking.title} className="mt-8">
-              <h2 className="text-heading-3 font-semibold text-foreground">{ranking.title}</h2>
+            <section key={ranking.theme} aria-label={ranking.title} className="mt-12">
+              <p className="eyebrow">Curated picks</p>
+              <h2 className="section-title mt-3">{ranking.title}</h2>
               <CityList items={ranking.items} emptyLabel="No destinations in this ranking yet." />
             </section>
           ))}
 
           {relatedLinks.length > 0 ? (
-            <section aria-label="Related destinations" className="mt-8">
-              <h2 className="text-heading-3 font-semibold text-foreground">Related destinations</h2>
+            <section aria-label="Related destinations" className="mt-12">
+              <p className="eyebrow">Keep exploring</p>
+              <h2 className="section-title mt-3">Related destinations</h2>
               <CityList items={relatedLinks} emptyLabel="No related destinations yet." />
             </section>
           ) : null}
         </>
       ) : null}
 
-      <footer className="mt-12 border-t border-border pt-6 text-caption text-muted">
-        Recommendations use the latest activated weather and Travel Score; stale results remain
-        usable but are labeled.
+      <footer className="page-footer">
+        <span>Where Not Rain · Weather-led travel inspiration</span>
+        <span>Latest activated weather and Travel Score</span>
       </footer>
     </main>
   );

@@ -281,21 +281,26 @@ export function ExplorerMap({ markers, theme, windowLabel }: ExplorerMapProps): 
   }, [markers, theme, windowLabel]);
 
   return (
-    <section aria-label="Interactive weather map" className="mt-8">
-      <h2 id={labelId} className="text-heading-3 font-semibold text-foreground">
-        Weather map
-      </h2>
-      <p className="mt-1 text-caption text-muted">
-        An interactive enhancement for {windowLabel || "this window"}
-        {theme ? ` · ${theme}` : ""}. The destination list above is the accessible, crawlable
-        equivalent.
-      </p>
+    <section aria-label="Interactive weather map" className="mt-12">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="eyebrow">Visual overview</p>
+          <h2 id={labelId} className="section-title mt-3">
+            Weather map
+          </h2>
+        </div>
+        <p className="max-w-xl text-xs leading-5 text-muted sm:text-right">
+          An interactive enhancement for {windowLabel || "this window"}
+          {theme ? ` · ${theme}` : ""}. The destination list above is the accessible, crawlable
+          equivalent.
+        </p>
+      </div>
       <div
         ref={containerRef}
         role="region"
         aria-labelledby={labelId}
         data-testid="explorer-map"
-        className="mt-3 h-[420px] w-full overflow-hidden rounded-lg border border-border bg-surface"
+        className="mt-5 h-[360px] w-full overflow-hidden rounded-2xl border-4 border-white bg-surface shadow-[0_18px_50px_rgba(31,46,78,0.12)] sm:h-[480px]"
       />
     </section>
   );

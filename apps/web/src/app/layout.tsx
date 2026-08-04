@@ -6,6 +6,7 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { CloudflareAnalytics } from "../components/CloudflareAnalytics";
+import { SiteHeader } from "../components/SiteHeader";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -22,6 +23,7 @@ export default function RootLayout({ children }: { children: ReactNode }): React
   return (
     <html lang="en">
       <body>
+        <SiteHeader />
         {children}
         <CloudflareAnalytics />
       </body>
