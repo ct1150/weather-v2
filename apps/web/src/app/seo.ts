@@ -16,19 +16,30 @@ import { buildConfig } from "../build/bake";
 
 export const PRIMARY_SITE_URL = "https://868656.xyz";
 export const SITE_NAME = "Where Not Rain";
+export type PublishedLocale = "en" | "zh-cn";
 
-/** Absolute URL for the only currently published locale. */
-export function localeUrl(_locale: "en", path: string): string {
+/** Absolute URL for a published locale. */
+export function localeUrl(locale: PublishedLocale, path: string): string {
   const base = buildConfig().appBaseUrl.replace(/\/+$/, "");
-  return `${base}${path}`;
+  return `${base}${locale === "zh-cn" ? "/zh-cn" : ""}${path}`;
 }
 
 /**
  * Build one self-referencing canonical. Locale routes must not be advertised
  * until those pages are actually published.
  */
-export function buildAlternates(path: string): NonNullable<Metadata["alternates"]> {
-  return { canonical: localeUrl("en", path) };
+export function buildAlternates(
+  path: string,
+  currentLocale: PublishedLocale = "en",
+  translatedLocales: ReadonlyArray<PublishedLocale> = ["en"],
+): NonNullable<Metadata["alternates"]> {
+  const canonical = localeUrl(currentLocale, path);
+  if (translatedLocales.length <= 1) return { canonical };
+  const languages: Record<string, string> = { "x-default": localeUrl("en", path) };
+  for (const locale of translatedLocales) {
+    languages[locale === "zh-cn" ? "zh-CN" : locale] = localeUrl(locale, path);
+  }
+  return { canonical, languages };
 }
 
 export function countrySearchCopy(
@@ -52,6 +63,20 @@ export function citySearchCopy(
   return {
     title: `${cityName} travel weather: rain, temperature & score`,
     description: `See the 7-day ${cityName} forecast, rain risk, temperature and Travel Score, then compare other ${countryName} destinations before you book.`,
+  };
+}
+
+export function countrySearchCopyZh(
+  countryName: string,
+  cityNames: ReadonlyArray<string>,
+): { readonly title: string; readonly description: string } {
+  const cityCount = cityNames.length;
+  const examples = cityNames.slice(0, 3).join("、");
+  const remainder = Math.max(0, cityCount - 3);
+  const cityPreview = remainder > 0 ? `${examples}等${cityCount}个目的地` : examples;
+  return {
+    title: `${countryName}旅行天气地图：比较${cityCount}个城市`,
+    description: `选择旅行日期，一张地图比较${cityPreview}的预计降雨、最高降雨概率、气温和旅行评分。`,
   };
 }
 
@@ -80,12 +105,20 @@ export function localizedSitemapEntries(
     readonly changeFrequency:
       "always" | "hourly" | "daily" | "weekly" | "monthly" | "yearly" | "never";
   },
+  locales: ReadonlyArray<PublishedLocale> = ["en"],
 ): MetadataRoute.Sitemap {
-  return [
-    {
-      url: localeUrl("en", path),
-      lastModified: options.lastModified,
-      changeFrequency: options.changeFrequency,
-    },
-  ];
+  const languages: Record<string, string> | undefined =
+    locales.length > 1
+      ? {
+          en: localeUrl("en", path),
+          "zh-CN": localeUrl("zh-cn", path),
+          "x-default": localeUrl("en", path),
+        }
+      : undefined;
+  return locales.map((locale) => ({
+    url: localeUrl(locale, path),
+    lastModified: options.lastModified,
+    changeFrequency: options.changeFrequency,
+    ...(languages === undefined ? {} : { alternates: { languages } }),
+  }));
 }

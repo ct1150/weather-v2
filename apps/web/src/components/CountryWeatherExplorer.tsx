@@ -21,11 +21,102 @@ const WINDOW_INDICES: Readonly<Record<Window, ReadonlyArray<number>>> = {
   next_week: [2, 3, 4],
 };
 
-const WINDOW_LABELS: Readonly<Record<Window, string>> = {
-  today: "Today",
-  tomorrow: "Tomorrow",
-  weekend: "This weekend",
-  next_week: "Next week",
+type ExplorerLocale = "en" | "zh-cn";
+
+const WINDOW_LABELS: Readonly<Record<ExplorerLocale, Readonly<Record<Window, string>>>> = {
+  en: { today: "Today", tomorrow: "Tomorrow", weekend: "This weekend", next_week: "Next week" },
+  "zh-cn": { today: "今天", tomorrow: "明天", weekend: "本周末", next_week: "下周" },
+};
+
+const COPY = {
+  en: {
+    country: "Country",
+    chooseCountry: "Choose country",
+    travelDates: "Travel dates",
+    exactDates: "Or choose exact dates",
+    firstDate: "First travel date",
+    lastDate: "Last travel date",
+    unavailable: "Dates unavailable",
+    customTrip: "Custom trip",
+    atGlance: "at a glance",
+    mapHeading: "Weather across every listed travel city",
+    lowerRain: "Lower rain",
+    mixed: "Mixed",
+    rainLikely: "Rain likely",
+    best: "Best available",
+    selected: "Selected city",
+    averageScore: "Avg score",
+    lowerRainDays: "Lower-rain days",
+    expectedRain: "Expected rain · peak chance",
+    temperature: "Temperature",
+    dailyWeather: "Daily weather in selected range",
+    peakRain: "peak rain",
+    detail: "Open 7-day city outlook",
+    compare: "Compare without leaving the map",
+    allCities: (country: string) => `All ${country} travel cities`,
+    sorted: "Sorted by lighter-rain days, expected amount, then score",
+    score: "Score",
+    mapRiskLegend: "Map risk legend",
+  },
+  "zh-cn": {
+    country: "国家",
+    chooseCountry: "选择国家",
+    travelDates: "旅行日期",
+    exactDates: "或选择准确日期",
+    firstDate: "旅行开始日期",
+    lastDate: "旅行结束日期",
+    unavailable: "暂无可用日期",
+    customTrip: "自选行程",
+    atGlance: "天气概览",
+    mapHeading: "地图上比较全部旅游城市",
+    lowerRain: "少雨",
+    mixed: "天气不定",
+    rainLikely: "降雨偏多",
+    best: "当前最佳",
+    selected: "已选城市",
+    averageScore: "平均评分",
+    lowerRainDays: "少雨天数",
+    expectedRain: "预计降雨量 · 最高概率",
+    temperature: "气温",
+    dailyWeather: "所选日期的逐日天气",
+    peakRain: "最高降雨概率",
+    detail: "查看英文7天天气",
+    compare: "不用打开详情页，直接比较",
+    allCities: (country: string) => `${country}全部旅游城市`,
+    sorted: "按少雨天数、预计降雨量和评分排序",
+    score: "评分",
+    mapRiskLegend: "地图天气风险图例",
+  },
+} as const;
+
+const CONDITION_ZH: Readonly<Record<string, string>> = {
+  Clear: "晴",
+  "Mainly clear": "大致晴朗",
+  "Partly cloudy": "多云间晴",
+  Overcast: "阴",
+  Fog: "雾",
+  "Rime fog": "雾凇",
+  "Light drizzle": "小毛毛雨",
+  Drizzle: "毛毛雨",
+  "Dense drizzle": "密集毛毛雨",
+  "Light freezing drizzle": "轻微冻毛毛雨",
+  "Dense freezing drizzle": "密集冻毛毛雨",
+  "Light rain": "小雨",
+  Rain: "雨",
+  "Heavy rain": "大雨",
+  "Light freezing rain": "轻微冻雨",
+  "Heavy freezing rain": "强冻雨",
+  "Light snow": "小雪",
+  Snow: "雪",
+  "Heavy snow": "大雪",
+  "Snow grains": "米雪",
+  "Rain showers": "阵雨",
+  "Moderate rain showers": "中等阵雨",
+  "Violent rain showers": "强阵雨",
+  "Light snow showers": "小阵雪",
+  "Heavy snow showers": "强阵雪",
+  Thunderstorm: "雷暴",
+  "Thunderstorm with hail": "雷暴伴冰雹",
 };
 
 const WINDOWS: ReadonlyArray<Window> = ["today", "tomorrow", "weekend", "next_week"];
@@ -69,6 +160,7 @@ export interface CountryWeatherExplorerProps {
   readonly countries: ReadonlyArray<CountryOptionViewModel>;
   readonly cities: ReadonlyArray<CountryWeatherCityViewModel>;
   readonly updatedLabel: string;
+  readonly locale?: ExplorerLocale;
 }
 
 function daysForWindow(
@@ -138,26 +230,42 @@ function summarize(city: CountryWeatherCityViewModel, indices: ReadonlyArray<num
   };
 }
 
-function shortDate(value: string): string {
+function shortDate(value: string, locale: ExplorerLocale): string {
   const date = new Date(`${value}T00:00:00Z`);
   if (Number.isNaN(date.getTime())) return value;
-  return new Intl.DateTimeFormat("en", { month: "short", day: "numeric", timeZone: "UTC" }).format(
-    date,
-  );
+  return new Intl.DateTimeFormat(locale === "zh-cn" ? "zh-CN" : "en", {
+    month: locale === "zh-cn" ? "numeric" : "short",
+    day: "numeric",
+    timeZone: "UTC",
+  }).format(date);
 }
 
-function rangeLabel(days: ReadonlyArray<CountryWeatherDayViewModel>): string {
-  if (days.length === 0) return "Dates unavailable";
-  if (days.length === 1) return shortDate(days[0]?.localDate ?? "");
-  return `${shortDate(days[0]?.localDate ?? "")}–${shortDate(days[days.length - 1]?.localDate ?? "")}`;
+function rangeLabel(
+  days: ReadonlyArray<CountryWeatherDayViewModel>,
+  locale: ExplorerLocale,
+): string {
+  if (days.length === 0) return COPY[locale].unavailable;
+  if (days.length === 1) return shortDate(days[0]?.localDate ?? "", locale);
+  return `${shortDate(days[0]?.localDate ?? "", locale)}–${shortDate(days[days.length - 1]?.localDate ?? "", locale)}`;
 }
 
-function rainLabel(summary: CitySummary): string {
-  if (summary.totalRainMm === null && summary.maxRain === null) return "Rain data unavailable";
+function rainLabel(summary: CitySummary, locale: ExplorerLocale): string {
+  if (summary.totalRainMm === null && summary.maxRain === null)
+    return locale === "zh-cn" ? "暂无降雨数据" : "Rain data unavailable";
   if (summary.totalRainMm === null) {
+    if (locale === "zh-cn") {
+      return summary.days.length === 1
+        ? `最高降雨概率 ${summary.maxRain}%`
+        : `${summary.dryDays}/${summary.days.length}天少雨 · 最高${summary.maxRain}%`;
+    }
     return summary.days.length === 1
       ? `${summary.maxRain}% peak rain chance`
       : `${summary.dryDays}/${summary.days.length} lower-rain days · max ${summary.maxRain}%`;
+  }
+  if (locale === "zh-cn") {
+    return summary.days.length === 1
+      ? `预计 ${summary.totalRainMm} mm · 最高${summary.maxRain ?? "—"}%`
+      : `${summary.dryDays}/${summary.days.length}天少雨 · 共${summary.totalRainMm ?? "—"} mm`;
   }
   if (summary.days.length === 1) {
     return `${summary.totalRainMm} mm expected · ${summary.maxRain ?? "—"}% peak chance`;
@@ -165,13 +273,17 @@ function rainLabel(summary: CitySummary): string {
   return `${summary.dryDays}/${summary.days.length} lighter-rain days · ${summary.totalRainMm ?? "—"} mm total`;
 }
 
-function mapMarkerLabel(summary: CitySummary): string {
+function mapMarkerLabel(summary: CitySummary, locale: ExplorerLocale): string {
   if (summary.days.length === 1) {
     return summary.totalRainMm === null
-      ? `${summary.maxRain ?? "—"}% peak`
-      : `${summary.totalRainMm} mm · ${summary.maxRain ?? "—"}% peak`;
+      ? `${summary.maxRain ?? "—"}%${locale === "zh-cn" ? "最高" : " peak"}`
+      : `${summary.totalRainMm} mm · ${summary.maxRain ?? "—"}%${locale === "zh-cn" ? "最高" : " peak"}`;
   }
-  return `${summary.dryDays}/${summary.days.length} light · ${summary.totalRainMm ?? "—"} mm`;
+  return `${summary.dryDays}/${summary.days.length}${locale === "zh-cn" ? "少雨" : " light"} · ${summary.totalRainMm ?? "—"} mm`;
+}
+
+function conditionLabel(value: string, locale: ExplorerLocale): string {
+  return locale === "zh-cn" ? (CONDITION_ZH[value] ?? value) : value;
 }
 
 function WeatherIcon({ condition }: { condition: string }): ReactElement {
@@ -217,7 +329,9 @@ export function CountryWeatherExplorer({
   countries,
   cities,
   updatedLabel,
+  locale = "en",
 }: CountryWeatherExplorerProps): ReactElement {
+  const copy = COPY[locale];
   const [activeWindow, setActiveWindow] = useState<Window>("today");
   const [customRange, setCustomRange] = useState<{ start: number; end: number } | null>(null);
   const [selectedCityId, setSelectedCityId] = useState("");
@@ -250,8 +364,8 @@ export function CountryWeatherExplorer({
   );
   const selected =
     summaries.find((summary) => summary.city.cityId === selectedCityId) ?? summaries[0] ?? null;
-  const exactDates = rangeLabel(referenceDays(cities, selectedIndices));
-  const rangeName = customRange === null ? WINDOW_LABELS[activeWindow] : "Custom trip";
+  const exactDates = rangeLabel(referenceDays(cities, selectedIndices), locale);
+  const rangeName = customRange === null ? WINDOW_LABELS[locale][activeWindow] : copy.customTrip;
 
   useEffect(() => {
     const restoreUrlState = (): void => {
@@ -332,13 +446,15 @@ export function CountryWeatherExplorer({
       button.className = "country-weather-marker-button";
       button.setAttribute(
         "aria-label",
-        `${summary.city.cityName}: ${rainLabel(summary)}. Select city.`,
+        locale === "zh-cn"
+          ? `${summary.city.cityName}：${rainLabel(summary, locale)}。选择城市。`
+          : `${summary.city.cityName}: ${rainLabel(summary, locale)}. Select city.`,
       );
       if (summary.city.cityId === selected?.city.cityId) button.dataset.selected = "true";
       const name = document.createElement("strong");
       name.textContent = summary.city.cityName;
       const detail = document.createElement("span");
-      detail.textContent = mapMarkerLabel(summary);
+      detail.textContent = mapMarkerLabel(summary, locale);
       button.append(name, detail);
       button.addEventListener("click", () => setSelectedCityId(summary.city.cityId));
       shell.append(button);
@@ -354,7 +470,7 @@ export function CountryWeatherExplorer({
         .setLngLat([summary.city.longitude, summary.city.latitude])
         .addTo(map);
     });
-  }, [mapReady, selected?.city.cityId, summaries]);
+  }, [locale, mapReady, selected?.city.cityId, summaries]);
 
   function selectWindow(windowKind: Window): void {
     setActiveWindow(windowKind);
@@ -377,15 +493,20 @@ export function CountryWeatherExplorer({
   }
 
   return (
-    <section className="country-weather-console" aria-label={`${country.name} travel weather map`}>
+    <section
+      className="country-weather-console"
+      aria-label={
+        locale === "zh-cn" ? `${country.name}旅行天气地图` : `${country.name} travel weather map`
+      }
+    >
       <div className="country-console-toolbar">
         <label className="country-select-label">
-          <span>Country</span>
+          <span>{copy.country}</span>
           <select
             value={`/${country.slug}`}
             onChange={(event) => window.location.assign(event.target.value)}
             className="country-select focus-ring"
-            aria-label="Choose country"
+            aria-label={copy.chooseCountry}
           >
             {countries.map((option) => (
               <option key={option.slug} value={option.path}>
@@ -395,10 +516,10 @@ export function CountryWeatherExplorer({
           </select>
         </label>
         <div className="min-w-0 flex-1">
-          <p className="country-control-label">Travel dates</p>
-          <div className="country-window-tabs" role="group" aria-label="Travel dates">
+          <p className="country-control-label">{copy.travelDates}</p>
+          <div className="country-window-tabs" role="group" aria-label={copy.travelDates}>
             {WINDOWS.map((windowKind) => {
-              const dates = rangeLabel(referenceDays(cities, WINDOW_INDICES[windowKind]));
+              const dates = rangeLabel(referenceDays(cities, WINDOW_INDICES[windowKind]), locale);
               return (
                 <button
                   key={windowKind}
@@ -407,18 +528,18 @@ export function CountryWeatherExplorer({
                   aria-pressed={customRange === null && activeWindow === windowKind}
                   className={`country-window-button focus-ring ${customRange === null && activeWindow === windowKind ? "is-active" : ""}`}
                 >
-                  <span>{WINDOW_LABELS[windowKind]}</span>
+                  <span>{WINDOW_LABELS[locale][windowKind]}</span>
                   <small>{dates}</small>
                 </button>
               );
             })}
           </div>
-          <div className="country-custom-range" aria-label="Choose an exact travel date range">
-            <span>Or choose exact dates</span>
+          <div className="country-custom-range" aria-label={copy.exactDates}>
+            <span>{copy.exactDates}</span>
             <label>
-              <span className="sr-only">First travel date</span>
+              <span className="sr-only">{copy.firstDate}</span>
               <select
-                aria-label="First travel date"
+                aria-label={copy.firstDate}
                 value={customRange?.start ?? selectedIndices[0] ?? 0}
                 onChange={(event) =>
                   selectCustomRange(
@@ -429,16 +550,16 @@ export function CountryWeatherExplorer({
               >
                 {(cities[0]?.days ?? []).map((day, index) => (
                   <option key={day.localDate} value={index}>
-                    {shortDate(day.localDate)}
+                    {shortDate(day.localDate, locale)}
                   </option>
                 ))}
               </select>
             </label>
             <span aria-hidden="true">→</span>
             <label>
-              <span className="sr-only">Last travel date</span>
+              <span className="sr-only">{copy.lastDate}</span>
               <select
-                aria-label="Last travel date"
+                aria-label={copy.lastDate}
                 value={customRange?.end ?? selectedIndices[selectedIndices.length - 1] ?? 0}
                 onChange={(event) =>
                   selectCustomRange(
@@ -449,7 +570,7 @@ export function CountryWeatherExplorer({
               >
                 {(cities[0]?.days ?? []).map((day, index) => (
                   <option key={day.localDate} value={index}>
-                    {shortDate(day.localDate)}
+                    {shortDate(day.localDate, locale)}
                   </option>
                 ))}
               </select>
@@ -464,10 +585,10 @@ export function CountryWeatherExplorer({
           <div className="country-map-heading">
             <div>
               <p className="text-xs font-bold uppercase tracking-[0.14em] text-primary">
-                {country.name} at a glance
+                {country.name} {copy.atGlance}
               </p>
               <h2 className="mt-1 text-xl font-bold tracking-[-0.03em] text-foreground sm:text-2xl">
-                Weather across every listed travel city
+                {copy.mapHeading}
               </h2>
             </div>
             <p className="text-xs font-semibold text-muted">
@@ -478,18 +599,22 @@ export function CountryWeatherExplorer({
             ref={mapContainerRef}
             className="country-weather-map"
             role="region"
-            aria-label={`${country.name} city weather map for ${rangeName}`}
+            aria-label={
+              locale === "zh-cn"
+                ? `${country.name}${rangeName}城市天气地图`
+                : `${country.name} city weather map for ${rangeName}`
+            }
             data-testid="country-weather-map"
           />
-          <div className="country-map-legend" aria-label="Map risk legend">
+          <div className="country-map-legend" aria-label={copy.mapRiskLegend}>
             <span>
-              <i className="legend-good" /> Lower rain
+              <i className="legend-good" /> {copy.lowerRain}
             </span>
             <span>
-              <i className="legend-mixed" /> Mixed
+              <i className="legend-mixed" /> {copy.mixed}
             </span>
             <span>
-              <i className="legend-wet" /> Rain likely
+              <i className="legend-wet" /> {copy.rainLikely}
             </span>
           </div>
         </div>
@@ -497,64 +622,68 @@ export function CountryWeatherExplorer({
         {selected !== null ? (
           <aside
             className="country-city-inspector"
-            aria-label={`${selected.city.cityName} weather summary`}
+            aria-label={
+              locale === "zh-cn"
+                ? `${selected.city.cityName}天气摘要`
+                : `${selected.city.cityName} weather summary`
+            }
           >
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-white/55">
-                  {summaries[0]?.city.cityId === selected.city.cityId
-                    ? "Best available"
-                    : "Selected city"}
+                  {summaries[0]?.city.cityId === selected.city.cityId ? copy.best : copy.selected}
                 </p>
                 <h2 className="mt-2 text-3xl font-bold tracking-[-0.04em] text-white">
                   {selected.city.cityName}
                 </h2>
                 <p className="mt-1 text-sm text-white/55">
-                  {rangeName} · {rangeLabel(selected.days)}
+                  {rangeName} · {rangeLabel(selected.days, locale)}
                 </p>
               </div>
               <div className="text-right">
                 <p className="text-3xl font-bold text-white">{selected.score ?? "—"}</p>
-                <p className="text-[9px] uppercase tracking-[0.12em] text-white/45">Avg score</p>
+                <p className="text-[9px] uppercase tracking-[0.12em] text-white/45">
+                  {copy.averageScore}
+                </p>
               </div>
             </div>
             <div className="country-inspector-summary">
               <div>
-                <span>Lower-rain days</span>
+                <span>{copy.lowerRainDays}</span>
                 <strong>
                   {selected.dryDays}/{selected.days.length}
                 </strong>
               </div>
               <div>
-                <span>Expected rain · peak chance</span>
+                <span>{copy.expectedRain}</span>
                 <strong>
                   {selected.totalRainMm ?? "—"} mm · {selected.maxRain ?? "—"}%
                 </strong>
               </div>
               <div>
-                <span>Temperature</span>
+                <span>{copy.temperature}</span>
                 <strong>
                   {selected.temperatureMin ?? "–"}–{selected.temperatureMax ?? "–"}°C
                 </strong>
               </div>
             </div>
-            <ol className="country-daily-strip" aria-label="Daily weather in selected range">
+            <ol className="country-daily-strip" aria-label={copy.dailyWeather}>
               {selected.days.map((day) => (
                 <li key={day.localDate}>
                   <div className="flex items-center gap-3">
                     <WeatherIcon condition={day.weather.conditionLabel} />
                     <div>
                       <time dateTime={day.localDate} className="text-xs font-bold text-white">
-                        {shortDate(day.localDate)}
+                        {shortDate(day.localDate, locale)}
                       </time>
                       <p className="mt-0.5 text-[11px] text-white/55">
-                        {day.weather.conditionLabel}
+                        {conditionLabel(day.weather.conditionLabel, locale)}
                       </p>
                     </div>
                   </div>
                   <div className="text-right">
                     <p className="text-xs font-bold text-white">
-                      {day.weather.rainProbability ?? "—"}% peak rain
+                      {day.weather.rainProbability ?? "—"}% {copy.peakRain}
                     </p>
                     <p className="mt-0.5 text-[11px] text-white/50">
                       {day.weather.temperatureMin ?? "–"}–{day.weather.temperatureMax ?? "–"}°
@@ -564,7 +693,7 @@ export function CountryWeatherExplorer({
               ))}
             </ol>
             <a href={selected.city.path} className="country-detail-link focus-ring">
-              Open 7-day city outlook <span aria-hidden="true">→</span>
+              {copy.detail} <span aria-hidden="true">→</span>
             </a>
           </aside>
         ) : null}
@@ -573,12 +702,10 @@ export function CountryWeatherExplorer({
       <div className="country-city-list-section">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="eyebrow">Compare without leaving the map</p>
-            <h2 className="section-title mt-3">All {country.name} travel cities</h2>
+            <p className="eyebrow">{copy.compare}</p>
+            <h2 className="section-title mt-3">{copy.allCities(country.name)}</h2>
           </div>
-          <p className="text-xs text-muted">
-            Sorted by lighter-rain days, expected amount, then score
-          </p>
+          <p className="text-xs text-muted">{copy.sorted}</p>
         </div>
         <ul className="country-city-grid">
           {summaries.map((summary, index) => (
@@ -594,11 +721,15 @@ export function CountryWeatherExplorer({
                   <strong className="block truncate text-base text-foreground">
                     {summary.city.cityName}
                   </strong>
-                  <span className="mt-1 block text-xs text-muted">{rainLabel(summary)}</span>
+                  <span className="mt-1 block text-xs text-muted">
+                    {rainLabel(summary, locale)}
+                  </span>
                 </span>
                 <span className="text-right">
                   <strong className="block text-lg text-foreground">{summary.score ?? "—"}</strong>
-                  <span className="text-[9px] uppercase tracking-[0.1em] text-muted">Score</span>
+                  <span className="text-[9px] uppercase tracking-[0.1em] text-muted">
+                    {copy.score}
+                  </span>
                 </span>
               </button>
             </li>

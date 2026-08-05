@@ -1,4 +1,7 @@
+"use client";
+
 import type { ReactElement } from "react";
+import { usePathname } from "next/navigation";
 
 function BrandMark(): ReactElement {
   return (
@@ -20,33 +23,38 @@ function BrandMark(): ReactElement {
 }
 
 export function SiteHeader(): ReactElement {
+  const pathname = usePathname();
+  const isChinese = pathname === "/zh-cn" || pathname.startsWith("/zh-cn/");
   return (
     <header className="site-header">
       <a href="#main-content" className="skip-link">
-        Skip to content
+        {isChinese ? "跳到主要内容" : "Skip to content"}
       </a>
       <div className="mx-auto flex h-[72px] max-w-6xl items-center justify-between px-4 sm:px-6">
         <a
-          href="/"
+          href={isChinese ? "/zh-cn" : "/"}
           className="group flex items-center gap-2.5 rounded-lg focus-ring"
-          aria-label="Where Not Rain home"
+          aria-label={isChinese ? "Where Not Rain 中文首页" : "Where Not Rain home"}
         >
           <BrandMark />
           <span className="text-[15px] font-bold tracking-[-0.02em] text-foreground sm:text-base">
             Where Not Rain
           </span>
           <span className="hidden rounded-full border border-border bg-surface-elevated px-2 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-muted md:inline">
-            Travel weather
+            {isChinese ? "旅行天气" : "Travel weather"}
           </span>
         </a>
-        <nav aria-label="Main navigation" className="flex items-center gap-1">
-          <a href="/" className="nav-link focus-ring">
-            <span className="hidden sm:inline">Forecast radar</span>
-            <span className="sm:hidden">Radar</span>
+        <nav
+          aria-label={isChinese ? "主导航" : "Main navigation"}
+          className="flex items-center gap-1"
+        >
+          <a href={isChinese ? "/zh-cn" : "/"} className="nav-link focus-ring">
+            <span className="hidden sm:inline">{isChinese ? "国家天气" : "Forecast radar"}</span>
+            <span className="sm:hidden">{isChinese ? "天气" : "Radar"}</span>
           </a>
-          <a href="/explore" className="nav-link focus-ring">
-            <span className="hidden sm:inline">Explore map</span>
-            <span className="sm:hidden">Explore</span>
+          <a href={isChinese ? "/" : "/explore"} className="nav-link focus-ring">
+            <span className="hidden sm:inline">{isChinese ? "English" : "Explore map"}</span>
+            <span className="sm:hidden">{isChinese ? "EN" : "Explore"}</span>
           </a>
         </nav>
       </div>

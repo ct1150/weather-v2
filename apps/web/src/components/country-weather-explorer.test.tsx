@@ -191,4 +191,25 @@ describe("CountryWeatherExplorer", () => {
     );
     expect(screen.getByText("Aug 9–Aug 10")).toBeTruthy();
   });
+
+  it("renders the complete country decision console in Simplified Chinese", () => {
+    render(
+      <CountryWeatherExplorer
+        country={{ slug: "jp", name: "日本" }}
+        countries={[
+          { slug: "jp", name: "日本", path: "/zh-cn/jp" },
+          { slug: "kr", name: "韩国", path: "/zh-cn/kr" },
+        ]}
+        cities={CITIES.map((item) => ({ ...item, countryName: "日本" }))}
+        updatedLabel="更新于 2026-08-05"
+        locale="zh-cn"
+      />,
+    );
+
+    expect(screen.getByRole("combobox", { name: "选择国家" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /明天/ })).toBeTruthy();
+    expect(screen.getByText("地图上比较全部旅游城市")).toBeTruthy();
+    expect(screen.getByText("不用打开详情页，直接比较")).toBeTruthy();
+    expect(screen.getByText("日本全部旅游城市")).toBeTruthy();
+  });
 });

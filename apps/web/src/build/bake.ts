@@ -57,7 +57,7 @@ export function buildConfig(): BuildConfig {
   const appEnv: "preview" | "production" =
     process.env.APP_ENV === "preview" ? "preview" : "production";
   const defaultLocale = (process.env.DEFAULT_LOCALE as Locale) ?? "en";
-  const supported = (process.env.SUPPORTED_LOCALES ?? "en")
+  const supported = (process.env.SUPPORTED_LOCALES ?? "en,zh-cn")
     .split(",")
     .map((s) => s.trim())
     .filter((s): s is Locale => s.length > 0);

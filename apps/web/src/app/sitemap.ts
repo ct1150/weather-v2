@@ -17,13 +17,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const changeFrequency = "weekly" as const;
 
   const entries: MetadataRoute.Sitemap = [
-    ...localizedSitemapEntries("/", { lastModified, changeFrequency }),
+    ...localizedSitemapEntries("/", { lastModified, changeFrequency }, ["en", "zh-cn"]),
     ...localizedSitemapEntries("/explore", { lastModified, changeFrequency }),
   ];
 
   for (const country of dataset.countries) {
     const countryPath = `/${country.slug}`;
-    entries.push(...localizedSitemapEntries(countryPath, { lastModified, changeFrequency }));
+    entries.push(
+      ...localizedSitemapEntries(countryPath, { lastModified, changeFrequency }, ["en", "zh-cn"]),
+    );
     const cities = dataset.citiesByCountry.get(country.id) ?? [];
     for (const city of cities) {
       const cityPath = `/${country.slug}/${city.city.slug}`;

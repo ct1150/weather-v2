@@ -15,13 +15,19 @@ import { describe, expect, it } from "vitest";
 import sitemap from "../app/sitemap";
 import robots from "../app/robots";
 import { JsonLd } from "../components/JsonLd";
-import { buildAlternates, citySearchCopy, countrySearchCopy, routeRobots } from "../app/seo";
+import {
+  buildAlternates,
+  citySearchCopy,
+  countrySearchCopy,
+  countrySearchCopyZh,
+  routeRobots,
+} from "../app/seo";
 import { indexabilityForRouteClass } from "@wnr/seo";
 
 const BASE = "https://868656.xyz";
 
 describe("sitemap.ts — static export sitemap (SEO-SITEMAP-001)", () => {
-  it("enumerates every real canonical route once", async () => {
+  it("enumerates every real English route and launched Chinese route once", async () => {
     const entries = await sitemap();
     expect(entries.length).toBeGreaterThan(0);
 
@@ -31,13 +37,21 @@ describe("sitemap.ts — static export sitemap (SEO-SITEMAP-001)", () => {
     expect(urls).toContain(`${BASE}/explore`);
     // At least one city URL (en canonical).
     expect(urls.some((u) => u.endsWith("/jp/tokyo"))).toBe(true);
+    expect(urls).toContain(`${BASE}/zh-cn/`);
+    expect(urls).toContain(`${BASE}/zh-cn/jp`);
+    expect(urls.some((u) => u.includes("/zh-cn/jp/tokyo"))).toBe(false);
     expect(urls.some((u) => u.includes("/ja/"))).toBe(false);
+    expect(urls).toHaveLength(55);
     expect(new Set(urls).size).toBe(urls.length);
   });
 
-  it("does not advertise locale routes that are not published", async () => {
+  it("advertises hreflang only where both language pages are published", async () => {
     const entries = await sitemap();
-    expect(entries.every((entry) => entry.alternates === undefined)).toBe(true);
+    const japan = entries.find((entry) => entry.url === `${BASE}/jp`);
+    const tokyo = entries.find((entry) => entry.url === `${BASE}/jp/tokyo`);
+    expect(japan?.alternates?.languages?.["zh-CN"]).toBe(`${BASE}/zh-cn/jp`);
+    expect(japan?.alternates?.languages?.en).toBe(`${BASE}/jp`);
+    expect(tokyo?.alternates).toBeUndefined();
   });
 
   it("every entry carries a lastModified or changeFrequency", async () => {
@@ -75,10 +89,16 @@ describe("JsonLd.tsx — server-rendered structured data (SEO-STRUCTURED-001)", 
 });
 
 describe("seo.ts helpers — canonical + search copy + robots", () => {
-  it("resolves a self-referencing production canonical only", () => {
+  it("resolves canonical-only city pages and translated country alternates", () => {
     const alt = buildAlternates("/jp/tokyo");
     expect(alt.canonical).toBe(`${BASE}/jp/tokyo`);
     expect(alt.languages).toBeUndefined();
+
+    const zhCountry = buildAlternates("/jp", "zh-cn", ["en", "zh-cn"]);
+    expect(zhCountry.canonical).toBe(`${BASE}/zh-cn/jp`);
+    expect(zhCountry.languages?.en).toBe(`${BASE}/jp`);
+    expect(zhCountry.languages?.["zh-CN"]).toBe(`${BASE}/zh-cn/jp`);
+    expect(zhCountry.languages?.["x-default"]).toBe(`${BASE}/jp`);
   });
 
   it("generates unique, intent-led country and city search copy", () => {
@@ -88,6 +108,11 @@ describe("seo.ts helpers — canonical + search copy + robots", () => {
         "Choose your travel dates and compare rain, temperature and Travel Scores for Tokyo, Osaka, Sapporo and 1 more on one Japan weather map.",
     });
     expect(citySearchCopy("Tokyo", "Japan").title).toContain("Tokyo travel weather");
+    expect(countrySearchCopyZh("日本", ["东京", "大阪", "札幌", "京都"])).toEqual({
+      title: "日本旅行天气地图：比较4个城市",
+      description:
+        "选择旅行日期，一张地图比较东京、大阪、札幌等4个目的地的预计降雨、最高降雨概率、气温和旅行评分。",
+    });
   });
 
   it("consumes @wnr/seo indexabilityForRouteClass for robots flags", () => {

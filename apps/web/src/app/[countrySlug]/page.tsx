@@ -16,6 +16,7 @@ import { buildAlternates, routeRobots, localeUrl, countrySearchCopy } from "../s
 
 export interface CountryPageProps {
   readonly viewModel: CountryPageViewModel;
+  readonly locale?: "en" | "zh-cn";
   /** Server-rendered JSON-LD schema.org node. */
   readonly jsonLd?: Readonly<Record<string, unknown>>;
 }
@@ -54,7 +55,7 @@ function CityList({
   );
 }
 
-export function CountryPage({ viewModel, jsonLd }: CountryPageProps) {
+export function CountryPage({ viewModel, jsonLd, locale = "en" }: CountryPageProps) {
   const {
     country,
     cities,
@@ -71,6 +72,7 @@ export function CountryPage({ viewModel, jsonLd }: CountryPageProps) {
     weatherCities !== undefined &&
     weatherCities.length > 0 &&
     availableCountries !== undefined;
+  const isChinese = locale === "zh-cn";
 
   return (
     <main id="main-content" className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-10">
@@ -78,12 +80,17 @@ export function CountryPage({ viewModel, jsonLd }: CountryPageProps) {
 
       <section className="hero-panel !p-6 sm:!p-10">
         <div className="relative z-10 max-w-3xl">
-          <a href="/" className="text-xs font-bold text-primary hover:underline focus-ring">
-            ← Back to Travel Radar
+          <a
+            href={isChinese ? "/zh-cn" : "/"}
+            className="text-xs font-bold text-primary hover:underline focus-ring"
+          >
+            {isChinese ? "← 返回亚洲旅行天气" : "← Back to Travel Radar"}
           </a>
-          <p className="eyebrow mt-7">Country weather map</p>
+          <p className="eyebrow mt-7">{isChinese ? "国家旅行天气地图" : "Country weather map"}</p>
           <h1 className="mt-4 max-w-4xl text-4xl font-bold tracking-[-0.045em] text-foreground sm:text-6xl">
-            Compare travel weather across {cities.length} cities in {country.name}
+            {isChinese
+              ? `比较${country.name}${cities.length}个旅游城市的天气`
+              : `Compare travel weather across ${cities.length} cities in ${country.name}`}
           </h1>
           <p className="mt-4 max-w-2xl text-base leading-7 text-muted sm:text-lg">
             {country.summary ??
@@ -94,13 +101,15 @@ export function CountryPage({ viewModel, jsonLd }: CountryPageProps) {
 
       {state === "loading" ? (
         <p role="status" className="mt-8 text-body text-muted">
-          Loading country…
+          {isChinese ? "正在加载国家天气…" : "Loading country…"}
         </p>
       ) : null}
 
       {state === "error" ? (
         <p role="alert" className="mt-8 text-body text-danger">
-          We couldn’t load this country right now. Please try again.
+          {isChinese
+            ? "暂时无法加载该国家的天气，请稍后重试。"
+            : "We couldn’t load this country right now. Please try again."}
         </p>
       ) : null}
 
@@ -109,23 +118,33 @@ export function CountryPage({ viewModel, jsonLd }: CountryPageProps) {
           country={country}
           countries={availableCountries}
           cities={weatherCities}
-          updatedLabel={dataUpdatedLabel ?? "Latest available data"}
+          updatedLabel={
+            isChinese
+              ? (dataUpdatedLabel ?? "Latest available data").replace(/^Updated /, "更新于 ")
+              : (dataUpdatedLabel ?? "Latest available data")
+          }
+          locale={locale}
         />
       ) : isReady ? (
         <>
           <section aria-label="Cities" className="mt-12">
-            <p className="eyebrow">Browse the country</p>
-            <h2 className="section-title mt-3">Cities</h2>
-            <CityList items={cities} emptyLabel="No cities listed yet." />
+            <p className="eyebrow">{isChinese ? "浏览目的地" : "Browse the country"}</p>
+            <h2 className="section-title mt-3">{isChinese ? "城市" : "Cities"}</h2>
+            <CityList
+              items={cities}
+              emptyLabel={isChinese ? "暂时没有城市。" : "No cities listed yet."}
+            />
           </section>
 
           {rankings.map((ranking) => (
             <section key={ranking.theme} aria-label={ranking.title} className="mt-12">
-              <p className="eyebrow">Curated picks</p>
+              <p className="eyebrow">{isChinese ? "精选推荐" : "Curated picks"}</p>
               <h2 className="section-title mt-3">{ranking.title}</h2>
               <CityList
                 items={ranking.items}
-                emptyLabel="No destinations in this ranking yet."
+                emptyLabel={
+                  isChinese ? "该排名暂时没有目的地。" : "No destinations in this ranking yet."
+                }
                 ranked
               />
             </section>
@@ -133,18 +152,29 @@ export function CountryPage({ viewModel, jsonLd }: CountryPageProps) {
 
           {relatedLinks.length > 0 ? (
             <section aria-label="Related destinations" className="mt-12">
-              <p className="eyebrow">Keep exploring</p>
-              <h2 className="section-title mt-3">Related destinations</h2>
-              <CityList items={relatedLinks} emptyLabel="No related destinations yet." />
+              <p className="eyebrow">{isChinese ? "继续探索" : "Keep exploring"}</p>
+              <h2 className="section-title mt-3">
+                {isChinese ? "相关目的地" : "Related destinations"}
+              </h2>
+              <CityList
+                items={relatedLinks}
+                emptyLabel={isChinese ? "暂时没有相关目的地。" : "No related destinations yet."}
+              />
             </section>
           ) : null}
         </>
       ) : null}
 
       <footer className="page-footer">
-        <span>Where Not Rain · Weather-led travel inspiration</span>
         <span>
-          Forecast data by <a href="https://open-meteo.com/">Open-Meteo</a> · Derived Travel Score
+          {isChinese
+            ? "Where Not Rain · 用天气决定去哪里"
+            : "Where Not Rain · Weather-led travel inspiration"}
+        </span>
+        <span>
+          {isChinese ? "天气数据：" : "Forecast data by "}
+          <a href="https://open-meteo.com/">Open-Meteo</a>
+          {isChinese ? " · 衍生旅行评分" : " · Derived Travel Score"}
         </span>
       </footer>
     </main>
@@ -172,7 +202,7 @@ export async function generateMetadata({
     description:
       searchCopy?.description ??
       "Compare rain, temperature and Travel Scores across destinations on one country weather map.",
-    alternates: buildAlternates(`/${params.countrySlug}`),
+    alternates: buildAlternates(`/${params.countrySlug}`, "en", ["en", "zh-cn"]),
     robots: routeRobots("country", true),
   };
 }

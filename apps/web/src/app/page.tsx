@@ -355,7 +355,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title: { absolute: title },
     description,
-    alternates: buildAlternates("/"),
+    alternates: buildAlternates("/", "en", ["en", "zh-cn"]),
     robots: routeRobots("homepage", true),
     openGraph: {
       type: "website",

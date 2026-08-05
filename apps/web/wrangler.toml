@@ -18,11 +18,11 @@ pages_build_output_dir = "out"
 
 # Preview environment — isolated, no scheduled bindings.
 [env.preview]
-vars = { APP_ENV = "preview", DEFAULT_LOCALE = "en", SUPPORTED_LOCALES = "en" }
+vars = { APP_ENV = "preview", DEFAULT_LOCALE = "en", SUPPORTED_LOCALES = "en,zh-cn" }
 
 # Production environment — static site config; scheduled ingestion is owned by weather-sync.
 [env.production]
-vars = { APP_ENV = "production", DEFAULT_LOCALE = "en", SUPPORTED_LOCALES = "en" }
+vars = { APP_ENV = "production", DEFAULT_LOCALE = "en", SUPPORTED_LOCALES = "en,zh-cn" }
 
 # ---------------------------------------------------------------------------
 # D1 (DEFERRED — dormant this phase, do NOT enable)

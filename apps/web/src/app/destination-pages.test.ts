@@ -119,6 +119,10 @@ function renderCountry(vm: CountryPageViewModel): string {
   return renderToStaticMarkup(createElement(CountryPage, { viewModel: vm }));
 }
 
+function renderChineseCountry(vm: CountryPageViewModel): string {
+  return renderToStaticMarkup(createElement(CountryPage, { viewModel: vm, locale: "zh-cn" }));
+}
+
 function renderCity(vm: CityPageViewModel): string {
   return renderToStaticMarkup(createElement(CityPage, { viewModel: vm }));
 }
@@ -155,6 +159,16 @@ describe("Country destination page (PRD-FR-003)", () => {
   it("renders the error state", () => {
     const error = renderCountry(countryFixture("error"));
     expect(error).toContain("couldn’t load this country");
+  });
+
+  it("renders Chinese country navigation and decision heading when localized", () => {
+    const html = renderChineseCountry({
+      ...countryFixture("ready"),
+      country: { ...countryHeader(), name: "日本", summary: "一次比较日本不同地区的天气。" },
+    });
+    expect(html).toContain("返回亚洲旅行天气");
+    expect(html).toContain("比较日本2个旅游城市的天气");
+    expect(html).toContain("用天气决定去哪里");
   });
 });
 
