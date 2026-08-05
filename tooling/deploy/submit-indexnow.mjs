@@ -2,7 +2,7 @@ import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { resolve } from "node:path";
 
-export const INDEXNOW_KEY = "b8e8d4ca-85b2-4f2e-b7cc-3c20c1527e2f";
+export const INDEXNOW_KEY = "b8e8d4ca85b24f2eb7cc3c20c1527e2f";
 export const SITE_HOST = "868656.xyz";
 
 function decodeXml(value) {
@@ -40,6 +40,11 @@ export async function submitIndexNow({
 } = {}) {
   const sitemap = await readFile(sitemapPath, "utf8");
   const payload = buildIndexNowPayload(extractSitemapUrls(sitemap));
+  const keyResponse = await fetchImpl(payload.keyLocation);
+  const publishedKey = keyResponse.ok ? (await keyResponse.text()).trim() : "";
+  if (publishedKey !== INDEXNOW_KEY) {
+    throw new Error(`IndexNow key is not publicly available at ${payload.keyLocation}`);
+  }
   const response = await fetchImpl("https://api.indexnow.org/indexnow", {
     method: "POST",
     headers: { "content-type": "application/json; charset=utf-8" },
