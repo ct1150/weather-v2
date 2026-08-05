@@ -1,8 +1,8 @@
 // apps/web/src/app/sitemap.ts
 //
 // Static-export sitemap (SEO-SITEMAP-001). Enumerates every canonical,
-// quality-passing route from the build-time baked dataset across all five
-// locales, emitting hreflang alternates via `alternates.languages`.
+// quality-passing route from the build-time baked dataset. Only routes that
+// exist in the static export are emitted; future locale routes join on launch.
 //
 // Next's App Router emits this as `out/sitemap.xml` during `next build`
 // (static export compatible — no request-time data path).

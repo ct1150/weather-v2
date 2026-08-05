@@ -349,10 +349,22 @@ export function TravelRadarPage({
 }
 
 export async function generateMetadata(): Promise<Metadata> {
+  const title = "Travel weather map: find where it won't rain | Where Not Rain";
+  const description =
+    "Compare rain, temperature and Travel Scores across 36 destinations in Japan, Korea and Southeast Asia before choosing where and when to travel.";
   return {
-    title: "Where is NOT raining?",
+    title: { absolute: title },
+    description,
     alternates: buildAlternates("/"),
     robots: routeRobots("homepage", true),
+    openGraph: {
+      type: "website",
+      url: localeUrl("en", "/"),
+      siteName: "Where Not Rain",
+      title,
+      description,
+    },
+    twitter: { card: "summary", title, description },
   };
 }
 
@@ -378,22 +390,27 @@ export default async function Page(): Promise<ReactElement> {
     path: `/${baked.country.slug}/${baked.city.slug}`,
   }));
 
-  const featured = dataset.cities.find((b) => b.city.isFeatured);
   const jsonLd: Record<string, unknown> = {
     "@context": "https://schema.org",
-    "@type": "TouristDestination",
-    name: "Where Not Rain",
-    description:
-      "Deterministic, explainable destination recommendations from the latest weather and Travel Score.",
-    url: localeUrl("en", "/"),
+    "@graph": [
+      {
+        "@type": "WebSite",
+        "@id": `${localeUrl("en", "/")}#website`,
+        name: "Where Not Rain",
+        alternateName: "Where is NOT raining?",
+        description:
+          "Travel weather maps that compare rain, temperature and Travel Scores across destinations.",
+        url: localeUrl("en", "/"),
+        inLanguage: "en",
+      },
+      {
+        "@type": "Organization",
+        "@id": `${localeUrl("en", "/")}#organization`,
+        name: "Where Not Rain",
+        url: localeUrl("en", "/"),
+      },
+    ],
   };
-  if (featured !== undefined) {
-    jsonLd.geo = {
-      "@type": "GeoCoordinates",
-      latitude: featured.city.latitude,
-      longitude: featured.city.longitude,
-    };
-  }
 
   return (
     <TravelRadarPage

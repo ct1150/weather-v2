@@ -57,14 +57,14 @@ export function buildConfig(): BuildConfig {
   const appEnv: "preview" | "production" =
     process.env.APP_ENV === "preview" ? "preview" : "production";
   const defaultLocale = (process.env.DEFAULT_LOCALE as Locale) ?? "en";
-  const supported = (process.env.SUPPORTED_LOCALES ?? "en,ja,ko,zh-cn,zh-tw")
+  const supported = (process.env.SUPPORTED_LOCALES ?? "en")
     .split(",")
     .map((s) => s.trim())
     .filter((s): s is Locale => s.length > 0);
   const maxAge = Number(process.env.WEATHER_DATA_MAX_AGE_MINUTES ?? "60");
   return {
     appEnv,
-    appBaseUrl: process.env.APP_BASE_URL ?? "https://where-not-rain.pages.dev",
+    appBaseUrl: process.env.APP_BASE_URL ?? "https://868656.xyz",
     defaultLocale: defaultLocale,
     supportedLocales: supported.length > 0 ? supported : ["en"],
     weatherDataMaxAgeMinutes: Number.isFinite(maxAge) && maxAge > 0 ? maxAge : 60,

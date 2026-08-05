@@ -12,36 +12,47 @@
 import type { Metadata, MetadataRoute } from "next";
 import type { RouteClass } from "@wnr/seo";
 import { indexabilityForRouteClass } from "@wnr/seo";
-import type { Locale } from "../api/v1/schemas";
 import { buildConfig } from "../build/bake";
 
-/** MVP locales (en unprefixed; the rest carry a route prefix). */
-export const SUPPORTED_LOCALES: ReadonlyArray<Locale> = ["en", "ja", "ko", "zh-cn", "zh-tw"];
+export const PRIMARY_SITE_URL = "https://868656.xyz";
+export const SITE_NAME = "Where Not Rain";
 
-const LOCALE_PREFIX: Readonly<Record<Locale, string>> = {
-  en: "",
-  ja: "/ja",
-  ko: "/ko",
-  "zh-cn": "/zh-cn",
-  "zh-tw": "/zh-tw",
-};
-
-/** Absolute canonical URL for a locale + in-site `path` (path begins with "/"). */
-export function localeUrl(locale: Locale, path: string): string {
-  const base = buildConfig().appBaseUrl;
-  return `${base}${LOCALE_PREFIX[locale]}${path}`;
+/** Absolute URL for the only currently published locale. */
+export function localeUrl(_locale: "en", path: string): string {
+  const base = buildConfig().appBaseUrl.replace(/\/+$/, "");
+  return `${base}${path}`;
 }
 
 /**
- * Build the Next `alternates` block: a self-referencing canonical (en) plus one
- * hreflang alternate per supported locale. Used by every page's `generateMetadata`.
+ * Build one self-referencing canonical. Locale routes must not be advertised
+ * until those pages are actually published.
  */
 export function buildAlternates(path: string): NonNullable<Metadata["alternates"]> {
-  const languages: Record<string, string> = {};
-  for (const locale of SUPPORTED_LOCALES) {
-    languages[locale] = localeUrl(locale, path);
-  }
-  return { canonical: localeUrl("en", path), languages };
+  return { canonical: localeUrl("en", path) };
+}
+
+export function countrySearchCopy(
+  countryName: string,
+  cityNames: ReadonlyArray<string>,
+): { readonly title: string; readonly description: string } {
+  const cityCount = cityNames.length;
+  const examples = cityNames.slice(0, 3).join(", ");
+  const remainder = Math.max(0, cityCount - 3);
+  const cityPreview = remainder > 0 ? `${examples} and ${remainder} more` : examples;
+  return {
+    title: `${countryName} travel weather map: compare ${cityCount} cities`,
+    description: `Choose your travel dates and compare rain, temperature and Travel Scores for ${cityPreview} on one ${countryName} weather map.`,
+  };
+}
+
+export function citySearchCopy(
+  cityName: string,
+  countryName: string,
+): { readonly title: string; readonly description: string } {
+  return {
+    title: `${cityName} travel weather: rain, temperature & score`,
+    description: `See the 7-day ${cityName} forecast, rain risk, temperature and Travel Score, then compare other ${countryName} destinations before you book.`,
+  };
 }
 
 /**
@@ -61,7 +72,7 @@ export function routeRobots(
   };
 }
 
-/** Convenience for `sitemap.ts`: one `MetadataRoute.Sitemap` entry per locale. */
+/** Convenience for `sitemap.ts`: one entry per real, canonical route. */
 export function localizedSitemapEntries(
   path: string,
   options: {
@@ -70,14 +81,11 @@ export function localizedSitemapEntries(
       "always" | "hourly" | "daily" | "weekly" | "monthly" | "yearly" | "never";
   },
 ): MetadataRoute.Sitemap {
-  const languages: Record<string, string> = {};
-  for (const locale of SUPPORTED_LOCALES) {
-    languages[locale] = localeUrl(locale, path);
-  }
-  return SUPPORTED_LOCALES.map((locale) => ({
-    url: localeUrl(locale, path),
-    lastModified: options.lastModified,
-    changeFrequency: options.changeFrequency,
-    alternates: { languages },
-  }));
+  return [
+    {
+      url: localeUrl("en", path),
+      lastModified: options.lastModified,
+      changeFrequency: options.changeFrequency,
+    },
+  ];
 }

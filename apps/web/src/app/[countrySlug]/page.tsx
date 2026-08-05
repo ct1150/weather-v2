@@ -12,7 +12,7 @@ import type { CountryPageViewModel, DestinationLinkViewModel } from "../view-mod
 import { getBakedDataset, buildConfig, projectCountry } from "../../build/bake";
 import { JsonLd } from "../../components/JsonLd";
 import { CountryWeatherExplorer } from "../../components/CountryWeatherExplorer";
-import { buildAlternates, routeRobots, localeUrl } from "../seo";
+import { buildAlternates, routeRobots, localeUrl, countrySearchCopy } from "../seo";
 
 export interface CountryPageProps {
   readonly viewModel: CountryPageViewModel;
@@ -83,7 +83,7 @@ export function CountryPage({ viewModel, jsonLd }: CountryPageProps) {
           </a>
           <p className="eyebrow mt-7">Country weather map</p>
           <h1 className="mt-4 max-w-4xl text-4xl font-bold tracking-[-0.045em] text-foreground sm:text-6xl">
-            Choose the best-weather city in {country.name}
+            Compare travel weather across {cities.length} cities in {country.name}
           </h1>
           <p className="mt-4 max-w-2xl text-base leading-7 text-muted sm:text-lg">
             {country.summary ??
@@ -163,8 +163,15 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const dataset = await getBakedDataset();
   const country = dataset.countries.find((c) => c.slug === params.countrySlug);
+  const cityNames = country
+    ? (dataset.citiesByCountry.get(country.id) ?? []).map((item) => item.city.name.en)
+    : [];
+  const searchCopy = country ? countrySearchCopy(country.name.en, cityNames) : null;
   return {
-    title: country ? country.name.en : "Country guide",
+    title: searchCopy?.title ?? "Country travel weather guide",
+    description:
+      searchCopy?.description ??
+      "Compare rain, temperature and Travel Scores across destinations on one country weather map.",
     alternates: buildAlternates(`/${params.countrySlug}`),
     robots: routeRobots("country", true),
   };
@@ -181,21 +188,23 @@ export default async function Page({
   const config = buildConfig();
   const viewModel = projectCountry(dataset, params.countrySlug, config.defaultLocale);
 
-  const firstCity = (dataset.citiesByCountry.get(country.id) ?? [])[0];
+  const countryCities = dataset.citiesByCountry.get(country.id) ?? [];
+  const searchCopy = countrySearchCopy(
+    country.name.en,
+    countryCities.map((item) => item.city.name.en),
+  );
   const jsonLd: Record<string, unknown> = {
     "@context": "https://schema.org",
     "@type": "TouristDestination",
     name: country.name.en,
-    description: `Travel-weather guide for ${country.name.en}.`,
+    description: searchCopy.description,
     url: localeUrl("en", `/${country.slug}`),
+    containsPlace: countryCities.map((item) => ({
+      "@type": "City",
+      name: item.city.name.en,
+      url: localeUrl("en", `/${country.slug}/${item.city.slug}`),
+    })),
   };
-  if (firstCity !== undefined) {
-    jsonLd.geo = {
-      "@type": "GeoCoordinates",
-      latitude: firstCity.city.latitude,
-      longitude: firstCity.city.longitude,
-    };
-  }
 
   return <CountryPage viewModel={viewModel} jsonLd={jsonLd} />;
 }

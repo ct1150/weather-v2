@@ -15,7 +15,7 @@ import type {
 } from "../../view-models";
 import { getBakedDataset, buildConfig, projectCity } from "../../../build/bake";
 import { JsonLd } from "../../../components/JsonLd";
-import { buildAlternates, routeRobots, localeUrl } from "../../seo";
+import { buildAlternates, routeRobots, localeUrl, citySearchCopy } from "../../seo";
 
 export interface CityPageProps {
   readonly viewModel: CityPageViewModel;
@@ -160,6 +160,10 @@ export function CityPage({ viewModel, jsonLd }: CityPageProps) {
           </h1>
           <p className="mt-4 text-sm text-muted">
             {city.timezone} · {city.latitude.toFixed(2)}, {city.longitude.toFixed(2)}
+          </p>
+          <p className="mt-3 max-w-2xl text-sm leading-6 text-muted sm:text-base">
+            Check rain risk, temperature and the 7-day Travel Score, then compare other destinations
+            across {city.countryName} before you book.
           </p>
         </div>
       </section>
@@ -354,8 +358,12 @@ export async function generateMetadata({
   const baked = dataset.cities.find(
     (b) => b.city.slug === params.citySlug && b.country.slug === params.countrySlug,
   );
+  const searchCopy = baked ? citySearchCopy(baked.city.name.en, baked.country.name.en) : null;
   return {
-    title: baked ? `${baked.city.name.en}, ${baked.country.name.en}` : "Destination",
+    title: searchCopy?.title ?? "Destination travel weather",
+    description:
+      searchCopy?.description ??
+      "See the 7-day forecast, rain risk, temperature and Travel Score for this destination.",
     alternates: buildAlternates(`/${params.countrySlug}/${params.citySlug}`),
     robots: routeRobots("city", true),
   };
@@ -373,17 +381,23 @@ export default async function Page({
   if (baked === undefined) notFound();
   const config = buildConfig();
   const viewModel = projectCity(dataset, params.countrySlug, params.citySlug, config.defaultLocale);
+  const searchCopy = citySearchCopy(baked.city.name.en, baked.country.name.en);
 
   const jsonLd: Record<string, unknown> = {
     "@context": "https://schema.org",
     "@type": "Place",
     name: `${baked.city.name.en}, ${baked.country.name.en}`,
-    description: `Weather and Travel Score for ${baked.city.name.en}.`,
+    description: searchCopy.description,
     url: localeUrl("en", `/${params.countrySlug}/${params.citySlug}`),
     geo: {
       "@type": "GeoCoordinates",
       latitude: baked.city.latitude,
       longitude: baked.city.longitude,
+    },
+    containedInPlace: {
+      "@type": "Country",
+      name: baked.country.name.en,
+      url: localeUrl("en", `/${baked.country.slug}`),
     },
   };
 

@@ -15,7 +15,9 @@ export const metadata: Metadata = {
     template: "%s — Where Not Rain",
   },
   description:
-    "Deterministic, explainable destination recommendations from the latest weather and Travel Score.",
+    "Compare rain, temperature and Travel Scores across Asian destinations on one map before choosing where and when to travel.",
+  metadataBase: new URL("https://868656.xyz"),
+  applicationName: "Where Not Rain",
   icons: { icon: "/favicon.svg" },
 };
 

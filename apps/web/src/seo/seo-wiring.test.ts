@@ -6,7 +6,7 @@
 // This is the test that proves the previously-orphaned `@wnr/seo` package is
 // actually consumed: sitemap/robots are emitted from the baked dataset, the
 // JSON-LD component server-renders structured data, and the page metadata
-// helpers resolve canonical + hreflang + robots via `indexabilityForRouteClass`.
+// helpers resolve canonical + robots via `indexabilityForRouteClass`.
 
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
@@ -15,13 +15,13 @@ import { describe, expect, it } from "vitest";
 import sitemap from "../app/sitemap";
 import robots from "../app/robots";
 import { JsonLd } from "../components/JsonLd";
-import { buildAlternates, routeRobots } from "../app/seo";
+import { buildAlternates, citySearchCopy, countrySearchCopy, routeRobots } from "../app/seo";
 import { indexabilityForRouteClass } from "@wnr/seo";
 
-const BASE = "https://where-not-rain.pages.dev";
+const BASE = "https://868656.xyz";
 
 describe("sitemap.ts — static export sitemap (SEO-SITEMAP-001)", () => {
-  it("enumerates every canonical route across locales", async () => {
+  it("enumerates every real canonical route once", async () => {
     const entries = await sitemap();
     expect(entries.length).toBeGreaterThan(0);
 
@@ -31,18 +31,13 @@ describe("sitemap.ts — static export sitemap (SEO-SITEMAP-001)", () => {
     expect(urls).toContain(`${BASE}/explore`);
     // At least one city URL (en canonical).
     expect(urls.some((u) => u.endsWith("/jp/tokyo"))).toBe(true);
-    // At least one localized (prefixed) city URL.
-    expect(urls.some((u) => u.endsWith("/ja/jp/tokyo"))).toBe(true);
+    expect(urls.some((u) => u.includes("/ja/"))).toBe(false);
+    expect(new Set(urls).size).toBe(urls.length);
   });
 
-  it("emits hreflang alternates for every entry", async () => {
+  it("does not advertise locale routes that are not published", async () => {
     const entries = await sitemap();
-    const hasHreflang = entries.some(
-      (e) =>
-        e.alternates?.languages !== undefined &&
-        Object.keys(e.alternates.languages).some((k) => k !== "en"),
-    );
-    expect(hasHreflang).toBe(true);
+    expect(entries.every((entry) => entry.alternates === undefined)).toBe(true);
   });
 
   it("every entry carries a lastModified or changeFrequency", async () => {
@@ -79,15 +74,20 @@ describe("JsonLd.tsx — server-rendered structured data (SEO-STRUCTURED-001)", 
   });
 });
 
-describe("seo.ts helpers — canonical + hreflang + robots (SEO-PAGE-001, SEO-INDEXABILITY-001)", () => {
-  it("resolves a self-referencing canonical and per-locale hreflang alternates", () => {
+describe("seo.ts helpers — canonical + search copy + robots", () => {
+  it("resolves a self-referencing production canonical only", () => {
     const alt = buildAlternates("/jp/tokyo");
     expect(alt.canonical).toBe(`${BASE}/jp/tokyo`);
-    expect(alt.languages?.en).toBe(`${BASE}/jp/tokyo`);
-    expect(alt.languages?.ja).toBe(`${BASE}/ja/jp/tokyo`);
-    expect(alt.languages?.ko).toBe(`${BASE}/ko/jp/tokyo`);
-    expect(alt.languages?.["zh-cn"]).toBe(`${BASE}/zh-cn/jp/tokyo`);
-    expect(alt.languages?.["zh-tw"]).toBe(`${BASE}/zh-tw/jp/tokyo`);
+    expect(alt.languages).toBeUndefined();
+  });
+
+  it("generates unique, intent-led country and city search copy", () => {
+    expect(countrySearchCopy("Japan", ["Tokyo", "Osaka", "Sapporo", "Kyoto"])).toEqual({
+      title: "Japan travel weather map: compare 4 cities",
+      description:
+        "Choose your travel dates and compare rain, temperature and Travel Scores for Tokyo, Osaka, Sapporo and 1 more on one Japan weather map.",
+    });
+    expect(citySearchCopy("Tokyo", "Japan").title).toContain("Tokyo travel weather");
   });
 
   it("consumes @wnr/seo indexabilityForRouteClass for robots flags", () => {

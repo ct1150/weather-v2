@@ -133,7 +133,9 @@ export function ExplorerPage({ viewModel }: ExplorerPageProps) {
 
 export async function generateMetadata(): Promise<Metadata> {
   return {
-    title: "Weather Explorer",
+    title: "Asia travel weather map: compare destinations",
+    description:
+      "Explore travel weather across Japan, Korea and Southeast Asia. Compare rain, temperature and Travel Scores on one destination map.",
     alternates: buildAlternates("/explore"),
     robots: routeRobots("explore", true),
   };
