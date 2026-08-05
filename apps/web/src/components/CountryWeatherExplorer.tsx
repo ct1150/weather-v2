@@ -57,6 +57,19 @@ const COPY = {
     sorted: "Sorted by lighter-rain days, expected amount, then score",
     score: "Score",
     mapRiskLegend: "Map risk legend",
+    answerEyebrow: "Weather answer",
+    answerHeading: "Best weather option for these dates",
+    methodology: "How to use this comparison",
+    rankingQuestion: "How are cities ranked?",
+    rankingAnswer:
+      "We prioritize lower-rain days, then expected rainfall, peak rain probability and Travel Score. The score is a comparison aid, not a weather guarantee.",
+    probabilityQuestion: "Does a high rain chance mean rain all day?",
+    probabilityAnswer:
+      "No. Probability describes the chance of measurable rain, not how long it lasts. Compare expected millimetres and the daily breakdown before deciding.",
+    sourceQuestion: "Where does the forecast come from?",
+    sourceAnswer:
+      "Forecasts are converted into the same city-by-city decision measures using data from",
+    cityForecast: "7-day forecast",
   },
   "zh-cn": {
     country: "国家",
@@ -86,6 +99,18 @@ const COPY = {
     sorted: "按少雨天数、预计降雨量和评分排序",
     score: "评分",
     mapRiskLegend: "地图天气风险图例",
+    answerEyebrow: "天气结论",
+    answerHeading: "这段日期的优先目的地",
+    methodology: "如何理解这份比较",
+    rankingQuestion: "城市是如何排序的？",
+    rankingAnswer:
+      "先比较少雨天数，再比较预计降雨量、最高降雨概率和旅行评分。评分用于横向决策，不是天气保证。",
+    probabilityQuestion: "高降雨概率等于会下一整天吗？",
+    probabilityAnswer:
+      "不等于。降雨概率表示出现可测降雨的可能性，不代表持续时间；决策时应同时查看预计毫米数和逐日天气。",
+    sourceQuestion: "天气数据来自哪里？",
+    sourceAnswer: "预报数据统一换算成便于比较各城市的旅行天气指标，来源：",
+    cityForecast: "7天天气",
   },
 } as const;
 
@@ -364,8 +389,15 @@ export function CountryWeatherExplorer({
   );
   const selected =
     summaries.find((summary) => summary.city.cityId === selectedCityId) ?? summaries[0] ?? null;
+  const best = summaries[0] ?? null;
   const exactDates = rangeLabel(referenceDays(cities, selectedIndices), locale);
   const rangeName = customRange === null ? WINDOW_LABELS[locale][activeWindow] : copy.customTrip;
+  const answer =
+    best === null
+      ? copy.unavailable
+      : locale === "zh-cn"
+        ? `${rangeName}（${exactDates}），${best.city.cityName}在${summaries.length}个城市中排名第一：${rainLabel(best, locale)}，平均旅行评分${best.score ?? "—"}。`
+        : `For ${rangeName.toLowerCase()} (${exactDates}), ${best.city.cityName} ranks first among ${summaries.length} cities with ${rainLabel(best, locale)} and an average Travel Score of ${best.score ?? "—"}.`;
 
   useEffect(() => {
     const restoreUrlState = (): void => {
@@ -580,6 +612,14 @@ export function CountryWeatherExplorer({
         <p className="country-data-age">{updatedLabel}</p>
       </div>
 
+      <section className="country-answer-brief" aria-live="polite">
+        <div>
+          <p className="country-answer-eyebrow">{copy.answerEyebrow}</p>
+          <h2>{copy.answerHeading}</h2>
+        </div>
+        <p>{answer}</p>
+      </section>
+
       <div className="country-map-layout">
         <div className="country-map-stage">
           <div className="country-map-heading">
@@ -709,12 +749,16 @@ export function CountryWeatherExplorer({
         </div>
         <ul className="country-city-grid">
           {summaries.map((summary, index) => (
-            <li key={summary.city.cityId}>
+            <li
+              key={summary.city.cityId}
+              className={`country-city-choice risk-${summary.risk}`}
+              data-selected={selected?.city.cityId === summary.city.cityId}
+            >
               <button
                 type="button"
                 onClick={() => setSelectedCityId(summary.city.cityId)}
                 aria-pressed={selected?.city.cityId === summary.city.cityId}
-                className={`country-city-choice focus-ring risk-${summary.risk}`}
+                className="country-city-select focus-ring"
               >
                 <span className="country-city-rank">#{index + 1}</span>
                 <span className="min-w-0 flex-1 text-left">
@@ -732,10 +776,40 @@ export function CountryWeatherExplorer({
                   </span>
                 </span>
               </button>
+              <a
+                href={summary.city.path}
+                className="country-city-forecast-link focus-ring"
+                aria-label={`${summary.city.cityName} ${copy.cityForecast}`}
+              >
+                {copy.cityForecast} <span aria-hidden="true">→</span>
+              </a>
             </li>
           ))}
         </ul>
       </div>
+
+      <section className="country-evidence-panel" aria-labelledby="comparison-methodology">
+        <div className="country-evidence-heading">
+          <p className="eyebrow">{copy.methodology}</p>
+          <p>{updatedLabel}</p>
+        </div>
+        <div className="country-evidence-grid">
+          <article>
+            <h2 id="comparison-methodology">{copy.rankingQuestion}</h2>
+            <p>{copy.rankingAnswer}</p>
+          </article>
+          <article>
+            <h2>{copy.probabilityQuestion}</h2>
+            <p>{copy.probabilityAnswer}</p>
+          </article>
+          <article>
+            <h2>{copy.sourceQuestion}</h2>
+            <p>
+              {copy.sourceAnswer} <a href="https://open-meteo.com/">Open-Meteo</a>
+            </p>
+          </article>
+        </div>
+      </section>
     </section>
   );
 }

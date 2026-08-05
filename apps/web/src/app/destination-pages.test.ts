@@ -166,7 +166,7 @@ describe("Country destination page (PRD-FR-003)", () => {
       ...countryFixture("ready"),
       country: { ...countryHeader(), name: "日本", summary: "一次比较日本不同地区的天气。" },
     });
-    expect(html).toContain("返回亚洲旅行天气");
+    expect(html).toContain("亚洲旅行天气");
     expect(html).toContain("比较日本2个旅游城市的天气");
     expect(html).toContain("用天气决定去哪里");
   });
@@ -177,6 +177,8 @@ describe("City destination page (PRD-FR-004, DATA-WEATHER-001)", () => {
 
   it("renders the city + country heading", () => {
     expect(html).toContain("Tokyo, Japan");
+    expect(html).toContain('aria-label="Breadcrumb"');
+    expect(html).toContain('href="/jp"');
   });
 
   it("renders the current weather observation (DATA-WEATHER-001)", () => {

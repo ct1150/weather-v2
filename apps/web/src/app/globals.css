@@ -147,6 +147,19 @@
     @apply text-2xl font-bold tracking-[-0.035em] text-foreground sm:text-[1.875rem];
   }
 
+  .country-breadcrumb ol {
+    @apply flex flex-wrap items-center gap-2 text-xs font-bold text-muted;
+  }
+
+  .country-breadcrumb li + li::before {
+    content: "/";
+    @apply mr-2 text-border;
+  }
+
+  .country-breadcrumb a {
+    @apply text-primary underline decoration-primary/25 underline-offset-2 hover:decoration-primary;
+  }
+
   .destination-card {
     @apply relative h-full overflow-hidden rounded-2xl border border-border/90 bg-white p-5 transition-all duration-200;
     box-shadow: 0 6px 24px rgb(18 35 62 / 0.055);
@@ -307,6 +320,24 @@
 
   .country-data-age {
     @apply text-xs text-muted lg:pb-3;
+  }
+
+  .country-answer-brief {
+    @apply mt-4 grid gap-3 overflow-hidden rounded-2xl border border-primary/15 bg-white px-5 py-5 sm:grid-cols-[minmax(180px,0.55fr)_minmax(0,1.45fr)] sm:items-center sm:px-6;
+    box-shadow: 0 10px 30px rgb(18 35 62 / 0.07);
+    background-image: linear-gradient(100deg, rgb(var(--wnr-primary) / 0.07), transparent 48%);
+  }
+
+  .country-answer-eyebrow {
+    @apply text-[10px] font-bold uppercase tracking-[0.17em] text-primary;
+  }
+
+  .country-answer-brief h2 {
+    @apply mt-1 text-lg font-bold tracking-[-0.025em] text-foreground;
+  }
+
+  .country-answer-brief > p {
+    @apply text-sm font-medium leading-6 text-body sm:border-l sm:border-border sm:pl-6;
   }
 
   .country-map-layout {
@@ -470,15 +501,23 @@
   }
 
   .country-city-choice {
-    @apply flex min-h-20 w-full items-center gap-3 rounded-2xl border border-border bg-white p-4 transition hover:-translate-y-0.5 hover:border-current;
+    @apply overflow-hidden rounded-2xl border border-border bg-white transition hover:-translate-y-0.5 hover:border-current;
     box-shadow: 0 6px 22px rgb(18 35 62 / 0.05);
   }
 
-  .country-city-choice[aria-pressed="true"] {
+  .country-city-choice[data-selected="true"] {
     border-color: currentColor;
     box-shadow:
       0 10px 28px rgb(18 35 62 / 0.11),
       inset 3px 0 0 currentColor;
+  }
+
+  .country-city-select {
+    @apply flex min-h-20 w-full items-center gap-3 bg-white p-4;
+  }
+
+  .country-city-forecast-link {
+    @apply flex min-h-11 items-center justify-between border-t border-border/80 px-4 py-2 text-xs font-bold text-primary transition-colors hover:bg-surface-elevated;
   }
 
   .country-city-rank {
@@ -488,6 +527,47 @@
   .info-panel {
     @apply rounded-2xl border border-border/80 bg-white p-5 sm:p-6;
     box-shadow: 0 7px 26px rgb(31 46 78 / 0.05);
+  }
+
+  .country-evidence-panel {
+    @apply mt-10 rounded-2xl border border-border/80 bg-white p-5 sm:p-6;
+    box-shadow: 0 7px 26px rgb(31 46 78 / 0.05);
+  }
+
+  .country-evidence-heading {
+    @apply flex flex-col gap-2 border-b border-border/80 pb-4 sm:flex-row sm:items-center sm:justify-between;
+  }
+
+  .country-evidence-heading > p:last-child {
+    @apply text-xs text-muted;
+  }
+
+  .country-evidence-grid {
+    @apply grid divide-y divide-border/80 md:grid-cols-3 md:divide-x md:divide-y-0;
+  }
+
+  .country-evidence-grid article {
+    @apply py-5 md:px-5;
+  }
+
+  .country-evidence-grid article:first-child {
+    @apply md:pl-0;
+  }
+
+  .country-evidence-grid article:last-child {
+    @apply md:pr-0;
+  }
+
+  .country-evidence-grid h2 {
+    @apply text-sm font-bold leading-5 text-foreground;
+  }
+
+  .country-evidence-grid p {
+    @apply mt-2 text-xs leading-5 text-muted;
+  }
+
+  .country-evidence-grid a {
+    @apply font-semibold text-primary underline decoration-primary/30 underline-offset-2;
   }
 
   .destination-link {

@@ -113,6 +113,15 @@ describe("CountryWeatherExplorer", () => {
     expect(screen.getByRole("button", { name: /Tokyo.*25% peak rain/i })).toBeTruthy();
     expect(screen.getByRole("button", { name: /Osaka.*40% peak rain/i })).toBeTruthy();
     expect(screen.getByRole("button", { name: /Sapporo.*55% peak rain/i })).toBeTruthy();
+    expect(screen.getByText(/Tokyo ranks first among 3 cities/)).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Tokyo 7-day forecast" }).getAttribute("href")).toBe(
+      "/jp/tokyo",
+    );
+    expect(screen.getByRole("link", { name: "Osaka 7-day forecast" }).getAttribute("href")).toBe(
+      "/jp/osaka",
+    );
+    expect(screen.getByText("How are cities ranked?")).toBeTruthy();
+    expect(screen.getByText("Does a high rain chance mean rain all day?")).toBeTruthy();
     expect(screen.getByTestId("country-weather-map")).toBeTruthy();
     await waitFor(() => expect(maplibre.Map).toHaveBeenCalledTimes(1));
     await waitFor(() => expect(maplibre.markerElements).toHaveLength(3));
@@ -129,6 +138,7 @@ describe("CountryWeatherExplorer", () => {
     );
     expect(screen.getByLabelText("Osaka weather summary").textContent).toContain("15% peak rain");
     expect(container.querySelector(".country-city-grid button")?.textContent).toMatch(/^#1Osaka/);
+    expect(screen.getByText(/Osaka ranks first among 3 cities/)).toBeTruthy();
   });
 
   it("re-ranks every city for an exact date range without opening a detail page", () => {
@@ -211,5 +221,7 @@ describe("CountryWeatherExplorer", () => {
     expect(screen.getByText("地图上比较全部旅游城市")).toBeTruthy();
     expect(screen.getByText("不用打开详情页，直接比较")).toBeTruthy();
     expect(screen.getByText("日本全部旅游城市")).toBeTruthy();
+    expect(screen.getByText(/在3个城市中排名第一/)).toBeTruthy();
+    expect(screen.getByText("城市是如何排序的？")).toBeTruthy();
   });
 });

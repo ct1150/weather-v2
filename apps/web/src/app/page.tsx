@@ -50,6 +50,12 @@ export interface TravelRadarPageProps {
     readonly windowControls: ReadonlyArray<WindowControl>;
     readonly mapMarkers: ReadonlyArray<ExplorerMapMarker>;
   }>;
+  readonly countryLinks?: ReadonlyArray<{
+    readonly slug: string;
+    readonly name: string;
+    readonly path: string;
+    readonly cityCount: number;
+  }>;
   /** Server-rendered JSON-LD schema.org node. */
   readonly jsonLd?: Readonly<Record<string, unknown>>;
 }
@@ -76,6 +82,7 @@ export function TravelRadarPage({
   mapMarkers,
   searchCandidates,
   windowViews,
+  countryLinks,
   jsonLd,
 }: TravelRadarPageProps) {
   const { cards, freshness, state } = viewModel;
@@ -338,6 +345,36 @@ export function TravelRadarPage({
         <ExplorerMap markers={mapMarkers ?? []} theme="general" windowLabel="Today" />
       ) : null}
 
+      {countryLinks !== undefined && countryLinks.length > 0 ? (
+        <section className="mt-12" aria-labelledby="country-weather-guides">
+          <p className="eyebrow">Country weather guides</p>
+          <h2 id="country-weather-guides" className="section-title mt-3">
+            Compare every city on one country map
+          </h2>
+          <p className="mt-3 max-w-2xl text-sm leading-6 text-muted">
+            Choose a country, set your exact travel dates, and see all listed cities ranked without
+            opening separate forecast pages.
+          </p>
+          <ul className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {countryLinks.map((country) => (
+              <li key={country.slug}>
+                <a href={country.path} className="destination-link focus-ring">
+                  <span>
+                    <strong className="block text-foreground">{country.name}</strong>
+                    <span className="mt-1 block text-xs text-muted">
+                      {country.cityCount} travel {country.cityCount === 1 ? "city" : "cities"}
+                    </span>
+                  </span>
+                  <span aria-hidden="true" className="text-lg text-primary">
+                    →
+                  </span>
+                </a>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+
       <footer className="page-footer">
         <span>Where Not Rain · Weather-led travel inspiration</span>
         <span>
@@ -389,6 +426,12 @@ export default async function Page(): Promise<ReactElement> {
     citySlug: baked.city.slug,
     path: `/${baked.country.slug}/${baked.city.slug}`,
   }));
+  const countryLinks = dataset.countries.map((country) => ({
+    slug: country.slug,
+    name: country.name.en,
+    path: `/${country.slug}`,
+    cityCount: (dataset.citiesByCountry.get(country.id) ?? []).length,
+  }));
 
   const jsonLd: Record<string, unknown> = {
     "@context": "https://schema.org",
@@ -409,6 +452,30 @@ export default async function Page(): Promise<ReactElement> {
         name: "Where Not Rain",
         url: localeUrl("en", "/"),
       },
+      {
+        "@type": "CollectionPage",
+        "@id": `${localeUrl("en", "/")}#webpage`,
+        name: "Asian travel weather maps",
+        description:
+          "Compare rain, temperature and Travel Scores across Japan, Korea and Southeast Asia.",
+        url: localeUrl("en", "/"),
+        dateModified: dataset.dataUpdatedAt,
+        inLanguage: "en",
+        isPartOf: { "@id": `${localeUrl("en", "/")}#website` },
+        mainEntity: { "@id": `${localeUrl("en", "/")}#countries` },
+      },
+      {
+        "@type": "ItemList",
+        "@id": `${localeUrl("en", "/")}#countries`,
+        name: "Country travel weather maps",
+        numberOfItems: countryLinks.length,
+        itemListElement: countryLinks.map((country, index) => ({
+          "@type": "ListItem",
+          position: index + 1,
+          name: country.name,
+          url: localeUrl("en", country.path),
+        })),
+      },
     ],
   };
 
@@ -419,6 +486,7 @@ export default async function Page(): Promise<ReactElement> {
       mapMarkers={mapMarkers}
       searchCandidates={searchCandidates}
       windowViews={windowViews}
+      countryLinks={countryLinks}
       jsonLd={jsonLd}
     />
   );

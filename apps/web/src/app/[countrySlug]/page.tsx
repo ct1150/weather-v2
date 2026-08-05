@@ -80,12 +80,16 @@ export function CountryPage({ viewModel, jsonLd, locale = "en" }: CountryPagePro
 
       <section className="hero-panel !p-6 sm:!p-10">
         <div className="relative z-10 max-w-3xl">
-          <a
-            href={isChinese ? "/zh-cn" : "/"}
-            className="text-xs font-bold text-primary hover:underline focus-ring"
-          >
-            {isChinese ? "← 返回亚洲旅行天气" : "← Back to Travel Radar"}
-          </a>
+          <nav aria-label={isChinese ? "面包屑" : "Breadcrumb"} className="country-breadcrumb">
+            <ol>
+              <li>
+                <a href={isChinese ? "/zh-cn" : "/"} className="focus-ring">
+                  {isChinese ? "亚洲旅行天气" : "Travel Radar"}
+                </a>
+              </li>
+              <li aria-current="page">{country.name}</li>
+            </ol>
+          </nav>
           <p className="eyebrow mt-7">{isChinese ? "国家旅行天气地图" : "Country weather map"}</p>
           <h1 className="mt-4 max-w-4xl text-4xl font-bold tracking-[-0.045em] text-foreground sm:text-6xl">
             {isChinese
@@ -223,17 +227,55 @@ export default async function Page({
     country.name.en,
     countryCities.map((item) => item.city.name.en),
   );
+  const pageUrl = localeUrl("en", `/${country.slug}`);
+  const breadcrumbId = `${pageUrl}#breadcrumb`;
+  const destinationId = `${pageUrl}#destination`;
   const jsonLd: Record<string, unknown> = {
     "@context": "https://schema.org",
-    "@type": "TouristDestination",
-    name: country.name.en,
-    description: searchCopy.description,
-    url: localeUrl("en", `/${country.slug}`),
-    containsPlace: countryCities.map((item) => ({
-      "@type": "City",
-      name: item.city.name.en,
-      url: localeUrl("en", `/${country.slug}/${item.city.slug}`),
-    })),
+    "@graph": [
+      {
+        "@type": "WebPage",
+        "@id": `${pageUrl}#webpage`,
+        name: searchCopy.title,
+        description: searchCopy.description,
+        url: pageUrl,
+        dateModified: dataset.dataUpdatedAt,
+        inLanguage: "en",
+        breadcrumb: { "@id": breadcrumbId },
+        mainEntity: { "@id": destinationId },
+      },
+      {
+        "@type": "BreadcrumbList",
+        "@id": breadcrumbId,
+        itemListElement: [
+          { "@type": "ListItem", position: 1, name: "Travel Radar", item: localeUrl("en", "/") },
+          { "@type": "ListItem", position: 2, name: country.name.en, item: pageUrl },
+        ],
+      },
+      {
+        "@type": "TouristDestination",
+        "@id": destinationId,
+        name: country.name.en,
+        description: searchCopy.description,
+        url: pageUrl,
+        containsPlace: countryCities.map((item) => ({
+          "@type": "City",
+          name: item.city.name.en,
+          url: localeUrl("en", `/${country.slug}/${item.city.slug}`),
+        })),
+      },
+      {
+        "@type": "ItemList",
+        name: `${country.name.en} travel cities compared`,
+        numberOfItems: countryCities.length,
+        itemListElement: countryCities.map((item, index) => ({
+          "@type": "ListItem",
+          position: index + 1,
+          name: item.city.name.en,
+          url: localeUrl("en", `/${country.slug}/${item.city.slug}`),
+        })),
+      },
+    ],
   };
 
   return <CountryPage viewModel={viewModel} jsonLd={jsonLd} />;

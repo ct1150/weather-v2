@@ -148,12 +148,21 @@ export function CityPage({ viewModel, jsonLd }: CityPageProps) {
 
       <section className="hero-panel !p-6 sm:!p-10">
         <div className="relative z-10">
-          <a
-            href={`/${city.countrySlug}`}
-            className="text-xs font-bold text-primary hover:underline focus-ring"
-          >
-            ← Explore {city.countryName}
-          </a>
+          <nav aria-label="Breadcrumb" className="country-breadcrumb">
+            <ol>
+              <li>
+                <a href="/" className="focus-ring">
+                  Travel Radar
+                </a>
+              </li>
+              <li>
+                <a href={`/${city.countrySlug}`} className="focus-ring">
+                  {city.countryName}
+                </a>
+              </li>
+              <li aria-current="page">{city.cityName}</li>
+            </ol>
+          </nav>
           <p className="eyebrow mt-7">Destination forecast</p>
           <h1 className="mt-4 text-4xl font-bold tracking-[-0.04em] text-foreground sm:text-6xl">
             {`${city.cityName}, ${city.countryName}`}
@@ -383,22 +392,55 @@ export default async function Page({
   const viewModel = projectCity(dataset, params.countrySlug, params.citySlug, config.defaultLocale);
   const searchCopy = citySearchCopy(baked.city.name.en, baked.country.name.en);
 
+  const pageUrl = localeUrl("en", `/${params.countrySlug}/${params.citySlug}`);
+  const breadcrumbId = `${pageUrl}#breadcrumb`;
+  const placeId = `${pageUrl}#place`;
   const jsonLd: Record<string, unknown> = {
     "@context": "https://schema.org",
-    "@type": "Place",
-    name: `${baked.city.name.en}, ${baked.country.name.en}`,
-    description: searchCopy.description,
-    url: localeUrl("en", `/${params.countrySlug}/${params.citySlug}`),
-    geo: {
-      "@type": "GeoCoordinates",
-      latitude: baked.city.latitude,
-      longitude: baked.city.longitude,
-    },
-    containedInPlace: {
-      "@type": "Country",
-      name: baked.country.name.en,
-      url: localeUrl("en", `/${baked.country.slug}`),
-    },
+    "@graph": [
+      {
+        "@type": "WebPage",
+        "@id": `${pageUrl}#webpage`,
+        name: searchCopy.title,
+        description: searchCopy.description,
+        url: pageUrl,
+        dateModified: dataset.dataUpdatedAt,
+        inLanguage: "en",
+        breadcrumb: { "@id": breadcrumbId },
+        mainEntity: { "@id": placeId },
+      },
+      {
+        "@type": "BreadcrumbList",
+        "@id": breadcrumbId,
+        itemListElement: [
+          { "@type": "ListItem", position: 1, name: "Travel Radar", item: localeUrl("en", "/") },
+          {
+            "@type": "ListItem",
+            position: 2,
+            name: baked.country.name.en,
+            item: localeUrl("en", `/${baked.country.slug}`),
+          },
+          { "@type": "ListItem", position: 3, name: baked.city.name.en, item: pageUrl },
+        ],
+      },
+      {
+        "@type": "Place",
+        "@id": placeId,
+        name: `${baked.city.name.en}, ${baked.country.name.en}`,
+        description: searchCopy.description,
+        url: pageUrl,
+        geo: {
+          "@type": "GeoCoordinates",
+          latitude: baked.city.latitude,
+          longitude: baked.city.longitude,
+        },
+        containedInPlace: {
+          "@type": "Country",
+          name: baked.country.name.en,
+          url: localeUrl("en", `/${baked.country.slug}`),
+        },
+      },
+    ],
   };
 
   return <CityPage viewModel={viewModel} jsonLd={jsonLd} />;
