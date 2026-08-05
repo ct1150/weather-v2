@@ -37,12 +37,20 @@ describe("sitemap.ts — static export sitemap (SEO-SITEMAP-001)", () => {
     expect(urls).toContain(`${BASE}/explore`);
     // At least one city URL (en canonical).
     expect(urls.some((u) => u.endsWith("/jp/tokyo"))).toBe(true);
-    expect(urls).toContain(`${BASE}/zh-cn/`);
+    expect(urls).toContain(`${BASE}/zh-cn`);
     expect(urls).toContain(`${BASE}/zh-cn/jp`);
     expect(urls.some((u) => u.includes("/zh-cn/jp/tokyo"))).toBe(false);
     expect(urls.some((u) => u.includes("/ja/"))).toBe(false);
     expect(urls).toHaveLength(55);
     expect(new Set(urls).size).toBe(urls.length);
+  });
+
+  it("contains only final, non-redirecting canonical URL shapes", async () => {
+    const entries = await sitemap();
+    expect(entries.some((entry) => entry.url.endsWith("/zh-cn/"))).toBe(false);
+
+    const home = entries.find((entry) => entry.url === `${BASE}/`);
+    expect(home?.alternates?.languages?.["zh-CN"]).toBe(`${BASE}/zh-cn`);
   });
 
   it("advertises hreflang only where both language pages are published", async () => {

@@ -21,7 +21,10 @@ export type PublishedLocale = "en" | "zh-cn";
 /** Absolute URL for a published locale. */
 export function localeUrl(locale: PublishedLocale, path: string): string {
   const base = buildConfig().appBaseUrl.replace(/\/+$/, "");
-  return `${base}${locale === "zh-cn" ? "/zh-cn" : ""}${path}`;
+  if (locale === "zh-cn") {
+    return `${base}/zh-cn${path === "/" ? "" : path}`;
+  }
+  return `${base}${path}`;
 }
 
 /**
