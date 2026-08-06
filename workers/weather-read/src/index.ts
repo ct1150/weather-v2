@@ -6,6 +6,8 @@ import type { D1DatabaseLike } from "@wnr/test-utils";
 const DEFAULT_ORIGIN = "https://where-not-rain.pages.dev";
 /** Six-hour schedule plus one-hour delivery/retry tolerance. */
 const MAX_AGE_MS = 7 * 60 * 60 * 1000;
+const MAX_TRIP_CITIES = 12;
+const MAX_TRIP_RANGE_DAYS = 16;
 
 export interface WorkerEnv {
   readonly DB: D1DatabaseLike;
@@ -30,6 +32,38 @@ interface RankingRow {
   readonly score: number;
   readonly reason_codes_json: string;
 }
+
+interface TripCityRow {
+  readonly city_id: string;
+  readonly country_slug: string;
+  readonly city_slug: string;
+  readonly city_name: string;
+  readonly country_name: string;
+  readonly latitude: number;
+  readonly longitude: number;
+  readonly timezone: string;
+  readonly is_featured: number;
+}
+
+interface TripForecastRow {
+  readonly city_id: string;
+  readonly local_date: string;
+  readonly weather_code: number | null;
+  readonly temp_min_c: number | null;
+  readonly temp_max_c: number | null;
+  readonly precipitation_mm: number | null;
+  readonly precipitation_probability_max: number | null;
+  readonly wind_speed_max_kph: number | null;
+  readonly wind_gust_max_kph: number | null;
+  readonly uv_index_max: number | null;
+  readonly cloud_cover_mean: number | null;
+  readonly visibility_mean_m: number | null;
+  readonly sunrise_local: string | null;
+  readonly sunset_local: string | null;
+  readonly data_quality: string;
+}
+
+type ApiLocale = "en" | "zh-cn";
 
 function headers(env: WorkerEnv): Record<string, string> {
   return {
@@ -60,6 +94,51 @@ function parseReasons(value: string): ReadonlyArray<string> {
 function isStale(dataUpdatedAt: string, now: Date): boolean {
   const updated = Date.parse(dataUpdatedAt);
   return Number.isNaN(updated) || updated > now.getTime() || now.getTime() - updated > MAX_AGE_MS;
+}
+
+function parseLocale(url: URL): ApiLocale | null {
+  const value = url.searchParams.get("locale") ?? "en";
+  return value === "en" || value === "zh-cn" ? value : null;
+}
+
+function dbLocale(locale: ApiLocale): "en" | "zh" {
+  return locale === "zh-cn" ? "zh" : "en";
+}
+
+function isIsoDate(value: string): boolean {
+  return /^\d{4}-\d{2}-\d{2}$/u.test(value) && !Number.isNaN(Date.parse(`${value}T00:00:00Z`));
+}
+
+function rangeDays(from: string, to: string): number {
+  const start = Date.parse(`${from}T00:00:00Z`);
+  const end = Date.parse(`${to}T00:00:00Z`);
+  return Math.floor((end - start) / 86_400_000) + 1;
+}
+
+function parseCityIds(url: URL): ReadonlyArray<string> | null {
+  const raw = url.searchParams.get("cityIds") ?? "";
+  const values = [...new Set(raw.split(",").map((value) => value.trim()).filter(Boolean))];
+  if (
+    values.length === 0 ||
+    values.length > MAX_TRIP_CITIES ||
+    values.some((value) => !/^[a-z0-9-]{2,64}$/u.test(value))
+  ) {
+    return null;
+  }
+  return values;
+}
+
+function weatherCondition(code: number | null, locale: ApiLocale): string {
+  if (code === null) return locale === "zh-cn" ? "天气待确认" : "Weather unavailable";
+  if (code === 0) return locale === "zh-cn" ? "晴" : "Clear";
+  if (code <= 3) return locale === "zh-cn" ? "多云" : "Cloudy";
+  if (code === 45 || code === 48) return locale === "zh-cn" ? "雾" : "Fog";
+  if (code >= 51 && code <= 67) return locale === "zh-cn" ? "雨" : "Rain";
+  if (code >= 71 && code <= 77) return locale === "zh-cn" ? "雪" : "Snow";
+  if (code >= 80 && code <= 82) return locale === "zh-cn" ? "阵雨" : "Showers";
+  if (code >= 85 && code <= 86) return locale === "zh-cn" ? "阵雪" : "Snow showers";
+  if (code >= 95) return locale === "zh-cn" ? "雷雨" : "Thunderstorm";
+  return locale === "zh-cn" ? "天气变化" : "Variable weather";
 }
 
 async function readActivePublication(db: D1DatabaseLike): Promise<ActivePublicationRow | null> {
@@ -95,19 +174,58 @@ async function readTodayRanking(
   return result.results;
 }
 
-/** Handle a public request; exported separately for deterministic integration tests. */
-export async function handleRequest(
-  request: Request,
-  env: WorkerEnv,
-  now = new Date(),
-): Promise<Response> {
-  if (request.method === "OPTIONS")
-    return new Response(null, { status: 204, headers: headers(env) });
-  if (request.method !== "GET") return json({ error: { code: "METHOD_NOT_ALLOWED" } }, 405, env);
+async function readTripCities(
+  db: D1DatabaseLike,
+  locale: ApiLocale,
+): Promise<ReadonlyArray<TripCityRow>> {
+  const result = await db
+    .prepare(
+      "SELECT c.id AS city_id, co.slug AS country_slug, c.slug AS city_slug, " +
+        "COALESCE(ct_local.name, ct_en.name) AS city_name, " +
+        "COALESCE(cot_local.name, cot_en.name) AS country_name, " +
+        "c.latitude, c.longitude, c.timezone, c.is_featured " +
+        "FROM cities c JOIN countries co ON co.id = c.country_id " +
+        "JOIN city_translations ct_en ON ct_en.city_id = c.id AND ct_en.locale = 'en' " +
+        "JOIN country_translations cot_en ON cot_en.country_id = co.id AND cot_en.locale = 'en' " +
+        "LEFT JOIN city_translations ct_local ON ct_local.city_id = c.id AND ct_local.locale = ? " +
+        "LEFT JOIN country_translations cot_local ON cot_local.country_id = co.id AND cot_local.locale = ? " +
+        "WHERE c.status = 'active' AND co.status = 'active' " +
+        "ORDER BY co.slug ASC, c.is_featured DESC, c.search_weight DESC, city_name ASC",
+    )
+    .bind(dbLocale(locale), dbLocale(locale))
+    .all<TripCityRow>();
+  return result.results;
+}
 
-  const url = new URL(request.url);
-  if (url.pathname !== "/api/v1/rankings")
-    return json({ error: { code: "RESOURCE_NOT_FOUND" } }, 404, env);
+async function readTripForecast(
+  db: D1DatabaseLike,
+  publication: ActivePublicationRow,
+  cityIds: ReadonlyArray<string>,
+  from: string,
+  to: string,
+): Promise<ReadonlyArray<TripForecastRow>> {
+  const placeholders = cityIds.map(() => "?").join(", ");
+  const result = await db
+    .prepare(
+      "SELECT d.city_id, d.local_date, d.weather_code, d.temp_min_c, d.temp_max_c, " +
+        "d.precipitation_mm, d.precipitation_probability_max, d.wind_speed_max_kph, " +
+        "d.wind_gust_max_kph, d.uv_index_max, d.cloud_cover_mean, d.visibility_mean_m, " +
+        "d.sunrise_local, d.sunset_local, d.data_quality " +
+        "FROM weather_daily d " +
+        `WHERE d.snapshot_id = ? AND d.city_id IN (${placeholders}) ` +
+        "AND d.local_date >= ? AND d.local_date <= ? " +
+        "ORDER BY d.local_date ASC, d.city_id ASC",
+    )
+    .bind(publication.snapshot_id, ...cityIds, from, to)
+    .all<TripForecastRow>();
+  return result.results;
+}
+
+async function handleRanking(
+  url: URL,
+  env: WorkerEnv,
+  now: Date,
+): Promise<Response> {
   if ((url.searchParams.get("theme") ?? "general") !== "general") {
     return json({ error: { code: "INVALID_PARAMETER", field: "theme" } }, 400, env);
   }
@@ -149,6 +267,107 @@ export async function handleRequest(
     200,
     env,
   );
+}
+
+async function handleTripCities(url: URL, env: WorkerEnv, now: Date): Promise<Response> {
+  const locale = parseLocale(url);
+  if (locale === null) return json({ error: { code: "INVALID_PARAMETER", field: "locale" } }, 400, env);
+  const cities = await readTripCities(env.DB, locale);
+  if (cities.length === 0) return json({ error: { code: "DATA_UNAVAILABLE" } }, 503, env);
+
+  return json(
+    {
+      data: {
+        locale,
+        items: cities.map((city) => ({
+          cityId: city.city_id,
+          countrySlug: city.country_slug,
+          citySlug: city.city_slug,
+          cityName: city.city_name,
+          countryName: city.country_name,
+          latitude: city.latitude,
+          longitude: city.longitude,
+          timezone: city.timezone,
+          featured: city.is_featured === 1,
+        })),
+      },
+      meta: { generatedAt: now.toISOString() },
+    },
+    200,
+    env,
+  );
+}
+
+async function handleTripForecast(url: URL, env: WorkerEnv, now: Date): Promise<Response> {
+  const locale = parseLocale(url);
+  if (locale === null) return json({ error: { code: "INVALID_PARAMETER", field: "locale" } }, 400, env);
+  const cityIds = parseCityIds(url);
+  if (cityIds === null) return json({ error: { code: "INVALID_PARAMETER", field: "cityIds" } }, 400, env);
+  const from = url.searchParams.get("from") ?? "";
+  const to = url.searchParams.get("to") ?? "";
+  if (!isIsoDate(from)) return json({ error: { code: "INVALID_PARAMETER", field: "from" } }, 400, env);
+  if (!isIsoDate(to)) return json({ error: { code: "INVALID_PARAMETER", field: "to" } }, 400, env);
+  const days = rangeDays(from, to);
+  if (days < 1 || days > MAX_TRIP_RANGE_DAYS) {
+    return json({ error: { code: "INVALID_PARAMETER", field: "dateRange" } }, 400, env);
+  }
+
+  const publication = await readActivePublication(env.DB);
+  if (publication === null) return json({ error: { code: "DATA_UNAVAILABLE" } }, 503, env);
+  const forecast = await readTripForecast(env.DB, publication, cityIds, from, to);
+  const stale = isStale(publication.published_at, now);
+
+  return json(
+    {
+      data: {
+        snapshotId: publication.snapshot_id,
+        locale,
+        from,
+        to,
+        requestedCityIds: cityIds,
+        freshness: { dataUpdatedAt: publication.published_at, stale },
+        items: forecast.map((item) => ({
+          cityId: item.city_id,
+          date: item.local_date,
+          weatherCode: item.weather_code,
+          condition: weatherCondition(item.weather_code, locale),
+          temperatureMinC: item.temp_min_c,
+          temperatureMaxC: item.temp_max_c,
+          precipitationMm: item.precipitation_mm,
+          rainProbability: item.precipitation_probability_max,
+          windSpeedKph: item.wind_speed_max_kph,
+          windGustKph: item.wind_gust_max_kph,
+          uvIndex: item.uv_index_max,
+          cloudCover: item.cloud_cover_mean,
+          visibilityM: item.visibility_mean_m,
+          sunrise: item.sunrise_local,
+          sunset: item.sunset_local,
+          dataQuality: item.data_quality,
+        })),
+      },
+      meta: { generatedAt: now.toISOString(), dataUpdatedAt: publication.published_at, stale },
+    },
+    200,
+    env,
+  );
+}
+
+/** Handle a public request; exported separately for deterministic integration tests. */
+export async function handleRequest(
+  request: Request,
+  env: WorkerEnv,
+  now = new Date(),
+): Promise<Response> {
+  if (request.method === "OPTIONS") {
+    return new Response(null, { status: 204, headers: headers(env) });
+  }
+  if (request.method !== "GET") return json({ error: { code: "METHOD_NOT_ALLOWED" } }, 405, env);
+
+  const url = new URL(request.url);
+  if (url.pathname === "/api/v1/rankings") return handleRanking(url, env, now);
+  if (url.pathname === "/api/v1/trip-cities") return handleTripCities(url, env, now);
+  if (url.pathname === "/api/v1/trip-forecast") return handleTripForecast(url, env, now);
+  return json({ error: { code: "RESOURCE_NOT_FOUND" } }, 404, env);
 }
 
 export default {
