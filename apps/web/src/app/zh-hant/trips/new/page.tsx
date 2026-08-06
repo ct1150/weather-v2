@@ -27,7 +27,8 @@ export default function TraditionalTripImportPage(): ReactElement {
           把現有計畫直接變成天氣行程工作台
         </h1>
         <p className="mt-4 text-base leading-7 text-muted">
-          支援 D1、Day1 與 Markdown 時間表。匯入後可選擇每日天氣城市、保護固定訂單，並產生逐日備用方案。
+          支援 D1、Day1 與 Markdown
+          時間表。匯入後可選擇每日天氣城市、保護固定訂單，並產生逐日備用方案。
         </p>
       </section>
       <div className="mt-8">

@@ -97,8 +97,7 @@ const COPY = {
     blankTitle: "My weather-aware trip",
     blankReady: "A new blank itinerary is ready.",
     templateReady: "Template loaded. Check the dates and refresh weather when ready.",
-    cityUnavailable:
-      "The live city directory is unavailable. Your local itinerary is still safe.",
+    cityUnavailable: "The live city directory is unavailable. Your local itinerary is still safe.",
     weatherNotConfigured: "Live weather is not configured. Editing, sharing and export still work.",
     chooseCityFirst: "Choose at least one forecast city first.",
     outsideWindow:
@@ -865,7 +864,8 @@ export function LocalizedTripWorkspace({ locale }: LocalizedTripWorkspaceProps):
 
       {weatherUpdatedAt.length > 0 ? (
         <p className="text-xs text-muted">
-          {copy.dataUpdated} {new Date(weatherUpdatedAt).toLocaleString(locale === "en" ? "en" : "zh-Hant")} ·{" "}
+          {copy.dataUpdated}{" "}
+          {new Date(weatherUpdatedAt).toLocaleString(locale === "en" ? "en" : "zh-Hant")} ·{" "}
           {weatherStale ? copy.stale : copy.current}
         </p>
       ) : null}
@@ -888,7 +888,8 @@ export function LocalizedTripWorkspace({ locale }: LocalizedTripWorkspaceProps):
               cities={cities}
               forecast={item?.forecast ?? null}
               decision={
-                item?.decision ?? (locale === "zh-hant" ? toTraditionalDecision(fallback) : fallback)
+                item?.decision ??
+                (locale === "zh-hant" ? toTraditionalDecision(fallback) : fallback)
               }
               canRemove={workspace.days.length > 1}
               onChange={(patch) => updateDay(index, patch)}

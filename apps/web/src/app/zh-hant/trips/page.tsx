@@ -5,8 +5,7 @@ import { buildAlternates, localeUrl } from "../../seo";
 
 export const metadata: Metadata = {
   title: "日本、南韓與東南亞天氣行程規劃",
-  description:
-    "建立多城市自由行，結合每日天氣與固定訂單，知道哪些行程照常、提前、縮短或替換。",
+  description: "建立多城市自由行，結合每日天氣與固定訂單，知道哪些行程照常、提前、縮短或替換。",
   alternates: buildAlternates("/trips", "zh-hant", ["en", "zh-hant", "zh-cn"]),
   robots: { index: true, follow: true },
 };
@@ -116,7 +115,8 @@ export default function TraditionalTripsLanding(): ReactElement {
           <p className="eyebrow">真正會改變行程的天氣時刻</p>
           <h2 className="section-title mt-3">比一個下雨圖示更有用</h2>
           <p className="mt-4 text-sm leading-7 text-muted">
-            60% 降雨對博物館、出海、海灘與定時觀景台代表完全不同的影響。系統會依活動類型、行程是否可移動，以及是否有兒童或年長者同行，給出不同判斷。
+            60%
+            降雨對博物館、出海、海灘與定時觀景台代表完全不同的影響。系統會依活動類型、行程是否可移動，以及是否有兒童或年長者同行，給出不同判斷。
           </p>
         </div>
         <ul className="grid gap-3 text-sm leading-6 text-body">
