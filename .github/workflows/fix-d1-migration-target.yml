@@ -1,3 +1,4 @@
+# Temporary one-shot workflow. Remove after the D1 binding fix is committed.
 name: Fix D1 migration target
 
 on:
