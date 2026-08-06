@@ -2,4 +2,4 @@
 
 Validate the current main-derived English + Traditional Chinese release.
 
-Trigger 2.
+Trigger 3.
