@@ -1,0 +1,42 @@
+name: Fix Markdown contract once
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Restore locale-specific Markdown heading format
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('apps/web/src/trips/workspace.ts')
+          content = path.read_text()
+          old = '    lines.push(`# D${day.dayNumber} (${day.date})`, "");'
+          new = '''    lines.push(
+      locale === "en"
+        ? `# D${day.dayNumber} (${day.date})`
+        : `# D${day.dayNumber}（${day.date}）`,
+      "",
+    );'''
+          if old not in content:
+              raise SystemExit('target Markdown heading line not found')
+          path.write_text(content.replace(old, new))
+          PY
+          rm .github/workflows/fix-markdown-contract-once.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .
+          git commit -m "fix(trips): preserve localized Markdown headings"
+          git push origin HEAD:main
