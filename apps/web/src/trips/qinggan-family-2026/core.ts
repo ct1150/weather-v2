@@ -30,7 +30,7 @@ export function snapshot(
   };
 }
 
-export const PLACES: Readonly<Record<string, TripPlace>> = {
+export const PLACES = {
   lanzhouAirport: {
     id: "lanzhou-airport",
     name: "兰州中川机场",
@@ -136,4 +136,4 @@ export const PLACES: Readonly<Record<string, TripPlace>> = {
     longitude: 103.84,
     timezone: "Asia/Shanghai",
   },
-};
+} as const satisfies Readonly<Record<string, TripPlace>>;
