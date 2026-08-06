@@ -57,20 +57,31 @@ export function SiteHeader(): ReactElement {
             {isTraditional ? "天氣行程" : isSimplified ? "天气行程" : "Trip planner"}
           </span>
         </a>
-        <nav aria-label={isChinese ? "主導覽" : "Main navigation"} className="flex items-center gap-1">
+        <nav
+          aria-label={isChinese ? "主導覽" : "Main navigation"}
+          className="flex items-center gap-1"
+        >
           <a href={homeHref} className="nav-link focus-ring">
             <span className="hidden sm:inline">
               {isTraditional ? "行程助手" : isSimplified ? "行程助手" : "Trip planner"}
             </span>
-            <span className="sm:hidden">{isTraditional ? "行程" : isSimplified ? "行程" : "Trips"}</span>
+            <span className="sm:hidden">
+              {isTraditional ? "行程" : isSimplified ? "行程" : "Trips"}
+            </span>
           </a>
           <a href={weatherHref} className="nav-link focus-ring">
             <span className="hidden sm:inline">
               {isTraditional ? "天氣雷達" : isSimplified ? "目的地天气" : "Weather radar"}
             </span>
-            <span className="sm:hidden">{isTraditional ? "天氣" : isSimplified ? "天气" : "Radar"}</span>
+            <span className="sm:hidden">
+              {isTraditional ? "天氣" : isSimplified ? "天气" : "Radar"}
+            </span>
           </a>
-          <a href={languageHref} className="nav-link focus-ring" hrefLang={isTraditional ? "en" : "zh-Hant"}>
+          <a
+            href={languageHref}
+            className="nav-link focus-ring"
+            hrefLang={isTraditional ? "en" : "zh-Hant"}
+          >
             <span className="hidden sm:inline">{isTraditional ? "English" : "繁體中文"}</span>
             <span className="sm:hidden">{isTraditional ? "EN" : "繁中"}</span>
           </a>

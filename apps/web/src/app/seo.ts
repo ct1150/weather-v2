@@ -96,13 +96,7 @@ export function localizedSitemapEntries(
   options: {
     readonly lastModified: string;
     readonly changeFrequency:
-      | "always"
-      | "hourly"
-      | "daily"
-      | "weekly"
-      | "monthly"
-      | "yearly"
-      | "never";
+      "always" | "hourly" | "daily" | "weekly" | "monthly" | "yearly" | "never";
   },
   locales: ReadonlyArray<PublishedLocale> = ["en"],
 ): MetadataRoute.Sitemap {
