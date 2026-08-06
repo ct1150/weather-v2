@@ -1,3 +1,4 @@
+# Temporary one-shot formatter; remove after the bot commit.
 name: Format trip product V1
 
 on:
