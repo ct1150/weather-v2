@@ -1,12 +1,4 @@
 // apps/web/src/seo/seo-wiring.test.ts
-//
-// Wiring of `@wnr/seo` into the static site (SEO-SITEMAP-001,
-// SEO-INDEXABILITY-001, SEO-STRUCTURED-001, SEO-PAGE-001).
-//
-// This is the test that proves the previously-orphaned `@wnr/seo` package is
-// actually consumed: sitemap/robots are emitted from the baked dataset, the
-// JSON-LD component server-renders structured data, and the page metadata
-// helpers resolve canonical + robots via `indexabilityForRouteClass`.
 
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
@@ -26,44 +18,44 @@ import { indexabilityForRouteClass } from "@wnr/seo";
 
 const BASE = "https://868656.xyz";
 
-describe("sitemap.ts — static export sitemap (SEO-SITEMAP-001)", () => {
+describe("sitemap.ts — static export sitemap", () => {
   it("enumerates every real English route and launched Chinese route once", async () => {
     const entries = await sitemap();
     expect(entries.length).toBeGreaterThan(0);
 
-    const urls = entries.map((e) => e.url);
-    // Home + explorer.
+    const urls = entries.map((entry) => entry.url);
     expect(urls).toContain(`${BASE}/`);
     expect(urls).toContain(`${BASE}/explore`);
-    // Weather-aware trip planner routes launched in both languages.
     expect(urls).toContain(`${BASE}/trips`);
+    expect(urls).toContain(`${BASE}/zh-hant/trips`);
     expect(urls).toContain(`${BASE}/zh-cn/trips`);
     expect(urls).toContain(`${BASE}/trips/qinggan-family-2026`);
     expect(urls).toContain(`${BASE}/zh-cn/trips/qinggan-family-2026`);
-    // At least one city URL (en canonical).
-    expect(urls.some((u) => u.endsWith("/jp/tokyo"))).toBe(true);
+    expect(urls.some((url) => url.endsWith("/jp/tokyo"))).toBe(true);
     expect(urls).toContain(`${BASE}/zh-cn`);
     expect(urls).toContain(`${BASE}/zh-cn/jp`);
-    expect(urls.some((u) => u.includes("/zh-cn/jp/tokyo"))).toBe(false);
-    expect(urls.some((u) => u.includes("/ja/"))).toBe(false);
-    expect(urls).toHaveLength(59);
+    expect(urls.some((url) => url.includes("/zh-hant/jp/"))).toBe(false);
+    expect(urls.some((url) => url.includes("/zh-cn/jp/tokyo"))).toBe(false);
+    expect(urls).toHaveLength(60);
     expect(new Set(urls).size).toBe(urls.length);
   });
 
   it("contains only final, non-redirecting canonical URL shapes", async () => {
     const entries = await sitemap();
     expect(entries.some((entry) => entry.url.endsWith("/zh-cn/"))).toBe(false);
+    expect(entries.some((entry) => entry.url.endsWith("/zh-hant/"))).toBe(false);
 
-    const home = entries.find((entry) => entry.url === `${BASE}/`);
-    expect(home?.alternates?.languages?.["zh-CN"]).toBe(`${BASE}/zh-cn`);
+    const trips = entries.find((entry) => entry.url === `${BASE}/trips`);
+    expect(trips?.alternates?.languages?.["zh-Hant"]).toBe(`${BASE}/zh-hant/trips`);
   });
 
-  it("advertises hreflang only where both language pages are published", async () => {
+  it("advertises hreflang only where translated pages are published", async () => {
     const entries = await sitemap();
     const japan = entries.find((entry) => entry.url === `${BASE}/jp`);
     const tokyo = entries.find((entry) => entry.url === `${BASE}/jp/tokyo`);
     expect(japan?.alternates?.languages?.["zh-CN"]).toBe(`${BASE}/zh-cn/jp`);
     expect(japan?.alternates?.languages?.en).toBe(`${BASE}/jp`);
+    expect(japan?.alternates?.languages?.["zh-Hant"]).toBeUndefined();
     expect(tokyo?.alternates).toBeUndefined();
   });
 
@@ -75,18 +67,18 @@ describe("sitemap.ts — static export sitemap (SEO-SITEMAP-001)", () => {
   });
 });
 
-describe("robots.ts — static export robots (SEO-INDEXABILITY-001)", () => {
+describe("robots.ts — static export robots", () => {
   it("advertises the sitemap and host", () => {
-    const r = robots();
-    expect(r.rules.userAgent).toBe("*");
-    expect(r.rules.allow).toBe("/");
-    expect(r.sitemap).toBe(`${BASE}/sitemap.xml`);
-    expect(r.host).toBe(BASE);
+    const result = robots();
+    expect(result.rules.userAgent).toBe("*");
+    expect(result.rules.allow).toBe("/");
+    expect(result.sitemap).toBe(`${BASE}/sitemap.xml`);
+    expect(result.host).toBe(BASE);
   });
 });
 
-describe("JsonLd.tsx — server-rendered structured data (SEO-STRUCTURED-001)", () => {
-  it("renders a JSON-LD <script> with the expected @type", () => {
+describe("JsonLd.tsx — server-rendered structured data", () => {
+  it("renders a JSON-LD script with the expected type", () => {
     const schema = {
       "@context": "https://schema.org",
       "@type": "TouristDestination",
@@ -101,11 +93,17 @@ describe("JsonLd.tsx — server-rendered structured data (SEO-STRUCTURED-001)", 
   });
 });
 
-describe("seo.ts helpers — canonical + search copy + robots", () => {
-  it("resolves canonical-only city pages and translated country alternates", () => {
+describe("seo.ts helpers — canonical, copy and robots", () => {
+  it("resolves bilingual trip alternates and translated country alternates", () => {
     const alt = buildAlternates("/jp/tokyo");
     expect(alt.canonical).toBe(`${BASE}/jp/tokyo`);
     expect(alt.languages).toBeUndefined();
+
+    const tripAlt = buildAlternates("/trips", "zh-hant", ["en", "zh-hant", "zh-cn"]);
+    expect(tripAlt.canonical).toBe(`${BASE}/zh-hant/trips`);
+    expect(tripAlt.languages?.en).toBe(`${BASE}/trips`);
+    expect(tripAlt.languages?.["zh-Hant"]).toBe(`${BASE}/zh-hant/trips`);
+    expect(tripAlt.languages?.["zh-CN"]).toBe(`${BASE}/zh-cn/trips`);
 
     const zhCountry = buildAlternates("/jp", "zh-cn", ["en", "zh-cn"]);
     expect(zhCountry.canonical).toBe(`${BASE}/zh-cn/jp`);
@@ -128,8 +126,7 @@ describe("seo.ts helpers — canonical + search copy + robots", () => {
     });
   });
 
-  it("consumes @wnr/seo indexabilityForRouteClass for robots flags", () => {
-    // Proof the SEO package is no longer orphaned.
+  it("consumes the shared SEO indexability policy", () => {
     expect(indexabilityForRouteClass("homepage", true)).toBe("index,follow");
 
     const indexed = routeRobots("homepage", true);
