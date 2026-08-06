@@ -1,13 +1,8 @@
 // apps/web/src/app/seo.ts
 //
-// Small server-side SEO helpers that bridge the baked view models to `@wnr/seo`
-// (SEO-PAGE-001, SEO-INDEXABILITY-001, SEO-STRUCTURED-001). This is where
-// the previously-orphaned `@wnr/seo` package is actually consumed: every public
-// route class resolves its hreflang alternates and its robots `index`/`follow`
-// outcome through `@wnr/seo`'s `indexabilityForRouteClass`.
-//
-// Static-export compatible: only `buildConfig().appBaseUrl` (frozen at build
-// time) and the route path are used — no request-time data path.
+// Small server-side SEO helpers that bridge the baked view models to `@wnr/seo`.
+// English is the unprefixed default. Simplified Chinese remains available for
+// compatibility, while Traditional Chinese is the primary overseas Chinese locale.
 
 import type { Metadata, MetadataRoute } from "next";
 import type { RouteClass } from "@wnr/seo";
@@ -16,21 +11,23 @@ import { buildConfig } from "../build/bake";
 
 export const PRIMARY_SITE_URL = "https://868656.xyz";
 export const SITE_NAME = "Where Not Rain";
-export type PublishedLocale = "en" | "zh-cn";
+export type PublishedLocale = "en" | "zh-cn" | "zh-hant";
+
+const HREFLANG: Readonly<Record<PublishedLocale, string>> = {
+  en: "en",
+  "zh-cn": "zh-CN",
+  "zh-hant": "zh-Hant",
+};
 
 /** Absolute URL for a published locale. */
 export function localeUrl(locale: PublishedLocale, path: string): string {
   const base = buildConfig().appBaseUrl.replace(/\/+$/, "");
-  if (locale === "zh-cn") {
-    return `${base}/zh-cn${path === "/" ? "" : path}`;
-  }
+  if (locale === "zh-cn") return `${base}/zh-cn${path === "/" ? "" : path}`;
+  if (locale === "zh-hant") return `${base}/zh-hant${path === "/" ? "" : path}`;
   return `${base}${path}`;
 }
 
-/**
- * Build one self-referencing canonical. Locale routes must not be advertised
- * until those pages are actually published.
- */
+/** Build one self-referencing canonical and only advertise published translations. */
 export function buildAlternates(
   path: string,
   currentLocale: PublishedLocale = "en",
@@ -39,9 +36,7 @@ export function buildAlternates(
   const canonical = localeUrl(currentLocale, path);
   if (translatedLocales.length <= 1) return { canonical };
   const languages: Record<string, string> = { "x-default": localeUrl("en", path) };
-  for (const locale of translatedLocales) {
-    languages[locale === "zh-cn" ? "zh-CN" : locale] = localeUrl(locale, path);
-  }
+  for (const locale of translatedLocales) languages[HREFLANG[locale]] = localeUrl(locale, path);
   return { canonical, languages };
 }
 
@@ -83,11 +78,6 @@ export function countrySearchCopyZh(
   };
 }
 
-/**
- * Resolve the robots `index`/`follow` flags from the route class via the
- * `@wnr/seo` indexability policy (SEO-INDEXABILITY-001). `qualityPassed`
- * gates content classes: a failing quality gate downgrades to `noindex,follow`.
- */
 export function routeRobots(
   routeClass: RouteClass,
   qualityPassed: boolean,
@@ -106,17 +96,22 @@ export function localizedSitemapEntries(
   options: {
     readonly lastModified: string;
     readonly changeFrequency:
-      "always" | "hourly" | "daily" | "weekly" | "monthly" | "yearly" | "never";
+      | "always"
+      | "hourly"
+      | "daily"
+      | "weekly"
+      | "monthly"
+      | "yearly"
+      | "never";
   },
   locales: ReadonlyArray<PublishedLocale> = ["en"],
 ): MetadataRoute.Sitemap {
   const languages: Record<string, string> | undefined =
     locales.length > 1
-      ? {
-          en: localeUrl("en", path),
-          "zh-CN": localeUrl("zh-cn", path),
-          "x-default": localeUrl("en", path),
-        }
+      ? Object.fromEntries([
+          ["x-default", localeUrl("en", path)],
+          ...locales.map((locale) => [HREFLANG[locale], localeUrl(locale, path)] as const),
+        ])
       : undefined;
   return locales.map((locale) => ({
     url: localeUrl(locale, path),
