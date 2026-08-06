@@ -1,0 +1,89 @@
+name: Verify trip product once
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  verify:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Verify live production pages and APIs
+        run: |
+          set -uo pipefail
+          RESULT=success
+          TODAY=$(date -u +%F)
+          TOMORROW=$(date -u -d '+1 day' +%F)
+          : > /tmp/checks.md
+
+          record() {
+            NAME="$1"
+            STATUS="$2"
+            echo "- ${NAME}: ${STATUS}" >> /tmp/checks.md
+            if [ "${STATUS}" != "success" ]; then RESULT=failure; fi
+          }
+
+          fetch_and_match() {
+            NAME="$1"; URL="$2"; OUTPUT="$3"; shift 3
+            if ! curl --fail --silent --show-error --location --retry 5 --retry-all-errors \
+              --connect-timeout 15 --max-time 45 "${URL}" -o "${OUTPUT}"; then
+              record "${NAME}" "failure (request)"
+              return
+            fi
+            for TEXT in "$@"; do
+              if ! grep -Fq "${TEXT}" "${OUTPUT}"; then
+                record "${NAME}" "failure (missing: ${TEXT})"
+                return
+              fi
+            done
+            record "${NAME}" success
+          }
+
+          fetch_and_match "English landing" "https://868656.xyz/trips" /tmp/trips.html \
+            "Know what to keep" Tokyo Bangkok Seoul
+          fetch_and_match "English workspace" "https://868656.xyz/trips/workspace" /tmp/workspace.html \
+            "Build the plan" "Refresh trip weather"
+          fetch_and_match "Chinese localization" "https://868656.xyz/zh-cn/trips" /tmp/trips-zh.html \
+            "海外中文用户" "日韩东南亚"
+          fetch_and_match "Trip cities API" \
+            "https://where-not-rain-read-production.ct1150.workers.dev/api/v1/trip-cities?locale=en" \
+            /tmp/cities.json jp-tokyo th-phuket kr-busan
+          fetch_and_match "Trip forecast API" \
+            "https://where-not-rain-read-production.ct1150.workers.dev/api/v1/trip-forecast?cityIds=jp-tokyo&from=${TODAY}&to=${TOMORROW}&locale=en" \
+            /tmp/forecast.json jp-tokyo temperatureMaxC
+
+          cat > PRODUCT_SMOKE_STATUS.md <<EOF
+          # Production product smoke status
+
+          - Conclusion: ${RESULT}
+          - Verified commit: $(git rev-parse HEAD)
+          - Verified at: $(date -u +%Y-%m-%dT%H:%M:%SZ)
+
+          ## Checks
+
+          $(cat /tmp/checks.md)
+          EOF
+
+      - name: Record result and remove one-shot workflow
+        if: always()
+        run: |
+          rm .github/workflows/verify-trip-product-once.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add PRODUCT_SMOKE_STATUS.md .github/workflows/verify-trip-product-once.yml
+          git commit -m "chore(smoke): record live production verification [skip ci]"
+          git pull --rebase origin main
+          git push origin HEAD:main
+
+      - name: Fail when live production verification failed
+        run: grep -Fq -- '- Conclusion: success' PRODUCT_SMOKE_STATUS.md
