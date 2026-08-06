@@ -1,0 +1,77 @@
+name: Validate bilingual final branch
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clone diagnostic branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git clone "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" repo
+          cd repo
+          git checkout ci/bilingual-final
+
+      - name: Install dependencies
+        working-directory: repo
+        run: |
+          corepack enable
+          corepack prepare pnpm@10.11.0 --activate
+          pnpm install --frozen-lockfile
+
+      - name: Apply repository Prettier
+        working-directory: repo
+        run: |
+          pnpm exec prettier --write \
+            apps/web/src/app/seo.ts \
+            apps/web/src/app/zh-hant/trips/new/page.tsx \
+            apps/web/src/app/zh-hant/trips/page.tsx \
+            apps/web/src/components/LocalizedTripWorkspace.tsx \
+            apps/web/src/components/SiteHeader.tsx
+
+      - name: Quality gates
+        working-directory: repo
+        run: |
+          pnpm format:check
+          pnpm lint
+          pnpm -r --filter '!@wnr/web' --filter '!@wnr/weather-sync' --filter '!@wnr/maintenance' build
+          pnpm typecheck
+          pnpm test 2>&1 | tee test-results.log
+          if grep -qiE "Tests +[0-9]+ failed|Test Files +[0-9]+ failed|FAIL " test-results.log; then
+            exit 1
+          fi
+          pnpm docs:check
+
+      - name: Production builds
+        working-directory: repo
+        env:
+          APP_BASE_URL: https://868656.xyz
+          WEATHER_PRIMARY_PROVIDER: open-meteo
+        run: |
+          pnpm --filter @wnr/web build
+          pnpm --filter @wnr/weather-sync build
+          pnpm --filter @wnr/weather-read build
+          node --test tooling/deploy/pipeline-contract.test.mjs
+
+      - name: Commit validated formatting to diagnostic branch
+        working-directory: repo
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add apps/web/src/app/seo.ts \
+            apps/web/src/app/zh-hant/trips/new/page.tsx \
+            apps/web/src/app/zh-hant/trips/page.tsx \
+            apps/web/src/components/LocalizedTripWorkspace.tsx \
+            apps/web/src/components/SiteHeader.tsx
+          if ! git diff --cached --quiet; then
+            git commit -m "style(i18n): format bilingual release [skip ci]"
+            git push origin HEAD:ci/bilingual-final
+          fi
