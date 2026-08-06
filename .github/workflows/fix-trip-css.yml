@@ -1,0 +1,49 @@
+name: Fix trip planner CSS
+
+on:
+  push:
+    branches:
+      - feature/trip-planner-mvp
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/trip-planner-mvp
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.11.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Remove standalone Tailwind layer wrapper
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path("apps/web/src/app/trip-planner.css")
+          content = path.read_text()
+          prefix = "@layer components {\n"
+          suffix = "\n}\n\n@media print {"
+          if not content.startswith(prefix):
+              raise SystemExit("expected @layer components wrapper was not found")
+          if suffix not in content:
+              raise SystemExit("expected closing wrapper before @media was not found")
+          content = content[len(prefix):].replace(suffix, "\n\n@media print {", 1)
+          path.write_text(content)
+          PY
+          pnpm exec prettier --write apps/web/src/app/trip-planner.css
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add apps/web/src/app/trip-planner.css
+          git commit -m "fix(trips): compile planner CSS independently"
+          git push origin HEAD:feature/trip-planner-mvp
