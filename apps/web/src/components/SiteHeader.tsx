@@ -24,41 +24,55 @@ function BrandMark(): ReactElement {
 
 export function SiteHeader(): ReactElement {
   const pathname = usePathname();
-  const isChinese = pathname === "/zh-cn" || pathname.startsWith("/zh-cn/");
+  const isTraditional = pathname === "/zh-hant" || pathname.startsWith("/zh-hant/");
+  const isSimplified = pathname === "/zh-cn" || pathname.startsWith("/zh-cn/");
+  const isChinese = isTraditional || isSimplified;
+
+  const homeHref = isTraditional ? "/zh-hant/trips" : isSimplified ? "/zh-cn/trips" : "/trips";
+  const weatherHref = isSimplified ? "/zh-cn" : "/";
+  const languageHref = isTraditional ? "/trips" : "/zh-hant/trips";
+
   return (
     <header className="site-header">
       <a href="#main-content" className="skip-link">
-        {isChinese ? "跳到主要内容" : "Skip to content"}
+        {isTraditional ? "跳至主要內容" : isSimplified ? "跳到主要内容" : "Skip to content"}
       </a>
       <div className="mx-auto flex h-[72px] max-w-6xl items-center justify-between px-4 sm:px-6">
         <a
-          href={isChinese ? "/zh-cn/trips" : "/trips"}
+          href={homeHref}
           className="group flex items-center gap-2.5 rounded-lg focus-ring"
-          aria-label={isChinese ? "Where Not Rain 中文旅行助手" : "Where Not Rain trip planner"}
+          aria-label={
+            isTraditional
+              ? "Where Not Rain 繁體中文行程助手"
+              : isSimplified
+                ? "Where Not Rain 中文旅行助手"
+                : "Where Not Rain trip planner"
+          }
         >
           <BrandMark />
           <span className="text-[15px] font-bold tracking-[-0.02em] text-foreground sm:text-base">
             Where Not Rain
           </span>
           <span className="hidden rounded-full border border-border bg-surface-elevated px-2 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-muted md:inline">
-            {isChinese ? "天气行程" : "Trip planner"}
+            {isTraditional ? "天氣行程" : isSimplified ? "天气行程" : "Trip planner"}
           </span>
         </a>
-        <nav
-          aria-label={isChinese ? "主导航" : "Main navigation"}
-          className="flex items-center gap-1"
-        >
-          <a href={isChinese ? "/zh-cn/trips" : "/trips"} className="nav-link focus-ring">
-            <span className="hidden sm:inline">{isChinese ? "行程助手" : "Trip planner"}</span>
-            <span className="sm:hidden">{isChinese ? "行程" : "Trips"}</span>
+        <nav aria-label={isChinese ? "主導覽" : "Main navigation"} className="flex items-center gap-1">
+          <a href={homeHref} className="nav-link focus-ring">
+            <span className="hidden sm:inline">
+              {isTraditional ? "行程助手" : isSimplified ? "行程助手" : "Trip planner"}
+            </span>
+            <span className="sm:hidden">{isTraditional ? "行程" : isSimplified ? "行程" : "Trips"}</span>
           </a>
-          <a href={isChinese ? "/zh-cn" : "/"} className="nav-link focus-ring">
-            <span className="hidden sm:inline">{isChinese ? "目的地天气" : "Weather radar"}</span>
-            <span className="sm:hidden">{isChinese ? "天气" : "Radar"}</span>
+          <a href={weatherHref} className="nav-link focus-ring">
+            <span className="hidden sm:inline">
+              {isTraditional ? "天氣雷達" : isSimplified ? "目的地天气" : "Weather radar"}
+            </span>
+            <span className="sm:hidden">{isTraditional ? "天氣" : isSimplified ? "天气" : "Radar"}</span>
           </a>
-          <a href={isChinese ? "/trips" : "/explore"} className="nav-link focus-ring">
-            <span className="hidden sm:inline">{isChinese ? "English" : "Explore map"}</span>
-            <span className="sm:hidden">{isChinese ? "EN" : "Explore"}</span>
+          <a href={languageHref} className="nav-link focus-ring" hrefLang={isTraditional ? "en" : "zh-Hant"}>
+            <span className="hidden sm:inline">{isTraditional ? "English" : "繁體中文"}</span>
+            <span className="sm:hidden">{isTraditional ? "EN" : "繁中"}</span>
           </a>
         </nav>
       </div>
