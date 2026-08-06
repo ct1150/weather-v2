@@ -1,14 +1,7 @@
 export type ActivityFlexibility = "fixed" | "movable" | "fallback";
 
 export type WeatherProfile =
-  | "transit"
-  | "sunset"
-  | "mountain"
-  | "indoor"
-  | "desert"
-  | "salt_lake"
-  | "lake"
-  | "city_night";
+  "transit" | "sunset" | "mountain" | "indoor" | "desert" | "salt_lake" | "lake" | "city_night";
 
 export type TripRiskLevel = "low" | "medium" | "high";
 

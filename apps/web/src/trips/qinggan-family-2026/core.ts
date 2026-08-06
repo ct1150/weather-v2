@@ -137,4 +137,3 @@ export const PLACES: Readonly<Record<string, TripPlace>> = {
     timezone: "Asia/Shanghai",
   },
 };
-

@@ -20,7 +20,8 @@ function riskLevel(score: number): TripRiskLevel {
 }
 
 function weatherLabel(profile: WeatherProfile, score: number): string {
-  if (score >= 85) return `${profile === "salt_lake" ? "镜面与光线" : "天气窗口"}很好，可按原计划执行`;
+  if (score >= 85)
+    return `${profile === "salt_lake" ? "镜面与光线" : "天气窗口"}很好，可按原计划执行`;
   if (score >= 70) return "整体可执行，建议保留少量机动时间";
   if (score >= 50) return "存在天气干扰，建议缩短停留并准备备选方案";
   return "天气风险较高，优先执行 Plan B 或调整时段";

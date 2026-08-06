@@ -148,7 +148,11 @@ async function buildQingganTripViewModel(): Promise<ResolvedTripPlan> {
       const day = await dayPromise;
       if (day !== null) weather = liveSnapshot(day, activity);
     }
-    return { ...activity, weather, assessment: assessActivityWeather(activity.weatherProfile, weather) };
+    return {
+      ...activity,
+      weather,
+      assessment: assessActivityWeather(activity.weatherProfile, weather),
+    };
   }
 
   const days: ResolvedTripDay[] = [];
@@ -156,11 +160,15 @@ async function buildQingganTripViewModel(): Promise<ResolvedTripPlan> {
     const activities = await Promise.all(
       day.activities.map(async (activity) => resolveActivity(day.date, activity)),
     );
-    const decisionActivities = activities.filter((activity) => activity.weatherProfile !== "indoor");
+    const decisionActivities = activities.filter(
+      (activity) => activity.weatherProfile !== "indoor",
+    );
     const scored = decisionActivities.length > 0 ? decisionActivities : activities;
     const weatherScore =
       scored.length > 0
-        ? Math.round(scored.reduce((sum, activity) => sum + activity.assessment.score, 0) / scored.length)
+        ? Math.round(
+            scored.reduce((sum, activity) => sum + activity.assessment.score, 0) / scored.length,
+          )
         : 55;
     const mostAtRisk = [...activities].sort(
       (left, right) => left.assessment.score - right.assessment.score,
@@ -177,9 +185,9 @@ async function buildQingganTripViewModel(): Promise<ResolvedTripPlan> {
     });
   }
 
-  const liveCount = days.flatMap((day) => day.activities).filter(
-    (activity) => activity.weather?.source === "open-meteo",
-  ).length;
+  const liveCount = days
+    .flatMap((day) => day.activities)
+    .filter((activity) => activity.weather?.source === "open-meteo").length;
 
   return {
     ...qingganFamilyTrip,

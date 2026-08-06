@@ -28,21 +28,30 @@ export default function TripsPage(): ReactElement {
         <div className="relative z-10 max-w-4xl">
           <p className="eyebrow">Weather-aware Trip Planner</p>
           <h1 className="mt-5 text-4xl font-bold tracking-[-0.05em] text-foreground sm:text-6xl">
-            天气不只是预报，<br className="hidden sm:block" />而是行程决策引擎
+            天气不只是预报，
+            <br className="hidden sm:block" />
+            而是行程决策引擎
           </h1>
           <p className="mt-5 max-w-2xl text-base leading-7 text-muted sm:text-lg">
-            将固定机票、高铁、酒店、老人儿童体力和逐景点天气放进同一条时间轴，系统给出最晚离场时间、风险提示和可执行Plan B。
+            将固定机票、高铁、酒店、老人儿童体力和逐景点天气放进同一条时间轴，系统给出最晚离场时间、风险提示和可执行Plan
+            B。
           </p>
           <div className="mt-7 flex flex-wrap gap-3">
-            <a className="trip-primary-button" href="/zh-cn/trips/qinggan-family-2026">查看青甘完整Demo</a>
-            <a className="trip-secondary-button" href="/zh-cn/trips/new">导入我的Markdown行程</a>
+            <a className="trip-primary-button" href="/zh-cn/trips/qinggan-family-2026">
+              查看青甘完整Demo
+            </a>
+            <a className="trip-secondary-button" href="/zh-cn/trips/new">
+              导入我的Markdown行程
+            </a>
           </div>
         </div>
       </section>
 
       <section className="mt-12" aria-labelledby="trip-list-heading">
         <p className="eyebrow">我的旅行</p>
-        <h2 id="trip-list-heading" className="section-title mt-3">已生成的天气行程</h2>
+        <h2 id="trip-list-heading" className="section-title mt-3">
+          已生成的天气行程
+        </h2>
         <article className="trip-list-card mt-6">
           <div>
             <div className="flex flex-wrap items-center gap-2">
@@ -50,10 +59,16 @@ export default function TripsPage(): ReactElement {
               <span className="trip-constraint-badge">9天8晚</span>
               <span className="trip-constraint-badge">家庭旅行</span>
             </div>
-            <h3 className="mt-4 text-2xl font-bold tracking-[-0.035em] text-foreground">{qingganFamilyTrip.title}</h3>
+            <h3 className="mt-4 text-2xl font-bold tracking-[-0.035em] text-foreground">
+              {qingganFamilyTrip.title}
+            </h3>
             <p className="mt-2 text-sm leading-6 text-muted">{qingganFamilyTrip.subtitle}</p>
             <div className="trip-list-route mt-5">
-              {qingganFamilyTrip.days.map((day) => <span key={day.dayNumber}>D{day.dayNumber} {day.route.at(-1)}</span>)}
+              {qingganFamilyTrip.days.map((day) => (
+                <span key={day.dayNumber}>
+                  D{day.dayNumber} {day.route.at(-1)}
+                </span>
+              ))}
             </div>
           </div>
           <div className="trip-list-actions">
@@ -71,7 +86,9 @@ export default function TripsPage(): ReactElement {
           ["03", "执行", "旅途中显示今日模式、最晚离场和Plan B。"],
         ].map(([number, title, description]) => (
           <article key={number} className="trip-process-card">
-            <span>{number}</span><h3>{title}</h3><p>{description}</p>
+            <span>{number}</span>
+            <h3>{title}</h3>
+            <p>{description}</p>
           </article>
         ))}
       </section>

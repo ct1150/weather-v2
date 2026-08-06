@@ -173,7 +173,10 @@ export function TripPlannerDashboard({ trip }: { readonly trip: ResolvedTripPlan
             <p className="eyebrow">
               D{selectedDay.dayNumber} · {selectedDay.date} · {selectedDay.weekday}
             </p>
-            <h2 id="selected-trip-day" className="mt-3 text-3xl font-bold tracking-[-0.04em] text-foreground">
+            <h2
+              id="selected-trip-day"
+              className="mt-3 text-3xl font-bold tracking-[-0.04em] text-foreground"
+            >
               {selectedDay.title}
             </h2>
             <div className="mt-4 flex flex-wrap gap-2 text-xs font-bold text-muted">
@@ -207,7 +210,9 @@ export function TripPlannerDashboard({ trip }: { readonly trip: ResolvedTripPlan
 
         {planBEnabled ? (
           <section className="trip-plan-b" aria-live="polite">
-            <p className="text-xs font-bold uppercase tracking-[0.14em]">Weather-triggered Plan B</p>
+            <p className="text-xs font-bold uppercase tracking-[0.14em]">
+              Weather-triggered Plan B
+            </p>
             <h3 className="mt-2 text-xl font-bold">{selectedDay.planB}</h3>
             <p className="mt-3 text-sm leading-6 opacity-80">
               系统仅提出调整建议，不会自动修改已购机票、高铁、门票或酒店订单。固定约束始终优先。
@@ -259,7 +264,9 @@ export function TripPlannerDashboard({ trip }: { readonly trip: ResolvedTripPlan
                 <p className="eyebrow">今晚住宿</p>
                 <h3 className="mt-3 text-lg font-bold text-foreground">{selectedDay.hotel.name}</h3>
                 <p className="mt-2 text-sm text-muted">{selectedDay.hotel.location}</p>
-                <p className="mt-4 text-2xl font-bold text-foreground">¥{selectedDay.hotel.priceCny}</p>
+                <p className="mt-4 text-2xl font-bold text-foreground">
+                  ¥{selectedDay.hotel.priceCny}
+                </p>
                 {selectedDay.hotel.note !== undefined ? (
                   <p className="mt-2 text-xs leading-5 text-muted">{selectedDay.hotel.note}</p>
                 ) : null}
@@ -271,7 +278,9 @@ export function TripPlannerDashboard({ trip }: { readonly trip: ResolvedTripPlan
               <ul className="mt-4 grid gap-3 text-sm leading-6 text-body">
                 {selectedDay.executionNotes.map((note) => (
                   <li key={note} className="flex gap-3">
-                    <span className="trip-check-dot" aria-hidden="true">✓</span>
+                    <span className="trip-check-dot" aria-hidden="true">
+                      ✓
+                    </span>
                     <span>{note}</span>
                   </li>
                 ))}

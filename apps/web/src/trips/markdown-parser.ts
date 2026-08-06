@@ -12,14 +12,21 @@ export interface ParsedTripMarkdown {
 const DAY_HEADING = /^#{1,3}\s*D(?:ay)?\s*(\d+)[^\n]*$/iu;
 
 function cleanCell(value: string): string {
-  return value.trim().replace(/^\*\*|\*\*$/gu, "").trim();
+  return value
+    .trim()
+    .replace(/^\*\*|\*\*$/gu, "")
+    .trim();
 }
 
 export function parseTripMarkdown(markdown: string): ParsedTripMarkdown {
   const lines = markdown.replace(/\r\n/gu, "\n").split("\n");
   const titleLine = lines.find((line) => /^#\s+\S/u.test(line));
   const title = titleLine?.replace(/^#\s+/u, "").trim() ?? "未命名旅行";
-  const days: Array<{ dayNumber: number; heading: string; scheduleRows: Array<{ time: string; activity: string }> }> = [];
+  const days: Array<{
+    dayNumber: number;
+    heading: string;
+    scheduleRows: Array<{ time: string; activity: string }>;
+  }> = [];
   let current: (typeof days)[number] | null = null;
 
   for (const line of lines) {
@@ -33,10 +40,7 @@ export function parseTripMarkdown(markdown: string): ParsedTripMarkdown {
       continue;
     }
     if (current === null || !line.trim().startsWith("|")) continue;
-    const cells = line
-      .split("|")
-      .slice(1, -1)
-      .map(cleanCell);
+    const cells = line.split("|").slice(1, -1).map(cleanCell);
     if (cells.length < 2) continue;
     if (/^(时间|time)$/iu.test(cells[0] ?? "")) continue;
     if (/^-{3,}$/u.test((cells[0] ?? "").replace(/\s/gu, ""))) continue;
