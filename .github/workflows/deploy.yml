@@ -1,20 +1,7 @@
-# Where Not Rain — Deploy to Cloudflare Pages + weather-sync Worker
+# Where Not Rain — Deploy to Cloudflare Pages + weather Workers
 #
-# Pipeline (docs/08 DEP-CICD-001 / docs/15 §4B): install -> verify -> build (static
-# export + worker) -> dry-run gates (no Cloudflare API) -> secret scan -> real deploy.
-#
-# - push to `main`      -> production promotion (Pages + Worker, Cron registered)
-# - internal PR          -> preview deploy (Pages + Worker, NO Cron) + extended smoke
-# - fork PR              -> gates ONLY, no token (no deploy)  [security boundary]
-#
-# The static export (apps/web/out) is built ONCE and the SAME artifact is uploaded
-# (never rebuilt). D1 migrations are applied from packages/db/migrations.
-#
-# !!! IMPORTANT (DATA-MIGRATION-001 / docs/15 §5,§7) !!!
-#   CI applies ONLY `0001_weather.sql`. There is NO `0002` migration this phase and the
-#   CI step MUST NOT create or apply one. The schema already contains every table/column
-#   the increment needs (sync_runs, active_weather_snapshot, weather_snapshots.provider,
-#   feature_flags, analytics_events_daily, sync_locks, ...).
+# Pipeline: install -> verify -> build -> dry-run gates -> secret scan -> real deploy.
+# The static export is built once and the same artifact is promoted.
 
 name: Deploy
 
@@ -34,13 +21,7 @@ concurrency:
 env:
   PNPM_VERSION: "10.11.0"
   NODE_VERSION: "22"
-  # Cloudflare account that owns wnr-weather, wnr-weather-preview, and both
-  # weather-sync KV namespaces. Account IDs are identifiers, not credentials;
-  # keeping this explicit prevents a stale repository Secret from targeting a
-  # different account during D1 migrations or Worker deployment.
   CLOUDFLARE_ACCOUNT_ID: "b266970852cbc371061c94c5b1fe76a9"
-  # Single source of truth for the sync-worker adapter (docs/15 §7). Injected into the
-  # deployed Worker via `wrangler deploy --var` below.
   WEATHER_PRIMARY_PROVIDER: "open-meteo"
 
 jobs:
@@ -61,28 +42,15 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
 
-      # --- Install (locked package manager) ---------------------------------
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      # --- Verify gates -----------------------------------------------------
       - name: Format check
         run: pnpm format:check
 
       - name: Lint
         run: pnpm lint
 
-      # Build library packages FIRST so their emitted .d.ts / dist artifacts exist
-      # when typecheck runs. `@wnr/db` / `@wnr/analytics` import `@wnr/test-utils`
-      # and `@wnr/config` via `workspace:*`; those packages' `package.json` expose
-      # `./dist/index.d.ts` and `tsc` resolves them through the pnpm workspace
-      # symlink. On a fresh CI checkout (no dist yet) `tsc --noEmit` would fail with
-      # TS2307 "Cannot find module '@wnr/test-utils' or its corresponding type
-      # declarations" if typecheck ran before any build. This step pre-builds only
-      # the library packages (NOT the @wnr/web static export NOR the @wnr/weather-sync
-      # worker — those have their own dedicated `Build *` steps below and must not be
-      # double-built; @wnr/maintenance has no build script either). Order is fixed via
-      # the four negation filters.
       - name: Build library packages (emit dist + .d.ts for typecheck)
         run: pnpm -r --filter '!@wnr/web' --filter '!@wnr/weather-sync' --filter '!@wnr/maintenance' build
 
@@ -91,30 +59,18 @@ jobs:
 
       - name: Unit / integration tests
         run: |
-          # NOTE: pnpm's recursive runner (`pnpm -r`, which the root `pnpm test` script
-          # expands to) swallows sub-package test failures and returns exit 0 — a known
-          # pnpm@10 quirk (confirmed: `pnpm -r test` exits 0 even when a package fails,
-          # whereas `pnpm --filter <pkg> test` correctly exits non-zero). To keep this
-          # gate fail-closed (DEP-CICD-001), we capture the aggregated output and fail
-          # the job whenever any package reports a test failure. Covers all packages
-          # automatically (no brittle per-package enumeration).
           pnpm test 2>&1 | tee test-results.log
           if grep -qiE "Tests +[0-9]+ failed|Test Files +[0-9]+ failed|FAIL " test-results.log; then
-            echo "::error::Unit/integration tests failed — gate is fail-closed, failing the job."
+            echo "::error::Unit/integration tests failed — gate is fail-closed."
             exit 1
           fi
 
       - name: Documentation gate
         run: pnpm docs:check
 
-      # --- Build (static export -> apps/web/out/ AND worker -> dist/) -------
       - name: Build web (Next.js static export)
         env:
-          # Custom production domain used by canonical URLs, JSON-LD, sitemap,
-          # and hreflang output in the statically exported site.
           APP_BASE_URL: https://868656.xyz
-          # Inlined at build time into the static HTML (DEP-CONFIG-001). Optional: when
-          # unset, the analytics component renders nothing (zero integration by default).
           NEXT_PUBLIC_CLOUDFLARE_ANALYTICS_ENABLED: ${{ secrets.NEXT_PUBLIC_CLOUDFLARE_ANALYTICS_ENABLED }}
           NEXT_PUBLIC_CLOUDFLARE_ANALYTICS_TOKEN: ${{ secrets.NEXT_PUBLIC_CLOUDFLARE_ANALYTICS_TOKEN }}
         run: pnpm --filter @wnr/web build
@@ -125,7 +81,6 @@ jobs:
       - name: Build weather-read Worker
         run: pnpm --filter @wnr/weather-read build
 
-      # --- Dry-run gates (NEVER contact Cloudflare API) ---------------------
       - name: Pipeline contract tests
         run: node --test tooling/deploy/pipeline-contract.test.mjs
 
@@ -140,8 +95,7 @@ jobs:
       - name: Preview smoke (static out/ identity check)
         run: |
           node -e "const {previewSmoke}=await import('./tooling/deploy/preview-smoke.mjs'); \
-          const {loadRecord,computeArtifactId}=await import('./tooling/deploy/deploy-core.mjs'); \
-          const fs=await import('node:fs'); \
+          const {computeArtifactId}=await import('./tooling/deploy/deploy-core.mjs'); \
           const dir='apps/web/out'; \
           const artifactId=computeArtifactId(dir); \
           const rec={artifactId,artifactDir:dir,boundUrl:'https://where-not-rain.pages.dev'}; \
@@ -149,26 +103,20 @@ jobs:
           if(!r.ok){console.error(r.errors);process.exit(1);} \
           console.log('preview-smoke OK for',artifactId);"
 
-      # --- Secret scan (no real secret in source / build output) ------------
       - name: Secret scan
         run: |
           if grep -RIiE "WEATHERAPI_SECRET|CLOUDFLARE_API_TOKEN" apps/web/out apps/web/src 2>/dev/null; then
-            echo "::error::Possible secret leaked into build output or source"; exit 1
+            echo "::error::Possible secret leaked into build output or source"
+            exit 1
           fi
           echo "secret scan: clean"
 
-      # =====================================================================
-      # PREVIEW DEPLOY (internal PR only)
-      # Order: D1 migrate (0001 only) -> extended smoke -> Worker (no Cron) -> Pages
-      # =====================================================================
+      # Preview deployment is available only to internal pull requests.
       - name: Apply D1 migrations (preview, 0001 ONLY — no 0002)
         if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-        run: |
-          # Idempotent: wrangler skips already-applied migrations. The single migration
-          # file is packages/db/migrations/0001_weather.sql (no 0002 exists).
-          pnpm --filter @wnr/weather-sync exec wrangler d1 migrations apply wnr-weather --env preview --remote
+        run: pnpm --filter @wnr/weather-sync exec wrangler d1 migrations apply wnr-weather --env preview --remote
 
       - name: Seed preview geography (idempotent)
         if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
@@ -180,12 +128,17 @@ jobs:
         if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          WEATHER_PRIMARY_PROVIDER: ${{ env.WEATHER_PRIMARY_PROVIDER }}
         run: |
-          # `--env preview` uses the [env.preview] block, which has NO `crons` binding.
-          # `--var WEATHER_PRIMARY_PROVIDER` injects the adapter selection into the Worker.
           pnpm --filter @wnr/weather-sync exec wrangler deploy --env preview \
             --var WEATHER_PRIMARY_PROVIDER=${{ env.WEATHER_PRIMARY_PROVIDER }}
+
+      - name: Configure weather-sync trigger secret (preview)
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          SYNC_TRIGGER_TOKEN="$(printf '%s' "$CLOUDFLARE_API_TOKEN" | sha256sum | cut -d' ' -f1)"
+          printf '%s' "$SYNC_TRIGGER_TOKEN" | pnpm --filter @wnr/weather-sync exec wrangler secret put SYNC_TRIGGER_TOKEN --env preview
 
       - name: Deploy weather-read Worker (preview, read-only)
         if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
@@ -197,8 +150,7 @@ jobs:
         if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
         env:
           WORKER_PREVIEW_URL: ${{ secrets.WORKER_PREVIEW_URL }}
-        run: |
-          node tooling/deploy/sync-smoke.mjs --worker-url "${WORKER_PREVIEW_URL:-}"
+        run: node tooling/deploy/sync-smoke.mjs --worker-url "${WORKER_PREVIEW_URL:-}"
 
       - name: Deploy preview (internal PR)
         if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
@@ -206,17 +158,12 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: pnpm --filter @wnr/web exec wrangler pages deploy out --branch ${{ github.event.pull_request.number }} --project-name where-not-rain
 
-      # =====================================================================
-      # PRODUCTION PROMOTION (push to main only)
-      # Order: D1 migrate (0001 only) -> Worker (Cron registered) -> Pages -> smoke
-      # =====================================================================
+      # Production promotion runs only for main.
       - name: Apply D1 migrations (production, 0001 ONLY — no 0002)
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-        run: |
-          # Idempotent. Single migration = packages/db/migrations/0001_weather.sql.
-          pnpm --filter @wnr/weather-sync exec wrangler d1 migrations apply wnr-weather --env production --remote
+        run: pnpm --filter @wnr/weather-sync exec wrangler d1 migrations apply wnr-weather --env production --remote
 
       - name: Seed production geography (idempotent)
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
@@ -228,12 +175,31 @@ jobs:
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          WEATHER_PRIMARY_PROVIDER: ${{ env.WEATHER_PRIMARY_PROVIDER }}
         run: |
-          # `--env production` uses the [env.production] block, which declares
-          # `crons = ["17 */6 * * *"]` (every six hours). No Cron is registered for preview.
           pnpm --filter @wnr/weather-sync exec wrangler deploy --env production \
             --var WEATHER_PRIMARY_PROVIDER=${{ env.WEATHER_PRIMARY_PROVIDER }}
+
+      - name: Configure weather-sync trigger secret (production)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          SYNC_TRIGGER_TOKEN="$(printf '%s' "$CLOUDFLARE_API_TOKEN" | sha256sum | cut -d' ' -f1)"
+          printf '%s' "$SYNC_TRIGGER_TOKEN" | pnpm --filter @wnr/weather-sync exec wrangler secret put SYNC_TRIGGER_TOKEN --env production
+
+      - name: Refresh production weather snapshot (protected)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          SYNC_TRIGGER_TOKEN="$(printf '%s' "$CLOUDFLARE_API_TOKEN" | sha256sum | cut -d' ' -f1)"
+          curl --fail --silent --show-error --location --retry 3 --retry-all-errors \
+            --request POST \
+            --header "authorization: Bearer $SYNC_TRIGGER_TOKEN" \
+            --connect-timeout 15 --max-time 240 \
+            "https://where-not-rain-sync-production.ct1150.workers.dev/internal/sync" \
+            -o /tmp/production-sync.json
+          grep -Fq '"activated":true' /tmp/production-sync.json
 
       - name: Deploy weather-read Worker (production, read-only)
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
@@ -256,5 +222,4 @@ jobs:
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         env:
           WORKER_PRODUCTION_URL: ${{ secrets.WORKER_PRODUCTION_URL }}
-        run: |
-          node tooling/deploy/sync-smoke.mjs --worker-url "${WORKER_PRODUCTION_URL:-}"
+        run: node tooling/deploy/sync-smoke.mjs --worker-url "${WORKER_PRODUCTION_URL:-}"
