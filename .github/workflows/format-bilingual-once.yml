@@ -1,3 +1,4 @@
+# One-shot formatter. It removes itself after committing repository-standard formatting.
 name: Format bilingual release once
 
 on:
