@@ -1,11 +1,6 @@
 // apps/web/src/app/sitemap.ts
 //
-// Static-export sitemap (SEO-SITEMAP-001). Enumerates every canonical,
-// quality-passing route from the build-time baked dataset. Only routes that
-// exist in the static export are emitted; future locale routes join on launch.
-//
-// Next's App Router emits this as `out/sitemap.xml` during `next build`
-// (static export compatible — no request-time data path).
+// Static-export sitemap. Only routes that exist in the static export are emitted.
 
 import type { MetadataRoute } from "next";
 import { getBakedDataset } from "../build/bake";
@@ -19,7 +14,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const entries: MetadataRoute.Sitemap = [
     ...localizedSitemapEntries("/", { lastModified, changeFrequency }, ["en", "zh-cn"]),
     ...localizedSitemapEntries("/explore", { lastModified, changeFrequency }),
-    ...localizedSitemapEntries("/trips", { lastModified, changeFrequency }, ["en", "zh-cn"]),
+    ...localizedSitemapEntries("/trips", { lastModified, changeFrequency }, [
+      "en",
+      "zh-hant",
+      "zh-cn",
+    ]),
     ...localizedSitemapEntries("/trips/qinggan-family-2026", { lastModified, changeFrequency }, [
       "en",
       "zh-cn",
