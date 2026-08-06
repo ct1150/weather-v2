@@ -1,11 +1,13 @@
 import type { Metadata } from "next";
 import type { ReactElement } from "react";
 import { TripImportForm } from "../../../components/TripImportForm";
+import { buildAlternates } from "../../seo";
 
 export const metadata: Metadata = {
   title: "Import a trip itinerary",
   description:
     "Paste a Markdown itinerary and turn it into an editable weather-aware trip workspace.",
+  alternates: buildAlternates("/trips/new", "en", ["en", "zh-hant", "zh-cn"]),
   robots: { index: false, follow: true },
 };
 
