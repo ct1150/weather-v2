@@ -87,4 +87,5 @@ jobs:
           git push origin HEAD:main
 
       - name: Fail when live production verification failed
-        run: grep -Fq -- '- Conclusion: success' PRODUCT_SMOKE_STATUS.md
+        run: |
+          grep -Fq -- '- Conclusion: success' PRODUCT_SMOKE_STATUS.md
