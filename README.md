@@ -59,3 +59,13 @@ pnpm format         # prettier
 
 - Node >= 22
 - pnpm >= 10
+
+## Trip Planner MVP
+
+The weather-aware trip planning increment adds:
+
+- `/zh-cn/trips` — Chinese trip workspace.
+- `/zh-cn/trips/qinggan-family-2026` — Qinghai–Gansu family itinerary demo.
+- `/zh-cn/trips/new` — Markdown itinerary import preview.
+
+See [`docs/16-Trip-Planner-MVP.md`](docs/16-Trip-Planner-MVP.md) for architecture, weather fallback behavior and the next delivery increment.
