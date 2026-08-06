@@ -1,3 +1,4 @@
+# One-shot finalizer. It removes itself after applying security, formatting and locale changes.
 name: Finalize bilingual release once
 
 on:
