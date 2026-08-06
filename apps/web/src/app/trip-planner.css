@@ -1,395 +1,393 @@
-@layer components {
-  .trip-hero,
-  .trip-detail-hero {
-    @apply relative overflow-hidden rounded-[2rem] border border-white/80 bg-white p-6 sm:p-10 lg:p-12;
-    box-shadow:
-      0 24px 70px rgb(18 35 62 / 0.1),
-      0 2px 8px rgb(18 35 62 / 0.04);
-  }
-
-  .trip-hero::after,
-  .trip-detail-hero::after {
-    content: "";
-    @apply pointer-events-none absolute -right-28 -top-28 h-80 w-80 rounded-full;
-    background: conic-gradient(
-      from 40deg,
-      rgb(var(--wnr-primary) / 0.16),
-      rgb(var(--wnr-accent) / 0.12),
-      transparent 72%
-    );
-    filter: blur(2px);
-  }
-
-  .trip-detail-hero {
-    @apply grid gap-7 lg:grid-cols-[1fr_auto] lg:items-end;
-  }
-
-  .trip-source-note {
-    @apply relative z-10 flex min-w-64 flex-col rounded-2xl bg-foreground p-5 text-white;
-  }
-
-  .trip-source-note span {
-    @apply text-[10px] font-bold uppercase tracking-[0.15em] text-white/55;
-  }
-
-  .trip-source-note strong {
-    @apply mt-2 text-sm;
-  }
-
-  .trip-source-note small {
-    @apply mt-2 text-xs leading-5 text-white/60;
-  }
-
-  .trip-primary-button,
-  .trip-secondary-button,
-  .trip-print-button {
-    @apply inline-flex min-h-11 items-center justify-center rounded-full px-5 py-2.5 text-sm font-bold transition outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-1 focus-visible:ring-offset-surface;
-  }
-
-  .trip-primary-button {
-    @apply bg-foreground text-white hover:-translate-y-0.5 hover:bg-primary;
-    box-shadow: 0 10px 24px rgb(18 35 62 / 0.18);
-  }
-
-  .trip-secondary-button,
-  .trip-print-button {
-    @apply border border-border bg-white text-foreground hover:border-primary/30 hover:bg-surface-elevated;
-  }
-
-  .trip-list-card {
-    @apply grid gap-6 rounded-3xl border border-border/90 bg-white p-6 lg:grid-cols-[1fr_18rem] lg:items-center;
-    box-shadow: 0 14px 42px rgb(18 35 62 / 0.08);
-  }
-
-  .trip-list-route {
-    @apply flex gap-2 overflow-x-auto pb-2 text-xs font-semibold text-muted;
-  }
-
-  .trip-list-route span {
-    @apply shrink-0 rounded-full bg-surface-elevated px-3 py-2;
-  }
-
-  .trip-list-actions {
-    @apply flex flex-col gap-3 rounded-2xl bg-foreground p-5 text-white;
-  }
-
-  .trip-list-actions strong {
-    @apply text-2xl;
-  }
-
-  .trip-list-actions span {
-    @apply text-xs leading-5 text-white/60;
-  }
-
-  .trip-list-actions a {
-    @apply mt-2 text-sm font-bold text-white underline decoration-white/30 underline-offset-4;
-  }
-
-  .trip-process-card {
-    @apply rounded-2xl border border-border/80 bg-white p-5;
-    box-shadow: 0 8px 28px rgb(18 35 62 / 0.05);
-  }
-
-  .trip-process-card > span {
-    @apply text-xs font-bold tracking-[0.15em] text-primary;
-  }
-
-  .trip-process-card h3 {
-    @apply mt-5 text-xl font-bold text-foreground;
-  }
-
-  .trip-process-card p {
-    @apply mt-2 text-sm leading-6 text-muted;
-  }
-
-  .trip-dashboard {
-    @apply grid gap-5;
-  }
-
-  .trip-summary-grid {
-    @apply grid overflow-hidden rounded-2xl border border-border/80 bg-white sm:grid-cols-2 lg:grid-cols-4;
-    box-shadow: 0 8px 28px rgb(18 35 62 / 0.055);
-  }
-
-  .trip-summary-grid > div {
-    @apply flex min-h-24 flex-col justify-center border-b border-border/70 px-5 py-4 sm:border-r lg:border-b-0;
-  }
-
-  .trip-summary-grid > div:last-child {
-    @apply border-0;
-  }
-
-  .trip-summary-grid span {
-    @apply text-[10px] font-bold uppercase tracking-[0.13em] text-muted;
-  }
-
-  .trip-summary-grid strong {
-    @apply mt-2 text-sm text-foreground;
-  }
-
-  .trip-day-strip {
-    @apply flex gap-2 overflow-x-auto rounded-2xl border border-border/80 bg-white p-2;
-    box-shadow: 0 7px 24px rgb(18 35 62 / 0.05);
-  }
-
-  .trip-day-strip button {
-    @apply grid min-w-[5rem] shrink-0 grid-cols-[1fr_auto] items-center gap-x-2 rounded-xl border border-transparent px-3 py-2 text-left transition hover:bg-surface-elevated outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-1 focus-visible:ring-offset-surface;
-  }
-
-  .trip-day-strip button > span {
-    @apply text-sm font-bold text-foreground;
-  }
-
-  .trip-day-strip button > small {
-    @apply col-start-1 text-[10px] font-semibold text-muted;
-  }
-
-  .trip-day-strip button > i {
-    @apply row-span-2 grid h-8 min-w-8 place-items-center rounded-full px-1 text-[10px] font-bold not-italic;
-  }
-
-  .trip-day-strip button.is-active {
-    @apply border-foreground bg-foreground text-white;
-    box-shadow: 0 8px 18px rgb(18 35 62 / 0.18);
-  }
-
-  .trip-day-strip button.is-active > span,
-  .trip-day-strip button.is-active > small {
-    @apply text-white;
-  }
-
-  .trip-selected-day {
-    @apply overflow-hidden rounded-[2rem] border border-border/80 bg-white;
-    box-shadow: 0 22px 60px rgb(18 35 62 / 0.09);
-  }
-
-  .trip-day-header {
-    @apply flex flex-col gap-6 p-6 sm:flex-row sm:items-end sm:justify-between sm:p-8;
-  }
-
-  .trip-score-dial {
-    --trip-score: 0deg;
-    @apply relative grid h-24 w-24 shrink-0 place-items-center rounded-full text-center;
-    background: conic-gradient(rgb(var(--wnr-primary)) var(--trip-score), rgb(var(--wnr-border)) 0);
-  }
-
-  .trip-score-dial::after {
-    content: "";
-    @apply absolute inset-[7px] rounded-full bg-white;
-  }
-
-  .trip-score-dial span,
-  .trip-score-dial small {
-    @apply relative z-10 col-start-1 row-start-1;
-  }
-
-  .trip-score-dial span {
-    @apply -translate-y-2 text-2xl font-bold text-foreground;
-  }
-
-  .trip-score-dial small {
-    @apply translate-y-4 text-[9px] font-bold uppercase tracking-[0.1em] text-muted;
-  }
-
-  .trip-meta-pill,
-  .trip-constraint-badge,
-  .trip-deadline-badge,
-  .trip-priority-badge {
-    @apply inline-flex rounded-full border border-border bg-surface-elevated px-2.5 py-1 text-[10px] font-bold text-muted;
-  }
-
-  .trip-deadline-badge {
-    @apply border-warning/20 bg-warning/10 text-warning;
-  }
-
-  .trip-priority-badge {
-    @apply border-primary/15 bg-primary/10 text-primary;
-  }
-
-  .trip-route-strip {
-    @apply flex gap-2 overflow-x-auto border-y border-border/70 bg-surface-elevated px-6 py-4 sm:px-8;
-  }
-
-  .trip-route-strip > div {
-    @apply flex shrink-0 items-center gap-2 text-xs;
-  }
-
-  .trip-route-strip span {
-    @apply grid h-6 w-6 place-items-center rounded-full bg-white text-[9px] font-bold text-primary;
-  }
-
-  .trip-route-strip strong {
-    @apply text-foreground;
-  }
-
-  .trip-route-strip i {
-    @apply ml-1 not-italic text-muted;
-  }
-
-  .trip-decision-panel {
-    @apply mx-6 mt-6 flex flex-col gap-4 rounded-2xl border p-5 sm:mx-8 sm:flex-row sm:items-center sm:justify-between;
-  }
-
-  .trip-decision-panel > div {
-    @apply flex flex-col;
-  }
-
-  .trip-decision-panel span {
-    @apply text-[10px] font-bold uppercase tracking-[0.13em] opacity-70;
-  }
-
-  .trip-decision-panel strong {
-    @apply mt-1 text-sm;
-  }
-
-  .trip-decision-panel button {
-    @apply min-h-10 shrink-0 rounded-full bg-white px-4 text-xs font-bold text-foreground shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-1 focus-visible:ring-offset-surface;
-  }
-
-  .trip-risk-badge {
-    @apply inline-flex rounded-full border px-2.5 py-1 text-[10px] font-bold;
-  }
-
-  .trip-risk-low {
-    color: rgb(var(--wnr-success));
-    background-color: rgb(var(--wnr-success) / 0.1);
-    border-color: rgb(var(--wnr-success) / 0.2);
-  }
-
-  .trip-risk-medium {
-    color: rgb(var(--wnr-warning));
-    background-color: rgb(var(--wnr-warning) / 0.1);
-    border-color: rgb(var(--wnr-warning) / 0.2);
-  }
-
-  .trip-risk-high {
-    color: rgb(var(--wnr-danger));
-    background-color: rgb(var(--wnr-danger) / 0.09);
-    border-color: rgb(var(--wnr-danger) / 0.2);
-  }
-
-  .trip-plan-b {
-    @apply mx-6 mt-4 rounded-2xl bg-foreground p-5 text-white sm:mx-8 sm:p-6;
-  }
-
-  .trip-day-layout {
-    @apply grid gap-7 p-6 sm:p-8 xl:grid-cols-[minmax(0,1fr)_20rem];
-  }
-
-  .trip-activity-card {
-    @apply flex gap-4 rounded-2xl border border-border/80 bg-white p-4 sm:p-5;
-    box-shadow: 0 5px 18px rgb(18 35 62 / 0.045);
-  }
-
-  .trip-activity-time {
-    @apply flex w-16 shrink-0 flex-col border-r border-border/80 pr-3 text-right;
-  }
-
-  .trip-activity-time span {
-    @apply text-sm font-bold text-primary;
-  }
-
-  .trip-activity-time small {
-    @apply mt-1 text-[10px] text-muted;
-  }
-
-  .trip-weather-row {
-    @apply flex flex-wrap gap-x-3 gap-y-1 text-[10px] font-semibold text-muted;
-  }
-
-  .trip-weather-row span {
-    @apply rounded-full bg-surface-elevated px-2.5 py-1;
-  }
-
-  .trip-inline-fallback {
-    @apply flex flex-col gap-1 rounded-xl border border-primary/10 bg-primary/5 p-3 text-xs leading-5;
-  }
-
-  .trip-inline-fallback strong {
-    @apply text-primary;
-  }
-
-  .trip-inline-fallback span {
-    @apply text-body;
-  }
-
-  .trip-side-card {
-    @apply rounded-2xl border border-border/80 bg-surface-elevated p-5;
-  }
-
-  .trip-side-card article + article {
-    @apply border-t border-border/80 pt-4;
-  }
-
-  .trip-check-dot {
-    @apply mt-1 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-success/10 text-[10px] font-bold text-success;
-  }
-
-  .trip-import-grid {
-    @apply grid overflow-hidden rounded-3xl border border-border/80 bg-white lg:grid-cols-2;
-    box-shadow: 0 18px 55px rgb(18 35 62 / 0.09);
-  }
-
-  .trip-import-editor,
-  .trip-import-preview {
-    @apply p-5 sm:p-7;
-  }
-
-  .trip-import-editor {
-    @apply border-b border-border/80 bg-surface-elevated lg:border-b-0 lg:border-r;
-  }
-
-  .trip-import-editor textarea {
-    @apply mt-5 min-h-[32rem] w-full resize-y rounded-2xl border border-border bg-white p-4 font-mono text-xs leading-6 text-foreground outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/10;
-  }
-
-  .trip-import-stats {
-    @apply mt-5 grid gap-2 sm:grid-cols-3;
-  }
-
-  .trip-import-stats > div {
-    @apply flex min-h-20 flex-col justify-center rounded-xl bg-surface-elevated p-3;
-  }
-
-  .trip-import-stats span {
-    @apply text-[9px] font-bold uppercase tracking-[0.1em] text-muted;
-  }
-
-  .trip-import-stats strong {
-    @apply mt-2 truncate text-sm text-foreground;
-  }
-
-  .trip-import-day {
-    @apply rounded-xl border border-border/80 p-4;
-  }
-
-  .trip-import-day h3 {
-    @apply text-sm font-bold text-foreground;
-  }
-
-  .trip-import-day ul {
-    @apply mt-3 grid gap-2;
-  }
-
-  .trip-import-day li {
-    @apply grid grid-cols-[5rem_1fr] gap-2 text-xs leading-5;
-  }
-
-  .trip-import-day time {
-    @apply font-bold text-primary;
-  }
-
-  .trip-mvp-note {
-    @apply flex flex-col gap-1 rounded-xl bg-foreground p-4 text-white;
-  }
-
-  .trip-mvp-note strong {
-    @apply text-xs;
-  }
-
-  .trip-mvp-note span {
-    @apply text-xs leading-5 text-white/65;
-  }
+.trip-hero,
+.trip-detail-hero {
+  @apply relative overflow-hidden rounded-[2rem] border border-white/80 bg-white p-6 sm:p-10 lg:p-12;
+  box-shadow:
+    0 24px 70px rgb(18 35 62 / 0.1),
+    0 2px 8px rgb(18 35 62 / 0.04);
+}
+
+.trip-hero::after,
+.trip-detail-hero::after {
+  content: "";
+  @apply pointer-events-none absolute -right-28 -top-28 h-80 w-80 rounded-full;
+  background: conic-gradient(
+    from 40deg,
+    rgb(var(--wnr-primary) / 0.16),
+    rgb(var(--wnr-accent) / 0.12),
+    transparent 72%
+  );
+  filter: blur(2px);
+}
+
+.trip-detail-hero {
+  @apply grid gap-7 lg:grid-cols-[1fr_auto] lg:items-end;
+}
+
+.trip-source-note {
+  @apply relative z-10 flex min-w-64 flex-col rounded-2xl bg-foreground p-5 text-white;
+}
+
+.trip-source-note span {
+  @apply text-[10px] font-bold uppercase tracking-[0.15em] text-white/55;
+}
+
+.trip-source-note strong {
+  @apply mt-2 text-sm;
+}
+
+.trip-source-note small {
+  @apply mt-2 text-xs leading-5 text-white/60;
+}
+
+.trip-primary-button,
+.trip-secondary-button,
+.trip-print-button {
+  @apply inline-flex min-h-11 items-center justify-center rounded-full px-5 py-2.5 text-sm font-bold transition outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-1 focus-visible:ring-offset-surface;
+}
+
+.trip-primary-button {
+  @apply bg-foreground text-white hover:-translate-y-0.5 hover:bg-primary;
+  box-shadow: 0 10px 24px rgb(18 35 62 / 0.18);
+}
+
+.trip-secondary-button,
+.trip-print-button {
+  @apply border border-border bg-white text-foreground hover:border-primary/30 hover:bg-surface-elevated;
+}
+
+.trip-list-card {
+  @apply grid gap-6 rounded-3xl border border-border/90 bg-white p-6 lg:grid-cols-[1fr_18rem] lg:items-center;
+  box-shadow: 0 14px 42px rgb(18 35 62 / 0.08);
+}
+
+.trip-list-route {
+  @apply flex gap-2 overflow-x-auto pb-2 text-xs font-semibold text-muted;
+}
+
+.trip-list-route span {
+  @apply shrink-0 rounded-full bg-surface-elevated px-3 py-2;
+}
+
+.trip-list-actions {
+  @apply flex flex-col gap-3 rounded-2xl bg-foreground p-5 text-white;
+}
+
+.trip-list-actions strong {
+  @apply text-2xl;
+}
+
+.trip-list-actions span {
+  @apply text-xs leading-5 text-white/60;
+}
+
+.trip-list-actions a {
+  @apply mt-2 text-sm font-bold text-white underline decoration-white/30 underline-offset-4;
+}
+
+.trip-process-card {
+  @apply rounded-2xl border border-border/80 bg-white p-5;
+  box-shadow: 0 8px 28px rgb(18 35 62 / 0.05);
+}
+
+.trip-process-card > span {
+  @apply text-xs font-bold tracking-[0.15em] text-primary;
+}
+
+.trip-process-card h3 {
+  @apply mt-5 text-xl font-bold text-foreground;
+}
+
+.trip-process-card p {
+  @apply mt-2 text-sm leading-6 text-muted;
+}
+
+.trip-dashboard {
+  @apply grid gap-5;
+}
+
+.trip-summary-grid {
+  @apply grid overflow-hidden rounded-2xl border border-border/80 bg-white sm:grid-cols-2 lg:grid-cols-4;
+  box-shadow: 0 8px 28px rgb(18 35 62 / 0.055);
+}
+
+.trip-summary-grid > div {
+  @apply flex min-h-24 flex-col justify-center border-b border-border/70 px-5 py-4 sm:border-r lg:border-b-0;
+}
+
+.trip-summary-grid > div:last-child {
+  @apply border-0;
+}
+
+.trip-summary-grid span {
+  @apply text-[10px] font-bold uppercase tracking-[0.13em] text-muted;
+}
+
+.trip-summary-grid strong {
+  @apply mt-2 text-sm text-foreground;
+}
+
+.trip-day-strip {
+  @apply flex gap-2 overflow-x-auto rounded-2xl border border-border/80 bg-white p-2;
+  box-shadow: 0 7px 24px rgb(18 35 62 / 0.05);
+}
+
+.trip-day-strip button {
+  @apply grid min-w-[5rem] shrink-0 grid-cols-[1fr_auto] items-center gap-x-2 rounded-xl border border-transparent px-3 py-2 text-left transition hover:bg-surface-elevated outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-1 focus-visible:ring-offset-surface;
+}
+
+.trip-day-strip button > span {
+  @apply text-sm font-bold text-foreground;
+}
+
+.trip-day-strip button > small {
+  @apply col-start-1 text-[10px] font-semibold text-muted;
+}
+
+.trip-day-strip button > i {
+  @apply row-span-2 grid h-8 min-w-8 place-items-center rounded-full px-1 text-[10px] font-bold not-italic;
+}
+
+.trip-day-strip button.is-active {
+  @apply border-foreground bg-foreground text-white;
+  box-shadow: 0 8px 18px rgb(18 35 62 / 0.18);
+}
+
+.trip-day-strip button.is-active > span,
+.trip-day-strip button.is-active > small {
+  @apply text-white;
+}
+
+.trip-selected-day {
+  @apply overflow-hidden rounded-[2rem] border border-border/80 bg-white;
+  box-shadow: 0 22px 60px rgb(18 35 62 / 0.09);
+}
+
+.trip-day-header {
+  @apply flex flex-col gap-6 p-6 sm:flex-row sm:items-end sm:justify-between sm:p-8;
+}
+
+.trip-score-dial {
+  --trip-score: 0deg;
+  @apply relative grid h-24 w-24 shrink-0 place-items-center rounded-full text-center;
+  background: conic-gradient(rgb(var(--wnr-primary)) var(--trip-score), rgb(var(--wnr-border)) 0);
+}
+
+.trip-score-dial::after {
+  content: "";
+  @apply absolute inset-[7px] rounded-full bg-white;
+}
+
+.trip-score-dial span,
+.trip-score-dial small {
+  @apply relative z-10 col-start-1 row-start-1;
+}
+
+.trip-score-dial span {
+  @apply -translate-y-2 text-2xl font-bold text-foreground;
+}
+
+.trip-score-dial small {
+  @apply translate-y-4 text-[9px] font-bold uppercase tracking-[0.1em] text-muted;
+}
+
+.trip-meta-pill,
+.trip-constraint-badge,
+.trip-deadline-badge,
+.trip-priority-badge {
+  @apply inline-flex rounded-full border border-border bg-surface-elevated px-2.5 py-1 text-[10px] font-bold text-muted;
+}
+
+.trip-deadline-badge {
+  @apply border-warning/20 bg-warning/10 text-warning;
+}
+
+.trip-priority-badge {
+  @apply border-primary/15 bg-primary/10 text-primary;
+}
+
+.trip-route-strip {
+  @apply flex gap-2 overflow-x-auto border-y border-border/70 bg-surface-elevated px-6 py-4 sm:px-8;
+}
+
+.trip-route-strip > div {
+  @apply flex shrink-0 items-center gap-2 text-xs;
+}
+
+.trip-route-strip span {
+  @apply grid h-6 w-6 place-items-center rounded-full bg-white text-[9px] font-bold text-primary;
+}
+
+.trip-route-strip strong {
+  @apply text-foreground;
+}
+
+.trip-route-strip i {
+  @apply ml-1 not-italic text-muted;
+}
+
+.trip-decision-panel {
+  @apply mx-6 mt-6 flex flex-col gap-4 rounded-2xl border p-5 sm:mx-8 sm:flex-row sm:items-center sm:justify-between;
+}
+
+.trip-decision-panel > div {
+  @apply flex flex-col;
+}
+
+.trip-decision-panel span {
+  @apply text-[10px] font-bold uppercase tracking-[0.13em] opacity-70;
+}
+
+.trip-decision-panel strong {
+  @apply mt-1 text-sm;
+}
+
+.trip-decision-panel button {
+  @apply min-h-10 shrink-0 rounded-full bg-white px-4 text-xs font-bold text-foreground shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-1 focus-visible:ring-offset-surface;
+}
+
+.trip-risk-badge {
+  @apply inline-flex rounded-full border px-2.5 py-1 text-[10px] font-bold;
+}
+
+.trip-risk-low {
+  color: rgb(var(--wnr-success));
+  background-color: rgb(var(--wnr-success) / 0.1);
+  border-color: rgb(var(--wnr-success) / 0.2);
+}
+
+.trip-risk-medium {
+  color: rgb(var(--wnr-warning));
+  background-color: rgb(var(--wnr-warning) / 0.1);
+  border-color: rgb(var(--wnr-warning) / 0.2);
+}
+
+.trip-risk-high {
+  color: rgb(var(--wnr-danger));
+  background-color: rgb(var(--wnr-danger) / 0.09);
+  border-color: rgb(var(--wnr-danger) / 0.2);
+}
+
+.trip-plan-b {
+  @apply mx-6 mt-4 rounded-2xl bg-foreground p-5 text-white sm:mx-8 sm:p-6;
+}
+
+.trip-day-layout {
+  @apply grid gap-7 p-6 sm:p-8 xl:grid-cols-[minmax(0,1fr)_20rem];
+}
+
+.trip-activity-card {
+  @apply flex gap-4 rounded-2xl border border-border/80 bg-white p-4 sm:p-5;
+  box-shadow: 0 5px 18px rgb(18 35 62 / 0.045);
+}
+
+.trip-activity-time {
+  @apply flex w-16 shrink-0 flex-col border-r border-border/80 pr-3 text-right;
+}
+
+.trip-activity-time span {
+  @apply text-sm font-bold text-primary;
+}
+
+.trip-activity-time small {
+  @apply mt-1 text-[10px] text-muted;
+}
+
+.trip-weather-row {
+  @apply flex flex-wrap gap-x-3 gap-y-1 text-[10px] font-semibold text-muted;
+}
+
+.trip-weather-row span {
+  @apply rounded-full bg-surface-elevated px-2.5 py-1;
+}
+
+.trip-inline-fallback {
+  @apply flex flex-col gap-1 rounded-xl border border-primary/10 bg-primary/5 p-3 text-xs leading-5;
+}
+
+.trip-inline-fallback strong {
+  @apply text-primary;
+}
+
+.trip-inline-fallback span {
+  @apply text-body;
+}
+
+.trip-side-card {
+  @apply rounded-2xl border border-border/80 bg-surface-elevated p-5;
+}
+
+.trip-side-card article + article {
+  @apply border-t border-border/80 pt-4;
+}
+
+.trip-check-dot {
+  @apply mt-1 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-success/10 text-[10px] font-bold text-success;
+}
+
+.trip-import-grid {
+  @apply grid overflow-hidden rounded-3xl border border-border/80 bg-white lg:grid-cols-2;
+  box-shadow: 0 18px 55px rgb(18 35 62 / 0.09);
+}
+
+.trip-import-editor,
+.trip-import-preview {
+  @apply p-5 sm:p-7;
+}
+
+.trip-import-editor {
+  @apply border-b border-border/80 bg-surface-elevated lg:border-b-0 lg:border-r;
+}
+
+.trip-import-editor textarea {
+  @apply mt-5 min-h-[32rem] w-full resize-y rounded-2xl border border-border bg-white p-4 font-mono text-xs leading-6 text-foreground outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/10;
+}
+
+.trip-import-stats {
+  @apply mt-5 grid gap-2 sm:grid-cols-3;
+}
+
+.trip-import-stats > div {
+  @apply flex min-h-20 flex-col justify-center rounded-xl bg-surface-elevated p-3;
+}
+
+.trip-import-stats span {
+  @apply text-[9px] font-bold uppercase tracking-[0.1em] text-muted;
+}
+
+.trip-import-stats strong {
+  @apply mt-2 truncate text-sm text-foreground;
+}
+
+.trip-import-day {
+  @apply rounded-xl border border-border/80 p-4;
+}
+
+.trip-import-day h3 {
+  @apply text-sm font-bold text-foreground;
+}
+
+.trip-import-day ul {
+  @apply mt-3 grid gap-2;
+}
+
+.trip-import-day li {
+  @apply grid grid-cols-[5rem_1fr] gap-2 text-xs leading-5;
+}
+
+.trip-import-day time {
+  @apply font-bold text-primary;
+}
+
+.trip-mvp-note {
+  @apply flex flex-col gap-1 rounded-xl bg-foreground p-4 text-white;
+}
+
+.trip-mvp-note strong {
+  @apply text-xs;
+}
+
+.trip-mvp-note span {
+  @apply text-xs leading-5 text-white/65;
 }
 
 @media print {
