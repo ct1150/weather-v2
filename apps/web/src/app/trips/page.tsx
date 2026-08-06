@@ -7,7 +7,7 @@ export const metadata: Metadata = {
   title: "Weather-aware trip planning for Japan, Korea and Southeast Asia",
   description:
     "Build a multi-city itinerary, connect daily weather and know what to keep, move, shorten or replace when conditions change.",
-  alternates: buildAlternates("/trips", "en", ["en", "zh-cn"]),
+  alternates: buildAlternates("/trips", "en", ["en", "zh-hant", "zh-cn"]),
   robots: { index: true, follow: true },
 };
 
@@ -70,8 +70,8 @@ export default function TripsLanding(): ReactElement {
             <a className="trip-secondary-button" href="/trips/new">
               Import a Markdown itinerary
             </a>
-            <a className="trip-secondary-button" href="/zh-cn/trips">
-              简体中文
+            <a className="trip-secondary-button" href="/zh-hant/trips" hrefLang="zh-Hant">
+              繁體中文
             </a>
           </div>
           <p className="mt-4 max-w-2xl text-xs leading-5 text-muted">
