@@ -12,6 +12,7 @@ permissions:
 
 jobs:
   report:
+    if: github.event.workflow_run.event == 'push' && github.event.workflow_run.head_branch == 'main'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -27,7 +28,7 @@ jobs:
           RUN_EVENT: ${{ github.event.workflow_run.event }}
         run: |
           cat > DEPLOY_STATUS.md <<EOF
-          # Latest deployment status
+          # Latest production deployment status
 
           - Conclusion: ${RUN_CONCLUSION}
           - Head SHA: ${RUN_HEAD_SHA}
@@ -42,5 +43,6 @@ jobs:
           if git diff --cached --quiet; then
             exit 0
           fi
-          git commit -m "chore(deploy): record latest workflow result [skip ci]"
+          git commit -m "chore(deploy): record latest production workflow result [skip ci]"
+          git pull --rebase origin main
           git push origin HEAD:main
