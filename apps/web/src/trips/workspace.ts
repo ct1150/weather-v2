@@ -86,7 +86,7 @@ export interface WorkspaceDayDecision {
 interface WorkspaceOptions {
   readonly now?: string;
   readonly id?: string;
-  readonly title?: string;
+  readonly title?: string | undefined;
 }
 
 interface TemplateDay {
@@ -655,9 +655,7 @@ function normalizeDay(value: unknown, index: number, fallbackDate: string): Trip
         .filter(Boolean)
     : [];
   const theme: TripDayTheme =
-    row.theme === "beach" || row.theme === "outdoor" || row.theme === "indoor"
-      ? row.theme
-      : "city";
+    row.theme === "beach" || row.theme === "outdoor" || row.theme === "indoor" ? row.theme : "city";
 
   return {
     id: cleanText(row.id, 80) || `day-${index + 1}`,
@@ -680,9 +678,7 @@ export function normalizeWorkspace(value: unknown, now = new Date().toISOString(
   if (typeof value !== "object" || value === null) return fallback;
   const row = value as Record<string, unknown>;
   const partyProfile: TripPartyProfile =
-    row.partyProfile === "family" || row.partyProfile === "senior"
-      ? row.partyProfile
-      : "adults";
+    row.partyProfile === "family" || row.partyProfile === "senior" ? row.partyProfile : "adults";
   const rawDays = Array.isArray(row.days) ? row.days.slice(0, MAX_DAYS) : [];
   const fallbackDate = todayIso(now);
   const days = rawDays.map((day, index) => normalizeDay(day, index, fallbackDate));
@@ -783,7 +779,8 @@ export function assessWorkspaceDay(
 
   if (locale === "en") {
     if (rain >= 60) reasons.push("High rain risk can disrupt outdoor time and local transport");
-    else if (rain >= 35) reasons.push("Showers are possible; carry light rain gear and keep buffer time");
+    else if (rain >= 35)
+      reasons.push("Showers are possible; carry light rain gear and keep buffer time");
     else reasons.push("Rain risk is low and the original plan is broadly workable");
     if (wind >= 25 || gust >= 40)
       reasons.push("Strong wind may affect beaches, viewpoints, boats and rooftop venues");
@@ -865,10 +862,7 @@ export function workspaceToMarkdown(
           : "城市待选择";
     lines.push(`# D${day.dayNumber} (${day.date})`, "");
     lines.push(locale === "en" ? `**Destination:** ${city}` : `**目的地：** ${city}`, "");
-    lines.push(
-      locale === "en" ? "| Time / item | Plan |" : "| 时间/安排 | 行程 |",
-      "|---|---|",
-    );
+    lines.push(locale === "en" ? "| Time / item | Plan |" : "| 时间/安排 | 行程 |", "|---|---|");
     if (day.activities.length === 0) {
       lines.push(
         locale === "en"

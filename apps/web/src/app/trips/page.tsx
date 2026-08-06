@@ -42,8 +42,7 @@ export default function TripsLanding(): ReactElement {
     name: "Where Not Rain Weather-aware Trip Planner",
     applicationCategory: "TravelApplication",
     operatingSystem: "Web",
-    description:
-      "Weather-aware itinerary planning for Japan, Korea and Southeast Asia travel.",
+    description: "Weather-aware itinerary planning for Japan, Korea and Southeast Asia travel.",
     url: localeUrl("en", "/trips"),
     inLanguage: "en",
   };
@@ -61,8 +60,8 @@ export default function TripsLanding(): ReactElement {
           </h1>
           <p className="mt-5 max-w-2xl text-base leading-7 text-muted sm:text-lg">
             Plan Japan, Korea and Southeast Asia trips around real weather without rebuilding the
-            whole itinerary. Fixed trains and tickets stay protected while flexible outdoor days
-            get practical fallback decisions.
+            whole itinerary. Fixed trains and tickets stay protected while flexible outdoor days get
+            practical fallback decisions.
           </p>
           <div className="mt-7 flex flex-wrap gap-3">
             <a className="trip-primary-button" href="/trips/workspace">
@@ -84,9 +83,21 @@ export default function TripsLanding(): ReactElement {
 
       <section className="mt-12 grid gap-4 md:grid-cols-3" aria-label="How the product works">
         {[
-          ["01", "Build or import", "Add each city, day type, activity and fixed booking constraint."],
-          ["02", "Refresh trip weather", "See rain, wind, heat and family-sensitive risk for every day."],
-          ["03", "Travel with a fallback", "Share the plan, export it and keep the last forecast offline."],
+          [
+            "01",
+            "Build or import",
+            "Add each city, day type, activity and fixed booking constraint.",
+          ],
+          [
+            "02",
+            "Refresh trip weather",
+            "See rain, wind, heat and family-sensitive risk for every day.",
+          ],
+          [
+            "03",
+            "Travel with a fallback",
+            "Share the plan, export it and keep the last forecast offline.",
+          ],
         ].map(([number, title, description]) => (
           <article key={number} className="trip-process-card">
             <span>{number}</span>
@@ -131,8 +142,12 @@ export default function TripsLanding(): ReactElement {
         <ul className="grid gap-3 text-sm leading-6 text-body">
           <li className="trip-side-card">Keep fixed flights, trains and timed tickets visible.</li>
           <li className="trip-side-card">Treat beaches, boats and viewpoints as wind-sensitive.</li>
-          <li className="trip-side-card">Increase heat and cold caution for families and seniors.</li>
-          <li className="trip-side-card">Store the itinerary locally and share an editable copy.</li>
+          <li className="trip-side-card">
+            Increase heat and cold caution for families and seniors.
+          </li>
+          <li className="trip-side-card">
+            Store the itinerary locally and share an editable copy.
+          </li>
         </ul>
       </section>
 

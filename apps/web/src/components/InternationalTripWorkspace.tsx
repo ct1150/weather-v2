@@ -573,7 +573,11 @@ export function InternationalTripWorkspace(): ReactElement {
           >
             {weatherState === "loading" ? "Refreshing…" : "Refresh trip weather"}
           </button>
-          <button type="button" className="trip-secondary-button" onClick={() => void copyShareLink()}>
+          <button
+            type="button"
+            className="trip-secondary-button"
+            onClick={() => void copyShareLink()}
+          >
             Copy share link
           </button>
           <button type="button" className="trip-secondary-button" onClick={exportMarkdown}>
