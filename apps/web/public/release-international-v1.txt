@@ -1,3 +1,4 @@
 where-not-rain international trip product v1
 English + Traditional Chinese production release: 2026-08-07
 validated production deployment trigger: 2026-08-07
+retry trigger: 1
