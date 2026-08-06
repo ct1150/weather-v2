@@ -35,13 +35,18 @@ describe("sitemap.ts — static export sitemap (SEO-SITEMAP-001)", () => {
     // Home + explorer.
     expect(urls).toContain(`${BASE}/`);
     expect(urls).toContain(`${BASE}/explore`);
+    // Weather-aware trip planner routes launched in both languages.
+    expect(urls).toContain(`${BASE}/trips`);
+    expect(urls).toContain(`${BASE}/zh-cn/trips`);
+    expect(urls).toContain(`${BASE}/trips/qinggan-family-2026`);
+    expect(urls).toContain(`${BASE}/zh-cn/trips/qinggan-family-2026`);
     // At least one city URL (en canonical).
     expect(urls.some((u) => u.endsWith("/jp/tokyo"))).toBe(true);
     expect(urls).toContain(`${BASE}/zh-cn`);
     expect(urls).toContain(`${BASE}/zh-cn/jp`);
     expect(urls.some((u) => u.includes("/zh-cn/jp/tokyo"))).toBe(false);
     expect(urls.some((u) => u.includes("/ja/"))).toBe(false);
-    expect(urls).toHaveLength(55);
+    expect(urls).toHaveLength(59);
     expect(new Set(urls).size).toBe(urls.length);
   });
 
