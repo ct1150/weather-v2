@@ -1,12 +1,8 @@
-// workers/weather-sync — hourly Cron ingestion + scoring + read-model writer.
+// workers/weather-sync — scheduled ingestion plus protected operational trigger.
 //
-// This is the runtime ingestion path allowed to contact weather providers. The static
-// site may also fetch the same key-free provider during its controlled build, but never
-// from an end-user browser. This worker exposes the standard Cloudflare module shape:
-//   - `scheduled`: the hourly Cron entry (registered in production only; see wrangler.toml).
-//   - `fetch`:    a manual trigger / health endpoint for ops and CI smoke profiling.
-//                 It is NOT a user read path (satisfies PRD-INC-003 "no provider call on
-//                 user reads" — end users only ever read the last active baked snapshot).
+// End-user reads never reach this Worker. Public GET requests can only inspect
+// `/health`; an immediate sync requires `POST /internal/sync` with a deployment-
+// derived bearer token. Production still refreshes automatically through Cron.
 
 import type { D1DatabaseLike } from "@wnr/test-utils";
 import type { KVNamespaceLike, SyncDeps } from "./sync.js";
@@ -18,33 +14,22 @@ import { parseRuntimeConfig, resolveProviderName, type RuntimeConfig } from "@wn
 export * from "./sync.js";
 export * from "./d1-fence-lock.js";
 
-/** Minimal Cloudflare Worker environment bindings consumed by this entry (docs/15 §7). */
 export interface WorkerEnv {
-  /** D1 database binding — binding name `DB` (docs/15 §7). */
   readonly DB: D1DatabaseLike;
-  /** KV namespace for the "sync health" signal — binding name `WEATHER_SYNC_KV`. */
   readonly WEATHER_SYNC_KV: KVNamespaceLike;
-  /** Selects the weather adapter; mirrors `WEATHER_PRIMARY_PROVIDER` (docs/15 §7). */
   readonly WEATHER_PRIMARY_PROVIDER?: string;
+  /** SHA-256 derived deployment token. Never exposed to browser code. */
+  readonly SYNC_TRIGGER_TOKEN?: string;
 }
 
-/** Minimal shape of the Cloudflare Cron `scheduled` event we depend on. */
 interface ScheduledEventLike {
   readonly cron: string;
   readonly scheduledTime: number;
 }
 
-/**
- * Build the `runSync` dependency set from the live Worker environment. Ingestion is
- * always enabled for this worker (it exists to ingest); the adapter is selected by
- * `WEATHER_PRIMARY_PROVIDER` (defaulting to the safe FAKE provider).
- */
 function buildDeps(env: WorkerEnv): SyncDeps {
   let requested: WeatherProviderName = resolveProviderName(env.WEATHER_PRIMARY_PROVIDER) ?? "fake";
-  if (requested === "weatherapi") {
-    // Reserved but disabled this phase (no secret wiring) — never implicitly enable it.
-    requested = "fake";
-  }
+  if (requested === "weatherapi") requested = "fake";
   const provider = createWeatherProvider(requested);
   const config: RuntimeConfig = parseRuntimeConfig({ weatherProvider: true });
   return {
@@ -56,25 +41,78 @@ function buildDeps(env: WorkerEnv): SyncDeps {
   };
 }
 
+function json(body: unknown, status: number): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: {
+      "content-type": "application/json; charset=utf-8",
+      "cache-control": "no-store",
+    },
+  });
+}
+
+async function digest(value: string): Promise<Uint8Array> {
+  const bytes = new TextEncoder().encode(value);
+  return new Uint8Array(await crypto.subtle.digest("SHA-256", bytes));
+}
+
+async function secureEqual(left: string, right: string): Promise<boolean> {
+  const [leftDigest, rightDigest] = await Promise.all([digest(left), digest(right)]);
+  let difference = leftDigest.length ^ rightDigest.length;
+  const length = Math.max(leftDigest.length, rightDigest.length);
+  for (let index = 0; index < length; index += 1) {
+    difference |= (leftDigest[index] ?? 0) ^ (rightDigest[index] ?? 0);
+  }
+  return difference === 0;
+}
+
+async function isAuthorized(request: Request, env: WorkerEnv): Promise<boolean> {
+  const expected = env.SYNC_TRIGGER_TOKEN;
+  if (expected === undefined || expected.length < 32) return false;
+  const authorization = request.headers.get("authorization") ?? "";
+  const supplied = authorization.startsWith("Bearer ") ? authorization.slice(7) : "";
+  return supplied.length >= 32 && secureEqual(supplied, expected);
+}
+
+export async function handleRequest(request: Request, env: WorkerEnv): Promise<Response> {
+  const url = new URL(request.url);
+
+  if (request.method === "GET" && url.pathname === "/health") {
+    return json(
+      {
+        ok: true,
+        service: "weather-sync",
+        scheduled: true,
+        manualTriggerProtected: true,
+      },
+      200,
+    );
+  }
+
+  if (url.pathname !== "/internal/sync") {
+    return json({ ok: false, error: "RESOURCE_NOT_FOUND" }, 404);
+  }
+  if (request.method !== "POST") {
+    return json({ ok: false, error: "METHOD_NOT_ALLOWED" }, 405);
+  }
+  if (!(await isAuthorized(request, env))) {
+    return json({ ok: false, error: "UNAUTHORIZED" }, 401);
+  }
+
+  try {
+    const report = await runSync(buildDeps(env));
+    return json(report, 200);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "unknown error";
+    return json({ ok: false, error: message }, 500);
+  }
+}
+
 export default {
-  /** Manual trigger / health endpoint (not a user read path). */
-  async fetch(_req: Request, env: WorkerEnv): Promise<Response> {
-    try {
-      const report = await runSync(buildDeps(env));
-      return new Response(JSON.stringify(report), {
-        status: 200,
-        headers: { "content-type": "application/json" },
-      });
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "unknown error";
-      return new Response(JSON.stringify({ ok: false, error: message }), {
-        status: 500,
-        headers: { "content-type": "application/json" },
-      });
-    }
+  fetch(request: Request, env: WorkerEnv): Promise<Response> {
+    return handleRequest(request, env);
   },
 
-  /** Hourly Cron entry (registered in production only). */
   async scheduled(_event: ScheduledEventLike, env: WorkerEnv): Promise<void> {
     await runSync(buildDeps(env));
   },
