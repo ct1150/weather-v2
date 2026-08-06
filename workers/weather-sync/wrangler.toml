@@ -46,7 +46,7 @@ preview_id = "0e6b63643dc44a9eb0ccc809f6a82043"
 [env.preview]
 [[env.preview.d1_databases]]
 binding = "DB"
-# Keep the logical CLI target aligned with the existing CI/seed commands. The isolated
+# Keep the logical migration target aligned with the existing CI command. The isolated
 # preview resource is selected by its own database_id below; no production data is used.
 database_name = "wnr-weather"
 migrations_dir = "../../packages/db/migrations"
