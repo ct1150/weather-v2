@@ -27,6 +27,15 @@ jobs:
           RUN_NUMBER: ${{ github.event.workflow_run.run_number }}
           RUN_EVENT: ${{ github.event.workflow_run.event }}
         run: |
+          EXISTING_SHA="$(sed -n 's/^- Head SHA: //p' DEPLOY_STATUS.md | head -n 1)"
+          if [[ "$EXISTING_SHA" =~ ^[0-9a-f]{40}$ ]] && \
+             git cat-file -e "${EXISTING_SHA}^{commit}" 2>/dev/null && \
+             [ "$RUN_HEAD_SHA" != "$EXISTING_SHA" ] && \
+             git merge-base --is-ancestor "$RUN_HEAD_SHA" "$EXISTING_SHA"; then
+            echo "Ignoring stale deploy result for ${RUN_HEAD_SHA}; newer deployed commit is ${EXISTING_SHA}."
+            exit 0
+          fi
+
           cat > DEPLOY_STATUS.md <<EOF
           # Latest production deployment status
 
