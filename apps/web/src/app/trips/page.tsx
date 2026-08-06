@@ -76,7 +76,8 @@ export default function TripsLanding(): ReactElement {
           </div>
           <p className="mt-4 max-w-2xl text-xs leading-5 text-muted">
             Current weather coverage includes Japan, South Korea, Thailand, Vietnam, Singapore,
-            Malaysia, Indonesia, the Philippines and Cambodia. No account is required.
+            Malaysia, Indonesia, the Philippines and Cambodia. Built for international travellers
+            and overseas Chinese users; no account is required.
           </p>
         </div>
       </section>
