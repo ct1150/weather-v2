@@ -1,0 +1,78 @@
+name: Verify trip product production
+
+on:
+  workflow_run:
+    workflows:
+      - Deploy
+    types:
+      - completed
+
+permissions:
+  contents: write
+
+jobs:
+  verify:
+    if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Verify production pages and APIs
+        run: |
+          set -euo pipefail
+          TODAY=$(date -u +%F)
+          TOMORROW=$(date -u -d '+1 day' +%F)
+
+          curl --fail --silent --show-error --location --retry 5 --retry-all-errors \
+            https://868656.xyz/trips -o /tmp/trips.html
+          grep -Fq 'Know what to keep' /tmp/trips.html
+          grep -Fq 'Tokyo' /tmp/trips.html
+          grep -Fq 'Bangkok' /tmp/trips.html
+          grep -Fq 'Seoul' /tmp/trips.html
+
+          curl --fail --silent --show-error --location --retry 5 --retry-all-errors \
+            https://868656.xyz/trips/workspace -o /tmp/workspace.html
+          grep -Fq 'Build the plan' /tmp/workspace.html
+          grep -Fq 'Refresh trip weather' /tmp/workspace.html
+
+          curl --fail --silent --show-error --location --retry 5 --retry-all-errors \
+            https://868656.xyz/zh-cn/trips -o /tmp/trips-zh.html
+          grep -Fq '海外中文用户' /tmp/trips-zh.html
+
+          curl --fail --silent --show-error --location --retry 5 --retry-all-errors \
+            'https://where-not-rain-read-production.ct1150.workers.dev/api/v1/trip-cities?locale=en' \
+            -o /tmp/cities.json
+          grep -Fq 'jp-tokyo' /tmp/cities.json
+          grep -Fq 'th-phuket' /tmp/cities.json
+          grep -Fq 'kr-busan' /tmp/cities.json
+
+          curl --fail --silent --show-error --location --retry 5 --retry-all-errors \
+            "https://where-not-rain-read-production.ct1150.workers.dev/api/v1/trip-forecast?cityIds=jp-tokyo&from=${TODAY}&to=${TOMORROW}&locale=en" \
+            -o /tmp/forecast.json
+          grep -Fq 'jp-tokyo' /tmp/forecast.json
+          grep -Fq 'temperatureMaxC' /tmp/forecast.json
+
+          cat > PRODUCT_SMOKE_STATUS.md <<EOF
+          # Production product smoke status
+
+          - Conclusion: success
+          - Deploy head SHA: ${{ github.event.workflow_run.head_sha }}
+          - Deploy run: ${{ github.event.workflow_run.html_url }}
+          - Verified at: $(date -u +%Y-%m-%dT%H:%M:%SZ)
+          - English landing: https://868656.xyz/trips
+          - English workspace: https://868656.xyz/trips/workspace
+          - Chinese localization: https://868656.xyz/zh-cn/trips
+          - Trip cities API: success
+          - Trip forecast API: success
+          EOF
+
+      - name: Record verified production status
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add PRODUCT_SMOKE_STATUS.md
+          git commit -m "chore(smoke): record production verification [skip ci]"
+          git push origin HEAD:main
