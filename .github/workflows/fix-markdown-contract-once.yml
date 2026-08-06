@@ -1,3 +1,4 @@
+# One-shot workflow: restores the locale-specific Markdown heading and removes itself.
 name: Fix Markdown contract once
 
 on:
