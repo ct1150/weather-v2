@@ -52,6 +52,10 @@ export function SiteHeader(): ReactElement {
             <span className="hidden sm:inline">{isChinese ? "国家天气" : "Forecast radar"}</span>
             <span className="sm:hidden">{isChinese ? "天气" : "Radar"}</span>
           </a>
+          <a href={isChinese ? "/zh-cn/trips" : "/trips"} className="nav-link focus-ring">
+            <span className="hidden sm:inline">{isChinese ? "我的旅行" : "My trips"}</span>
+            <span className="sm:hidden">{isChinese ? "行程" : "Trips"}</span>
+          </a>
           <a href={isChinese ? "/" : "/explore"} className="nav-link focus-ring">
             <span className="hidden sm:inline">{isChinese ? "English" : "Explore map"}</span>
             <span className="sm:hidden">{isChinese ? "EN" : "Explore"}</span>
