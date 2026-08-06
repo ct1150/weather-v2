@@ -5,7 +5,7 @@ import { localeUrl } from "../../../seo";
 
 export const metadata: Metadata = {
   title: { absolute: "导入旅行行程 - Where Not Rain" },
-  description: "粘贴Markdown旅行计划并识别每日时间轴，为后续天气绑定和Plan B做准备。",
+  description: "粘贴Markdown旅行计划，识别每日时间轴，并创建可保存、分享和绑定天气的旅行工作台。",
   alternates: { canonical: localeUrl("zh-cn", "/trips/new") },
   robots: { index: false, follow: true },
 };
@@ -24,10 +24,11 @@ export default function NewTripPage(): ReactElement {
       <section className="mt-6 max-w-3xl">
         <p className="eyebrow">行程导入器</p>
         <h1 className="mt-4 text-4xl font-bold tracking-[-0.05em] text-foreground sm:text-5xl">
-          从Markdown开始规划
+          把现有攻略直接变成天气行程
         </h1>
         <p className="mt-4 text-base leading-7 text-muted">
-          第一版先识别D1—D9和时间表；下一增量将自动解析地点、酒店、交通硬约束，并绑定逐小时天气。
+          识别D1、Day1和Markdown时间表后，系统会创建一份可继续编辑的旅行工作台。你只需要为每天选择天气城市和行程类型，就能获得风险提示与Plan
+          B。
         </p>
       </section>
       <div className="mt-8">

@@ -2,12 +2,24 @@
 
 import { useMemo, useState, type ReactElement } from "react";
 import { parseTripMarkdown } from "../trips/markdown-parser";
+import { TRIP_WORKSPACE_STORAGE_KEY, createWorkspaceFromParsed } from "../trips/workspace";
 
 const SAMPLE = `# 2026 青甘家庭轻奢环线\n\n# D1（8月8日 周六）\n| 时间 | 行程 |\n|---|---|\n|15:00|抵达福州长乐机场|\n|17:15|厦门航空起飞|\n\n# D2（8月9日 周日）\n| 时间 | 行程 |\n|---|---|\n|11:10|抵达张掖西站|\n|15:00-20:00|七彩丹霞日落|`;
 
 export function TripImportForm(): ReactElement {
   const [markdown, setMarkdown] = useState(SAMPLE);
+  const [message, setMessage] = useState("");
   const parsed = useMemo(() => parseTripMarkdown(markdown), [markdown]);
+
+  const createWorkspace = (): void => {
+    if (parsed.days.length === 0) {
+      setMessage("至少需要识别到一个D1或Day1日期标题。请先调整Markdown格式。");
+      return;
+    }
+    const workspace = createWorkspaceFromParsed(parsed);
+    window.localStorage.setItem(TRIP_WORKSPACE_STORAGE_KEY, JSON.stringify(workspace));
+    window.location.assign("/zh-cn/trips/workspace");
+  };
 
   return (
     <div className="trip-import-grid">
@@ -20,7 +32,10 @@ export function TripImportForm(): ReactElement {
           <button
             type="button"
             className="trip-secondary-button"
-            onClick={() => setMarkdown(SAMPLE)}
+            onClick={() => {
+              setMarkdown(SAMPLE);
+              setMessage("");
+            }}
           >
             恢复示例
           </button>
@@ -74,9 +89,25 @@ export function TripImportForm(): ReactElement {
           )}
         </div>
         <div className="trip-mvp-note mt-5">
-          <strong>MVP当前能力</strong>
-          <span>已完成客户端结构识别；下一增量将接入保存、地点解析和逐景点天气绑定。</span>
+          <strong>下一步：生成可执行工作台</strong>
+          <span>
+            导入后可以逐日选择天气城市、标记海岛/户外/室内类型，获得风险评分和Plan
+            B；行程自动保存在当前设备。
+          </span>
         </div>
+        <button
+          type="button"
+          className="trip-primary-button mt-4 w-full"
+          disabled={parsed.days.length === 0}
+          onClick={createWorkspace}
+        >
+          创建我的天气行程
+        </button>
+        {message.length > 0 ? (
+          <p className="mt-3 text-sm font-semibold text-danger" role="status">
+            {message}
+          </p>
+        ) : null}
       </section>
     </div>
   );

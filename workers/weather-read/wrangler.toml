@@ -7,8 +7,11 @@ binding = "DB"
 database_name = "wnr-weather"
 database_id = "c822f407-c62c-438c-94f6-345a57122827"
 
+# The API exposes public weather read models only: no user data, credentials, writes,
+# provider access, or synchronization controls. CORS is public so the static Pages app,
+# numbered PR previews, and shared itinerary links can use the same bounded endpoints.
 [env.preview]
-vars = { WEB_ORIGIN = "https://where-not-rain.pages.dev" }
+vars = { WEB_ORIGIN = "*" }
 
 [[env.preview.d1_databases]]
 binding = "DB"
@@ -16,7 +19,7 @@ database_name = "wnr-weather-preview"
 database_id = "2f3b76f0-e0e2-4a5a-bcb5-c4b233c56afe"
 
 [env.production]
-vars = { WEB_ORIGIN = "https://868656.xyz" }
+vars = { WEB_ORIGIN = "*" }
 
 [[env.production.d1_databases]]
 binding = "DB"
