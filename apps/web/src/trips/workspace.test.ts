@@ -4,6 +4,7 @@ import { parseTripMarkdown } from "./markdown-parser";
 import {
   assessWorkspaceDay,
   createWorkspaceFromParsed,
+  createWorkspaceFromTemplate,
   decodeWorkspaceShare,
   encodeWorkspaceShare,
   workspaceToMarkdown,
@@ -86,15 +87,31 @@ describe("trip workspace", () => {
     expect(beach.planB).toContain("水族馆");
   });
 
-  it("exports the editable plan as portable Markdown", () => {
+  it("creates editable international templates with destination weather cities", () => {
+    const workspace = createWorkspaceFromTemplate("japan-family", "en", {
+      now: NOW,
+      id: "trip-template",
+    });
+
+    expect(workspace.id).toBe("trip-template");
+    expect(workspace.title).toBe("Japan family city loop");
+    expect(workspace.days).toHaveLength(7);
+    expect(workspace.days[0]).toMatchObject({ cityId: "jp-tokyo", cityName: "Tokyo" });
+    expect(workspace.days.at(-1)).toMatchObject({ cityId: "jp-osaka", cityName: "Osaka" });
+  });
+
+  it("exports the editable plan as portable bilingual Markdown", () => {
     const parsed = parseTripMarkdown(
       "# 2026 东京旅行\n\n# D1（8月8日）\n| 时间 | 行程 |\n|---|---|\n|09:00|浅草寺|",
     );
     const workspace = createWorkspaceFromParsed(parsed, { now: NOW, id: "trip-export" });
-    const markdown = workspaceToMarkdown(workspace);
+    const chineseMarkdown = workspaceToMarkdown(workspace);
+    const englishMarkdown = workspaceToMarkdown(workspace, "en");
 
-    expect(markdown).toContain("# 2026 东京旅行");
-    expect(markdown).toContain("# D1（2026-08-08）");
-    expect(markdown).toContain("09:00 浅草寺");
+    expect(chineseMarkdown).toContain("# 2026 东京旅行");
+    expect(chineseMarkdown).toContain("# D1 (2026-08-08)");
+    expect(chineseMarkdown).toContain("09:00 浅草寺");
+    expect(englishMarkdown).toContain("**Travel party:** Adults");
+    expect(englishMarkdown).toContain("**Destination:** City not selected");
   });
 });
