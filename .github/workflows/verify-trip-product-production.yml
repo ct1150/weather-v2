@@ -60,7 +60,7 @@ jobs:
             "English landing" \
             "https://868656.xyz/trips" \
             /tmp/trips.html \
-            "Know what to keep" Tokyo Bangkok Seoul
+            "Know what to keep" Tokyo Bangkok Seoul "繁體中文"
 
           fetch_and_match \
             "English workspace route" \
@@ -69,9 +69,21 @@ jobs:
             "Opening your trip workspace"
 
           fetch_and_match \
-            "Chinese localization" \
+            "Traditional landing" \
+            "https://868656.xyz/zh-hant/trips" \
+            /tmp/trips-hant.html \
+            "天氣變化時" "東京" "曼谷" "首爾"
+
+          fetch_and_match \
+            "Traditional workspace route" \
+            "https://868656.xyz/zh-hant/trips/workspace" \
+            /tmp/workspace-hant.html \
+            "正在開啟你的行程工作台"
+
+          fetch_and_match \
+            "Simplified legacy route" \
             "https://868656.xyz/zh-cn/trips" \
-            /tmp/trips-zh.html \
+            /tmp/trips-cn.html \
             "海外中文用户" "日韩东南亚"
 
           fetch_and_match \
@@ -80,13 +92,19 @@ jobs:
             /tmp/cities.json \
             jp-tokyo th-phuket kr-busan
 
-          if curl --fail --silent --show-error --location --retry 3 --retry-all-errors \
-            --retry-delay 20 --connect-timeout 15 --max-time 240 \
-            "https://where-not-rain-sync-production.ct1150.workers.dev" \
-            -o /tmp/sync.json && grep -Fq '"activated":true' /tmp/sync.json; then
-            record "Production weather refresh" success
+          fetch_and_match \
+            "Protected sync health" \
+            "https://where-not-rain-sync-production.ct1150.workers.dev/health" \
+            /tmp/sync-health.json \
+            '"manualTriggerProtected":true'
+
+          SYNC_STATUS=$(curl --silent --output /tmp/sync-anonymous.json --write-out '%{http_code}' \
+            --request POST \
+            "https://where-not-rain-sync-production.ct1150.workers.dev/internal/sync")
+          if [ "${SYNC_STATUS}" = "401" ]; then
+            record "Anonymous sync rejected" success
           else
-            record "Production weather refresh" "failure"
+            record "Anonymous sync rejected" "failure (HTTP ${SYNC_STATUS})"
           fi
 
           fetch_and_match \
