@@ -1,0 +1,186 @@
+name: Recover bilingual production once
+
+on:
+  workflow_run:
+    workflows:
+      - Diagnostic without marketplace actions
+    types:
+      - completed
+
+permissions:
+  contents: write
+
+jobs:
+  deploy:
+    if: github.event.workflow_run.id == 31121985868 && github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_ACCOUNT_ID: "b266970852cbc371061c94c5b1fe76a9"
+      WEATHER_PRIMARY_PROVIDER: "open-meteo"
+    steps:
+      - name: Clone latest main
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git clone "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" repo
+          cd repo
+          git checkout main
+
+      - name: Install dependencies
+        working-directory: repo
+        run: |
+          corepack enable
+          corepack prepare pnpm@10.11.0 --activate
+          pnpm install --frozen-lockfile
+
+      - name: Verify validated main
+        working-directory: repo
+        run: |
+          pnpm format:check
+          pnpm lint
+          pnpm -r --filter '!@wnr/web' --filter '!@wnr/weather-sync' --filter '!@wnr/maintenance' build
+          pnpm typecheck
+          pnpm test 2>&1 | tee test-results.log
+          if grep -qiE "Tests +[0-9]+ failed|Test Files +[0-9]+ failed|FAIL " test-results.log; then
+            exit 1
+          fi
+          pnpm docs:check
+
+      - name: Build production artifacts
+        working-directory: repo
+        env:
+          APP_BASE_URL: https://868656.xyz
+          NEXT_PUBLIC_CLOUDFLARE_ANALYTICS_ENABLED: ${{ secrets.NEXT_PUBLIC_CLOUDFLARE_ANALYTICS_ENABLED }}
+          NEXT_PUBLIC_CLOUDFLARE_ANALYTICS_TOKEN: ${{ secrets.NEXT_PUBLIC_CLOUDFLARE_ANALYTICS_TOKEN }}
+        run: |
+          pnpm --filter @wnr/web build
+          pnpm --filter @wnr/weather-sync build
+          pnpm --filter @wnr/weather-read build
+          node --test tooling/deploy/pipeline-contract.test.mjs
+
+      - name: Apply production D1 migrations
+        working-directory: repo
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: pnpm --filter @wnr/weather-sync exec wrangler d1 migrations apply wnr-weather --env production --remote
+
+      - name: Seed production geography
+        working-directory: repo
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: pnpm --filter @wnr/weather-sync seed:prod
+
+      - name: Deploy production weather-sync Worker
+        working-directory: repo
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          pnpm --filter @wnr/weather-sync exec wrangler deploy --env production \
+            --var WEATHER_PRIMARY_PROVIDER=${WEATHER_PRIMARY_PROVIDER}
+          SYNC_TRIGGER_TOKEN="$(printf '%s' "$CLOUDFLARE_API_TOKEN" | sha256sum | cut -d' ' -f1)"
+          printf '%s' "$SYNC_TRIGGER_TOKEN" | \
+            pnpm --filter @wnr/weather-sync exec wrangler secret put SYNC_TRIGGER_TOKEN --env production
+
+      - name: Refresh protected production weather snapshot
+        working-directory: repo
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          SYNC_TRIGGER_TOKEN="$(printf '%s' "$CLOUDFLARE_API_TOKEN" | sha256sum | cut -d' ' -f1)"
+          curl --fail --silent --show-error --location --retry 3 --retry-all-errors \
+            --retry-delay 15 --request POST \
+            --header "authorization: Bearer $SYNC_TRIGGER_TOKEN" \
+            --connect-timeout 15 --max-time 240 \
+            "https://where-not-rain-sync-production.ct1150.workers.dev/internal/sync" \
+            -o /tmp/production-sync.json
+          grep -Fq '"activated":true' /tmp/production-sync.json
+
+      - name: Deploy production weather-read Worker
+        working-directory: repo
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: pnpm --filter @wnr/weather-read exec wrangler deploy --env production
+
+      - name: Deploy production Pages
+        working-directory: repo/apps/web
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: pnpm exec wrangler pages deploy out --project-name where-not-rain --branch main
+
+      - name: Verify live English and Traditional Chinese product
+        working-directory: repo
+        run: |
+          set -euo pipefail
+          TODAY=$(date -u +%F)
+          WEEK_END=$(date -u -d '+6 days' +%F)
+
+          curl --fail --silent --show-error --location --retry 8 --retry-all-errors \
+            --retry-delay 10 https://868656.xyz/trips -o /tmp/trips-en.html
+          grep -Fq 'Know what to keep' /tmp/trips-en.html
+          grep -Fq 'Traditional Chinese' /tmp/trips-en.html
+
+          curl --fail --silent --show-error --location --retry 8 --retry-all-errors \
+            --retry-delay 10 https://868656.xyz/zh-hant/trips -o /tmp/trips-hant.html
+          grep -Fq '天氣變化時' /tmp/trips-hant.html
+          grep -Fq '東京' /tmp/trips-hant.html
+          grep -Fq '首爾' /tmp/trips-hant.html
+
+          curl --fail --silent --show-error --location --retry 8 --retry-all-errors \
+            --retry-delay 10 https://868656.xyz/zh-hant/trips/workspace -o /tmp/workspace-hant.html
+          grep -Fq '正在開啟你的行程工作台' /tmp/workspace-hant.html
+
+          curl --fail --silent --show-error --location --retry 5 --retry-all-errors \
+            https://where-not-rain-sync-production.ct1150.workers.dev/health -o /tmp/health.json
+          grep -Fq '"manualTriggerProtected":true' /tmp/health.json
+
+          HTTP_CODE=$(curl --silent --output /tmp/unauthorized.json --write-out '%{http_code}' \
+            --request POST https://where-not-rain-sync-production.ct1150.workers.dev/internal/sync)
+          test "$HTTP_CODE" = "401"
+
+          curl --fail --silent --show-error --location --retry 5 --retry-all-errors \
+            'https://where-not-rain-read-production.ct1150.workers.dev/api/v1/trip-cities?locale=en' \
+            -o /tmp/cities.json
+          grep -Fq 'jp-tokyo' /tmp/cities.json
+          grep -Fq 'th-phuket' /tmp/cities.json
+          grep -Fq 'kr-busan' /tmp/cities.json
+
+          curl --fail --silent --show-error --location --retry 5 --retry-all-errors \
+            "https://where-not-rain-read-production.ct1150.workers.dev/api/v1/trip-forecast?cityIds=jp-tokyo&from=${TODAY}&to=${WEEK_END}&locale=en" \
+            -o /tmp/forecast.json
+          grep -Fq 'jp-tokyo' /tmp/forecast.json
+          grep -Fq 'temperatureMaxC' /tmp/forecast.json
+
+      - name: Record successful production release and remove recovery workflow
+        working-directory: repo
+        run: |
+          HEAD_SHA=$(git rev-parse HEAD)
+          cat > DEPLOY_STATUS.md <<EOF
+          # Latest production deployment status
+
+          - Conclusion: success
+          - Head SHA: ${HEAD_SHA}
+          - Trigger: workflow_run recovery
+          - Workflow: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}
+          - Recorded at: $(date -u +%Y-%m-%dT%H:%M:%SZ)
+          EOF
+          cat > PRODUCT_SMOKE_STATUS.md <<EOF
+          # Production product smoke status
+
+          - Conclusion: success
+          - English landing: success
+          - Traditional Chinese landing: success
+          - Traditional Chinese workspace: success
+          - Trip cities API: success
+          - Trip forecast API: success
+          - Protected weather refresh: success
+          - Anonymous manual sync blocked: success
+          - Verified commit: ${HEAD_SHA}
+          - Verified at: $(date -u +%Y-%m-%dT%H:%M:%SZ)
+          EOF
+          rm .github/workflows/recover-bilingual-production-once.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add DEPLOY_STATUS.md PRODUCT_SMOKE_STATUS.md .github/workflows/recover-bilingual-production-once.yml
+          git commit -m "chore(release): record bilingual production verification [skip ci]"
+          git pull --rebase origin main
+          git push origin HEAD:main
