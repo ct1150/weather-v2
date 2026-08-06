@@ -25,7 +25,7 @@ jobs:
           set -uo pipefail
           RESULT=success
           TODAY=$(date -u +%F)
-          TOMORROW=$(date -u -d '+1 day' +%F)
+          WEEK_END=$(date -u -d '+6 days' +%F)
           : > /tmp/checks.md
 
           record() {
@@ -63,10 +63,10 @@ jobs:
             "Know what to keep" Tokyo Bangkok Seoul
 
           fetch_and_match \
-            "English workspace" \
+            "English workspace route" \
             "https://868656.xyz/trips/workspace" \
             /tmp/workspace.html \
-            "Build the plan" "Refresh trip weather"
+            "Opening your trip workspace"
 
           fetch_and_match \
             "Chinese localization" \
@@ -80,9 +80,18 @@ jobs:
             /tmp/cities.json \
             jp-tokyo th-phuket kr-busan
 
+          if curl --fail --silent --show-error --location --retry 3 --retry-all-errors \
+            --retry-delay 20 --connect-timeout 15 --max-time 240 \
+            "https://where-not-rain-sync-production.ct1150.workers.dev" \
+            -o /tmp/sync.json && grep -Fq '"activated":true' /tmp/sync.json; then
+            record "Production weather refresh" success
+          else
+            record "Production weather refresh" "failure"
+          fi
+
           fetch_and_match \
             "Trip forecast API" \
-            "https://where-not-rain-read-production.ct1150.workers.dev/api/v1/trip-forecast?cityIds=jp-tokyo&from=${TODAY}&to=${TOMORROW}&locale=en" \
+            "https://where-not-rain-read-production.ct1150.workers.dev/api/v1/trip-forecast?cityIds=jp-tokyo&from=${TODAY}&to=${WEEK_END}&locale=en" \
             /tmp/forecast.json \
             jp-tokyo temperatureMaxC
 
