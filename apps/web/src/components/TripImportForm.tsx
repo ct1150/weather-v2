@@ -2,42 +2,96 @@
 
 import { useMemo, useState, type ReactElement } from "react";
 import { parseTripMarkdown } from "../trips/markdown-parser";
-import {
-  TRIP_WORKSPACE_STORAGE_KEY,
-  createWorkspaceFromParsed,
-  type TripWorkspaceLocale,
-} from "../trips/workspace";
+import { TRIP_WORKSPACE_STORAGE_KEY, createWorkspaceFromParsed } from "../trips/workspace";
 
-const SAMPLES: Record<TripWorkspaceLocale, string> = {
+export type TripImportLocale = "en" | "zh-cn" | "zh-hant";
+
+const SAMPLES: Record<TripImportLocale, string> = {
   en: `# Japan family trip\n\n# Day1 (2026-09-12)\n| Time | Plan |\n|---|---|\n|09:00|Asakusa and Senso-ji|\n|18:30|Tokyo Skytree timed ticket|\n\n# Day2 (2026-09-13)\n| Time | Plan |\n|---|---|\n|09:00|Meiji Shrine|\n|16:00|Shibuya Sky|`,
-  "zh-cn": `# 2026 青甘家庭轻奢环线\n\n# D1（8月8日 周六）\n| 时间 | 行程 |\n|---|---|\n|15:00|抵达福州长乐机场|\n|17:15|厦门航空起飞|\n\n# D2（8月9日 周日）\n| 时间 | 行程 |\n|---|---|\n|11:10|抵达张掖西站|\n|15:00-20:00|七彩丹霞日落|`,
+  "zh-cn": `# 2026 日本家庭旅行\n\n# D1（9月12日 周六）\n| 时间 | 行程 |\n|---|---|\n|09:00|浅草寺|\n|18:30|东京晴空塔定时门票|\n\n# D2（9月13日 周日）\n| 时间 | 行程 |\n|---|---|\n|09:00|明治神宫|\n|16:00|涩谷Sky|`,
+  "zh-hant": `# 2026 日本家庭旅行\n\n# D1（9月12日 週六）\n| 時間 | 行程 |\n|---|---|\n|09:00|淺草寺|\n|18:30|東京晴空塔定時門票|\n\n# D2（9月13日 週日）\n| 時間 | 行程 |\n|---|---|\n|09:00|明治神宮|\n|16:00|澀谷Sky|`,
 };
 
 interface TripImportFormProps {
-  readonly locale?: TripWorkspaceLocale;
+  readonly locale?: TripImportLocale;
 }
 
 export function TripImportForm({ locale = "zh-cn" }: TripImportFormProps): ReactElement {
   const isEnglish = locale === "en";
+  const isTraditional = locale === "zh-hant";
   const sample = SAMPLES[locale];
   const [markdown, setMarkdown] = useState(sample);
   const [message, setMessage] = useState("");
   const parsed = useMemo(() => parseTripMarkdown(markdown), [markdown]);
 
+  const copy = isEnglish
+    ? {
+        missing: "Add at least one D1 or Day1 heading before creating the workspace.",
+        title: "My weather-aware trip",
+        path: "/trips/workspace",
+        step1: "Paste a Markdown itinerary",
+        restore: "Restore sample",
+        aria: "Markdown trip itinerary",
+        step2: "Structured preview",
+        tripTitle: "Trip title",
+        daysFound: "Days found",
+        daysUnit: "days",
+        scheduleItems: "Schedule items",
+        itemsUnit: "items",
+        noDays: "No D1 or Day1 headings were found. Use a heading such as “# Day1 (2026-09-12)”.",
+        next: "Next: create an executable workspace",
+        nextDescription:
+          "Choose a forecast city and day type, then get weather risk, Plan B, local saving and sharing.",
+        create: "Create my weather-aware trip",
+      }
+    : isTraditional
+      ? {
+          missing: "至少需要一個 D1 或 Day1 日期標題，請先調整 Markdown 格式。",
+          title: "我的天氣行程",
+          path: "/zh-hant/trips/workspace",
+          step1: "貼上 Markdown 行程",
+          restore: "還原範例",
+          aria: "Markdown 旅行行程",
+          step2: "結構化預覽",
+          tripTitle: "行程名稱",
+          daysFound: "辨識天數",
+          daysUnit: "天",
+          scheduleItems: "時間節點",
+          itemsUnit: "個",
+          noDays: "尚未辨識到 D1、D2 等日期標題，請使用「# D1（日期）」格式。",
+          next: "下一步：建立可執行工作台",
+          nextDescription:
+            "匯入後可逐日選擇天氣城市、標記海島／戶外／室內類型，取得風險評分與備用方案；行程會自動保存在目前裝置。",
+          create: "建立我的天氣行程",
+        }
+      : {
+          missing: "至少需要识别到一个D1或Day1日期标题。请先调整Markdown格式。",
+          title: "我的天气旅行",
+          path: "/zh-cn/trips/workspace",
+          step1: "粘贴 Markdown 行程",
+          restore: "恢复示例",
+          aria: "Markdown旅行行程",
+          step2: "结构化预览",
+          tripTitle: "旅行标题",
+          daysFound: "识别天数",
+          daysUnit: "天",
+          scheduleItems: "时间节点",
+          itemsUnit: "个",
+          noDays: "暂未识别到D1、D2等日期标题。请使用“# D1（日期）”格式。",
+          next: "下一步：生成可执行工作台",
+          nextDescription:
+            "导入后可以逐日选择天气城市、标记海岛/户外/室内类型，获得风险评分和Plan B；行程自动保存在当前设备。",
+          create: "创建我的天气行程",
+        };
+
   const createWorkspace = (): void => {
     if (parsed.days.length === 0) {
-      setMessage(
-        isEnglish
-          ? "Add at least one D1 or Day1 heading before creating the workspace."
-          : "至少需要识别到一个D1或Day1日期标题。请先调整Markdown格式。",
-      );
+      setMessage(copy.missing);
       return;
     }
-    const workspace = createWorkspaceFromParsed(parsed, {
-      title: isEnglish ? "My weather-aware trip" : "我的天气旅行",
-    });
+    const workspace = createWorkspaceFromParsed(parsed, { title: copy.title });
     window.localStorage.setItem(TRIP_WORKSPACE_STORAGE_KEY, JSON.stringify(workspace));
-    window.location.assign(isEnglish ? "/trips/workspace" : "/zh-cn/trips/workspace");
+    window.location.assign(copy.path);
   };
 
   return (
@@ -46,9 +100,7 @@ export function TripImportForm({ locale = "zh-cn" }: TripImportFormProps): React
         <div className="flex items-center justify-between gap-4">
           <div>
             <p className="eyebrow">Step 1</p>
-            <h2 className="mt-2 text-xl font-bold text-foreground">
-              {isEnglish ? "Paste a Markdown itinerary" : "粘贴 Markdown 行程"}
-            </h2>
+            <h2 className="mt-2 text-xl font-bold text-foreground">{copy.step1}</h2>
           </div>
           <button
             type="button"
@@ -58,48 +110,41 @@ export function TripImportForm({ locale = "zh-cn" }: TripImportFormProps): React
               setMessage("");
             }}
           >
-            {isEnglish ? "Restore sample" : "恢复示例"}
+            {copy.restore}
           </button>
         </div>
         <textarea
           value={markdown}
           onChange={(event) => setMarkdown(event.target.value)}
-          aria-label={isEnglish ? "Markdown trip itinerary" : "Markdown旅行行程"}
+          aria-label={copy.aria}
           spellCheck={false}
         />
       </section>
 
       <section className="trip-import-preview" aria-live="polite">
         <p className="eyebrow">Step 2</p>
-        <h2 className="mt-2 text-xl font-bold text-foreground">
-          {isEnglish ? "Structured preview" : "结构化预览"}
-        </h2>
+        <h2 className="mt-2 text-xl font-bold text-foreground">{copy.step2}</h2>
         <div className="trip-import-stats">
           <div>
-            <span>{isEnglish ? "Trip title" : "旅行标题"}</span>
+            <span>{copy.tripTitle}</span>
             <strong>{parsed.title}</strong>
           </div>
           <div>
-            <span>{isEnglish ? "Days found" : "识别天数"}</span>
+            <span>{copy.daysFound}</span>
             <strong>
-              {parsed.days.length} {isEnglish ? "days" : "天"}
+              {parsed.days.length} {copy.daysUnit}
             </strong>
           </div>
           <div>
-            <span>{isEnglish ? "Schedule items" : "时间节点"}</span>
+            <span>{copy.scheduleItems}</span>
             <strong>
-              {parsed.days.reduce((sum, day) => sum + day.scheduleRows.length, 0)}{" "}
-              {isEnglish ? "items" : "个"}
+              {parsed.days.reduce((sum, day) => sum + day.scheduleRows.length, 0)} {copy.itemsUnit}
             </strong>
           </div>
         </div>
         <div className="mt-5 grid gap-3">
           {parsed.days.length === 0 ? (
-            <p className="rounded-xl bg-surface-elevated p-4 text-sm text-muted">
-              {isEnglish
-                ? "No D1 or Day1 headings were found. Use a heading such as “# Day1 (2026-09-12)”."
-                : "暂未识别到D1、D2等日期标题。请使用“# D1（日期）”格式。"}
-            </p>
+            <p className="rounded-xl bg-surface-elevated p-4 text-sm text-muted">{copy.noDays}</p>
           ) : (
             parsed.days.map((day) => (
               <article key={day.dayNumber} className="trip-import-day">
@@ -119,14 +164,8 @@ export function TripImportForm({ locale = "zh-cn" }: TripImportFormProps): React
           )}
         </div>
         <div className="trip-mvp-note mt-5">
-          <strong>
-            {isEnglish ? "Next: create an executable workspace" : "下一步：生成可执行工作台"}
-          </strong>
-          <span>
-            {isEnglish
-              ? "Choose a forecast city and day type, then get weather risk, Plan B, local saving and sharing."
-              : "导入后可以逐日选择天气城市、标记海岛/户外/室内类型，获得风险评分和Plan B；行程自动保存在当前设备。"}
-          </span>
+          <strong>{copy.next}</strong>
+          <span>{copy.nextDescription}</span>
         </div>
         <button
           type="button"
@@ -134,7 +173,7 @@ export function TripImportForm({ locale = "zh-cn" }: TripImportFormProps): React
           disabled={parsed.days.length === 0}
           onClick={createWorkspace}
         >
-          {isEnglish ? "Create my weather-aware trip" : "创建我的天气行程"}
+          {copy.create}
         </button>
         {message.length > 0 ? (
           <p className="mt-3 text-sm font-semibold text-danger" role="status">
