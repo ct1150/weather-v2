@@ -1,11 +1,13 @@
 import type { Metadata } from "next";
 import type { ReactElement } from "react";
 import { InternationalTripWorkspace } from "../../../components/InternationalTripWorkspace";
+import { buildAlternates } from "../../seo";
 
 export const metadata: Metadata = {
   title: "Weather-aware trip workspace",
   description:
     "Build a Japan, Korea or Southeast Asia itinerary, refresh trip weather and get day-by-day fallback decisions.",
+  alternates: buildAlternates("/trips/workspace", "en", ["en", "zh-hant", "zh-cn"]),
   robots: { index: false, follow: true },
 };
 
