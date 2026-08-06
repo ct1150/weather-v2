@@ -51,7 +51,9 @@ function forecast(rainProbability: number): TripForecastDay {
 
 describe("trip workspace", () => {
   it("turns parsed Markdown into a dated editable workspace", () => {
-    const parsed = parseTripMarkdown(`# 2026 日本家庭旅行\n\n# D1（8月8日 周六）\n| 时间 | 行程 |\n|---|---|\n|09:00|浅草寺|\n\n# D2（8月9日 周日）\n| 时间 | 行程 |\n|---|---|\n|10:00|东京国立博物馆|`);
+    const parsed = parseTripMarkdown(
+      `# 2026 日本家庭旅行\n\n# D1（8月8日 周六）\n| 时间 | 行程 |\n|---|---|\n|09:00|浅草寺|\n\n# D2（8月9日 周日）\n| 时间 | 行程 |\n|---|---|\n|10:00|东京国立博物馆|`,
+    );
     const workspace = createWorkspaceFromParsed(parsed, { now: NOW, id: "trip-1" });
 
     expect(workspace.id).toBe("trip-1");
@@ -61,7 +63,9 @@ describe("trip workspace", () => {
   });
 
   it("round-trips a normalized workspace through a share payload", () => {
-    const parsed = parseTripMarkdown("# 2026 东京旅行\n\n# D1（8月8日）\n| 时间 | 行程 |\n|---|---|\n|09:00|浅草寺|");
+    const parsed = parseTripMarkdown(
+      "# 2026 东京旅行\n\n# D1（8月8日）\n| 时间 | 行程 |\n|---|---|\n|09:00|浅草寺|",
+    );
     const workspace = createWorkspaceFromParsed(parsed, { now: NOW, id: "trip-share" });
     const encoded = encodeWorkspaceShare(workspace);
     const decoded = decodeWorkspaceShare(encoded);
@@ -83,7 +87,9 @@ describe("trip workspace", () => {
   });
 
   it("exports the editable plan as portable Markdown", () => {
-    const parsed = parseTripMarkdown("# 2026 东京旅行\n\n# D1（8月8日）\n| 时间 | 行程 |\n|---|---|\n|09:00|浅草寺|");
+    const parsed = parseTripMarkdown(
+      "# 2026 东京旅行\n\n# D1（8月8日）\n| 时间 | 行程 |\n|---|---|\n|09:00|浅草寺|",
+    );
     const workspace = createWorkspaceFromParsed(parsed, { now: NOW, id: "trip-export" });
     const markdown = workspaceToMarkdown(workspace);
 

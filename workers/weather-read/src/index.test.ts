@@ -160,7 +160,9 @@ describe("weather-read public API", () => {
       { DB: db },
     );
     const badCities = await handleRequest(
-      new Request("https://read.example/api/v1/trip-forecast?cityIds=&from=2026-08-01&to=2026-08-02"),
+      new Request(
+        "https://read.example/api/v1/trip-forecast?cityIds=&from=2026-08-01&to=2026-08-02",
+      ),
       { DB: db },
     );
 

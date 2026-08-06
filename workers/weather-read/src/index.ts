@@ -117,7 +117,14 @@ function rangeDays(from: string, to: string): number {
 
 function parseCityIds(url: URL): ReadonlyArray<string> | null {
   const raw = url.searchParams.get("cityIds") ?? "";
-  const values = [...new Set(raw.split(",").map((value) => value.trim()).filter(Boolean))];
+  const values = [
+    ...new Set(
+      raw
+        .split(",")
+        .map((value) => value.trim())
+        .filter(Boolean),
+    ),
+  ];
   if (
     values.length === 0 ||
     values.length > MAX_TRIP_CITIES ||
@@ -221,11 +228,7 @@ async function readTripForecast(
   return result.results;
 }
 
-async function handleRanking(
-  url: URL,
-  env: WorkerEnv,
-  now: Date,
-): Promise<Response> {
+async function handleRanking(url: URL, env: WorkerEnv, now: Date): Promise<Response> {
   if ((url.searchParams.get("theme") ?? "general") !== "general") {
     return json({ error: { code: "INVALID_PARAMETER", field: "theme" } }, 400, env);
   }
@@ -271,7 +274,8 @@ async function handleRanking(
 
 async function handleTripCities(url: URL, env: WorkerEnv, now: Date): Promise<Response> {
   const locale = parseLocale(url);
-  if (locale === null) return json({ error: { code: "INVALID_PARAMETER", field: "locale" } }, 400, env);
+  if (locale === null)
+    return json({ error: { code: "INVALID_PARAMETER", field: "locale" } }, 400, env);
   const cities = await readTripCities(env.DB, locale);
   if (cities.length === 0) return json({ error: { code: "DATA_UNAVAILABLE" } }, 503, env);
 
@@ -300,12 +304,15 @@ async function handleTripCities(url: URL, env: WorkerEnv, now: Date): Promise<Re
 
 async function handleTripForecast(url: URL, env: WorkerEnv, now: Date): Promise<Response> {
   const locale = parseLocale(url);
-  if (locale === null) return json({ error: { code: "INVALID_PARAMETER", field: "locale" } }, 400, env);
+  if (locale === null)
+    return json({ error: { code: "INVALID_PARAMETER", field: "locale" } }, 400, env);
   const cityIds = parseCityIds(url);
-  if (cityIds === null) return json({ error: { code: "INVALID_PARAMETER", field: "cityIds" } }, 400, env);
+  if (cityIds === null)
+    return json({ error: { code: "INVALID_PARAMETER", field: "cityIds" } }, 400, env);
   const from = url.searchParams.get("from") ?? "";
   const to = url.searchParams.get("to") ?? "";
-  if (!isIsoDate(from)) return json({ error: { code: "INVALID_PARAMETER", field: "from" } }, 400, env);
+  if (!isIsoDate(from))
+    return json({ error: { code: "INVALID_PARAMETER", field: "from" } }, 400, env);
   if (!isIsoDate(to)) return json({ error: { code: "INVALID_PARAMETER", field: "to" } }, 400, env);
   const days = rangeDays(from, to);
   if (days < 1 || days > MAX_TRIP_RANGE_DAYS) {

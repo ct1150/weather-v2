@@ -2,10 +2,7 @@
 
 import { useMemo, useState, type ReactElement } from "react";
 import { parseTripMarkdown } from "../trips/markdown-parser";
-import {
-  TRIP_WORKSPACE_STORAGE_KEY,
-  createWorkspaceFromParsed,
-} from "../trips/workspace";
+import { TRIP_WORKSPACE_STORAGE_KEY, createWorkspaceFromParsed } from "../trips/workspace";
 
 const SAMPLE = `# 2026 青甘家庭轻奢环线\n\n# D1（8月8日 周六）\n| 时间 | 行程 |\n|---|---|\n|15:00|抵达福州长乐机场|\n|17:15|厦门航空起飞|\n\n# D2（8月9日 周日）\n| 时间 | 行程 |\n|---|---|\n|11:10|抵达张掖西站|\n|15:00-20:00|七彩丹霞日落|`;
 
@@ -94,7 +91,8 @@ export function TripImportForm(): ReactElement {
         <div className="trip-mvp-note mt-5">
           <strong>下一步：生成可执行工作台</strong>
           <span>
-            导入后可以逐日选择天气城市、标记海岛/户外/室内类型，获得风险评分和Plan B；行程自动保存在当前设备。
+            导入后可以逐日选择天气城市、标记海岛/户外/室内类型，获得风险评分和Plan
+            B；行程自动保存在当前设备。
           </span>
         </div>
         <button

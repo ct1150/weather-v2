@@ -192,14 +192,14 @@ function normalizeDay(value: unknown, index: number, fallbackDate: string): Trip
         .filter(Boolean)
     : [];
   const theme: TripDayTheme =
-    row.theme === "beach" || row.theme === "outdoor" || row.theme === "indoor"
-      ? row.theme
-      : "city";
+    row.theme === "beach" || row.theme === "outdoor" || row.theme === "indoor" ? row.theme : "city";
 
   return {
     id: cleanText(row.id, 80) || `day-${index + 1}`,
     dayNumber: index + 1,
-    date: isIsoDate(cleanText(row.date, 10)) ? cleanText(row.date, 10) : addDays(fallbackDate, index),
+    date: isIsoDate(cleanText(row.date, 10))
+      ? cleanText(row.date, 10)
+      : addDays(fallbackDate, index),
     cityId: cleanText(row.cityId, 64),
     cityName: cleanText(row.cityName, 80),
     countryName: cleanText(row.countryName, 80),

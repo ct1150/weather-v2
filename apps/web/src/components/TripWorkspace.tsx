@@ -222,7 +222,11 @@ function DayEditor({
       <div className="trip-workspace-fields mt-5">
         <label>
           <span>日期</span>
-          <input type="date" value={day.date} onChange={(event) => onChange({ date: event.target.value })} />
+          <input
+            type="date"
+            value={day.date}
+            onChange={(event) => onChange({ date: event.target.value })}
+          />
         </label>
         <label>
           <span>天气城市</span>
@@ -367,7 +371,8 @@ export function TripWorkspace(): ReactElement {
     updateWorkspace((current) => {
       const last = current.days.at(-1);
       const dayNumber = current.days.length + 1;
-      const date = last === undefined ? new Date().toISOString().slice(0, 10) : addOneDay(last.date);
+      const date =
+        last === undefined ? new Date().toISOString().slice(0, 10) : addOneDay(last.date);
       return {
         ...current,
         days: [
@@ -413,7 +418,10 @@ export function TripWorkspace(): ReactElement {
       setMessage("请至少为一天选择天气城市。");
       return;
     }
-    const dates = workspace.days.map((day) => day.date).filter(Boolean).sort();
+    const dates = workspace.days
+      .map((day) => day.date)
+      .filter(Boolean)
+      .sort();
     const from = dates[0];
     const to = dates.at(-1);
     if (from === undefined || to === undefined) return;
@@ -469,7 +477,9 @@ export function TripWorkspace(): ReactElement {
 
   const exportMarkdown = useCallback((): void => {
     if (workspace === null) return;
-    const blob = new Blob([workspaceToMarkdown(workspace)], { type: "text/markdown;charset=utf-8" });
+    const blob = new Blob([workspaceToMarkdown(workspace)], {
+      type: "text/markdown;charset=utf-8",
+    });
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement("a");
     anchor.href = url;
@@ -523,10 +533,18 @@ export function TripWorkspace(): ReactElement {
           </p>
         </div>
         <div className="trip-workspace-actions">
-          <button type="button" className="trip-primary-button" onClick={() => void refreshWeather()}>
+          <button
+            type="button"
+            className="trip-primary-button"
+            onClick={() => void refreshWeather()}
+          >
             {weatherState === "loading" ? "天气更新中…" : "更新天气决策"}
           </button>
-          <button type="button" className="trip-secondary-button" onClick={() => void copyShareLink()}>
+          <button
+            type="button"
+            className="trip-secondary-button"
+            onClick={() => void copyShareLink()}
+          >
             复制分享链接
           </button>
           <button type="button" className="trip-secondary-button" onClick={exportMarkdown}>
