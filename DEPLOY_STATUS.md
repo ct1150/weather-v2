@@ -1,8 +1,8 @@
 # Latest deployment status
 
-- Conclusion: success
-- Head SHA: e19501859e7473b0b257932ef7fe03c61ff3d5c2
-- Run number: 75
+- Conclusion: failure
+- Head SHA: e71d47b19652824b08ee06013c93797c93ed02bb
+- Run number: 76
 - Trigger: push
-- Workflow: https://github.com/ct1150/weather-v2/actions/runs/31102291225
-- Recorded at: 2026-08-06T12:42:31Z
+- Workflow: https://github.com/ct1150/weather-v2/actions/runs/31102775395
+- Recorded at: 2026-08-06T12:46:11Z
