@@ -3,21 +3,36 @@ import type { ReactElement } from "react";
 import { TripImportForm } from "../../../components/TripImportForm";
 
 export const metadata: Metadata = {
-  title: "Import a trip",
+  title: "Import a trip itinerary",
+  description:
+    "Paste a Markdown itinerary and turn it into an editable weather-aware trip workspace.",
   robots: { index: false, follow: true },
 };
 
 export default function NewTripEnglishPage(): ReactElement {
   return (
-    <main id="main-content" className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
-      <p className="eyebrow">Trip importer MVP</p>
-      <h1 className="mt-4 text-4xl font-bold text-foreground">Paste a Markdown itinerary</h1>
-      <p className="mt-3 text-muted">
-        The parser accepts Chinese or English D1/Day1 headings. The preview UI currently uses
-        Chinese sample content.
-      </p>
+    <main id="main-content" className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-10">
+      <nav className="country-breadcrumb" aria-label="Breadcrumb">
+        <ol>
+          <li>
+            <a href="/trips">Trip planner</a>
+          </li>
+          <li>Import itinerary</li>
+        </ol>
+      </nav>
+      <section className="mt-6 max-w-3xl">
+        <p className="eyebrow">Itinerary importer</p>
+        <h1 className="mt-4 text-4xl font-bold tracking-[-0.05em] text-foreground sm:text-5xl">
+          Turn an existing plan into a weather-aware workspace
+        </h1>
+        <p className="mt-4 text-base leading-7 text-muted">
+          Paste D1 or Day1 headings and Markdown schedule tables. The importer creates an editable
+          trip where you can select forecast cities, protect fixed bookings and generate day-by-day
+          fallback decisions.
+        </p>
+      </section>
       <div className="mt-8">
-        <TripImportForm />
+        <TripImportForm locale="en" />
       </div>
     </main>
   );
