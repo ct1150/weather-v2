@@ -1,3 +1,4 @@
+# One-shot live verification. The workflow removes itself after recording the result.
 name: Verify trip product once
 
 on:
