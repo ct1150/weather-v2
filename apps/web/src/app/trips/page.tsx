@@ -68,7 +68,7 @@ export default function TripsLanding(): ReactElement {
               Build my trip
             </a>
             <a className="trip-secondary-button" href="/trips/new">
-              Import a Markdown itinerary
+              Import existing itinerary
             </a>
           </div>
           <p className="mt-4 max-w-2xl text-xs leading-5 text-muted">
