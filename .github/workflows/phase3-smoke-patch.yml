@@ -1,0 +1,143 @@
+name: Phase 3 smoke patch once
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  contents: write
+  issues: write
+
+jobs:
+  patch:
+    if: "github.event.issue.title == 'internal: phase3 smoke patch'"
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/cloud-trip-phase3
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.11.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Wire Phase 3 runtime smoke
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          deploy = Path('.github/workflows/deploy.yml')
+          text = deploy.read_text()
+
+          preview_anchor = '''      - name: Extended preview smoke (KV hit / D1 fallback / no user-path provider call)
+'''
+          preview_step = '''      - name: Phase 3 Trip API preview smoke (collaboration / revisions)
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          SMOKE_TOKEN="$(printf 'wnr-trip-smoke:%s' "$CLOUDFLARE_API_TOKEN" | sha256sum | cut -d' ' -f1)"
+          TRIP_SMOKE_TOKEN="$SMOKE_TOKEN" node tooling/deploy/trip-collaboration-smoke.mjs \\
+            --trip-url "$TRIP_PREVIEW_URL" --suffix preview
+
+'''
+          if text.count(preview_anchor) != 1:
+              raise SystemExit('preview smoke anchor mismatch')
+          text = text.replace(preview_anchor, preview_step + preview_anchor, 1)
+
+          production_anchor = '''      - name: Deploy to production (main)
+'''
+          production_step = '''      - name: Phase 3 Trip API production smoke (collaboration / revisions)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          SMOKE_TOKEN="$(printf 'wnr-trip-smoke:%s' "$CLOUDFLARE_API_TOKEN" | sha256sum | cut -d' ' -f1)"
+          TRIP_SMOKE_TOKEN="$SMOKE_TOKEN" node tooling/deploy/trip-collaboration-smoke.mjs \\
+            --trip-url "$TRIP_PRODUCTION_URL" --suffix production
+
+'''
+          if text.count(production_anchor) != 1:
+              raise SystemExit('production smoke anchor mismatch')
+          text = text.replace(production_anchor, production_step + production_anchor, 1)
+          deploy.write_text(text)
+
+          verify = Path('.github/workflows/verify-trip-product-production.yml')
+          text = verify.read_text()
+
+          english_anchor = '''          fetch_and_match \\
+            "English country direct trip action" \\
+'''
+          english_invite = '''          fetch_and_match \\
+            "English collaboration invite route" \\
+            "https://868656.xyz/trips/invite" \\
+            /tmp/trip-invite-page.html \\
+            "Trip collaboration invite" "noindex"
+
+'''
+          if text.count(english_anchor) != 1:
+              raise SystemExit('English invite anchor mismatch')
+          text = text.replace(english_anchor, english_invite + english_anchor, 1)
+
+          traditional_anchor = '''          fetch_and_match \\
+            "Traditional weather radar" \\
+'''
+          traditional_invite = '''          fetch_and_match \\
+            "Traditional collaboration invite route" \\
+            "https://868656.xyz/zh-hant/trips/invite" \\
+            /tmp/trip-invite-hant.html \\
+            "行程協作邀請" "noindex"
+
+'''
+          if text.count(traditional_anchor) != 1:
+              raise SystemExit('Traditional invite anchor mismatch')
+          text = text.replace(traditional_anchor, traditional_invite + traditional_anchor, 1)
+
+          simplified_anchor = '''          fetch_and_match \\
+            "Simplified country weather route" \\
+'''
+          simplified_invite = '''          fetch_and_match \\
+            "Simplified collaboration invite route" \\
+            "https://868656.xyz/zh-cn/trips/invite" \\
+            /tmp/trip-invite-cn.html \\
+            "行程协作邀请" "noindex"
+
+'''
+          if text.count(simplified_anchor) != 1:
+              raise SystemExit('Simplified invite anchor mismatch')
+          text = text.replace(simplified_anchor, simplified_invite + simplified_anchor, 1)
+
+          old_health = '''            '\"ok\":true' '\"service\":\"trip-api\"' '\"cloudTrip\":true' '\"cloudSharing\":true' '\"auth\":true'
+'''
+          new_health = '''            '\"ok\":true' '\"service\":\"trip-api\"' '\"cloudTrip\":true' '\"cloudSharing\":true' \\
+            '\"cloudCollaboration\":true' '\"revisionHistory\":true' '\"auth\":true'
+'''
+          if text.count(old_health) != 1:
+              raise SystemExit('health contract anchor mismatch')
+          verify.write_text(text.replace(old_health, new_health, 1))
+          PY
+      - name: Format workflow changes
+        run: |
+          pnpm exec prettier --write \
+            .github/workflows/deploy.yml \
+            .github/workflows/verify-trip-product-production.yml \
+            tooling/deploy/trip-collaboration-smoke.mjs
+      - name: Commit runtime smoke
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            .github/workflows/deploy.yml \
+            .github/workflows/verify-trip-product-production.yml \
+            tooling/deploy/trip-collaboration-smoke.mjs
+          git commit -m "test(cloud-trip): add phase 3 runtime smoke"
+          git push origin HEAD:feature/cloud-trip-phase3
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.issues.createComment({ owner: context.repo.owner, repo: context.repo.repo, issue_number: context.issue.number, body: 'Phase 3 runtime smoke patch completed.' });
+            await github.rest.issues.update({ owner: context.repo.owner, repo: context.repo.repo, issue_number: context.issue.number, state: 'closed', state_reason: 'not_planned' });
