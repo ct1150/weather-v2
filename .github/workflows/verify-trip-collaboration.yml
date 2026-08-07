@@ -63,6 +63,7 @@ jobs:
           git add COLLABORATION_PREVIEW_SMOKE_STATUS.md
           if ! git diff --cached --quiet; then
             git commit -m "chore(smoke): record preview collaboration verification [skip ci]"
+            git pull --rebase origin main
             git push origin HEAD:main
           fi
 
@@ -141,5 +142,6 @@ jobs:
           git add COLLABORATION_SMOKE_STATUS.md
           if ! git diff --cached --quiet; then
             git commit -m "chore(smoke): record collaboration verification [skip ci]"
+            git pull --rebase origin main
             git push origin HEAD:main
           fi
