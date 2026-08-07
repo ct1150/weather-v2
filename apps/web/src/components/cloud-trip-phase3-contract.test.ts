@@ -53,6 +53,7 @@ describe("Cloud Trip phase 3 UX contract", () => {
 
   it("makes cloud sync role-aware and exposes append-only revision restore", () => {
     expect(cloudControls).toContain('accessRole === "viewer"');
+    expect(cloudControls).toContain("onRemoteWorkspace(normalizeWorkspace(metadata.localDocument))");
     expect(cloudControls).toContain("listCloudTripRevisions");
     expect(cloudControls).toContain("restoreCloudTripRevision");
     expect(cloudControls).toContain("data-trip-revisions");
