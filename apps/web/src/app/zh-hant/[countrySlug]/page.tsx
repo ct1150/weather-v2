@@ -20,7 +20,6 @@ export async function generateMetadata({
   const dataset = await getBakedDataset();
   const country = dataset.countries.find((item) => item.slug === params.countrySlug);
   if (country === undefined) return { title: "國家旅行天氣地圖" };
-  const countryName = toTraditionalText(country.name["zh-cn"]);
   const cityNames = (dataset.citiesByCountry.get(country.id) ?? []).map((item) =>
     toTraditionalText(item.city.name["zh-cn"]),
   );
