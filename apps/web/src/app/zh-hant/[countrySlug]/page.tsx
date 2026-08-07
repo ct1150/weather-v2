@@ -55,6 +55,7 @@ export default async function TraditionalChineseCountryPage({
   const base = projectCountry(dataset, sourceCountry.slug, "zh-cn");
   const country = {
     ...base.country,
+    slug: `zh-hant/${base.country.slug}`,
     name: toTraditionalText(base.country.name),
     summary: base.country.summary === null ? null : toTraditionalText(base.country.summary),
   };
