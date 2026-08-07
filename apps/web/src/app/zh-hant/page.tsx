@@ -47,7 +47,7 @@ export default async function TraditionalChineseHome(): Promise<ReactElement> {
     hasPart: countries.map((country) => ({
       "@type": "WebPage",
       name: `${country.name}旅行天氣地圖`,
-      url: localeUrl("zh-cn", `/${country.slug}`),
+      url: localeUrl("zh-hant", `/${country.slug}`),
     })),
   };
 
@@ -74,7 +74,7 @@ export default async function TraditionalChineseHome(): Promise<ReactElement> {
         <ul className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {countries.map((country) => (
             <li key={country.slug}>
-              <a href={`/zh-cn/${country.slug}`} className="destination-card block focus-ring">
+              <a href={`/zh-hant/${country.slug}`} className="destination-card block focus-ring">
                 <p className="text-xs font-bold uppercase tracking-[0.12em] text-muted">
                   {country.cityCount} 個旅遊城市
                 </p>
