@@ -10,14 +10,18 @@ import {
 import {
   CloudTripError,
   createCloudTrip,
+  listCloudTripRevisions,
   listCloudTrips,
   readCloudMetadata,
   readCloudTrip,
   readTripApiHealth,
+  restoreCloudTripRevision,
   updateCloudTrip,
   writeCloudMetadata,
   type CloudTripMetadata,
+  type CloudTripRevision,
   type CloudTripSummary,
+  type TripAccessRole,
   type TripApiHealth,
 } from "../trips/cloud-sync";
 import { normalizeWorkspace, type TripWorkspace } from "../trips/workspace";
@@ -30,6 +34,7 @@ interface CloudTripControlsProps {
   readonly locale: CloudTripLocale;
   readonly workspace: TripWorkspace;
   readonly onRemoteWorkspace: (workspace: TripWorkspace) => void;
+  readonly onAccessRole?: (role: TripAccessRole | null) => void;
 }
 
 const COPY = {
@@ -39,8 +44,9 @@ const COPY = {
     authRequired: "Sign in to protect this trip",
     saving: "Saving to cloud…",
     saved: "Saved to cloud",
+    viewerSaved: "Shared with you · read only",
     offline: "Cloud unavailable · local copy is safe",
-    conflict: "Another device updated this trip",
+    conflict: "Another collaborator updated this trip",
     save: "Save to cloud",
     signIn: "Sign in",
     google: "Continue with Google",
@@ -54,6 +60,16 @@ const COPY = {
     signOut: "Sign out",
     signedIn: "Signed in",
     localOnly: "Nothing is uploaded until you choose Save to cloud.",
+    owner: "Owner",
+    editor: "Editor",
+    viewer: "Viewer",
+    history: "Revision history",
+    hideHistory: "Hide history",
+    noHistory: "No revision history yet.",
+    version: "Version",
+    restoreVersion: "Restore",
+    restoreConfirm: "Restore this revision as a new latest version?",
+    restored: "Revision restored as a new cloud version.",
   },
   "zh-cn": {
     label: "云端行程",
@@ -61,8 +77,9 @@ const COPY = {
     authRequired: "登录后可保护并跨设备同步",
     saving: "正在保存到云端…",
     saved: "已保存到云端",
+    viewerSaved: "协作行程 · 仅查看",
     offline: "云端暂不可用 · 本地副本仍安全",
-    conflict: "其他设备刚刚更新了这份行程",
+    conflict: "其他协作者刚刚更新了这份行程",
     save: "保存到云端",
     signIn: "登录",
     google: "使用 Google 继续",
@@ -76,6 +93,16 @@ const COPY = {
     signOut: "退出登录",
     signedIn: "已登录",
     localOnly: "只有你主动点击“保存到云端”后，本地行程才会上传。",
+    owner: "所有者",
+    editor: "可编辑",
+    viewer: "仅查看",
+    history: "版本历史",
+    hideHistory: "收起历史",
+    noHistory: "还没有版本历史。",
+    version: "版本",
+    restoreVersion: "恢复此版本",
+    restoreConfirm: "将这个历史版本恢复为新的最新版本吗？",
+    restored: "历史版本已恢复为新的云端版本。",
   },
   "zh-hant": {
     label: "雲端行程",
@@ -83,8 +110,9 @@ const COPY = {
     authRequired: "登入後可保護並跨裝置同步",
     saving: "正在儲存到雲端…",
     saved: "已儲存到雲端",
+    viewerSaved: "協作行程 · 僅查看",
     offline: "雲端暫不可用 · 本機副本仍安全",
-    conflict: "其他裝置剛剛更新了這份行程",
+    conflict: "其他協作者剛剛更新了這份行程",
     save: "儲存到雲端",
     signIn: "登入",
     google: "使用 Google 繼續",
@@ -98,6 +126,16 @@ const COPY = {
     signOut: "登出",
     signedIn: "已登入",
     localOnly: "只有你主動點擊「儲存到雲端」後，本機行程才會上傳。",
+    owner: "擁有者",
+    editor: "可編輯",
+    viewer: "僅查看",
+    history: "版本歷史",
+    hideHistory: "收起歷史",
+    noHistory: "還沒有版本歷史。",
+    version: "版本",
+    restoreVersion: "恢復此版本",
+    restoreConfirm: "將這個歷史版本恢復為新的最新版本嗎？",
+    restored: "歷史版本已恢復為新的雲端版本。",
   },
 } as const;
 
@@ -113,16 +151,52 @@ export function CloudTripControls({
   locale,
   workspace,
   onRemoteWorkspace,
+  onAccessRole,
 }: CloudTripControlsProps): ReactElement {
   const copy = COPY[locale];
   const [health, setHealth] = useState<TripApiHealth | null>(null);
   const [signedInEmail, setSignedInEmail] = useState<string | null>(null);
   const [metadata, setMetadata] = useState<CloudTripMetadata | null>(null);
   const [recent, setRecent] = useState<CloudTripSummary | null>(null);
+  const [accessRole, setAccessRole] = useState<TripAccessRole | null>(null);
   const [syncState, setSyncState] = useState<SyncState>("device");
   const [showAuth, setShowAuth] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
+  const [revisions, setRevisions] = useState<ReadonlyArray<CloudTripRevision>>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
+
+  const applyAccessRole = useCallback(
+    (role: TripAccessRole | null): void => {
+      setAccessRole(role);
+      onAccessRole?.(role);
+    },
+    [onAccessRole],
+  );
+
+  const persistRemote = useCallback(
+    (remote: {
+      readonly id: string;
+      readonly version: number;
+      readonly updatedAt: string;
+      readonly accessRole: TripAccessRole;
+      readonly document: TripWorkspace;
+    }): void => {
+      const normalized = normalizeWorkspace(remote.document);
+      onRemoteWorkspace(normalized);
+      const next = {
+        cloudTripId: remote.id,
+        lastSyncedVersion: remote.version,
+        lastSyncedAt: remote.updatedAt,
+        localDocument: normalized,
+      } satisfies CloudTripMetadata;
+      writeCloudMetadata(next);
+      setMetadata(next);
+      applyAccessRole(remote.accessRole);
+    },
+    [applyAccessRole, onRemoteWorkspace],
+  );
 
   const refreshIdentity = useCallback(async (): Promise<void> => {
     try {
@@ -132,45 +206,48 @@ export function CloudTripControls({
       const localMetadata = readCloudMetadata();
       setMetadata(localMetadata);
       if (user === null) {
+        applyAccessRole(null);
         setSyncState(localMetadata === null ? "device" : "auth-required");
         return;
       }
       if (localMetadata !== null) {
         try {
           const remote = await readCloudTrip(localMetadata.cloudTripId);
+          applyAccessRole(remote.accessRole);
           if (remote.version > localMetadata.lastSyncedVersion) {
-            const normalized = normalizeWorkspace(remote.document);
-            onRemoteWorkspace(normalized);
-            const next = {
-              cloudTripId: remote.id,
-              lastSyncedVersion: remote.version,
-              lastSyncedAt: remote.updatedAt,
-              localDocument: normalized,
-            } satisfies CloudTripMetadata;
-            writeCloudMetadata(next);
-            setMetadata(next);
+            persistRemote(remote);
           }
           setSyncState("saved");
           return;
         } catch {
+          applyAccessRole(null);
           setSyncState("offline");
         }
       }
       const trips = await listCloudTrips();
       setRecent(trips[0] ?? null);
+      applyAccessRole(null);
       setSyncState("device");
     } catch {
       setHealth(null);
+      applyAccessRole(null);
       setSyncState("offline");
     }
-  }, [onRemoteWorkspace]);
+  }, [applyAccessRole, persistRemote]);
 
   useEffect(() => {
     void refreshIdentity();
   }, [refreshIdentity]);
 
   useEffect(() => {
-    if (signedInEmail === null || metadata === null || syncState === "conflict") return;
+    if (
+      signedInEmail === null ||
+      metadata === null ||
+      syncState === "conflict" ||
+      accessRole === "viewer"
+    ) {
+      return;
+    }
     if (sameDocument(workspace, metadata.localDocument)) return;
     const timer = window.setTimeout(() => {
       setSyncState("saving");
@@ -184,18 +261,22 @@ export function CloudTripControls({
           } satisfies CloudTripMetadata;
           writeCloudMetadata(next);
           setMetadata(next);
+          applyAccessRole(remote.accessRole);
           setSyncState("saved");
         })
         .catch((error: unknown) => {
           if (error instanceof CloudTripError && error.status === 409) {
             setSyncState("conflict");
+          } else if (error instanceof CloudTripError && error.status === 403) {
+            applyAccessRole("viewer");
+            setSyncState("saved");
           } else {
             setSyncState("offline");
           }
         });
     }, 900);
     return () => window.clearTimeout(timer);
-  }, [locale, metadata, signedInEmail, syncState, workspace]);
+  }, [accessRole, applyAccessRole, locale, metadata, signedInEmail, syncState, workspace]);
 
   const saveToCloud = useCallback(async (): Promise<void> => {
     if (signedInEmail === null) {
@@ -206,62 +287,78 @@ export function CloudTripControls({
     setSyncState("saving");
     try {
       const remote = await createCloudTrip(workspace, locale);
-      const next = {
-        cloudTripId: remote.id,
-        lastSyncedVersion: remote.version,
-        lastSyncedAt: remote.updatedAt,
-        localDocument: workspace,
-      } satisfies CloudTripMetadata;
-      writeCloudMetadata(next);
-      setMetadata(next);
+      persistRemote(remote);
       setRecent(null);
       setSyncState("saved");
     } catch {
       setSyncState("offline");
     }
-  }, [locale, signedInEmail, workspace]);
+  }, [locale, persistRemote, signedInEmail, workspace]);
 
   const restoreRecent = useCallback(async (): Promise<void> => {
     if (recent === null) return;
     try {
       setSyncState("saving");
       const remote = await readCloudTrip(recent.id);
-      const normalized = normalizeWorkspace(remote.document);
-      onRemoteWorkspace(normalized);
-      const next = {
-        cloudTripId: remote.id,
-        lastSyncedVersion: remote.version,
-        lastSyncedAt: remote.updatedAt,
-        localDocument: normalized,
-      } satisfies CloudTripMetadata;
-      writeCloudMetadata(next);
-      setMetadata(next);
+      persistRemote(remote);
       setRecent(null);
       setSyncState("saved");
     } catch {
       setSyncState("offline");
     }
-  }, [onRemoteWorkspace, recent]);
+  }, [persistRemote, recent]);
 
   const loadLatest = useCallback(async (): Promise<void> => {
     if (metadata === null) return;
     try {
       const remote = await readCloudTrip(metadata.cloudTripId);
-      const normalized = normalizeWorkspace(remote.document);
-      onRemoteWorkspace(normalized);
-      const next = {
-        cloudTripId: remote.id,
-        lastSyncedVersion: remote.version,
-        lastSyncedAt: remote.updatedAt,
-        localDocument: normalized,
-      } satisfies CloudTripMetadata;
-      writeCloudMetadata(next);
-      setMetadata(next);
+      persistRemote(remote);
       setSyncState("saved");
     } catch {
       setSyncState("offline");
     }
-  }, [metadata, onRemoteWorkspace]);
+  }, [metadata, persistRemote]);
+
+  const loadHistory = useCallback(async (): Promise<void> => {
+    if (metadata === null) return;
+    const nextShow = !showHistory;
+    setShowHistory(nextShow);
+    if (!nextShow) return;
+    setHistoryLoading(true);
+    try {
+      setRevisions(await listCloudTripRevisions(metadata.cloudTripId));
+    } catch {
+      setMessage(copy.unavailable);
+    } finally {
+      setHistoryLoading(false);
+    }
+  }, [copy.unavailable, metadata, showHistory]);
+
+  const restoreRevision = useCallback(
+    async (targetVersion: number): Promise<void> => {
+      if (metadata === null || accessRole === "viewer") return;
+      if (!window.confirm(copy.restoreConfirm)) return;
+      setSyncState("saving");
+      try {
+        const remote = await restoreCloudTripRevision(
+          metadata.cloudTripId,
+          targetVersion,
+          metadata.lastSyncedVersion,
+        );
+        persistRemote(remote);
+        setRevisions(await listCloudTripRevisions(metadata.cloudTripId));
+        setMessage(copy.restored);
+        setSyncState("saved");
+      } catch (error: unknown) {
+        if (error instanceof CloudTripError && error.status === 409) {
+          setSyncState("conflict");
+        } else {
+          setSyncState("offline");
+        }
+      }
+    },
+    [accessRole, copy.restoreConfirm, copy.restored, metadata, persistRemote],
+  );
 
   const startGoogle = useCallback(async (): Promise<void> => {
     await signInTripWithGoogle(`${window.location.origin}${workspacePath(locale)}`);
@@ -279,46 +376,53 @@ export function CloudTripControls({
   const signOut = useCallback(async (): Promise<void> => {
     await signOutTrip();
     setSignedInEmail(null);
+    applyAccessRole(null);
     setSyncState(metadata === null ? "device" : "auth-required");
-  }, [metadata]);
+  }, [applyAccessRole, metadata]);
+
+  const roleCopy = useMemo(() => {
+    if (accessRole === "owner") return copy.owner;
+    if (accessRole === "editor") return copy.editor;
+    if (accessRole === "viewer") return copy.viewer;
+    return null;
+  }, [accessRole, copy.editor, copy.owner, copy.viewer]);
 
   const stateCopy = useMemo(() => {
+    if (accessRole === "viewer" && syncState === "saved") return copy.viewerSaved;
     if (syncState === "saving") return copy.saving;
     if (syncState === "saved") return copy.saved;
     if (syncState === "offline") return copy.offline;
     if (syncState === "conflict") return copy.conflict;
     if (syncState === "auth-required") return copy.authRequired;
     return copy.device;
-  }, [copy, syncState]);
+  }, [accessRole, copy, syncState]);
 
   const providersAvailable = health?.providers.google === true || health?.providers.email === true;
 
   return (
-    <section className="info-panel mt-5" aria-label={copy.label}>
+    <section className="info-panel mt-5" aria-label={copy.label} data-cloud-access-role={accessRole ?? "local"}>
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="eyebrow">{copy.label}</p>
           <p className="mt-2 text-sm font-bold text-foreground">{stateCopy}</p>
           <p className="mt-1 text-xs leading-5 text-muted">
             {signedInEmail === null ? copy.localOnly : `${copy.signedIn}: ${signedInEmail}`}
+            {roleCopy === null ? "" : ` · ${roleCopy}`}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
           {metadata === null ? (
-            <button
-              type="button"
-              className="trip-primary-button"
-              onClick={() => void saveToCloud()}
-            >
+            <button type="button" className="trip-primary-button" onClick={() => void saveToCloud()}>
               {copy.save}
             </button>
           ) : null}
+          {metadata !== null && signedInEmail !== null ? (
+            <button type="button" className="trip-secondary-button" onClick={() => void loadHistory()}>
+              {showHistory ? copy.hideHistory : copy.history}
+            </button>
+          ) : null}
           {signedInEmail === null ? (
-            <button
-              type="button"
-              className="trip-secondary-button"
-              onClick={() => setShowAuth(true)}
-            >
+            <button type="button" className="trip-secondary-button" onClick={() => setShowAuth(true)}>
               {copy.signIn}
             </button>
           ) : (
@@ -327,27 +431,54 @@ export function CloudTripControls({
             </button>
           )}
           {syncState === "conflict" ? (
-            <button
-              type="button"
-              className="trip-secondary-button"
-              onClick={() => void loadLatest()}
-            >
+            <button type="button" className="trip-secondary-button" onClick={() => void loadLatest()}>
               {copy.latest}
             </button>
           ) : null}
         </div>
       </div>
 
+      {showHistory && metadata !== null ? (
+        <div className="mt-4 rounded-xl border border-border/80 bg-surface-elevated p-4" data-trip-revisions="visible">
+          <h3 className="text-sm font-bold text-foreground">{copy.history}</h3>
+          <div className="mt-3 grid gap-2">
+            {historyLoading ? (
+              <p className="text-xs text-muted">{copy.history}…</p>
+            ) : revisions.length === 0 ? (
+              <p className="text-xs text-muted">{copy.noHistory}</p>
+            ) : (
+              revisions.map((revision) => (
+                <div key={revision.version} className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-white p-3">
+                  <div>
+                    <p className="text-sm font-semibold text-foreground">
+                      {copy.version} {revision.version}
+                    </p>
+                    <p className="mt-1 text-xs text-muted">
+                      {revision.operation} · {new Date(revision.createdAt).toLocaleString()}
+                    </p>
+                  </div>
+                  {accessRole !== "viewer" && revision.version !== metadata.lastSyncedVersion ? (
+                    <button
+                      type="button"
+                      className="trip-secondary-button"
+                      onClick={() => void restoreRevision(revision.version)}
+                    >
+                      {copy.restoreVersion}
+                    </button>
+                  ) : null}
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      ) : null}
+
       {recent !== null && metadata === null && signedInEmail !== null ? (
         <div className="mt-4 flex flex-col gap-3 rounded-xl border border-border/80 bg-surface-elevated p-4 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm text-foreground">
             {copy.restorePrefix}: <strong>{recent.title}</strong>
           </p>
-          <button
-            type="button"
-            className="trip-secondary-button"
-            onClick={() => void restoreRecent()}
-          >
+          <button type="button" className="trip-secondary-button" onClick={() => void restoreRecent()}>
             {copy.restore}
           </button>
         </div>
@@ -358,11 +489,7 @@ export function CloudTripControls({
           {providersAvailable ? (
             <div className="grid gap-3 sm:grid-cols-2">
               {health?.providers.google ? (
-                <button
-                  type="button"
-                  className="trip-primary-button"
-                  onClick={() => void startGoogle()}
-                >
+                <button type="button" className="trip-primary-button" onClick={() => void startGoogle()}>
                   {copy.google}
                 </button>
               ) : null}
@@ -375,11 +502,7 @@ export function CloudTripControls({
                     className="min-h-11 min-w-0 flex-1 rounded-xl border border-border bg-white px-3 text-sm"
                     onChange={(event) => setEmail(event.target.value)}
                   />
-                  <button
-                    type="button"
-                    className="trip-secondary-button"
-                    onClick={() => void sendEmail()}
-                  >
+                  <button type="button" className="trip-secondary-button" onClick={() => void sendEmail()}>
                     {copy.email}
                   </button>
                 </div>
@@ -390,6 +513,8 @@ export function CloudTripControls({
           )}
           {message.length > 0 ? <p className="mt-3 text-xs text-muted">{message}</p> : null}
         </div>
+      ) : message.length > 0 ? (
+        <p className="mt-3 text-xs text-muted">{message}</p>
       ) : null}
     </section>
   );
