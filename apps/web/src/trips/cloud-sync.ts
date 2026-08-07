@@ -91,6 +91,10 @@ async function api<T>(path: string, init?: RequestInit): Promise<T> {
   return payload.data;
 }
 
+function shareHeaders(token: string): HeadersInit {
+  return { "x-wnr-share-token": token };
+}
+
 export async function readTripApiHealth(): Promise<TripApiHealth> {
   const response = await fetch(`${TRIP_API_BASE}/health`, { credentials: "include" });
   if (!response.ok) throw new CloudTripError("HEALTH_UNAVAILABLE", response.status);
@@ -193,11 +197,14 @@ export async function revokeCloudTripShare(id: string): Promise<boolean> {
 }
 
 export async function readSharedCloudTrip(token: string): Promise<SharedCloudTripRecord> {
-  return api<SharedCloudTripRecord>(`/api/v1/shared-trips/${encodeURIComponent(token)}`);
+  return api<SharedCloudTripRecord>("/api/v1/shared-trips/current", {
+    headers: shareHeaders(token),
+  });
 }
 
 export async function copySharedCloudTrip(token: string): Promise<CloudTripRecord> {
-  return api<CloudTripRecord>(`/api/v1/shared-trips/${encodeURIComponent(token)}/copy`, {
+  return api<CloudTripRecord>("/api/v1/shared-trips/current/copy", {
     method: "POST",
+    headers: shareHeaders(token),
   });
 }
