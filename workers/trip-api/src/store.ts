@@ -1,5 +1,7 @@
 import type { TripLocale, ValidTripDocument } from "./validation";
 
+export type TripListStatus = "active" | "archived" | "all";
+
 export interface TripRow {
   readonly id: string;
   readonly owner_user_id: string;
@@ -83,15 +85,25 @@ export async function listTrips(
   db: D1Database,
   ownerUserId: string,
   limit = 20,
+  status: TripListStatus = "all",
 ): Promise<ReadonlyArray<TripSummary>> {
   const safeLimit = Math.min(Math.max(Math.trunc(limit), 1), 50);
-  const result = await db
-    .prepare(
-      "SELECT id, owner_user_id, title, start_date, end_date, status, locale, document_json, version, created_at, updated_at, deleted_at " +
-        "FROM trips WHERE owner_user_id = ? AND deleted_at IS NULL ORDER BY updated_at DESC LIMIT ?",
-    )
-    .bind(ownerUserId, safeLimit)
-    .all<TripRow>();
+  const select =
+    "SELECT id, owner_user_id, title, start_date, end_date, status, locale, document_json, version, created_at, updated_at, deleted_at FROM trips ";
+  const result =
+    status === "all"
+      ? await db
+          .prepare(
+            `${select}WHERE owner_user_id = ? AND deleted_at IS NULL ORDER BY updated_at DESC LIMIT ?`,
+          )
+          .bind(ownerUserId, safeLimit)
+          .all<TripRow>()
+      : await db
+          .prepare(
+            `${select}WHERE owner_user_id = ? AND deleted_at IS NULL AND status = ? ORDER BY updated_at DESC LIMIT ?`,
+          )
+          .bind(ownerUserId, status, safeLimit)
+          .all<TripRow>();
   return result.results.map(summary);
 }
 
