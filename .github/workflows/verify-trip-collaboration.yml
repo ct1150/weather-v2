@@ -30,6 +30,42 @@ jobs:
             --trip-url "https://where-not-rain-trip-preview.ct1150.workers.dev" \
             --suffix preview
 
+      - name: Record preview collaboration smoke status
+        env:
+          DEPLOY_HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          DEPLOY_RUN_ID: ${{ github.event.workflow_run.id }}
+        run: |
+          cat > COLLABORATION_PREVIEW_SMOKE_STATUS.md <<EOF
+          # Cloud Trip preview collaboration smoke status
+
+          - Conclusion: success
+          - Deploy head SHA: ${DEPLOY_HEAD_SHA}
+          - Deploy run: https://github.com/${GITHUB_REPOSITORY}/actions/runs/${DEPLOY_RUN_ID}
+          - Verified at: $(date -u +%Y-%m-%dT%H:%M:%SZ)
+
+          ## Checks
+
+          - Collaboration API health: success
+          - Owner trip create: success
+          - Editor invitation and email match: success
+          - Editor My Trips access: success
+          - Editor update: success
+          - Viewer invitation: success
+          - Viewer mutation rejected: success
+          - Owner-only collaborator management enforced: success
+          - Revision list and restore: success
+          - Stale restore rejected: success
+          - Pending invite revoke: success
+          EOF
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add COLLABORATION_PREVIEW_SMOKE_STATUS.md
+          if ! git diff --cached --quiet; then
+            git commit -m "chore(smoke): record preview collaboration verification [skip ci]"
+            git push origin HEAD:main
+          fi
+
   production:
     if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push' && github.event.workflow_run.head_branch == 'main'
     runs-on: ubuntu-latest
