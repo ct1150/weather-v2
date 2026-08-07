@@ -6,6 +6,7 @@ describe("phase 3 health capabilities", () => {
     const env = { DB: {} as D1Database } satisfies WorkerEnv;
     const response = await handleRequest(new Request("https://trip.example.test/health"), env);
     expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("private, no-store");
     expect(await response.json()).toMatchObject({
       cloudTrip: true,
       cloudSharing: true,
