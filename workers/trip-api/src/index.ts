@@ -32,7 +32,8 @@ function corsHeaders(request: Request, env: WorkerEnv): Record<string, string> {
     "access-control-allow-origin": allowedOrigin(request, env),
     "access-control-allow-credentials": "true",
     "access-control-allow-methods": "GET,POST,PATCH,DELETE,OPTIONS",
-    "access-control-allow-headers": "content-type,authorization,x-wnr-smoke-user",
+    "access-control-allow-headers":
+      "content-type,authorization,x-wnr-smoke-user,x-wnr-share-token",
     "cache-control": "private, no-store",
     vary: "Origin",
   };
@@ -96,12 +97,19 @@ function tripShareIdFromPath(pathname: string): string | null {
   return match?.[1] ?? null;
 }
 
-function sharedTripPath(
-  pathname: string,
+function sharedTripRoute(
+  request: Request,
 ): { readonly token: string; readonly copy: boolean } | null {
-  const match = /^\/api\/v1\/shared-trips\/(shr_[a-f0-9]{64})(\/copy)?$/u.exec(pathname);
-  if (match?.[1] === undefined || !SHARE_TOKEN_PATTERN.test(match[1])) return null;
-  return { token: match[1], copy: match[2] === "/copy" };
+  const pathname = new URL(request.url).pathname;
+  const current = /^\/api\/v1\/shared-trips\/current(\/copy)?$/u.exec(pathname);
+  if (current !== null) {
+    const token = request.headers.get("x-wnr-share-token") ?? "";
+    return SHARE_TOKEN_PATTERN.test(token) ? { token, copy: current[1] === "/copy" } : null;
+  }
+
+  const legacy = /^\/api\/v1\/shared-trips\/(shr_[a-f0-9]{64})(\/copy)?$/u.exec(pathname);
+  if (legacy?.[1] === undefined || !SHARE_TOKEN_PATTERN.test(legacy[1])) return null;
+  return { token: legacy[1], copy: legacy[2] === "/copy" };
 }
 
 export function safeLogPath(pathname: string): string {
@@ -257,7 +265,7 @@ async function handleTrips(request: Request, env: WorkerEnv): Promise<Response> 
 }
 
 async function handleSharedTrips(request: Request, env: WorkerEnv): Promise<Response> {
-  const route = sharedTripPath(new URL(request.url).pathname);
+  const route = sharedTripRoute(request);
   if (route === null) return json(request, env, { error: { code: "NOT_FOUND" } }, 404);
 
   const shared = await readSharedTripByToken(env.DB, route.token);
