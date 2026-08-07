@@ -6,6 +6,7 @@ import type {
   WeatherSummaryViewModel,
 } from "../app/view-models";
 import { JsonLd } from "./JsonLd";
+import { CityTripBridge } from "./CityTripBridge";
 import { toTraditionalText } from "../trips/traditional";
 
 export type ChineseWeatherLocale = "zh-cn" | "zh-hant";
@@ -261,6 +262,15 @@ export function ChineseCityWeatherPage({
           </p>
         </div>
       </section>
+
+      <CityTripBridge
+        locale={locale}
+        cityId={city.cityId}
+        cityName={city.cityName}
+        countryName={city.countryName}
+        defaultDate={localDates[0] ?? ""}
+        workspacePath={`${localePrefix}/trips/workspace`}
+      />
 
       <div className="mt-10 grid gap-5 md:grid-cols-2">
         <section aria-label={copy.current}>

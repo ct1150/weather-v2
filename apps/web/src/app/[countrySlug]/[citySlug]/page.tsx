@@ -15,6 +15,7 @@ import type {
 } from "../../view-models";
 import { getBakedDataset, buildConfig, projectCity } from "../../../build/bake";
 import { JsonLd } from "../../../components/JsonLd";
+import { CityTripBridge } from "../../../components/CityTripBridge";
 import { buildAlternates, routeRobots, localeUrl, citySearchCopy } from "../../seo";
 
 export interface CityPageProps {
@@ -176,6 +177,15 @@ export function CityPage({ viewModel, jsonLd }: CityPageProps) {
           </p>
         </div>
       </section>
+
+      <CityTripBridge
+        locale="en"
+        cityId={city.cityId}
+        cityName={city.cityName}
+        countryName={city.countryName}
+        defaultDate={localDates[0] ?? ""}
+        workspacePath="/trips/workspace"
+      />
 
       <div className="mt-10 grid gap-5 md:grid-cols-2">
         {/* Current weather (DATA-WEATHER-001) */}

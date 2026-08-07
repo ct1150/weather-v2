@@ -115,10 +115,10 @@ describe("CountryWeatherExplorer", () => {
     expect(screen.getByRole("button", { name: /Sapporo.*55% peak rain/i })).toBeTruthy();
     expect(screen.getByText(/Tokyo ranks first among 3 cities/)).toBeTruthy();
     expect(screen.getByRole("link", { name: "Tokyo 7-day forecast" }).getAttribute("href")).toBe(
-      "/jp/tokyo",
+      "/jp/tokyo?start=2026-08-04&end=2026-08-04&window=today",
     );
     expect(screen.getByRole("link", { name: "Osaka 7-day forecast" }).getAttribute("href")).toBe(
-      "/jp/osaka",
+      "/jp/osaka?start=2026-08-04&end=2026-08-04&window=today",
     );
     expect(screen.getByText("How are cities ranked?")).toBeTruthy();
     expect(screen.getByText("Does a high rain chance mean rain all day?")).toBeTruthy();
@@ -186,7 +186,7 @@ describe("CountryWeatherExplorer", () => {
     expect(screen.getByLabelText("Sapporo weather summary")).toBeTruthy();
     expect(window.location.pathname).toBe("/jp");
     expect(screen.getByRole("link", { name: /Open 7-day city outlook/ }).getAttribute("href")).toBe(
-      "/jp/sapporo",
+      "/jp/sapporo?start=2026-08-04&end=2026-08-04&window=today",
     );
   });
 

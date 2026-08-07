@@ -525,6 +525,16 @@ export function CountryWeatherExplorer({
     window.history.pushState({}, "", url);
   }
 
+  function cityDetailHref(path: string): string {
+    const selectedDays = referenceDays(cities, selectedIndices);
+    const start = selectedDays[0]?.localDate;
+    if (start === undefined) return path;
+    const end = selectedDays.at(-1)?.localDate ?? start;
+    const params = new URLSearchParams({ start, end });
+    if (customRange === null) params.set("window", activeWindow);
+    return `${path}?${params.toString()}`;
+  }
+
   return (
     <section
       className="country-weather-console"
@@ -742,7 +752,7 @@ export function CountryWeatherExplorer({
                 </li>
               ))}
             </ol>
-            <a href={selected.city.path} className="country-detail-link focus-ring">
+            <a href={cityDetailHref(selected.city.path)} className="country-detail-link focus-ring">
               {copy.detail} <span aria-hidden="true">→</span>
             </a>
           </aside>
@@ -787,7 +797,7 @@ export function CountryWeatherExplorer({
                 </span>
               </button>
               <a
-                href={summary.city.path}
+                href={cityDetailHref(summary.city.path)}
                 className="country-city-forecast-link focus-ring"
                 aria-label={`${summary.city.cityName} ${copy.cityForecast}`}
               >
