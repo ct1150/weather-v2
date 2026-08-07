@@ -156,7 +156,7 @@ export async function updateTrip(
   const nextVersion = baseVersion + 1;
   const revisionId = `rev_${crypto.randomUUID().replaceAll("-", "")}`;
   const documentJson = JSON.stringify(trip.document);
-  const [updated] = await db.batch([
+  const results = await db.batch([
     db
       .prepare(
         "UPDATE trips SET title = ?, start_date = ?, end_date = ?, locale = ?, document_json = ?, version = version + 1, updated_at = ? " +
@@ -185,8 +185,9 @@ export async function updateTrip(
       )
       .bind(revisionId, userId, operation, now, id, nextVersion, now),
   ]);
+  const updated = results[0];
 
-  if ((updated.meta.changes ?? 0) > 0) {
+  if (updated !== undefined && (updated.meta.changes ?? 0) > 0) {
     const tripRecord = await readTrip(db, userId, id);
     if (tripRecord === null) throw new Error("TRIP_UPDATE_READBACK_FAILED");
     return { kind: "updated", trip: tripRecord };
