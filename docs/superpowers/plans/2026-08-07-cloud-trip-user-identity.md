@@ -1,7 +1,7 @@
 # Where Not Rain — Cloud Trip & User Identity Phase 1
 
 Date: 2026-08-07
-Status: In progress
+Status: PR deployment validation
 
 ## Outcome
 
@@ -140,6 +140,11 @@ The code and infrastructure can be fully deployed without hardcoding credentials
 
 ## Build progress
 
-- Phase 1 source scaffolding is on `feature/cloud-trip-phase1`.
-- First builder attempt correctly failed because the new workspace package was not yet present in the frozen lockfile.
-- Builder now refreshes the workspace lockfile before installing Better Auth and Workers type dependencies.
+- Phase 1 source is implemented on `feature/cloud-trip-phase1`.
+- Dedicated D1 databases have been created and resolved into Wrangler configuration: `wnr-trip-preview` and `wnr-trip-production`.
+- Better Auth `1.6.26` is locked for web + Trip API.
+- Trip store, bounded document validation and authenticated API integration tests pass, including anonymous `401`, owner isolation, CRUD and stale-write `409`.
+- Web local/cloud metadata tests pass.
+- Workspace UX contract confirms guest-first explicit cloud save, localized Cloud Trip controls, offline fallback and conflict handling.
+- Temporary branch builder completed successfully and has been removed from `main`; final validation now runs only through the standard Deploy pipeline.
+- Next gate: deploy preview Trip D1 + Trip Worker, migrate Better Auth schema and pass protected preview CRUD/conflict smoke.
