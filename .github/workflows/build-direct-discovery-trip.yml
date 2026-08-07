@@ -1,0 +1,689 @@
+name: Build direct discovery-to-trip UX
+
+on:
+  push:
+    branches:
+      - agent/direct-discovery-trip
+    paths:
+      - .github/direct-discovery-trip-trigger
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/direct-discovery-trip
+          fetch-depth: 0
+
+      - name: Install dependencies
+        run: |
+          corepack enable
+          corepack prepare pnpm@10.11.0 --activate
+          pnpm install --frozen-lockfile
+
+      - name: Apply direct discovery-to-trip UX
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+          from textwrap import dedent
+
+          def replace(path: str, old: str, new: str) -> None:
+              p = Path(path)
+              text = p.read_text()
+              if old not in text:
+                  raise SystemExit(f"missing expected block in {path}: {old[:120]!r}")
+              p.write_text(text.replace(old, new))
+
+          Path("apps/web/src/trips/add-destination.ts").write_text(dedent(r'''
+          import {
+            createBlankWorkspace,
+            normalizeWorkspace,
+            type TripWorkspace,
+            type TripWorkspaceDay,
+          } from "./workspace";
+
+          export interface TripDestinationIdentity {
+            readonly cityId: string;
+            readonly cityName: string;
+            readonly countryName: string;
+          }
+
+          export interface TripDestinationInput extends TripDestinationIdentity {
+            readonly date: string;
+          }
+
+          interface AddDestinationOptions {
+            readonly now?: string;
+            readonly blankTitle?: string;
+          }
+
+          function isBlankDay(day: TripWorkspaceDay): boolean {
+            return day.cityId.length === 0 && day.activities.length === 0 && day.notes.length === 0;
+          }
+
+          function isIsoDate(value: string): boolean {
+            return /^\d{4}-\d{2}-\d{2}$/u.test(value) && !Number.isNaN(Date.parse(`${value}T00:00:00Z`));
+          }
+
+          function blankDay(dayNumber: number, date: string): TripWorkspaceDay {
+            return {
+              id: `day-${Date.now().toString(36)}-${dayNumber}`,
+              dayNumber,
+              date,
+              cityId: "",
+              cityName: "",
+              countryName: "",
+              theme: "city",
+              flexible: true,
+              activities: [],
+              notes: "",
+            };
+          }
+
+          function withDestination(
+            day: TripWorkspaceDay,
+            dayNumber: number,
+            date: string,
+            destination: TripDestinationIdentity,
+          ): TripWorkspaceDay {
+            return {
+              ...day,
+              dayNumber,
+              date,
+              cityId: destination.cityId,
+              cityName: destination.cityName,
+              countryName: destination.countryName,
+              theme: "city",
+              flexible: true,
+            };
+          }
+
+          /**
+           * Add a weather-qualified destination for every selected travel date.
+           * Existing itinerary content is preserved and an identical city/date pair is never duplicated.
+           */
+          export function addDestinationRangeToWorkspace(
+            workspace: TripWorkspace | null,
+            destination: TripDestinationIdentity,
+            dates: ReadonlyArray<string>,
+            options: AddDestinationOptions = {},
+          ): TripWorkspace {
+            const now = options.now ?? new Date().toISOString();
+            const current =
+              workspace ??
+              createBlankWorkspace({ now, title: options.blankTitle ?? "My weather-aware trip" });
+            const uniqueDates = [...new Set(dates.filter(isIsoDate))].slice(0, 16);
+            if (uniqueDates.length === 0) return current;
+
+            const days = [...current.days];
+            for (const date of uniqueDates) {
+              if (days.some((day) => day.cityId === destination.cityId && day.date === date)) continue;
+
+              const reusableIndex = days.findIndex(
+                (day) => isBlankDay(day) && (days.length === 1 || day.date === date),
+              );
+              if (reusableIndex >= 0) {
+                const reusable = days[reusableIndex];
+                if (reusable !== undefined) {
+                  days[reusableIndex] = withDestination(
+                    reusable,
+                    reusableIndex + 1,
+                    date,
+                    destination,
+                  );
+                  continue;
+                }
+              }
+
+              if (days.length >= 16) break;
+              const dayNumber = days.length + 1;
+              days.push(withDestination(blankDay(dayNumber, date), dayNumber, date, destination));
+            }
+
+            const normalizedDays = days.map((day, index) => ({ ...day, dayNumber: index + 1 }));
+            return normalizeWorkspace({ ...current, days: normalizedDays, updatedAt: now }, now);
+          }
+
+          /** Add one destination day while preserving the existing public API. */
+          export function addDestinationToWorkspace(
+            workspace: TripWorkspace | null,
+            destination: TripDestinationInput,
+            options: AddDestinationOptions = {},
+          ): TripWorkspace {
+            return addDestinationRangeToWorkspace(
+              workspace,
+              {
+                cityId: destination.cityId,
+                cityName: destination.cityName,
+                countryName: destination.countryName,
+              },
+              [destination.date],
+              options,
+            );
+          }
+          ''').lstrip())
+
+          Path("apps/web/src/components/DiscoveryTripAction.tsx").write_text(dedent(r'''
+          "use client";
+
+          import { useState, type ReactElement } from "react";
+          import { addDestinationRangeToWorkspace } from "../trips/add-destination";
+          import {
+            TRIP_WORKSPACE_STORAGE_KEY,
+            normalizeWorkspace,
+            type TripWorkspace,
+          } from "../trips/workspace";
+
+          export type DiscoveryTripLocale = "en" | "zh-cn" | "zh-hant";
+
+          interface DiscoveryTripActionProps {
+            readonly locale: DiscoveryTripLocale;
+            readonly cityId: string;
+            readonly cityName: string;
+            readonly countryName: string;
+            readonly dates: ReadonlyArray<string>;
+            readonly workspacePath: string;
+            readonly variant?: "inspector" | "card";
+          }
+
+          const COPY = {
+            en: {
+              add: (days: number) => (days > 1 ? `Add ${days} days to trip` : "Add to trip"),
+              added: "Added to trip",
+              view: "View trip",
+              title: "My weather-aware trip",
+            },
+            "zh-cn": {
+              add: (days: number) => (days > 1 ? `加入行程（${days}天）` : "加入行程"),
+              added: "已加入行程",
+              view: "查看行程",
+              title: "我的天气行程",
+            },
+            "zh-hant": {
+              add: (days: number) => (days > 1 ? `加入行程（${days}天）` : "加入行程"),
+              added: "已加入行程",
+              view: "查看行程",
+              title: "我的天氣行程",
+            },
+          } as const;
+
+          function readWorkspace(): TripWorkspace | null {
+            const stored = window.localStorage.getItem(TRIP_WORKSPACE_STORAGE_KEY);
+            if (stored === null) return null;
+            try {
+              return normalizeWorkspace(JSON.parse(stored) as unknown);
+            } catch {
+              return null;
+            }
+          }
+
+          export function DiscoveryTripAction({
+            locale,
+            cityId,
+            cityName,
+            countryName,
+            dates,
+            workspacePath,
+            variant = "card",
+          }: DiscoveryTripActionProps): ReactElement {
+            const copy = COPY[locale];
+            const validDates = [
+              ...new Set(dates.filter((date) => /^\d{4}-\d{2}-\d{2}$/u.test(date))),
+            ];
+            const [added, setAdded] = useState(false);
+
+            const addToTrip = (): void => {
+              if (validDates.length === 0) return;
+              const next = addDestinationRangeToWorkspace(
+                readWorkspace(),
+                { cityId, cityName, countryName },
+                validDates,
+                { blankTitle: copy.title },
+              );
+              window.localStorage.setItem(TRIP_WORKSPACE_STORAGE_KEY, JSON.stringify(next));
+              setAdded(true);
+            };
+
+            const buttonClass =
+              variant === "inspector"
+                ? "inline-flex min-h-11 flex-1 items-center justify-center rounded-full bg-white px-4 text-xs font-bold text-foreground transition hover:bg-white/90 focus-ring disabled:opacity-50"
+                : "inline-flex min-h-11 flex-1 items-center justify-center px-4 py-2 text-xs font-bold text-foreground transition-colors hover:bg-surface-elevated focus-ring disabled:opacity-50";
+            const viewClass =
+              variant === "inspector"
+                ? "inline-flex min-h-11 items-center justify-center rounded-full border border-white/20 px-4 text-xs font-bold text-white transition hover:bg-white/10 focus-ring"
+                : "inline-flex min-h-11 items-center justify-center border-l border-border/80 px-4 py-2 text-xs font-bold text-primary transition-colors hover:bg-surface-elevated focus-ring";
+
+            return (
+              <div
+                className={
+                  variant === "inspector"
+                    ? "mt-4 flex items-center gap-2 border-t border-white/10 pt-4"
+                    : "flex border-t border-border/80"
+                }
+              >
+                <button
+                  type="button"
+                  className={buttonClass}
+                  disabled={validDates.length === 0}
+                  onClick={addToTrip}
+                  aria-label={`${copy.add(validDates.length)} · ${cityName}`}
+                >
+                  {added ? copy.added : copy.add(validDates.length)}
+                </button>
+                {added ? (
+                  <a href={workspacePath} className={viewClass}>
+                    {copy.view} <span aria-hidden="true">→</span>
+                  </a>
+                ) : null}
+              </div>
+            );
+          }
+          ''').lstrip())
+
+          replace(
+            "apps/web/src/components/CountryWeatherExplorer.tsx",
+            'import { windowIndicesForDates } from "../weather/window-selection";\nimport { MAPLIBRE_STYLE_URL } from "./ExplorerMap";',
+            'import { windowIndicesForDates } from "../weather/window-selection";\nimport { DiscoveryTripAction } from "./DiscoveryTripAction";\nimport { MAPLIBRE_STYLE_URL } from "./ExplorerMap";',
+          )
+          replace(
+            "apps/web/src/components/CountryWeatherExplorer.tsx",
+            '    detail: "查看英文7天天气",',
+            '    detail: "查看7天天气",',
+          )
+          replace(
+            "apps/web/src/components/CountryWeatherExplorer.tsx",
+            '''            <a href={cityDetailHref(selected.city.path)} className="country-detail-link focus-ring">
+              {copy.detail} <span aria-hidden="true">→</span>
+            </a>''',
+            '''            <DiscoveryTripAction
+              locale={locale}
+              cityId={selected.city.cityId}
+              cityName={selected.city.cityName}
+              countryName={selected.city.countryName}
+              dates={selected.days.map((day) => day.localDate)}
+              workspacePath={locale === "zh-cn" ? "/zh-cn/trips/workspace" : "/trips/workspace"}
+              variant="inspector"
+            />
+            <a href={cityDetailHref(selected.city.path)} className="country-detail-link focus-ring">
+              {copy.detail} <span aria-hidden="true">→</span>
+            </a>''',
+          )
+          replace(
+            "apps/web/src/components/CountryWeatherExplorer.tsx",
+            '''              <a
+                href={cityDetailHref(summary.city.path)}
+                className="country-city-forecast-link focus-ring"
+                aria-label={`${summary.city.cityName} ${copy.cityForecast}`}
+              >
+                {copy.cityForecast} <span aria-hidden="true">→</span>
+              </a>''',
+            '''              <DiscoveryTripAction
+                locale={locale}
+                cityId={summary.city.cityId}
+                cityName={summary.city.cityName}
+                countryName={summary.city.countryName}
+                dates={summary.days.map((day) => day.localDate)}
+                workspacePath={locale === "zh-cn" ? "/zh-cn/trips/workspace" : "/trips/workspace"}
+              />
+              <a
+                href={cityDetailHref(summary.city.path)}
+                className="country-city-forecast-link focus-ring"
+                aria-label={`${summary.city.cityName} ${copy.cityForecast}`}
+              >
+                {copy.cityForecast} <span aria-hidden="true">→</span>
+              </a>''',
+          )
+
+          replace(
+            "apps/web/src/components/TraditionalCountryWeatherExplorer.tsx",
+            'import { windowIndicesForDates } from "../weather/window-selection";\nimport { MAPLIBRE_STYLE_URL } from "./ExplorerMap";',
+            'import { windowIndicesForDates } from "../weather/window-selection";\nimport { DiscoveryTripAction } from "./DiscoveryTripAction";\nimport { MAPLIBRE_STYLE_URL } from "./ExplorerMap";',
+          )
+          replace(
+            "apps/web/src/components/TraditionalCountryWeatherExplorer.tsx",
+            '''            <a href={cityDetailHref(selected.city.path)} className="country-detail-link focus-ring">
+              查看 7 天天氣 <span aria-hidden="true">→</span>
+            </a>''',
+            '''            <DiscoveryTripAction
+              locale="zh-hant"
+              cityId={selected.city.cityId}
+              cityName={selected.city.cityName}
+              countryName={selected.city.countryName}
+              dates={selected.days.map((day) => day.localDate)}
+              workspacePath="/zh-hant/trips/workspace"
+              variant="inspector"
+            />
+            <a href={cityDetailHref(selected.city.path)} className="country-detail-link focus-ring">
+              查看 7 天天氣 <span aria-hidden="true">→</span>
+            </a>''',
+          )
+          replace(
+            "apps/web/src/components/TraditionalCountryWeatherExplorer.tsx",
+            '''              <a
+                href={cityDetailHref(summary.city.path)}
+                className="country-city-forecast-link focus-ring"
+              >
+                7 天天氣 <span aria-hidden="true">→</span>
+              </a>''',
+            '''              <DiscoveryTripAction
+                locale="zh-hant"
+                cityId={summary.city.cityId}
+                cityName={summary.city.cityName}
+                countryName={summary.city.countryName}
+                dates={summary.days.map((day) => day.localDate)}
+                workspacePath="/zh-hant/trips/workspace"
+              />
+              <a
+                href={cityDetailHref(summary.city.path)}
+                className="country-city-forecast-link focus-ring"
+              >
+                7 天天氣 <span aria-hidden="true">→</span>
+              </a>''',
+          )
+
+          Path("apps/web/src/components/CityTripBridgeAction.tsx").write_text(dedent(r'''
+          "use client";
+
+          import { useEffect, useState, type ReactElement } from "react";
+          import { addDestinationRangeToWorkspace } from "../trips/add-destination";
+          import {
+            TRIP_WORKSPACE_STORAGE_KEY,
+            normalizeWorkspace,
+            type TripWorkspace,
+          } from "../trips/workspace";
+
+          interface CityTripBridgeActionProps {
+            readonly cityId: string;
+            readonly cityName: string;
+            readonly countryName: string;
+            readonly defaultDate: string;
+            readonly workspacePath: string;
+            readonly buttonLabel: string;
+            readonly blankTitle: string;
+            readonly rangePrefix: string;
+          }
+
+          function validDate(value: string | null): value is string {
+            return value !== null && /^\d{4}-\d{2}-\d{2}$/u.test(value);
+          }
+
+          function rangeDates(start: string, end: string): string[] {
+            const first = new Date(`${start}T00:00:00Z`);
+            const last = new Date(`${end}T00:00:00Z`);
+            if (Number.isNaN(first.getTime()) || Number.isNaN(last.getTime()) || last < first) return [start];
+            const dates: string[] = [];
+            for (const cursor = new Date(first); cursor <= last && dates.length < 16; cursor.setUTCDate(cursor.getUTCDate() + 1)) {
+              dates.push(cursor.toISOString().slice(0, 10));
+            }
+            return dates;
+          }
+
+          function readStoredWorkspace(): TripWorkspace | null {
+            const stored = window.localStorage.getItem(TRIP_WORKSPACE_STORAGE_KEY);
+            if (stored === null) return null;
+            try {
+              return normalizeWorkspace(JSON.parse(stored) as unknown);
+            } catch {
+              return null;
+            }
+          }
+
+          export function CityTripBridgeAction({
+            cityId,
+            cityName,
+            countryName,
+            defaultDate,
+            workspacePath,
+            buttonLabel,
+            blankTitle,
+            rangePrefix,
+          }: CityTripBridgeActionProps): ReactElement {
+            const [range, setRange] = useState<{ start: string; end: string } | null>(null);
+
+            useEffect(() => {
+              const params = new URLSearchParams(window.location.search);
+              const start = params.get("start");
+              const end = params.get("end");
+              if (validDate(start)) setRange({ start, end: validDate(end) ? end : start });
+            }, []);
+
+            const addToTrip = (): void => {
+              const start = range?.start ?? defaultDate;
+              const end = range?.end ?? start;
+              const dates = validDate(start) ? rangeDates(start, validDate(end) ? end : start) : [];
+              const next = addDestinationRangeToWorkspace(
+                readStoredWorkspace(),
+                { cityId, cityName, countryName },
+                dates,
+                { blankTitle },
+              );
+              window.localStorage.setItem(TRIP_WORKSPACE_STORAGE_KEY, JSON.stringify(next));
+              window.location.assign(workspacePath);
+            };
+
+            return (
+              <div className="flex shrink-0 flex-col items-start gap-2 sm:items-end">
+                {range !== null ? (
+                  <p className="text-xs font-semibold text-muted">
+                    {rangePrefix}: {range.start}
+                    {range.end === range.start ? "" : ` – ${range.end}`}
+                  </p>
+                ) : null}
+                <button type="button" className="trip-primary-button" onClick={addToTrip}>
+                  {buttonLabel}
+                </button>
+              </div>
+            );
+          }
+          ''').lstrip())
+
+          Path("apps/web/src/trips/add-destination.test.ts").write_text(dedent(r'''
+          import { describe, expect, it } from "vitest";
+
+          import { addDestinationRangeToWorkspace, addDestinationToWorkspace } from "./add-destination";
+          import { createBlankWorkspace } from "./workspace";
+
+          const destination = {
+            cityId: "jp-tokyo",
+            cityName: "Tokyo",
+            countryName: "Japan",
+            date: "2026-08-09",
+          } as const;
+
+          describe("addDestinationToWorkspace", () => {
+            it("reuses a pristine blank day", () => {
+              const workspace = createBlankWorkspace({
+                now: "2026-08-07T00:00:00.000Z",
+                id: "trip-1",
+                title: "My trip",
+              });
+              const next = addDestinationToWorkspace(workspace, destination, {
+                now: "2026-08-07T01:00:00.000Z",
+              });
+
+              expect(next.days).toHaveLength(1);
+              expect(next.days[0]).toMatchObject({
+                cityId: "jp-tokyo",
+                cityName: "Tokyo",
+                countryName: "Japan",
+                date: "2026-08-09",
+              });
+            });
+
+            it("appends without replacing existing itinerary content", () => {
+              const base = createBlankWorkspace({
+                now: "2026-08-07T00:00:00.000Z",
+                id: "trip-2",
+                title: "Existing trip",
+              });
+              const existing = {
+                ...base,
+                days: [
+                  {
+                    ...base.days[0]!,
+                    cityId: "kr-seoul",
+                    cityName: "Seoul",
+                    countryName: "South Korea",
+                    activities: ["09:00 Gyeongbokgung"],
+                  },
+                ],
+              };
+
+              const next = addDestinationToWorkspace(existing, destination, {
+                now: "2026-08-07T01:00:00.000Z",
+              });
+
+              expect(next.title).toBe("Existing trip");
+              expect(next.days).toHaveLength(2);
+              expect(next.days[0]?.cityId).toBe("kr-seoul");
+              expect(next.days[0]?.activities).toEqual(["09:00 Gyeongbokgung"]);
+              expect(next.days[1]).toMatchObject({ cityId: "jp-tokyo", date: "2026-08-09" });
+            });
+          });
+
+          describe("addDestinationRangeToWorkspace", () => {
+            it("turns a selected weather range into itinerary days", () => {
+              const workspace = createBlankWorkspace({
+                now: "2026-08-07T00:00:00.000Z",
+                id: "trip-range",
+                title: "Japan trip",
+              });
+              const next = addDestinationRangeToWorkspace(
+                workspace,
+                { cityId: "jp-tokyo", cityName: "Tokyo", countryName: "Japan" },
+                ["2026-08-09", "2026-08-10"],
+                { now: "2026-08-07T01:00:00.000Z" },
+              );
+
+              expect(next.days).toHaveLength(2);
+              expect(next.days.map((day) => [day.date, day.cityId])).toEqual([
+                ["2026-08-09", "jp-tokyo"],
+                ["2026-08-10", "jp-tokyo"],
+              ]);
+            });
+
+            it("does not duplicate an identical city and date", () => {
+              const first = addDestinationRangeToWorkspace(
+                null,
+                { cityId: "jp-tokyo", cityName: "Tokyo", countryName: "Japan" },
+                ["2026-08-09", "2026-08-10"],
+                { now: "2026-08-07T01:00:00.000Z" },
+              );
+              const second = addDestinationRangeToWorkspace(
+                first,
+                { cityId: "jp-tokyo", cityName: "Tokyo", countryName: "Japan" },
+                ["2026-08-09", "2026-08-10"],
+                { now: "2026-08-07T02:00:00.000Z" },
+              );
+
+              expect(second.days).toHaveLength(2);
+            });
+
+            it("preserves an existing itinerary when another weather destination is added", () => {
+              const base = addDestinationRangeToWorkspace(
+                null,
+                { cityId: "kr-seoul", cityName: "Seoul", countryName: "South Korea" },
+                ["2026-08-08"],
+                { now: "2026-08-07T00:00:00.000Z", blankTitle: "Asia trip" },
+              );
+              const next = addDestinationRangeToWorkspace(
+                base,
+                { cityId: "jp-tokyo", cityName: "Tokyo", countryName: "Japan" },
+                ["2026-08-09", "2026-08-10"],
+                { now: "2026-08-07T01:00:00.000Z" },
+              );
+
+              expect(next.title).toBe("Asia trip");
+              expect(next.days.map((day) => day.cityId)).toEqual([
+                "kr-seoul",
+                "jp-tokyo",
+                "jp-tokyo",
+              ]);
+            });
+          });
+          ''').lstrip())
+
+          Path("apps/web/src/components/discovery-trip-action.test.ts").write_text(dedent(r'''
+          import { readFileSync } from "node:fs";
+          import { describe, expect, it } from "vitest";
+
+          const standard = readFileSync(new URL("./CountryWeatherExplorer.tsx", import.meta.url), "utf8");
+          const traditional = readFileSync(
+            new URL("./TraditionalCountryWeatherExplorer.tsx", import.meta.url),
+            "utf8",
+          );
+
+          describe("direct weather discovery to trip UX", () => {
+            it("exposes direct trip actions in standard country results", () => {
+              expect(standard.match(/<DiscoveryTripAction/g)?.length ?? 0).toBeGreaterThanOrEqual(2);
+              expect(standard).toContain(
+                'workspacePath={locale === "zh-cn" ? "/zh-cn/trips/workspace" : "/trips/workspace"}',
+              );
+            });
+
+            it("exposes direct trip actions in Traditional Chinese results", () => {
+              expect(traditional.match(/<DiscoveryTripAction/g)?.length ?? 0).toBeGreaterThanOrEqual(2);
+              expect(traditional).toContain('workspacePath="/zh-hant/trips/workspace"');
+            });
+          });
+          ''').lstrip())
+
+          replace(
+            ".github/workflows/verify-trip-product-production.yml",
+            '            "國家旅行天氣地圖" "地圖上比較全部旅遊城市" "日本"',
+            '            "國家旅行天氣地圖" "地圖上比較全部旅遊城市" "日本" "加入行程"',
+          )
+          replace(
+            ".github/workflows/verify-trip-product-production.yml",
+            '''          fetch_and_match \\
+            "Simplified city weather route" \\
+            "https://868656.xyz/zh-cn/jp/tokyo" \\
+            /tmp/weather-cn-city.html \\
+            "目的地天气" "7 天旅行天气" "东京" "把天气结论带进行程"''',
+            '''          fetch_and_match \\
+            "Simplified country weather route" \\
+            "https://868656.xyz/zh-cn/jp" \\
+            /tmp/weather-cn-country.html \\
+            "国家旅行天气地图" "地图上比较全部旅游城市" "日本" "加入行程"
+
+          fetch_and_match \\
+            "Simplified city weather route" \\
+            "https://868656.xyz/zh-cn/jp/tokyo" \\
+            /tmp/weather-cn-city.html \\
+            "目的地天气" "7 天旅行天气" "东京" "把天气结论带进行程"''',
+          )
+
+          Path(".github/workflows/build-direct-discovery-trip.yml").unlink(missing_ok=True)
+          Path(".github/direct-discovery-trip-trigger").unlink(missing_ok=True)
+          PY
+
+      - name: Format changed files
+        run: |
+          pnpm exec prettier --write \
+            apps/web/src/trips/add-destination.ts \
+            apps/web/src/trips/add-destination.test.ts \
+            apps/web/src/components/DiscoveryTripAction.tsx \
+            apps/web/src/components/CityTripBridgeAction.tsx \
+            apps/web/src/components/CountryWeatherExplorer.tsx \
+            apps/web/src/components/TraditionalCountryWeatherExplorer.tsx \
+            apps/web/src/components/discovery-trip-action.test.ts \
+            .github/workflows/verify-trip-product-production.yml
+
+      - name: Focused validation
+        run: |
+          pnpm --filter @wnr/web test -- add-destination discovery-trip-action country-weather-explorer
+          pnpm --filter @wnr/web typecheck
+          pnpm --filter @wnr/web lint
+          pnpm format:check
+
+      - name: Commit built increment
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "feat(ux): add weather results directly to itinerary"
+          git push origin HEAD:agent/direct-discovery-trip
