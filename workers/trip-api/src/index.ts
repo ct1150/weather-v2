@@ -1,14 +1,28 @@
 import {
-  getAuthUserId,
+  getAuthIdentity,
   handleAuthRequest,
   providerAvailability,
   runAuthMigrations,
+  sendTripInviteEmail,
   type AuthEnv,
+  type AuthIdentity,
 } from "./auth";
+import {
+  acceptTripInvite,
+  createTripInvite,
+  listTripCollaborators,
+  normalizeInviteEmail,
+  readTripInviteByToken,
+  removeTripMember,
+  revokeTripInvite,
+  updateTripMemberRole,
+  type CollaborationRole,
+} from "./collaboration";
+import { listTripRevisions, restoreTripRevision } from "./revisions";
 import { createShareLink, readSharedTripByToken, revokeShareLink } from "./sharing";
 import { updateTripStatus, type TripStatus } from "./status";
 import { createTrip, deleteTrip, listTrips, readTrip, updateTrip } from "./store";
-import { parseLocale, readJsonBody, validateTripDocument } from "./validation";
+import { parseLocale, readJsonBody, validateTripDocument, type TripLocale } from "./validation";
 
 export interface WorkerEnv extends AuthEnv {
   readonly INTERNAL_MIGRATION_TOKEN?: string;
@@ -17,6 +31,8 @@ export interface WorkerEnv extends AuthEnv {
 
 const DEFAULT_ORIGIN = "https://868656.xyz";
 const SHARE_TOKEN_PATTERN = /^shr_[a-f0-9]{64}$/u;
+const INVITE_TOKEN_PATTERN = /^inv_[a-f0-9]{64}$/u;
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/u;
 
 function allowedOrigin(request: Request, env: WorkerEnv): string {
   const origin = request.headers.get("origin");
@@ -32,7 +48,8 @@ function corsHeaders(request: Request, env: WorkerEnv): Record<string, string> {
     "access-control-allow-origin": allowedOrigin(request, env),
     "access-control-allow-credentials": "true",
     "access-control-allow-methods": "GET,POST,PATCH,DELETE,OPTIONS",
-    "access-control-allow-headers": "content-type,authorization,x-wnr-smoke-user,x-wnr-share-token",
+    "access-control-allow-headers":
+      "content-type,authorization,x-wnr-smoke-user,x-wnr-smoke-email,x-wnr-share-token,x-wnr-invite-token",
     "cache-control": "private, no-store",
     vary: "Origin",
   };
@@ -73,12 +90,23 @@ async function secretMatches(expected: string | undefined, request: Request): Pr
   return difference === 0;
 }
 
-async function resolveUserId(request: Request, env: WorkerEnv): Promise<string | null> {
+async function resolveIdentity(request: Request, env: WorkerEnv): Promise<AuthIdentity | null> {
   if (await secretMatches(env.INTERNAL_SMOKE_TOKEN, request)) {
     const requested = request.headers.get("x-wnr-smoke-user") ?? "ci-smoke";
-    return /^[a-zA-Z0-9_-]{2,64}$/u.test(requested) ? `internal:${requested}` : "internal:ci-smoke";
+    const safeUser = /^[a-zA-Z0-9_-]{2,64}$/u.test(requested) ? requested : "ci-smoke";
+    const requestedEmail = normalizeInviteEmail(
+      request.headers.get("x-wnr-smoke-email") ?? `${safeUser}@smoke.invalid`,
+    );
+    return {
+      userId: `internal:${safeUser}`,
+      email: EMAIL_PATTERN.test(requestedEmail) ? requestedEmail : `${safeUser}@smoke.invalid`,
+    };
   }
-  return getAuthUserId(request, env);
+  return getAuthIdentity(request, env);
+}
+
+async function resolveUserId(request: Request, env: WorkerEnv): Promise<string | null> {
+  return (await resolveIdentity(request, env))?.userId ?? null;
 }
 
 function tripIdFromPath(pathname: string): string | null {
@@ -96,6 +124,51 @@ function tripShareIdFromPath(pathname: string): string | null {
   return match?.[1] ?? null;
 }
 
+function tripMembersIdFromPath(pathname: string): string | null {
+  const match = /^\/api\/v1\/trips\/([a-zA-Z0-9_-]{8,96})\/members$/u.exec(pathname);
+  return match?.[1] ?? null;
+}
+
+function tripInvitesIdFromPath(pathname: string): string | null {
+  const match = /^\/api\/v1\/trips\/([a-zA-Z0-9_-]{8,96})\/invites$/u.exec(pathname);
+  return match?.[1] ?? null;
+}
+
+function tripInviteItemFromPath(
+  pathname: string,
+): { readonly tripId: string; readonly inviteId: string } | null {
+  const match =
+    /^\/api\/v1\/trips\/([a-zA-Z0-9_-]{8,96})\/invites\/(invite_[a-zA-Z0-9_-]{16,128})$/u.exec(
+      pathname,
+    );
+  return match?.[1] && match[2] ? { tripId: match[1], inviteId: match[2] } : null;
+}
+
+function tripMemberItemFromPath(
+  pathname: string,
+): { readonly tripId: string; readonly userId: string } | null {
+  const match =
+    /^\/api\/v1\/trips\/([a-zA-Z0-9_-]{8,96})\/members\/([a-zA-Z0-9:_-]{2,128})$/u.exec(
+      pathname,
+    );
+  return match?.[1] && match[2] ? { tripId: match[1], userId: match[2] } : null;
+}
+
+function tripRevisionsIdFromPath(pathname: string): string | null {
+  const match = /^\/api\/v1\/trips\/([a-zA-Z0-9_-]{8,96})\/revisions$/u.exec(pathname);
+  return match?.[1] ?? null;
+}
+
+function tripRevisionRestoreFromPath(
+  pathname: string,
+): { readonly tripId: string; readonly version: number } | null {
+  const match =
+    /^\/api\/v1\/trips\/([a-zA-Z0-9_-]{8,96})\/revisions\/(\d+)\/restore$/u.exec(pathname);
+  if (!match?.[1] || !match[2]) return null;
+  const version = Number(match[2]);
+  return Number.isInteger(version) && version > 0 ? { tripId: match[1], version } : null;
+}
+
 function sharedTripRoute(
   request: Request,
 ): { readonly token: string; readonly copy: boolean } | null {
@@ -111,6 +184,16 @@ function sharedTripRoute(
   return { token: legacy[1], copy: legacy[2] === "/copy" };
 }
 
+function inviteRoute(
+  request: Request,
+): { readonly token: string; readonly accept: boolean } | null {
+  const pathname = new URL(request.url).pathname;
+  const current = /^\/api\/v1\/trip-invites\/current(\/accept)?$/u.exec(pathname);
+  if (current === null) return null;
+  const token = request.headers.get("x-wnr-invite-token") ?? "";
+  return INVITE_TOKEN_PATTERN.test(token) ? { token, accept: current[1] === "/accept" } : null;
+}
+
 export function safeLogPath(pathname: string): string {
   if (pathname.startsWith("/api/v1/shared-trips/")) {
     return pathname.endsWith("/copy")
@@ -120,11 +203,49 @@ export function safeLogPath(pathname: string): string {
   return pathname;
 }
 
-async function handleTrips(request: Request, env: WorkerEnv): Promise<Response> {
-  const userId = await resolveUserId(request, env);
-  if (userId === null) return json(request, env, { error: { code: "UNAUTHORIZED" } }, 401);
+function invitePath(locale: TripLocale): string {
+  if (locale === "zh-cn") return "/zh-cn/trips/invite";
+  if (locale === "zh-hant") return "/zh-hant/trips/invite";
+  return "/trips/invite";
+}
 
+async function handleTripInvites(request: Request, env: WorkerEnv): Promise<Response> {
+  const route = inviteRoute(request);
+  if (route === null) return json(request, env, { error: { code: "NOT_FOUND" } }, 404);
+  const preview = await readTripInviteByToken(env.DB, route.token);
+  if (preview === null) return json(request, env, { error: { code: "NOT_FOUND" } }, 404);
+
+  if (!route.accept && request.method === "GET") {
+    return json(request, env, { data: preview });
+  }
+
+  if (route.accept && request.method === "POST") {
+    const identity = await resolveIdentity(request, env);
+    if (identity === null) return json(request, env, { error: { code: "UNAUTHORIZED" } }, 401);
+    const accepted = await acceptTripInvite(
+      env.DB,
+      route.token,
+      identity.userId,
+      identity.email,
+    );
+    if (accepted.kind === "email_mismatch") {
+      return json(request, env, { error: { code: "INVITE_EMAIL_MISMATCH" } }, 403);
+    }
+    if (accepted.kind === "missing") {
+      return json(request, env, { error: { code: "NOT_FOUND" } }, 404);
+    }
+    return json(request, env, { data: accepted }, 201);
+  }
+
+  return json(request, env, { error: { code: "METHOD_NOT_ALLOWED" } }, 405);
+}
+
+async function handleTrips(request: Request, env: WorkerEnv): Promise<Response> {
+  const identity = await resolveIdentity(request, env);
+  if (identity === null) return json(request, env, { error: { code: "UNAUTHORIZED" } }, 401);
+  const userId = identity.userId;
   const url = new URL(request.url);
+
   if (url.pathname === "/api/v1/trips") {
     if (request.method === "GET") {
       const limit = Number(url.searchParams.get("limit") ?? "50");
@@ -149,6 +270,157 @@ async function handleTrips(request: Request, env: WorkerEnv): Promise<Response> 
       return json(request, env, { data: created }, 201);
     }
     return json(request, env, { error: { code: "METHOD_NOT_ALLOWED" } }, 405);
+  }
+
+  const memberListTripId = tripMembersIdFromPath(url.pathname);
+  if (memberListTripId !== null) {
+    if (request.method !== "GET") {
+      return json(request, env, { error: { code: "METHOD_NOT_ALLOWED" } }, 405);
+    }
+    const collaborators = await listTripCollaborators(env.DB, userId, memberListTripId);
+    return collaborators === null
+      ? json(request, env, { error: { code: "NOT_FOUND" } }, 404)
+      : json(request, env, { data: collaborators });
+  }
+
+  const inviteListTripId = tripInvitesIdFromPath(url.pathname);
+  if (inviteListTripId !== null) {
+    if (request.method !== "POST") {
+      return json(request, env, { error: { code: "METHOD_NOT_ALLOWED" } }, 405);
+    }
+    const body = await readJsonBody(request);
+    if (typeof body !== "object" || body === null || Array.isArray(body)) {
+      return json(request, env, { error: { code: "INVALID_BODY" } }, 400);
+    }
+    const object = body as Record<string, unknown>;
+    const email = typeof object.email === "string" ? normalizeInviteEmail(object.email) : "";
+    const role = object.role;
+    const locale = parseLocale(object.locale ?? "en");
+    if (
+      !EMAIL_PATTERN.test(email) ||
+      email.length > 254 ||
+      (role !== "editor" && role !== "viewer") ||
+      locale === null
+    ) {
+      return json(request, env, { error: { code: "INVALID_INVITE" } }, 400);
+    }
+    const trip = await readTrip(env.DB, userId, inviteListTripId);
+    if (trip === null || trip.accessRole !== "owner") {
+      return json(request, env, { error: { code: "NOT_FOUND" } }, 404);
+    }
+    const created = await createTripInvite(
+      env.DB,
+      userId,
+      inviteListTripId,
+      email,
+      role as CollaborationRole,
+    );
+    if (created === null) return json(request, env, { error: { code: "NOT_FOUND" } }, 404);
+    const origin = env.WEB_ORIGIN ?? DEFAULT_ORIGIN;
+    const inviteUrl = `${origin}${invitePath(locale)}#token=${encodeURIComponent(created.token)}`;
+    let emailSent = false;
+    try {
+      emailSent = await sendTripInviteEmail(env, email, trip.title, created.role, inviteUrl);
+    } catch {
+      emailSent = false;
+    }
+    return json(request, env, { data: { ...created, emailSent } }, 201);
+  }
+
+  const inviteItem = tripInviteItemFromPath(url.pathname);
+  if (inviteItem !== null) {
+    if (request.method !== "DELETE") {
+      return json(request, env, { error: { code: "METHOD_NOT_ALLOWED" } }, 405);
+    }
+    const revoked = await revokeTripInvite(env.DB, userId, inviteItem.tripId, inviteItem.inviteId);
+    return revoked
+      ? json(request, env, { data: { revoked: true } })
+      : json(request, env, { error: { code: "NOT_FOUND" } }, 404);
+  }
+
+  const memberItem = tripMemberItemFromPath(url.pathname);
+  if (memberItem !== null) {
+    if (request.method === "PATCH") {
+      const body = await readJsonBody(request);
+      if (typeof body !== "object" || body === null || Array.isArray(body)) {
+        return json(request, env, { error: { code: "INVALID_BODY" } }, 400);
+      }
+      const role = (body as Record<string, unknown>).role;
+      if (role !== "editor" && role !== "viewer") {
+        return json(request, env, { error: { code: "INVALID_ROLE" } }, 400);
+      }
+      const updated = await updateTripMemberRole(
+        env.DB,
+        userId,
+        memberItem.tripId,
+        memberItem.userId,
+        role,
+      );
+      return updated
+        ? json(request, env, { data: { updated: true, role } })
+        : json(request, env, { error: { code: "NOT_FOUND" } }, 404);
+    }
+    if (request.method === "DELETE") {
+      const removed = await removeTripMember(env.DB, userId, memberItem.tripId, memberItem.userId);
+      return removed
+        ? json(request, env, { data: { removed: true } })
+        : json(request, env, { error: { code: "NOT_FOUND" } }, 404);
+    }
+    return json(request, env, { error: { code: "METHOD_NOT_ALLOWED" } }, 405);
+  }
+
+  const revisionListTripId = tripRevisionsIdFromPath(url.pathname);
+  if (revisionListTripId !== null) {
+    if (request.method !== "GET") {
+      return json(request, env, { error: { code: "METHOD_NOT_ALLOWED" } }, 405);
+    }
+    const limit = Number(url.searchParams.get("limit") ?? "30");
+    const revisions = await listTripRevisions(
+      env.DB,
+      userId,
+      revisionListTripId,
+      Number.isFinite(limit) ? limit : 30,
+    );
+    return revisions === null
+      ? json(request, env, { error: { code: "NOT_FOUND" } }, 404)
+      : json(request, env, { data: { items: revisions } });
+  }
+
+  const revisionRestore = tripRevisionRestoreFromPath(url.pathname);
+  if (revisionRestore !== null) {
+    if (request.method !== "POST") {
+      return json(request, env, { error: { code: "METHOD_NOT_ALLOWED" } }, 405);
+    }
+    const body = await readJsonBody(request);
+    if (typeof body !== "object" || body === null || Array.isArray(body)) {
+      return json(request, env, { error: { code: "INVALID_BODY" } }, 400);
+    }
+    const baseVersion = (body as Record<string, unknown>).baseVersion;
+    if (!Number.isInteger(baseVersion) || Number(baseVersion) < 1) {
+      return json(request, env, { error: { code: "INVALID_VERSION" } }, 400);
+    }
+    const result = await restoreTripRevision(
+      env.DB,
+      userId,
+      revisionRestore.tripId,
+      revisionRestore.version,
+      Number(baseVersion),
+    );
+    if (result.kind === "missing") {
+      return json(request, env, { error: { code: "NOT_FOUND" } }, 404);
+    }
+    if (result.kind === "forbidden") {
+      return json(request, env, { error: { code: "FORBIDDEN" } }, 403);
+    }
+    if (result.kind === "conflict") {
+      return json(
+        request,
+        env,
+        { error: { code: "VERSION_CONFLICT", currentVersion: result.currentVersion } },
+        409,
+      );
+    }
+    return json(request, env, { data: result.trip });
   }
 
   const statusTripId = tripStatusIdFromPath(url.pathname);
@@ -237,6 +509,9 @@ async function handleTrips(request: Request, env: WorkerEnv): Promise<Response> 
     if (result.kind === "missing") {
       return json(request, env, { error: { code: "NOT_FOUND" } }, 404);
     }
+    if (result.kind === "forbidden") {
+      return json(request, env, { error: { code: "FORBIDDEN" } }, 403);
+    }
     if (result.kind === "conflict") {
       return json(
         request,
@@ -304,6 +579,8 @@ export async function handleRequest(request: Request, env: WorkerEnv): Promise<R
       providers: providerAvailability(env),
       cloudTrip: true,
       cloudSharing: true,
+      cloudCollaboration: true,
+      revisionHistory: true,
     });
   }
 
@@ -320,6 +597,10 @@ export async function handleRequest(request: Request, env: WorkerEnv): Promise<R
 
   if (url.pathname.startsWith("/api/v1/shared-trips/")) {
     return handleSharedTrips(request, env);
+  }
+
+  if (url.pathname.startsWith("/api/v1/trip-invites/")) {
+    return handleTripInvites(request, env);
   }
 
   if (url.pathname === "/api/v1/trips" || url.pathname.startsWith("/api/v1/trips/")) {
