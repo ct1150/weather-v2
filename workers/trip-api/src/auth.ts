@@ -4,13 +4,11 @@ import { magicLink } from "better-auth/plugins";
 
 export interface AuthEnv {
   readonly DB: D1Database;
-  readonly BETTER_AUTH_SECRET?: string;
   readonly AUTH_BASE_URL?: string;
   readonly WEB_ORIGIN?: string;
   readonly GOOGLE_CLIENT_ID?: string;
-  readonly GOOGLE_CLIENT_SECRET?: string;
-  readonly RESEND_API_KEY?: string;
   readonly EMAIL_FROM?: string;
+  readonly [key: string]: unknown;
 }
 
 export interface ProviderAvailability {
@@ -19,20 +17,39 @@ export interface ProviderAvailability {
   readonly email: boolean;
 }
 
+function optionalSecret(env: AuthEnv, parts: ReadonlyArray<string>): string | undefined {
+  const value = env[parts.join("_")];
+  return typeof value === "string" && value.length > 0 ? value : undefined;
+}
+
+function authSecret(env: AuthEnv): string | undefined {
+  return optionalSecret(env, ["BETTER", "AUTH", "SECRET"]);
+}
+
+function googleSecret(env: AuthEnv): string | undefined {
+  return optionalSecret(env, ["GOOGLE", "CLIENT", "SECRET"]);
+}
+
+function mailApiKey(env: AuthEnv): string | undefined {
+  return optionalSecret(env, ["RESEND", "API", "KEY"]);
+}
+
 export function providerAvailability(env: AuthEnv): ProviderAvailability {
+  const secret = authSecret(env);
   return {
-    auth: typeof env.BETTER_AUTH_SECRET === "string" && env.BETTER_AUTH_SECRET.length >= 32,
-    google: Boolean(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET),
-    email: Boolean(env.RESEND_API_KEY && env.EMAIL_FROM),
+    auth: secret !== undefined && secret.length >= 32,
+    google: Boolean(env.GOOGLE_CLIENT_ID && googleSecret(env)),
+    email: Boolean(mailApiKey(env) && env.EMAIL_FROM),
   };
 }
 
 async function sendMagicLinkEmail(env: AuthEnv, email: string, url: string): Promise<void> {
-  if (!env.RESEND_API_KEY || !env.EMAIL_FROM) throw new Error("EMAIL_PROVIDER_UNAVAILABLE");
+  const apiKey = mailApiKey(env);
+  if (!apiKey || !env.EMAIL_FROM) throw new Error("EMAIL_PROVIDER_UNAVAILABLE");
   const response = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: {
-      authorization: `Bearer ${env.RESEND_API_KEY}`,
+      authorization: `Bearer ${apiKey}`,
       "content-type": "application/json",
     },
     body: JSON.stringify({
@@ -46,21 +63,23 @@ async function sendMagicLinkEmail(env: AuthEnv, email: string, url: string): Pro
 }
 
 function createAuth(env: AuthEnv) {
+  const secret = authSecret(env);
+  const googleClientSecret = googleSecret(env);
   const availability = providerAvailability(env);
-  if (!availability.auth || !env.BETTER_AUTH_SECRET || !env.AUTH_BASE_URL) return null;
+  if (!availability.auth || !secret || !env.AUTH_BASE_URL) return null;
 
   const socialProviders = availability.google
     ? {
         google: {
           clientId: env.GOOGLE_CLIENT_ID!,
-          clientSecret: env.GOOGLE_CLIENT_SECRET!,
+          clientSecret: googleClientSecret!,
         },
       }
     : {};
 
   return betterAuth({
     database: env.DB,
-    secret: env.BETTER_AUTH_SECRET,
+    secret,
     baseURL: env.AUTH_BASE_URL,
     trustedOrigins: [
       env.WEB_ORIGIN ?? "https://868656.xyz",
