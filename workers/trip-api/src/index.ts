@@ -1,5 +1,10 @@
-import { getMigrations } from "better-auth/db/migration";
-import { createAuth, providerAvailability, type AuthEnv } from "./auth";
+import {
+  getAuthUserId,
+  handleAuthRequest,
+  providerAvailability,
+  runAuthMigrations,
+  type AuthEnv,
+} from "./auth";
 import { createTrip, deleteTrip, listTrips, readTrip, updateTrip } from "./store";
 import { parseLocale, readJsonBody, validateTripDocument } from "./validation";
 
@@ -19,7 +24,7 @@ function allowedOrigin(request: Request, env: WorkerEnv): string {
   return configured;
 }
 
-function corsHeaders(request: Request, env: WorkerEnv): HeadersInit {
+function corsHeaders(request: Request, env: WorkerEnv): Record<string, string> {
   return {
     "access-control-allow-origin": allowedOrigin(request, env),
     "access-control-allow-credentials": "true",
@@ -39,7 +44,7 @@ function json(request: Request, env: WorkerEnv, body: unknown, status = 200): Re
 
 function withCors(request: Request, env: WorkerEnv, response: Response): Response {
   const headers = new Headers(response.headers);
-  Object.entries(corsHeaders(request, env)).forEach(([key, value]) => headers.set(key, String(value)));
+  Object.entries(corsHeaders(request, env)).forEach(([key, value]) => headers.set(key, value));
   return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
 }
 
@@ -55,24 +60,20 @@ async function secretMatches(expected: string | undefined, request: Request): Pr
   const a = new Uint8Array(left);
   const b = new Uint8Array(right);
   let difference = a.length ^ b.length;
-  for (let index = 0; index < Math.min(a.length, b.length); index += 1) difference |= a[index]! ^ b[index]!;
+  for (let index = 0; index < Math.min(a.length, b.length); index += 1) {
+    difference |= a[index]! ^ b[index]!;
+  }
   return difference === 0;
 }
 
 async function resolveUserId(request: Request, env: WorkerEnv): Promise<string | null> {
   if (await secretMatches(env.INTERNAL_SMOKE_TOKEN, request)) {
     const requested = request.headers.get("x-wnr-smoke-user") ?? "ci-smoke";
-    return /^[a-zA-Z0-9_-]{2,64}$/u.test(requested) ? `internal:${requested}` : "internal:ci-smoke";
+    return /^[a-zA-Z0-9_-]{2,64}$/u.test(requested)
+      ? `internal:${requested}`
+      : "internal:ci-smoke";
   }
-
-  const auth = createAuth(env);
-  if (auth === null) return null;
-  try {
-    const session = await auth.api.getSession({ headers: request.headers });
-    return session?.user.id ?? null;
-  } catch {
-    return null;
-  }
+  return getAuthUserId(request, env);
 }
 
 function tripIdFromPath(pathname: string): string | null {
@@ -127,11 +128,18 @@ async function handleTrips(request: Request, env: WorkerEnv): Promise<Response> 
     const baseVersion = object.baseVersion;
     const locale = parseLocale(object.locale ?? "en");
     const trip = validateTripDocument(object.document);
-    if (!Number.isInteger(baseVersion) || Number(baseVersion) < 1 || locale === null || trip === null) {
+    if (
+      !Number.isInteger(baseVersion) ||
+      Number(baseVersion) < 1 ||
+      locale === null ||
+      trip === null
+    ) {
       return json(request, env, { error: { code: "INVALID_TRIP" } }, 400);
     }
     const result = await updateTrip(env.DB, userId, tripId, Number(baseVersion), locale, trip);
-    if (result.kind === "missing") return json(request, env, { error: { code: "NOT_FOUND" } }, 404);
+    if (result.kind === "missing") {
+      return json(request, env, { error: { code: "NOT_FOUND" } }, 404);
+    }
     if (result.kind === "conflict") {
       return json(
         request,
@@ -157,21 +165,16 @@ async function handleAuthMigration(request: Request, env: WorkerEnv): Promise<Re
   if (!(await secretMatches(env.INTERNAL_MIGRATION_TOKEN, request))) {
     return json(request, env, { error: { code: "UNAUTHORIZED" } }, 401);
   }
-  const auth = createAuth(env);
-  if (auth === null) return json(request, env, { error: { code: "AUTH_NOT_CONFIGURED" } }, 503);
-  const migrations = await getMigrations(auth.options);
-  await migrations.runMigrations();
-  return json(request, env, {
-    data: {
-      migrated: true,
-      createdModels: migrations.toBeCreated.map((item) => item.table),
-      alteredModels: migrations.toBeAdded.map((item) => item.table),
-    },
-  });
+  const migrated = await runAuthMigrations(env);
+  return migrated
+    ? json(request, env, { data: { migrated: true } })
+    : json(request, env, { error: { code: "AUTH_NOT_CONFIGURED" } }, 503);
 }
 
 export async function handleRequest(request: Request, env: WorkerEnv): Promise<Response> {
-  if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: corsHeaders(request, env) });
+  if (request.method === "OPTIONS") {
+    return new Response(null, { status: 204, headers: corsHeaders(request, env) });
+  }
   const url = new URL(request.url);
 
   if (url.pathname === "/health" && request.method === "GET") {
@@ -188,9 +191,10 @@ export async function handleRequest(request: Request, env: WorkerEnv): Promise<R
   }
 
   if (url.pathname.startsWith("/api/auth/")) {
-    const auth = createAuth(env);
-    if (auth === null) return json(request, env, { error: { code: "AUTH_NOT_CONFIGURED" } }, 503);
-    return withCors(request, env, await auth.handler(request));
+    const response = await handleAuthRequest(request, env);
+    return response === null
+      ? json(request, env, { error: { code: "AUTH_NOT_CONFIGURED" } }, 503)
+      : withCors(request, env, response);
   }
 
   if (url.pathname === "/api/v1/trips" || url.pathname.startsWith("/api/v1/trips/")) {
