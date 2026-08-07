@@ -35,9 +35,12 @@ describe("Cloud Trip phase 3 UX contract", () => {
     expect(manager).toContain("#token=");
   });
 
-  it("keeps invite bearer tokens in fragment plus header transport", () => {
+  it("keeps invite bearer tokens in fragment plus header transport with a short cross-tab TTL", () => {
     expect(inviteViewer).toContain('window.location.hash.replace(/^#/u, "")');
-    expect(inviteViewer).toContain("sessionStorage");
+    expect(inviteViewer).toContain("window.localStorage");
+    expect(inviteViewer).toContain("INVITE_STORAGE_TTL_MS");
+    expect(inviteViewer).toContain("clearStoredInviteToken");
+    expect(inviteViewer).not.toContain("sessionStorage");
     expect(cloudClient).toContain('"x-wnr-invite-token"');
     expect(cloudClient).toContain('"/api/v1/trip-invites/current"');
     expect(cloudClient).not.toContain("/api/v1/trip-invites/${");
