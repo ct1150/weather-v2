@@ -137,3 +137,9 @@ Update succeeds only while DB version is 12. The row becomes version 13. If anot
 ## External credential boundary
 
 The code and infrastructure can be fully deployed without hardcoding credentials. Actual Google sign-in requires `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`; email magic-link delivery requires the configured mail-provider secret and sender. If those secrets are absent, the provider remains disabled rather than falling back to insecure behavior.
+
+## Build progress
+
+- Phase 1 source scaffolding is on `feature/cloud-trip-phase1`.
+- First builder attempt correctly failed because the new workspace package was not yet present in the frozen lockfile.
+- Builder now refreshes the workspace lockfile before installing Better Auth and Workers type dependencies.
