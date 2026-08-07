@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import type { ReactElement } from "react";
-import { SharedTripViewer } from "../../../../../components/SharedTripViewer";
+import { SharedTripViewer } from "../../../../components/SharedTripViewer";
 
 export const metadata: Metadata = {
   title: "分享行程 · Where Not Rain",
