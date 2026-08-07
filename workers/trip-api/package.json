@@ -13,6 +13,7 @@
   "dependencies": {},
   "devDependencies": {
     "@wnr/eslint-config": "workspace:*",
+    "@wnr/test-utils": "workspace:*",
     "@wnr/tsconfig": "workspace:*",
     "@wnr/vitest-config": "workspace:*"
   },
