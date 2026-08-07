@@ -12,7 +12,20 @@ const document = {
   partyProfile: "adults",
   createdAt: "2026-08-07T00:00:00.000Z",
   updatedAt: "2026-08-07T00:00:00.000Z",
-  days: [],
+  days: [
+    {
+      id: "day-1",
+      dayNumber: 1,
+      date: "2026-08-12",
+      cityId: "jp-tokyo",
+      cityName: "Tokyo",
+      countryName: "Japan",
+      theme: "city",
+      flexible: true,
+      activities: [],
+      notes: "",
+    },
+  ],
 } as const;
 
 describe("trip status updates", () => {
