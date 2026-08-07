@@ -1,3 +1,4 @@
+import type { TripAccessRole } from "./collaboration";
 import type { TripLocale, ValidTripDocument } from "./validation";
 
 export type TripListStatus = "active" | "archived" | "all";
@@ -15,6 +16,7 @@ export interface TripRow {
   readonly created_at: string;
   readonly updated_at: string;
   readonly deleted_at: string | null;
+  readonly access_role: TripAccessRole;
 }
 
 export interface TripSummary {
@@ -27,6 +29,7 @@ export interface TripSummary {
   readonly version: number;
   readonly createdAt: string;
   readonly updatedAt: string;
+  readonly accessRole: TripAccessRole;
 }
 
 export interface TripRecord extends TripSummary {
@@ -44,12 +47,19 @@ function summary(row: TripRow): TripSummary {
     version: row.version,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+    accessRole: row.access_role,
   };
 }
 
 function record(row: TripRow): TripRecord {
   return { ...summary(row), document: JSON.parse(row.document_json) as Record<string, unknown> };
 }
+
+const tripSelect =
+  "SELECT t.id, t.owner_user_id, t.title, t.start_date, t.end_date, t.status, t.locale, " +
+  "t.document_json, t.version, t.created_at, t.updated_at, t.deleted_at, " +
+  "CASE WHEN t.owner_user_id = ? THEN 'owner' ELSE m.role END AS access_role " +
+  "FROM trips t LEFT JOIN trip_members m ON m.trip_id = t.id AND m.user_id = ? ";
 
 export async function createTrip(
   db: D1Database,
@@ -59,23 +69,32 @@ export async function createTrip(
   now = new Date().toISOString(),
 ): Promise<TripRecord> {
   const id = `trip_${crypto.randomUUID().replaceAll("-", "")}`;
-  await db
-    .prepare(
-      "INSERT INTO trips (id, owner_user_id, title, start_date, end_date, status, locale, document_json, version, created_at, updated_at) " +
-        "VALUES (?, ?, ?, ?, ?, 'active', ?, ?, 1, ?, ?)",
-    )
-    .bind(
-      id,
-      ownerUserId,
-      trip.title,
-      trip.startDate,
-      trip.endDate,
-      locale,
-      JSON.stringify(trip.document),
-      now,
-      now,
-    )
-    .run();
+  const revisionId = `rev_${crypto.randomUUID().replaceAll("-", "")}`;
+  const documentJson = JSON.stringify(trip.document);
+  await db.batch([
+    db
+      .prepare(
+        "INSERT INTO trips (id, owner_user_id, title, start_date, end_date, status, locale, document_json, version, created_at, updated_at) " +
+          "VALUES (?, ?, ?, ?, ?, 'active', ?, ?, 1, ?, ?)",
+      )
+      .bind(
+        id,
+        ownerUserId,
+        trip.title,
+        trip.startDate,
+        trip.endDate,
+        locale,
+        documentJson,
+        now,
+        now,
+      ),
+    db
+      .prepare(
+        "INSERT INTO trip_revisions (id, trip_id, actor_user_id, version, operation, locale, document_json, created_at) " +
+          "VALUES (?, ?, ?, 1, 'create', ?, ?, ?)",
+      )
+      .bind(revisionId, id, ownerUserId, locale, documentJson, now),
+  ]);
   const created = await readTrip(db, ownerUserId, id);
   if (created === null) throw new Error("TRIP_CREATE_READBACK_FAILED");
   return created;
@@ -83,41 +102,37 @@ export async function createTrip(
 
 export async function listTrips(
   db: D1Database,
-  ownerUserId: string,
+  userId: string,
   limit = 20,
   status: TripListStatus = "all",
 ): Promise<ReadonlyArray<TripSummary>> {
   const safeLimit = Math.min(Math.max(Math.trunc(limit), 1), 50);
-  const select =
-    "SELECT id, owner_user_id, title, start_date, end_date, status, locale, document_json, version, created_at, updated_at, deleted_at FROM trips ";
+  const visible = "t.deleted_at IS NULL AND (t.owner_user_id = ? OR m.user_id = ?)";
   const result =
     status === "all"
       ? await db
-          .prepare(
-            `${select}WHERE owner_user_id = ? AND deleted_at IS NULL ORDER BY updated_at DESC LIMIT ?`,
-          )
-          .bind(ownerUserId, safeLimit)
+          .prepare(`${tripSelect}WHERE ${visible} ORDER BY t.updated_at DESC LIMIT ?`)
+          .bind(userId, userId, userId, userId, safeLimit)
           .all<TripRow>()
       : await db
           .prepare(
-            `${select}WHERE owner_user_id = ? AND deleted_at IS NULL AND status = ? ORDER BY updated_at DESC LIMIT ?`,
+            `${tripSelect}WHERE ${visible} AND t.status = ? ORDER BY t.updated_at DESC LIMIT ?`,
           )
-          .bind(ownerUserId, status, safeLimit)
+          .bind(userId, userId, userId, userId, status, safeLimit)
           .all<TripRow>();
   return result.results.map(summary);
 }
 
 export async function readTrip(
   db: D1Database,
-  ownerUserId: string,
+  userId: string,
   id: string,
 ): Promise<TripRecord | null> {
   const row = await db
     .prepare(
-      "SELECT id, owner_user_id, title, start_date, end_date, status, locale, document_json, version, created_at, updated_at, deleted_at " +
-        "FROM trips WHERE id = ? AND owner_user_id = ? AND deleted_at IS NULL",
+      `${tripSelect}WHERE t.id = ? AND t.deleted_at IS NULL AND (t.owner_user_id = ? OR m.user_id = ?) LIMIT 1`,
     )
-    .bind(id, ownerUserId)
+    .bind(userId, userId, id, userId, userId)
     .first<TripRow>();
   return row === null ? null : record(row);
 }
@@ -125,48 +140,73 @@ export async function readTrip(
 export type UpdateTripResult =
   | { readonly kind: "updated"; readonly trip: TripRecord }
   | { readonly kind: "conflict"; readonly currentVersion: number }
+  | { readonly kind: "forbidden" }
   | { readonly kind: "missing" };
 
 export async function updateTrip(
   db: D1Database,
-  ownerUserId: string,
+  userId: string,
   id: string,
   baseVersion: number,
   locale: TripLocale,
   trip: ValidTripDocument,
   now = new Date().toISOString(),
+  operation = "update",
 ): Promise<UpdateTripResult> {
-  const result = await db
-    .prepare(
-      "UPDATE trips SET title = ?, start_date = ?, end_date = ?, locale = ?, document_json = ?, version = version + 1, updated_at = ? " +
-        "WHERE id = ? AND owner_user_id = ? AND deleted_at IS NULL AND version = ?",
-    )
-    .bind(
-      trip.title,
-      trip.startDate,
-      trip.endDate,
-      locale,
-      JSON.stringify(trip.document),
-      now,
-      id,
-      ownerUserId,
-      baseVersion,
-    )
-    .run();
+  const nextVersion = baseVersion + 1;
+  const revisionId = `rev_${crypto.randomUUID().replaceAll("-", "")}`;
+  const documentJson = JSON.stringify(trip.document);
+  const [updated] = await db.batch([
+    db
+      .prepare(
+        "UPDATE trips SET title = ?, start_date = ?, end_date = ?, locale = ?, document_json = ?, version = version + 1, updated_at = ? " +
+          "WHERE id = ? AND deleted_at IS NULL AND version = ? AND " +
+          "(owner_user_id = ? OR EXISTS (SELECT 1 FROM trip_members WHERE trip_id = ? AND user_id = ? AND role = 'editor'))",
+      )
+      .bind(
+        trip.title,
+        trip.startDate,
+        trip.endDate,
+        locale,
+        documentJson,
+        now,
+        id,
+        baseVersion,
+        userId,
+        id,
+        userId,
+      ),
+    db
+      .prepare(
+        "INSERT INTO trip_revisions (id, trip_id, actor_user_id, version, operation, locale, document_json, created_at) " +
+          "SELECT ?, id, ?, version, ?, locale, document_json, ? FROM trips " +
+          "WHERE id = ? AND deleted_at IS NULL AND version = ? AND updated_at = ?",
+      )
+      .bind(revisionId, userId, operation, now, id, nextVersion, now),
+  ]);
 
-  if ((result.meta.changes ?? 0) > 0) {
-    const updated = await readTrip(db, ownerUserId, id);
-    if (updated === null) throw new Error("TRIP_UPDATE_READBACK_FAILED");
-    return { kind: "updated", trip: updated };
+  if ((updated.meta.changes ?? 0) > 0) {
+    const tripRecord = await readTrip(db, userId, id);
+    if (tripRecord === null) throw new Error("TRIP_UPDATE_READBACK_FAILED");
+    return { kind: "updated", trip: tripRecord };
   }
 
   const current = await db
-    .prepare("SELECT version FROM trips WHERE id = ? AND owner_user_id = ? AND deleted_at IS NULL")
-    .bind(id, ownerUserId)
-    .first<{ readonly version: number }>();
-  return current === null
-    ? { kind: "missing" }
-    : { kind: "conflict", currentVersion: current.version };
+    .prepare(
+      "SELECT t.version, t.owner_user_id, m.role FROM trips t " +
+        "LEFT JOIN trip_members m ON m.trip_id = t.id AND m.user_id = ? " +
+        "WHERE t.id = ? AND t.deleted_at IS NULL LIMIT 1",
+    )
+    .bind(userId, id)
+    .first<{
+      readonly version: number;
+      readonly owner_user_id: string;
+      readonly role: "editor" | "viewer" | null;
+    }>();
+  if (current === null) return { kind: "missing" };
+  if (current.owner_user_id !== userId && current.role === null) return { kind: "missing" };
+  if (current.owner_user_id !== userId && current.role === "viewer") return { kind: "forbidden" };
+  return { kind: "conflict", currentVersion: current.version };
 }
 
 export async function deleteTrip(
