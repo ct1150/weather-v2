@@ -200,7 +200,10 @@ try {
     body: { baseVersion: 2 },
   });
   requireValue(restored.data?.version === 3, "revision restore did not create version 3");
-  requireValue(restored.data?.title === document.title, "revision restore did not restore version 1");
+  requireValue(
+    restored.data?.title === document.title,
+    "revision restore did not restore version 1",
+  );
 
   await request(`/api/v1/trips/${tripId}/revisions/2/restore`, {
     method: "POST",
@@ -230,7 +233,10 @@ try {
   const revisionsAfterRestore = await request(`/api/v1/trips/${tripId}/revisions?limit=30`, {
     headers: authHeaders(viewerUser, viewerEmail),
   });
-  requireValue(revisionsAfterRestore.data?.items?.[0]?.version === 3, "restored revision is missing");
+  requireValue(
+    revisionsAfterRestore.data?.items?.[0]?.version === 3,
+    "restored revision is missing",
+  );
   requireValue(
     revisionsAfterRestore.data?.items?.[0]?.operation === "restore:1",
     "restore operation metadata is missing",
