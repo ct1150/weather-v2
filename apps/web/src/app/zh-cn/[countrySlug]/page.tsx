@@ -59,6 +59,10 @@ export default async function SimplifiedChineseCountryPage({
   const baseViewModel = projectCountry(dataset, country.slug, "zh-cn");
   const viewModel = {
     ...baseViewModel,
+    country: {
+      ...baseViewModel.country,
+      slug: `zh-cn/${baseViewModel.country.slug}`,
+    },
     cities: baseViewModel.cities.map(localizeLink),
     rankings: baseViewModel.rankings.map((ranking) => ({
       ...ranking,
