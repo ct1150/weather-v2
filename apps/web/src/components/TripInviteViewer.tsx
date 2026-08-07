@@ -23,8 +23,14 @@ import {
 } from "../trips/workspace";
 import type { CloudTripLocale } from "./CloudTripControls";
 
-const INVITE_SESSION_KEY = "wnr:trip-invite-token:v1";
+const INVITE_STORAGE_KEY = "wnr:trip-invite-token:v1";
+const INVITE_STORAGE_TTL_MS = 60 * 60 * 1000;
 const TOKEN_PATTERN = /^inv_[a-f0-9]{64}$/u;
+
+interface StoredInviteToken {
+  readonly token: string;
+  readonly expiresAt: number;
+}
 
 const COPY = {
   en: {
@@ -121,14 +127,46 @@ function persistOpenedTrip(remote: {
   });
 }
 
+function clearStoredInviteToken(): void {
+  window.localStorage.removeItem(INVITE_STORAGE_KEY);
+}
+
+function persistInviteToken(token: string): void {
+  if (!TOKEN_PATTERN.test(token)) return;
+  const stored = {
+    token,
+    expiresAt: Date.now() + INVITE_STORAGE_TTL_MS,
+  } satisfies StoredInviteToken;
+  window.localStorage.setItem(INVITE_STORAGE_KEY, JSON.stringify(stored));
+}
+
+function readStoredInviteToken(): string | null {
+  const value = window.localStorage.getItem(INVITE_STORAGE_KEY);
+  if (value === null) return null;
+  try {
+    const stored = JSON.parse(value) as Partial<StoredInviteToken>;
+    if (
+      typeof stored.token === "string" &&
+      TOKEN_PATTERN.test(stored.token) &&
+      typeof stored.expiresAt === "number" &&
+      stored.expiresAt > Date.now()
+    ) {
+      return stored.token;
+    }
+  } catch {
+    // Invalid local state is treated as expired and removed below.
+  }
+  clearStoredInviteToken();
+  return null;
+}
+
 function tokenFromBrowser(): string | null {
   const fromHash = new URLSearchParams(window.location.hash.replace(/^#/u, "")).get("token");
   if (fromHash !== null && TOKEN_PATTERN.test(fromHash)) {
-    window.sessionStorage.setItem(INVITE_SESSION_KEY, fromHash);
+    persistInviteToken(fromHash);
     return fromHash;
   }
-  const stored = window.sessionStorage.getItem(INVITE_SESSION_KEY);
-  return stored !== null && TOKEN_PATTERN.test(stored) ? stored : null;
+  return readStoredInviteToken();
 }
 
 export function TripInviteViewer({ locale }: { readonly locale: CloudTripLocale }): ReactElement {
@@ -171,7 +209,7 @@ export function TripInviteViewer({ locale }: { readonly locale: CloudTripLocale 
   const providerAvailable = health?.providers.google === true || health?.providers.email === true;
 
   const callbackUrl = useCallback((): string => {
-    window.sessionStorage.setItem(INVITE_SESSION_KEY, token ?? "");
+    if (token !== null) persistInviteToken(token);
     return `${window.location.origin}${tripsPath(locale)}/invite`;
   }, [locale, token]);
 
@@ -193,7 +231,7 @@ export function TripInviteViewer({ locale }: { readonly locale: CloudTripLocale 
       const accepted = await acceptCloudTripInvite(token);
       const remote = await readCloudTrip(accepted.tripId);
       persistOpenedTrip(remote);
-      window.sessionStorage.removeItem(INVITE_SESSION_KEY);
+      clearStoredInviteToken();
       setMessage(copy.accepted);
       window.location.assign(workspacePath(locale));
     } catch {
