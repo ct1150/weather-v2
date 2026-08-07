@@ -1,9 +1,9 @@
 # Production product smoke status
 
-- Conclusion: success
-- Deploy head SHA: 26f8508a3a9001a6f2fb7e2f4f43cb770efec12a
-- Deploy run: https://github.com/ct1150/weather-v2/actions/runs/31145486196
-- Verified at: 2026-08-07T03:52:37Z
+- Conclusion: failure
+- Deploy head SHA: 2d21dc32637a1830a8f4fe74df27c4ec673385be
+- Deploy run: https://github.com/ct1150/weather-v2/actions/runs/31146508711
+- Verified at: 2026-08-07T04:13:00Z
 
 ## Checks
 
@@ -14,7 +14,7 @@
 - Traditional weather radar: success
 - Traditional country weather route: success
 - Traditional city weather route: success
-- Simplified legacy route: success
+- Simplified legacy route: failure (missing: 海外中文用户)
 - Simplified city weather route: success
 - Trip cities API: success
 - Protected sync health: success
