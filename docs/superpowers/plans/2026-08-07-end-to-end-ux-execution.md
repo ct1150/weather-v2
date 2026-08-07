@@ -21,6 +21,8 @@ Every phase must be independently releasable and must pass the existing producti
 ## Phase 1 — Navigation, trust and landing-page consistency
 
 Priority: P0
+Implementation: complete
+Release: validating production
 
 ### Changes
 
