@@ -62,7 +62,7 @@ export default function TraditionalTripsLanding(): ReactElement {
               建立我的行程
             </a>
             <a className="trip-secondary-button" href="/zh-hant/trips/new">
-              匯入 Markdown 行程
+              匯入現有行程
             </a>
           </div>
           <p className="mt-4 max-w-2xl text-xs leading-5 text-muted">
