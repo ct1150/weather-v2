@@ -10,16 +10,10 @@ import type {
   CountryWeatherDayViewModel,
 } from "../app/view-models";
 import type { Window } from "../api/v1/schemas";
+import { windowIndicesForDates } from "../weather/window-selection";
 import { MAPLIBRE_STYLE_URL } from "./ExplorerMap";
 
 import "maplibre-gl/dist/maplibre-gl.css";
-
-const WINDOW_INDICES: Readonly<Record<Window, ReadonlyArray<number>>> = {
-  today: [0],
-  tomorrow: [1],
-  weekend: [5, 6],
-  next_week: [2, 3, 4],
-};
 
 type ExplorerLocale = "en" | "zh-cn";
 
@@ -367,24 +361,31 @@ export function CountryWeatherExplorer({
   const markerRefs = useRef<MapLibreMarker[]>([]);
 
   const selectedIndices = useMemo(() => {
-    if (customRange === null) return WINDOW_INDICES[activeWindow];
+    if (customRange === null) {
+      return windowIndicesForDates(
+        (cities[0]?.days ?? []).map((day) => day.localDate),
+        activeWindow,
+      );
+    }
     return Array.from(
       { length: customRange.end - customRange.start + 1 },
       (_, index) => customRange.start + index,
     );
-  }, [activeWindow, customRange]);
+  }, [activeWindow, cities, customRange]);
   const summaries = useMemo(
     () =>
-      cities
-        .map((city) => summarize(city, selectedIndices))
-        .sort((left, right) => {
-          if (right.dryDays !== left.dryDays) return right.dryDays - left.dryDays;
-          if ((left.totalRainMm ?? Infinity) !== (right.totalRainMm ?? Infinity))
-            return (left.totalRainMm ?? Infinity) - (right.totalRainMm ?? Infinity);
-          if ((left.maxRain ?? 101) !== (right.maxRain ?? 101))
-            return (left.maxRain ?? 101) - (right.maxRain ?? 101);
-          return (right.score ?? -1) - (left.score ?? -1);
-        }),
+      selectedIndices.length === 0
+        ? []
+        : cities
+            .map((city) => summarize(city, selectedIndices))
+            .sort((left, right) => {
+              if (right.dryDays !== left.dryDays) return right.dryDays - left.dryDays;
+              if ((left.totalRainMm ?? Infinity) !== (right.totalRainMm ?? Infinity))
+                return (left.totalRainMm ?? Infinity) - (right.totalRainMm ?? Infinity);
+              if ((left.maxRain ?? 101) !== (right.maxRain ?? 101))
+                return (left.maxRain ?? 101) - (right.maxRain ?? 101);
+              return (right.score ?? -1) - (left.score ?? -1);
+            }),
     [cities, selectedIndices],
   );
   const selected =
@@ -551,7 +552,16 @@ export function CountryWeatherExplorer({
           <p className="country-control-label">{copy.travelDates}</p>
           <div className="country-window-tabs" role="group" aria-label={copy.travelDates}>
             {WINDOWS.map((windowKind) => {
-              const dates = rangeLabel(referenceDays(cities, WINDOW_INDICES[windowKind]), locale);
+              const dates = rangeLabel(
+                referenceDays(
+                  cities,
+                  windowIndicesForDates(
+                    (cities[0]?.days ?? []).map((day) => day.localDate),
+                    windowKind,
+                  ),
+                ),
+                locale,
+              );
               return (
                 <button
                   key={windowKind}

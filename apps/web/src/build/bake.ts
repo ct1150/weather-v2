@@ -18,6 +18,7 @@ import { calculateTravelScore, describeWeatherCode } from "@wnr/domain";
 import type { TravelScoreInput, WeatherRow } from "@wnr/domain";
 import { computeStale } from "../api/v1/schemas";
 import type { Locale, Window, Theme, LocalDate, ReasonCode } from "../api/v1/schemas";
+import { windowIndicesForDates } from "../weather/window-selection";
 
 import { geographySeed } from "./geography.seed";
 import { TRAVEL_SCORE_MODEL_VERSION } from "./types";
@@ -246,12 +247,7 @@ export function getBakedDataset(): Promise<BakedDataset> {
 // Window helpers
 // ---------------------------------------------------------------------------
 
-const WINDOW_DAYS: Record<Window, ReadonlyArray<number>> = {
-  today: [0],
-  tomorrow: [1],
-  weekend: [5, 6],
-  next_week: [2, 3, 4],
-};
+const WINDOW_ORDER: ReadonlyArray<Window> = ["today", "tomorrow", "weekend", "next_week"];
 
 const WINDOW_LABELS: Record<Window, string> = {
   today: "Today",
@@ -299,13 +295,12 @@ export function buildWindowControls(
   selected: Window,
 ): ReadonlyArray<WindowControl> {
   const firstCity = dataset.cities[0];
-  return (Object.keys(WINDOW_DAYS) as Window[]).map((window) => {
-    const exactDates = firstCity
-      ? WINDOW_DAYS[window]
-          .map((i) => firstCity.forecast.days[i]?.localDate ?? null)
-          .filter((d): d is LocalDate => d !== null)
-          .map(shortDate)
-      : [];
+  const dates = firstCity?.forecast.days.map((day) => day.localDate) ?? [];
+  return WINDOW_ORDER.map((window) => {
+    const exactDates = windowIndicesForDates(dates, window)
+      .map((index) => dates[index] ?? null)
+      .filter((date): date is LocalDate => date !== null)
+      .map(shortDate);
     return {
       window,
       label: WINDOW_LABELS[window],
@@ -322,13 +317,13 @@ export function projectHome(
   config: BuildConfig,
   window: Window,
 ): TravelRadarViewModel {
-  const dayIndices = WINDOW_DAYS[window];
-  const primaryDayIndex = dayIndices[0] ?? 0;
-
   const cards: DestinationCardViewModel[] = [];
   for (const baked of dataset.cities) {
     if (!baked.city.isFeatured) continue;
-    const day = baked.forecast.days[primaryDayIndex] ?? baked.forecast.days[0];
+    const localDates = baked.forecast.days.map((day) => day.localDate);
+    const primaryDayIndex = windowIndicesForDates(localDates, window)[0];
+    if (primaryDayIndex === undefined) continue;
+    const day = baked.forecast.days[primaryDayIndex];
     if (day === undefined) continue;
     const score = computeCityScore(day, config.modelVersion);
     cards.push({
@@ -339,18 +334,18 @@ export function projectHome(
     });
   }
 
-  const includedDates: LocalDate[] = dataset.cities[0]
-    ? dayIndices
-        .map((i) => dataset.cities[0]?.forecast.days[i]?.localDate ?? null)
-        .filter((d): d is LocalDate => d !== null)
-    : [];
+  const firstCity = dataset.cities[0];
+  const referenceDates = firstCity?.forecast.days.map((day) => day.localDate) ?? [];
+  const includedDates: LocalDate[] = windowIndicesForDates(referenceDates, window)
+    .map((index) => referenceDates[index] ?? null)
+    .filter((date): date is LocalDate => date !== null);
 
   return {
     window,
     includedDates,
     cards,
     freshness: freshness(dataset, config),
-    state: "ready",
+    state: cards.length > 0 ? "ready" : "empty",
   };
 }
 
@@ -506,21 +501,25 @@ export function projectHomeMapMarkers(
   config: BuildConfig,
   window: Window = "today",
 ): ReadonlyArray<ExplorerMapMarker> {
-  const primaryDayIndex = WINDOW_DAYS[window][0] ?? 0;
   return dataset.cities
     .filter((b) => b.city.isFeatured)
-    .map((b) => {
-      const day = b.forecast.days[primaryDayIndex] ?? b.forecast.days[0];
+    .flatMap((b) => {
+      const localDates = b.forecast.days.map((day) => day.localDate);
+      const primaryDayIndex = windowIndicesForDates(localDates, window)[0];
+      if (primaryDayIndex === undefined) return [];
+      const day = b.forecast.days[primaryDayIndex];
       const score = day === undefined ? null : computeCityScore(day, config.modelVersion);
-      return {
-        id: b.city.id,
-        latitude: b.city.latitude,
-        longitude: b.city.longitude,
-        label: b.city.name[config.defaultLocale] ?? b.city.name.en,
-        path: `/${b.country.slug}/${b.city.slug}`,
-        score: score === null || score.hidden ? null : score.score,
-        theme: "general",
-      } satisfies ExplorerMapMarker;
+      return [
+        {
+          id: b.city.id,
+          latitude: b.city.latitude,
+          longitude: b.city.longitude,
+          label: b.city.name[config.defaultLocale] ?? b.city.name.en,
+          path: `/${b.country.slug}/${b.city.slug}`,
+          score: score === null || score.hidden ? null : score.score,
+          theme: "general",
+        } satisfies ExplorerMapMarker,
+      ];
     });
 }
 

@@ -11,16 +11,10 @@ import type {
 } from "../app/view-models";
 import type { Window } from "../api/v1/schemas";
 import { toTraditionalText } from "../trips/traditional";
+import { windowIndicesForDates } from "../weather/window-selection";
 import { MAPLIBRE_STYLE_URL } from "./ExplorerMap";
 
 import "maplibre-gl/dist/maplibre-gl.css";
-
-const WINDOW_INDICES: Readonly<Record<Window, ReadonlyArray<number>>> = {
-  today: [0],
-  tomorrow: [1],
-  weekend: [5, 6],
-  next_week: [2, 3, 4],
-};
 
 const WINDOW_LABELS: Readonly<Record<Window, string>> = {
   today: "今天",
@@ -225,25 +219,32 @@ export function TraditionalCountryWeatherExplorer({
   const markerRefs = useRef<MapLibreMarker[]>([]);
 
   const selectedIndices = useMemo(() => {
-    if (customRange === null) return WINDOW_INDICES[activeWindow];
+    if (customRange === null) {
+      return windowIndicesForDates(
+        (cities[0]?.days ?? []).map((day) => day.localDate),
+        activeWindow,
+      );
+    }
     return Array.from(
       { length: customRange.end - customRange.start + 1 },
       (_, index) => customRange.start + index,
     );
-  }, [activeWindow, customRange]);
+  }, [activeWindow, cities, customRange]);
 
   const summaries = useMemo(
     () =>
-      cities
-        .map((city) => summarize(city, selectedIndices))
-        .sort((left, right) => {
-          if (right.dryDays !== left.dryDays) return right.dryDays - left.dryDays;
-          if ((left.totalRainMm ?? Infinity) !== (right.totalRainMm ?? Infinity))
-            return (left.totalRainMm ?? Infinity) - (right.totalRainMm ?? Infinity);
-          if ((left.maxRain ?? 101) !== (right.maxRain ?? 101))
-            return (left.maxRain ?? 101) - (right.maxRain ?? 101);
-          return (right.score ?? -1) - (left.score ?? -1);
-        }),
+      selectedIndices.length === 0
+        ? []
+        : cities
+            .map((city) => summarize(city, selectedIndices))
+            .sort((left, right) => {
+              if (right.dryDays !== left.dryDays) return right.dryDays - left.dryDays;
+              if ((left.totalRainMm ?? Infinity) !== (right.totalRainMm ?? Infinity))
+                return (left.totalRainMm ?? Infinity) - (right.totalRainMm ?? Infinity);
+              if ((left.maxRain ?? 101) !== (right.maxRain ?? 101))
+                return (left.maxRain ?? 101) - (right.maxRain ?? 101);
+              return (right.score ?? -1) - (left.score ?? -1);
+            }),
     [cities, selectedIndices],
   );
 
@@ -396,7 +397,17 @@ export function TraditionalCountryWeatherExplorer({
                 className={`country-window-button focus-ring ${customRange === null && activeWindow === windowKind ? "is-active" : ""}`}
               >
                 <span>{WINDOW_LABELS[windowKind]}</span>
-                <small>{rangeLabel(referenceDays(cities, WINDOW_INDICES[windowKind]))}</small>
+                <small>
+                  {rangeLabel(
+                    referenceDays(
+                      cities,
+                      windowIndicesForDates(
+                        (cities[0]?.days ?? []).map((day) => day.localDate),
+                        windowKind,
+                      ),
+                    ),
+                  )}
+                </small>
               </button>
             ))}
           </div>

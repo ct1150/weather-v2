@@ -21,16 +21,10 @@ describe("windowIndicesForDates", () => {
   it("resolves this weekend from calendar weekdays", () => {
     expect(windowIndicesForDates(datesFromFriday, "weekend")).toEqual([1, 2]);
     expect(
-      windowIndicesForDates(
-        ["2026-08-08", "2026-08-09", "2026-08-10", "2026-08-11"],
-        "weekend",
-      ),
+      windowIndicesForDates(["2026-08-08", "2026-08-09", "2026-08-10", "2026-08-11"], "weekend"),
     ).toEqual([0, 1]);
     expect(
-      windowIndicesForDates(
-        ["2026-08-09", "2026-08-10", "2026-08-11", "2026-08-12"],
-        "weekend",
-      ),
+      windowIndicesForDates(["2026-08-09", "2026-08-10", "2026-08-11", "2026-08-12"], "weekend"),
     ).toEqual([0]);
   });
 
