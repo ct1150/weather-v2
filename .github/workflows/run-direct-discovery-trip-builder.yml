@@ -34,6 +34,10 @@ jobs:
 
       - name: Extract and apply branch builder
         run: |
+          if [ -f apps/web/src/components/DiscoveryTripAction.tsx ]; then
+            echo "implementation already built on branch"
+            exit 0
+          fi
           python3 <<'PY'
           from pathlib import Path
           source = Path('.github/workflows/build-direct-discovery-trip.yml').read_text().splitlines()
@@ -80,15 +84,17 @@ jobs:
 
       - name: Format changed files
         run: |
-          pnpm exec prettier --write \
-            apps/web/src/trips/add-destination.ts \
-            apps/web/src/trips/add-destination.test.ts \
-            apps/web/src/components/DiscoveryTripAction.tsx \
-            apps/web/src/components/CityTripBridgeAction.tsx \
-            apps/web/src/components/CountryWeatherExplorer.tsx \
-            apps/web/src/components/TraditionalCountryWeatherExplorer.tsx \
-            apps/web/src/components/discovery-trip-action.test.ts \
-            .github/workflows/verify-trip-product-production.yml
+          if [ -f apps/web/src/components/DiscoveryTripAction.tsx ]; then
+            pnpm exec prettier --write \
+              apps/web/src/trips/add-destination.ts \
+              apps/web/src/trips/add-destination.test.ts \
+              apps/web/src/components/DiscoveryTripAction.tsx \
+              apps/web/src/components/CityTripBridgeAction.tsx \
+              apps/web/src/components/CountryWeatherExplorer.tsx \
+              apps/web/src/components/TraditionalCountryWeatherExplorer.tsx \
+              apps/web/src/components/discovery-trip-action.test.ts \
+              .github/workflows/verify-trip-product-production.yml
+          fi
 
       - name: Build libraries for validation
         run: pnpm -r --filter '!@wnr/web' --filter '!@wnr/weather-sync' --filter '!@wnr/maintenance' build
@@ -105,8 +111,15 @@ jobs:
 
       - name: Commit built increment
         run: |
+          git restore -- .github/workflows/verify-trip-product-production.yml || true
+          git restore -- .github/workflows/build-direct-discovery-trip.yml || true
+          git restore -- .github/direct-discovery-trip-trigger || true
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
+          if git diff --cached --quiet; then
+            echo "no implementation changes to commit"
+            exit 0
+          fi
           git commit -m "feat(ux): add weather results directly to itinerary"
           git push origin HEAD:agent/direct-discovery-trip
