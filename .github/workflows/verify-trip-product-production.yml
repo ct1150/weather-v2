@@ -153,6 +153,20 @@ jobs:
             jp-tokyo th-phuket kr-busan
 
           fetch_and_match \
+            "Cloud Trip API health" \
+            "https://trip.868656.xyz/health" \
+            /tmp/cloud-trip-health.json \
+            '"ok":true' '"service":"trip-api"' '"cloudTrip":true' '"auth":true'
+
+          CLOUD_TRIP_ANON_STATUS=$(curl --silent --output /tmp/cloud-trip-anonymous.json --write-out '%{http_code}' \
+            "https://trip.868656.xyz/api/v1/trips")
+          if [ "${CLOUD_TRIP_ANON_STATUS}" = "401" ]; then
+            record "Anonymous Cloud Trip access rejected" success
+          else
+            record "Anonymous Cloud Trip access rejected" "failure (HTTP ${CLOUD_TRIP_ANON_STATUS})"
+          fi
+
+          fetch_and_match \
             "Protected sync health" \
             "https://where-not-rain-sync-production.ct1150.workers.dev/health" \
             /tmp/sync-health.json \
