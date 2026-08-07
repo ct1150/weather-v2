@@ -70,9 +70,6 @@ export default function TripsLanding(): ReactElement {
             <a className="trip-secondary-button" href="/trips/new">
               Import a Markdown itinerary
             </a>
-            <a className="trip-secondary-button" href="/zh-hant/trips" hrefLang="zh-Hant">
-              繁體中文
-            </a>
           </div>
           <p className="mt-4 max-w-2xl text-xs leading-5 text-muted">
             Current weather coverage includes Japan, South Korea, Thailand, Vietnam, Singapore,
