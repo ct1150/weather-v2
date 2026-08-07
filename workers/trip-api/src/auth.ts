@@ -18,6 +18,8 @@ export interface ProviderAvailability {
   readonly email: boolean;
 }
 
+export type TripAuth = ReturnType<typeof betterAuth>;
+
 export function providerAvailability(env: AuthEnv): ProviderAvailability {
   return {
     auth: typeof env.BETTER_AUTH_SECRET === "string" && env.BETTER_AUTH_SECRET.length >= 32,
@@ -44,7 +46,7 @@ async function sendMagicLinkEmail(env: AuthEnv, email: string, url: string): Pro
   if (!response.ok) throw new Error(`EMAIL_DELIVERY_${response.status}`);
 }
 
-export function createAuth(env: AuthEnv) {
+export function createAuth(env: AuthEnv): TripAuth | null {
   const availability = providerAvailability(env);
   if (!availability.auth || !env.BETTER_AUTH_SECRET || !env.AUTH_BASE_URL) return null;
 
@@ -61,7 +63,11 @@ export function createAuth(env: AuthEnv) {
     database: env.DB,
     secret: env.BETTER_AUTH_SECRET,
     baseURL: env.AUTH_BASE_URL,
-    trustedOrigins: [env.WEB_ORIGIN ?? "https://868656.xyz", "https://868656.xyz", "http://localhost:3000"],
+    trustedOrigins: [
+      env.WEB_ORIGIN ?? "https://868656.xyz",
+      "https://868656.xyz",
+      "http://localhost:3000",
+    ],
     socialProviders,
     plugins: [
       magicLink({
