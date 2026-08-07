@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { createInMemoryD1 } from "@wnr/test-utils";
 import { beforeEach, describe, expect, it } from "vitest";
-import { handleRequest, type WorkerEnv } from "./index";
+import { handleRequest, safeLogPath, type WorkerEnv } from "./index";
 
 const smokeToken = "cloud-trip-smoke-token-for-tests";
 
@@ -172,5 +172,16 @@ describe("Trip API", () => {
 
     const readAfterDelete = await handleRequest(request(`/api/v1/trips/${created.data.id}`), env);
     expect(readAfterDelete.status).toBe(404);
+  });
+
+  it("redacts bearer share tokens from error log paths", () => {
+    const token = `shr_${"a".repeat(64)}`;
+    expect(safeLogPath(`/api/v1/shared-trips/${token}`)).toBe(
+      "/api/v1/shared-trips/[redacted]",
+    );
+    expect(safeLogPath(`/api/v1/shared-trips/${token}/copy`)).toBe(
+      "/api/v1/shared-trips/[redacted]/copy",
+    );
+    expect(safeLogPath("/api/v1/trips/trip_example")).toBe("/api/v1/trips/trip_example");
   });
 });
