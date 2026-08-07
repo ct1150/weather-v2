@@ -1,0 +1,154 @@
+name: Build Cloud Trip Phase 1
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: write
+  pull-requests: read
+
+jobs:
+  build:
+    if: github.head_ref == 'feature/cloud-trip-phase1' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/cloud-trip-phase1
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.11.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install current dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Add Cloud Trip dependencies
+        run: |
+          pnpm --filter @wnr/trip-api add better-auth@latest
+          pnpm --filter @wnr/web add better-auth@latest
+          pnpm --filter @wnr/trip-api add -D @cloudflare/workers-types@latest
+
+      - name: Resolve independent Trip D1 databases
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: b266970852cbc371061c94c5b1fe76a9
+        run: |
+          set -euo pipefail
+          WRANGLER='pnpm dlx wrangler@latest'
+          $WRANGLER d1 list --json > /tmp/d1.json
+          python3 <<'PY'
+          import json
+          from pathlib import Path
+          rows = json.loads(Path('/tmp/d1.json').read_text())
+          names = {row.get('name'): row.get('uuid') or row.get('id') for row in rows}
+          Path('/tmp/preview-id').write_text(names.get('wnr-trip-preview') or '')
+          Path('/tmp/prod-id').write_text(names.get('wnr-trip-production') or '')
+          PY
+          if [ ! -s /tmp/preview-id ]; then
+            $WRANGLER d1 create wnr-trip-preview >/tmp/create-preview.txt
+          fi
+          if [ ! -s /tmp/prod-id ]; then
+            $WRANGLER d1 create wnr-trip-production >/tmp/create-prod.txt
+          fi
+          $WRANGLER d1 list --json > /tmp/d1-final.json
+          python3 <<'PY'
+          import json
+          from pathlib import Path
+          rows = json.loads(Path('/tmp/d1-final.json').read_text())
+          names = {row.get('name'): row.get('uuid') or row.get('id') for row in rows}
+          preview = names.get('wnr-trip-preview')
+          production = names.get('wnr-trip-production')
+          if not preview or not production:
+              raise SystemExit('Trip D1 databases were not resolved')
+          path = Path('workers/trip-api/wrangler.jsonc')
+          text = path.read_text()
+          text = text.replace('11111111-1111-1111-1111-111111111111', preview)
+          text = text.replace('00000000-0000-0000-0000-000000000000', production)
+          path.write_text(text)
+          print('Resolved dedicated Trip D1 bindings without printing credentials.')
+          PY
+
+      - name: Wire cloud controls into all workspaces
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+
+          def insert_once(path, needle, replacement):
+              p = Path(path)
+              text = p.read_text()
+              if replacement in text:
+                  return
+              if needle not in text:
+                  raise SystemExit(f'missing insertion point in {path}: {needle[:80]!r}')
+              p.write_text(text.replace(needle, replacement, 1))
+
+          trip = 'apps/web/src/components/TripWorkspace.tsx'
+          insert_once(
+              trip,
+              '} from "../trips/workspace";\n',
+              '} from "../trips/workspace";\nimport { CloudTripControls } from "./CloudTripControls";\n',
+          )
+          insert_once(
+              trip,
+              '      <section className="trip-summary-grid mt-5" aria-label="行程工作台摘要">',
+              '      <CloudTripControls\n        locale="zh-cn"\n        workspace={workspace}\n        onRemoteWorkspace={setWorkspace}\n      />\n\n      <section className="trip-summary-grid mt-5" aria-label="行程工作台摘要">',
+          )
+
+          localized = 'apps/web/src/components/LocalizedTripWorkspace.tsx'
+          insert_once(
+              localized,
+              '} from "../trips/traditional";\n',
+              '} from "../trips/traditional";\nimport { CloudTripControls } from "./CloudTripControls";\n',
+          )
+          insert_once(
+              localized,
+              '      <section className="trip-summary-grid" aria-label={copy.average}>',
+              '      <CloudTripControls\n        locale={locale}\n        workspace={workspace}\n        onRemoteWorkspace={(remote) => setWorkspace(localizeWorkspace(remote, locale))}\n      />\n\n      <section className="trip-summary-grid" aria-label={copy.average}>',
+          )
+          PY
+
+      - name: Format generated changes
+        run: |
+          pnpm exec prettier --write \
+            workers/trip-api \
+            apps/web/package.json \
+            apps/web/src/trips/auth-client.ts \
+            apps/web/src/trips/cloud-sync.ts \
+            apps/web/src/trips/cloud-sync.test.ts \
+            apps/web/src/components/CloudTripControls.tsx \
+            apps/web/src/components/TripWorkspace.tsx \
+            apps/web/src/components/LocalizedTripWorkspace.tsx \
+            pnpm-lock.yaml
+
+      - name: Build libraries needed by validation
+        run: pnpm -r --filter '!@wnr/web' --filter '!@wnr/weather-sync' --filter '!@wnr/maintenance' build
+
+      - name: Validate Cloud Trip increment
+        run: |
+          pnpm --filter @wnr/trip-api test
+          pnpm --filter @wnr/trip-api typecheck
+          pnpm --filter @wnr/trip-api lint
+          pnpm --filter @wnr/web exec vitest run src/trips/cloud-sync.test.ts
+          pnpm --filter @wnr/web typecheck
+          pnpm --filter @wnr/web lint
+          pnpm format:check
+
+      - name: Commit validated branch changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add workers/trip-api apps/web/package.json apps/web/src/trips/auth-client.ts apps/web/src/trips/cloud-sync.ts apps/web/src/trips/cloud-sync.test.ts apps/web/src/components/CloudTripControls.tsx apps/web/src/components/TripWorkspace.tsx apps/web/src/components/LocalizedTripWorkspace.tsx pnpm-lock.yaml
+          if git diff --cached --quiet; then
+            echo "No builder changes to commit"
+            exit 0
+          fi
+          git commit -m "feat(cloud-trip): build phase 1 cloud persistence"
+          git push origin HEAD:feature/cloud-trip-phase1
