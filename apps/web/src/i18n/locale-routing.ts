@@ -9,6 +9,17 @@ const SIMPLIFIED_TIMEZONES = new Set([
   "Asia/Harbin",
   "Asia/Urumqi",
 ]);
+const WEATHER_COUNTRY_SLUGS = new Set([
+  "japan",
+  "south-korea",
+  "thailand",
+  "vietnam",
+  "singapore",
+  "malaysia",
+  "indonesia",
+  "philippines",
+  "cambodia",
+]);
 
 export function localeFromPath(pathname: string): SiteLocale {
   if (pathname === "/zh-hant" || pathname.startsWith("/zh-hant/")) return "zh-hant";
@@ -33,10 +44,11 @@ export function isAutoLocalizablePath(pathname: string): boolean {
   const base = stripLocalePrefix(pathname);
   if (base === "/") return true;
   if (base === "/trips" || base === "/trips/new" || base === "/trips/workspace") return true;
+  if (base.startsWith("/trips/")) return false;
 
   const segments = base.split("/").filter(Boolean);
-  // Weather country and city routes are statically generated for all three locales.
-  return segments.length === 1 || segments.length === 2;
+  if (segments.length < 1 || segments.length > 2) return false;
+  return WEATHER_COUNTRY_SLUGS.has(segments[0] ?? "");
 }
 
 export function detectPreferredLocale(
