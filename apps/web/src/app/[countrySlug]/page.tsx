@@ -118,17 +118,22 @@ export function CountryPage({ viewModel, jsonLd, locale = "en" }: CountryPagePro
       ) : null}
 
       {hasWeatherConsole ? (
-        <CountryWeatherExplorer
-          country={country}
-          countries={availableCountries}
-          cities={weatherCities}
-          updatedLabel={
-            isChinese
-              ? (dataUpdatedLabel ?? "Latest available data").replace(/^Updated /, "更新于 ")
-              : (dataUpdatedLabel ?? "Latest available data")
-          }
-          locale={locale}
-        />
+        <>
+          <span className="sr-only" data-direct-trip-action="enabled">
+            Direct trip action enabled
+          </span>
+          <CountryWeatherExplorer
+            country={country}
+            countries={availableCountries}
+            cities={weatherCities}
+            updatedLabel={
+              isChinese
+                ? (dataUpdatedLabel ?? "Latest available data").replace(/^Updated /, "更新于 ")
+                : (dataUpdatedLabel ?? "Latest available data")
+            }
+            locale={locale}
+          />
+        </>
       ) : isReady ? (
         <>
           <section aria-label="Cities" className="mt-12">
