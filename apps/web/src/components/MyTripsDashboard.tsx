@@ -93,7 +93,8 @@ const COPY = {
     archive: "归档",
     restore: "恢复",
     delete: "删除",
-    deleteConfirm: "确定删除这份云端行程吗？如果当前本地工作台正关联这份行程，会解除云端关联。",
+    deleteConfirm:
+      "确定删除这份云端行程吗？如果当前本地工作台正关联这份行程，会解除云端关联。",
     sharedCopied: "新的只读分享链接已复制。",
     sharedReady: "新的只读分享链接已生成。",
     revoked: "当前分享链接已撤销。",
@@ -130,7 +131,8 @@ const COPY = {
     archive: "封存",
     restore: "恢復",
     delete: "刪除",
-    deleteConfirm: "確定刪除這份雲端行程嗎？如果目前本機工作台正關聯這份行程，會解除雲端關聯。",
+    deleteConfirm:
+      "確定刪除這份雲端行程嗎？如果目前本機工作台正關聯這份行程，會解除雲端關聯。",
     sharedCopied: "新的唯讀分享連結已複製。",
     sharedReady: "新的唯讀分享連結已產生。",
     revoked: "目前分享連結已撤銷。",
@@ -194,10 +196,7 @@ export function MyTripsDashboard({ locale }: { readonly locale: CloudTripLocale 
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [message, setMessage] = useState("");
-  const [shareUrl, setShareUrl] = useState<{
-    readonly tripId: string;
-    readonly url: string;
-  } | null>(null);
+  const [shareUrl, setShareUrl] = useState<{ readonly tripId: string; readonly url: string } | null>(null);
 
   const refresh = useCallback(async (): Promise<void> => {
     setLoading(true);
@@ -223,7 +222,6 @@ export function MyTripsDashboard({ locale }: { readonly locale: CloudTripLocale 
   }, [refresh]);
 
   const visibleTrips = useMemo(() => trips.filter((trip) => trip.status === tab), [tab, trips]);
-
   const providerAvailable = health?.providers.google === true || health?.providers.email === true;
 
   const openTrip = useCallback(
@@ -289,7 +287,7 @@ export function MyTripsDashboard({ locale }: { readonly locale: CloudTripLocale 
       setMessage("");
       try {
         const share = await createCloudTripShare(trip.id);
-        const url = `${window.location.origin}${sharePath(locale)}?token=${encodeURIComponent(share.token)}`;
+        const url = `${window.location.origin}${sharePath(locale)}#token=${encodeURIComponent(share.token)}`;
         setShareUrl({ tripId: trip.id, url });
         try {
           await navigator.clipboard.writeText(url);
@@ -370,11 +368,7 @@ export function MyTripsDashboard({ locale }: { readonly locale: CloudTripLocale 
             {providerAvailable ? (
               <div className="grid gap-3 sm:grid-cols-2">
                 {health?.providers.google ? (
-                  <button
-                    type="button"
-                    className="trip-primary-button"
-                    onClick={() => void startGoogle()}
-                  >
+                  <button type="button" className="trip-primary-button" onClick={() => void startGoogle()}>
                     {copy.google}
                   </button>
                 ) : null}
@@ -387,11 +381,7 @@ export function MyTripsDashboard({ locale }: { readonly locale: CloudTripLocale 
                       className="min-h-11 min-w-0 flex-1 rounded-xl border border-border bg-white px-3 text-sm"
                       onChange={(event) => setEmail(event.target.value)}
                     />
-                    <button
-                      type="button"
-                      className="trip-secondary-button"
-                      onClick={() => void sendEmail()}
-                    >
+                    <button type="button" className="trip-secondary-button" onClick={() => void sendEmail()}>
                       {copy.email}
                     </button>
                   </div>
@@ -416,9 +406,7 @@ export function MyTripsDashboard({ locale }: { readonly locale: CloudTripLocale 
       <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
         <div>
           <p className="eyebrow">{copy.eyebrow}</p>
-          <h2 className="mt-2 text-3xl font-bold tracking-[-0.035em] text-foreground">
-            {copy.title}
-          </h2>
+          <h2 className="mt-2 text-3xl font-bold tracking-[-0.035em] text-foreground">{copy.title}</h2>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-muted">{copy.subtitle}</p>
           <p className="mt-3 text-xs text-muted">
             {copy.signedIn}: {emailAddress}
@@ -466,49 +454,23 @@ export function MyTripsDashboard({ locale }: { readonly locale: CloudTripLocale 
                   <span>{displayDateRange(trip, copy.noDates)}</span>
                   <h3>{trip.title}</h3>
                   <p>
-                    {copy.updated} {new Date(trip.updatedAt).toLocaleString()} · {copy.version}{" "}
-                    {trip.version}
+                    {copy.updated} {new Date(trip.updatedAt).toLocaleString()} · {copy.version} {trip.version}
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    className="trip-primary-button"
-                    disabled={busyId === trip.id}
-                    onClick={() => void openTrip(trip)}
-                  >
+                  <button type="button" className="trip-primary-button" disabled={busyId === trip.id} onClick={() => void openTrip(trip)}>
                     {copy.open}
                   </button>
-                  <button
-                    type="button"
-                    className="trip-secondary-button"
-                    disabled={busyId === trip.id}
-                    onClick={() => void createShare(trip)}
-                  >
+                  <button type="button" className="trip-secondary-button" disabled={busyId === trip.id} onClick={() => void createShare(trip)}>
                     {copy.share}
                   </button>
-                  <button
-                    type="button"
-                    className="trip-secondary-button"
-                    disabled={busyId === trip.id}
-                    onClick={() => void revokeShare(trip)}
-                  >
+                  <button type="button" className="trip-secondary-button" disabled={busyId === trip.id} onClick={() => void revokeShare(trip)}>
                     {copy.revoke}
                   </button>
-                  <button
-                    type="button"
-                    className="trip-secondary-button"
-                    disabled={busyId === trip.id}
-                    onClick={() => void changeStatus(trip)}
-                  >
+                  <button type="button" className="trip-secondary-button" disabled={busyId === trip.id} onClick={() => void changeStatus(trip)}>
                     {trip.status === "active" ? copy.archive : copy.restore}
                   </button>
-                  <button
-                    type="button"
-                    className="trip-secondary-button"
-                    disabled={busyId === trip.id}
-                    onClick={() => void removeTrip(trip)}
-                  >
+                  <button type="button" className="trip-secondary-button" disabled={busyId === trip.id} onClick={() => void removeTrip(trip)}>
                     {copy.delete}
                   </button>
                 </div>
