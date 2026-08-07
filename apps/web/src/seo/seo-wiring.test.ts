@@ -19,24 +19,26 @@ import { indexabilityForRouteClass } from "@wnr/seo";
 const BASE = "https://868656.xyz";
 
 describe("sitemap.ts — static export sitemap", () => {
-  it("enumerates every real English route and launched Chinese route once", async () => {
+  it("enumerates every published English and Chinese weather route once", async () => {
     const entries = await sitemap();
     expect(entries.length).toBeGreaterThan(0);
 
     const urls = entries.map((entry) => entry.url);
     expect(urls).toContain(`${BASE}/`);
+    expect(urls).toContain(`${BASE}/zh-cn`);
+    expect(urls).toContain(`${BASE}/zh-hant`);
     expect(urls).toContain(`${BASE}/explore`);
     expect(urls).toContain(`${BASE}/trips`);
     expect(urls).toContain(`${BASE}/zh-hant/trips`);
     expect(urls).toContain(`${BASE}/zh-cn/trips`);
     expect(urls).toContain(`${BASE}/trips/qinggan-family-2026`);
     expect(urls).toContain(`${BASE}/zh-cn/trips/qinggan-family-2026`);
-    expect(urls.some((url) => url.endsWith("/jp/tokyo"))).toBe(true);
-    expect(urls).toContain(`${BASE}/zh-cn`);
+    expect(urls).toContain(`${BASE}/jp`);
     expect(urls).toContain(`${BASE}/zh-cn/jp`);
-    expect(urls.some((url) => url.includes("/zh-hant/jp/"))).toBe(false);
-    expect(urls.some((url) => url.includes("/zh-cn/jp/tokyo"))).toBe(false);
-    expect(urls).toHaveLength(60);
+    expect(urls).toContain(`${BASE}/zh-hant/jp`);
+    expect(urls).toContain(`${BASE}/jp/tokyo`);
+    expect(urls).toContain(`${BASE}/zh-cn/jp/tokyo`);
+    expect(urls).toContain(`${BASE}/zh-hant/jp/tokyo`);
     expect(new Set(urls).size).toBe(urls.length);
   });
 
@@ -49,14 +51,20 @@ describe("sitemap.ts — static export sitemap", () => {
     expect(trips?.alternates?.languages?.["zh-Hant"]).toBe(`${BASE}/zh-hant/trips`);
   });
 
-  it("advertises hreflang only where translated pages are published", async () => {
+  it("advertises three-language hreflang for published weather routes", async () => {
     const entries = await sitemap();
     const japan = entries.find((entry) => entry.url === `${BASE}/jp`);
     const tokyo = entries.find((entry) => entry.url === `${BASE}/jp/tokyo`);
+    for (const entry of [japan, tokyo]) {
+      expect(entry?.alternates?.languages?.en).toBeDefined();
+      expect(entry?.alternates?.languages?.["zh-CN"]).toBeDefined();
+      expect(entry?.alternates?.languages?.["zh-Hant"]).toBeDefined();
+      expect(entry?.alternates?.languages?.["x-default"]).toBeDefined();
+    }
     expect(japan?.alternates?.languages?.["zh-CN"]).toBe(`${BASE}/zh-cn/jp`);
-    expect(japan?.alternates?.languages?.en).toBe(`${BASE}/jp`);
-    expect(japan?.alternates?.languages?.["zh-Hant"]).toBeUndefined();
-    expect(tokyo?.alternates).toBeUndefined();
+    expect(japan?.alternates?.languages?.["zh-Hant"]).toBe(`${BASE}/zh-hant/jp`);
+    expect(tokyo?.alternates?.languages?.["zh-CN"]).toBe(`${BASE}/zh-cn/jp/tokyo`);
+    expect(tokyo?.alternates?.languages?.["zh-Hant"]).toBe(`${BASE}/zh-hant/jp/tokyo`);
   });
 
   it("every entry carries a lastModified or changeFrequency", async () => {
@@ -94,7 +102,7 @@ describe("JsonLd.tsx — server-rendered structured data", () => {
 });
 
 describe("seo.ts helpers — canonical, copy and robots", () => {
-  it("resolves bilingual trip alternates and translated country alternates", () => {
+  it("resolves localized trip and weather alternates", () => {
     const alt = buildAlternates("/jp/tokyo");
     expect(alt.canonical).toBe(`${BASE}/jp/tokyo`);
     expect(alt.languages).toBeUndefined();
@@ -105,10 +113,11 @@ describe("seo.ts helpers — canonical, copy and robots", () => {
     expect(tripAlt.languages?.["zh-Hant"]).toBe(`${BASE}/zh-hant/trips`);
     expect(tripAlt.languages?.["zh-CN"]).toBe(`${BASE}/zh-cn/trips`);
 
-    const zhCountry = buildAlternates("/jp", "zh-cn", ["en", "zh-cn"]);
+    const zhCountry = buildAlternates("/jp", "zh-cn", ["en", "zh-cn", "zh-hant"]);
     expect(zhCountry.canonical).toBe(`${BASE}/zh-cn/jp`);
     expect(zhCountry.languages?.en).toBe(`${BASE}/jp`);
     expect(zhCountry.languages?.["zh-CN"]).toBe(`${BASE}/zh-cn/jp`);
+    expect(zhCountry.languages?.["zh-Hant"]).toBe(`${BASE}/zh-hant/jp`);
     expect(zhCountry.languages?.["x-default"]).toBe(`${BASE}/jp`);
   });
 
