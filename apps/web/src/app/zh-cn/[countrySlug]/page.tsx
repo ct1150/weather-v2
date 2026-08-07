@@ -25,7 +25,7 @@ export async function generateMetadata({
   return {
     title: searchCopy.title,
     description: searchCopy.description,
-    alternates: buildAlternates(`/${country.slug}`, "zh-cn", ["en", "zh-cn"]),
+    alternates: buildAlternates(`/${country.slug}`, "zh-cn", ["en", "zh-cn", "zh-hant"]),
     robots: routeRobots("country", true),
     openGraph: {
       type: "website",
@@ -46,15 +46,30 @@ export default async function SimplifiedChineseCountryPage({
   const dataset = await getBakedDataset();
   const country = dataset.countries.find((item) => item.slug === params.countrySlug);
   if (country === undefined) notFound();
+  const countryCities = dataset.citiesByCountry.get(country.id) ?? [];
+  const citySlugById = new Map(countryCities.map((item) => [item.city.id, item.city.slug] as const));
+  const localizeLink = <T extends { readonly cityId: string; readonly path: string }>(link: T): T => ({
+    ...link,
+    path: `/zh-cn/${country.slug}/${citySlugById.get(link.cityId) ?? link.cityId}`,
+  });
   const baseViewModel = projectCountry(dataset, country.slug, "zh-cn");
   const viewModel = {
     ...baseViewModel,
+    cities: baseViewModel.cities.map(localizeLink),
+    rankings: baseViewModel.rankings.map((ranking) => ({
+      ...ranking,
+      items: ranking.items.map(localizeLink),
+    })),
+    relatedLinks: baseViewModel.relatedLinks.map(localizeLink),
     availableCountries: (baseViewModel.availableCountries ?? []).map((option) => ({
       ...option,
       path: `/zh-cn/${option.slug}`,
     })),
+    weatherCities: (baseViewModel.weatherCities ?? []).map((city) => ({
+      ...city,
+      path: `/zh-cn/${country.slug}/${citySlugById.get(city.cityId) ?? city.cityId}`,
+    })),
   };
-  const countryCities = dataset.citiesByCountry.get(country.id) ?? [];
   const searchCopy = countrySearchCopyZh(
     country.name["zh-cn"],
     countryCities.map((item) => item.city.name["zh-cn"]),
@@ -94,7 +109,7 @@ export default async function SimplifiedChineseCountryPage({
         containsPlace: countryCities.map((item) => ({
           "@type": "City",
           name: item.city.name["zh-cn"],
-          url: localeUrl("en", `/${country.slug}/${item.city.slug}`),
+          url: localeUrl("zh-cn", `/${country.slug}/${item.city.slug}`),
         })),
       },
       {
@@ -105,7 +120,7 @@ export default async function SimplifiedChineseCountryPage({
           "@type": "ListItem",
           position: index + 1,
           name: item.city.name["zh-cn"],
-          url: localeUrl("en", `/${country.slug}/${item.city.slug}`),
+          url: localeUrl("zh-cn", `/${country.slug}/${item.city.slug}`),
         })),
       },
     ],
