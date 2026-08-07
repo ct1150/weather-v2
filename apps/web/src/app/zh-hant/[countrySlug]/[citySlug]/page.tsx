@@ -76,7 +76,7 @@ export default async function TraditionalChineseCityPage({
       base.weather === null
         ? null
         : { ...base.weather, conditionLabel: toTraditionalText(base.weather.conditionLabel) },
-    forecastDays: base.forecastDays?.map((day) => ({
+    forecastDays: base.forecastDays.map((day) => ({
       ...day,
       weather: {
         ...day.weather,
