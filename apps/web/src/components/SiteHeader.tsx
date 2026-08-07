@@ -1,7 +1,15 @@
 "use client";
 
-import type { ReactElement } from "react";
+import type { ChangeEvent, ReactElement } from "react";
 import { usePathname } from "next/navigation";
+import {
+  LOCALE_STORAGE_KEY,
+  htmlLanguage,
+  isAutoLocalizablePath,
+  localeFromPath,
+  localizedPath,
+  type SiteLocale,
+} from "../i18n/locale-routing";
 
 function BrandMark(): ReactElement {
   return (
@@ -24,13 +32,26 @@ function BrandMark(): ReactElement {
 
 export function SiteHeader(): ReactElement {
   const pathname = usePathname();
-  const isTraditional = pathname === "/zh-hant" || pathname.startsWith("/zh-hant/");
-  const isSimplified = pathname === "/zh-cn" || pathname.startsWith("/zh-cn/");
-  const isChinese = isTraditional || isSimplified;
+  const currentLocale = localeFromPath(pathname);
+  const isTraditional = currentLocale === "zh-hant";
+  const isSimplified = currentLocale === "zh-cn";
+  const isChinese = currentLocale !== "en";
 
   const homeHref = isTraditional ? "/zh-hant/trips" : isSimplified ? "/zh-cn/trips" : "/trips";
   const weatherHref = isTraditional ? "/zh-hant" : isSimplified ? "/zh-cn" : "/";
-  const languageHref = isTraditional ? "/trips" : "/zh-hant/trips";
+
+  function chooseLocale(event: ChangeEvent<HTMLSelectElement>): void {
+    const locale = event.target.value as SiteLocale;
+    window.localStorage.setItem(LOCALE_STORAGE_KEY, locale);
+    document.documentElement.lang = htmlLanguage(locale);
+
+    const destination = isAutoLocalizablePath(pathname)
+      ? localizedPath(pathname, locale)
+      : locale === "en"
+        ? "/trips"
+        : `/${locale}/trips`;
+    window.location.assign(`${destination}${window.location.search}${window.location.hash}`);
+  }
 
   return (
     <header className="site-header">
@@ -77,14 +98,21 @@ export function SiteHeader(): ReactElement {
               {isTraditional ? "天氣" : isSimplified ? "天气" : "Radar"}
             </span>
           </a>
-          <a
-            href={languageHref}
-            className="nav-link focus-ring"
-            hrefLang={isTraditional ? "en" : "zh-Hant"}
-          >
-            <span className="hidden sm:inline">{isTraditional ? "English" : "繁體中文"}</span>
-            <span className="sm:hidden">{isTraditional ? "EN" : "繁中"}</span>
-          </a>
+          <label className="nav-link focus-within:ring-2 focus-within:ring-primary/30">
+            <span className="sr-only">
+              {isTraditional ? "選擇語言" : isSimplified ? "选择语言" : "Choose language"}
+            </span>
+            <select
+              value={currentLocale}
+              onChange={chooseLocale}
+              className="cursor-pointer bg-transparent text-xs font-bold sm:text-sm"
+              aria-label={isTraditional ? "選擇語言" : isSimplified ? "选择语言" : "Choose language"}
+            >
+              <option value="en">English</option>
+              <option value="zh-cn">简体中文</option>
+              <option value="zh-hant">繁體中文</option>
+            </select>
+          </label>
         </nav>
       </div>
     </header>
