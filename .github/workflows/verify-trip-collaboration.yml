@@ -1,0 +1,109 @@
+name: Cloud Trip Collaboration Smoke
+
+on:
+  workflow_run:
+    workflows: [Deploy]
+    types: [completed]
+
+permissions:
+  contents: write
+
+jobs:
+  preview:
+    if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Verify preview collaboration and revisions
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          SMOKE_TOKEN="$(printf 'wnr-trip-smoke:%s' "$CLOUDFLARE_API_TOKEN" | sha256sum | cut -d' ' -f1)"
+          TRIP_SMOKE_TOKEN="$SMOKE_TOKEN" node tooling/deploy/trip-collaboration-smoke.mjs \
+            --trip-url "https://where-not-rain-trip-preview.ct1150.workers.dev" \
+            --suffix preview
+
+  production:
+    if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push' && github.event.workflow_run.head_branch == 'main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Verify production collaboration and revisions
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          SMOKE_TOKEN="$(printf 'wnr-trip-smoke:%s' "$CLOUDFLARE_API_TOKEN" | sha256sum | cut -d' ' -f1)"
+          TRIP_SMOKE_TOKEN="$SMOKE_TOKEN" node tooling/deploy/trip-collaboration-smoke.mjs \
+            --trip-url "https://trip.868656.xyz" \
+            --suffix production
+
+      - name: Verify localized invite surfaces
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --location --retry 5 --retry-all-errors \
+            "https://868656.xyz/trips/invite" -o /tmp/invite-en.html
+          grep -Fq "Trip collaboration invite" /tmp/invite-en.html
+          grep -Fq "noindex" /tmp/invite-en.html
+
+          curl --fail --silent --show-error --location --retry 5 --retry-all-errors \
+            "https://868656.xyz/zh-cn/trips/invite" -o /tmp/invite-cn.html
+          grep -Fq "行程协作邀请" /tmp/invite-cn.html
+          grep -Fq "noindex" /tmp/invite-cn.html
+
+          curl --fail --silent --show-error --location --retry 5 --retry-all-errors \
+            "https://868656.xyz/zh-hant/trips/invite" -o /tmp/invite-hant.html
+          grep -Fq "行程協作邀請" /tmp/invite-hant.html
+          grep -Fq "noindex" /tmp/invite-hant.html
+
+      - name: Record collaboration smoke status
+        env:
+          DEPLOY_HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          DEPLOY_RUN_ID: ${{ github.event.workflow_run.id }}
+        run: |
+          cat > COLLABORATION_SMOKE_STATUS.md <<EOF
+          # Cloud Trip collaboration smoke status
+
+          - Conclusion: success
+          - Deploy head SHA: ${DEPLOY_HEAD_SHA}
+          - Deploy run: https://github.com/${GITHUB_REPOSITORY}/actions/runs/${DEPLOY_RUN_ID}
+          - Verified at: $(date -u +%Y-%m-%dT%H:%M:%SZ)
+
+          ## Checks
+
+          - Collaboration API health: success
+          - Owner trip create: success
+          - Editor invitation and email match: success
+          - Editor My Trips access: success
+          - Editor update: success
+          - Viewer invitation: success
+          - Viewer mutation rejected: success
+          - Owner-only collaborator management enforced: success
+          - Revision list and restore: success
+          - Stale restore rejected: success
+          - Pending invite revoke: success
+          - English invite route: success
+          - Simplified invite route: success
+          - Traditional invite route: success
+          EOF
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add COLLABORATION_SMOKE_STATUS.md
+          if ! git diff --cached --quiet; then
+            git commit -m "chore(smoke): record collaboration verification [skip ci]"
+            git push origin HEAD:main
+          fi
