@@ -104,6 +104,15 @@ function sharedTripPath(
   return { token: match[1], copy: match[2] === "/copy" };
 }
 
+export function safeLogPath(pathname: string): string {
+  if (pathname.startsWith("/api/v1/shared-trips/")) {
+    return pathname.endsWith("/copy")
+      ? "/api/v1/shared-trips/[redacted]/copy"
+      : "/api/v1/shared-trips/[redacted]";
+  }
+  return pathname;
+}
+
 async function handleTrips(request: Request, env: WorkerEnv): Promise<Response> {
   const userId = await resolveUserId(request, env);
   if (userId === null) return json(request, env, { error: { code: "UNAUTHORIZED" } }, 401);
@@ -320,11 +329,12 @@ export default {
     try {
       return await handleRequest(request, env);
     } catch (error) {
+      const pathname = new URL(request.url).pathname;
       console.error(
         JSON.stringify({
           service: "trip-api",
           event: "request_failed",
-          path: new URL(request.url).pathname,
+          path: safeLogPath(pathname),
           error: error instanceof Error ? error.message : "unknown",
         }),
       );
