@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
 import type { ReactElement } from "react";
 import { JsonLd } from "../../../components/JsonLd";
+import { MyTripsDashboard } from "../../../components/MyTripsDashboard";
 import { buildAlternates, localeUrl } from "../../seo";
 
 export const metadata: Metadata = {
   title: "日本、韩国和东南亚天气行程规划",
-  description: "建立多城市自由行，结合每日天气和固定订单，知道哪些行程照常、提前、缩短或替换。",
+  description: "建立多城市自由行，管理云端行程，并结合每日天气判断哪些照常、提前、缩短或替换。",
   alternates: buildAlternates("/trips", "zh-cn", ["en", "zh-hant", "zh-cn"]),
   robots: { index: true, follow: true },
 };
@@ -46,6 +47,7 @@ export default function SimplifiedTripsLanding(): ReactElement {
   return (
     <main id="main-content" className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-10">
       <JsonLd schema={jsonLd} />
+      <MyTripsDashboard locale="zh-cn" />
       <section className="trip-hero">
         <div className="relative z-10 max-w-4xl">
           <p className="eyebrow">亚洲旅行的天气行程助手</p>
@@ -58,7 +60,7 @@ export default function SimplifiedTripsLanding(): ReactElement {
             为日本、韩国和东南亚多城市自由行加入天气决策。固定列车和定时门票受到保护，可调整的户外行程则会得到具体备用方案。
           </p>
           <div className="mt-7 flex flex-wrap gap-3">
-            <a className="trip-primary-button" href="/zh-cn/trips/workspace">
+            <a className="trip-primary-button" href="/zh-cn/trips/workspace?new=1">
               建立我的行程
             </a>
             <a className="trip-secondary-button" href="/zh-cn/trips/new">
@@ -66,7 +68,7 @@ export default function SimplifiedTripsLanding(): ReactElement {
             </a>
           </div>
           <p className="mt-4 max-w-2xl text-xs leading-5 text-muted">
-            目前涵盖日本、韩国、泰国、越南、新加坡、马来西亚、印度尼西亚、菲律宾和柬埔寨。无需注册，行程默认保存在当前设备。
+            目前涵盖日本、韩国、泰国、越南、新加坡、马来西亚、印度尼西亚、菲律宾和柬埔寨。无需注册即可开始；云端保存和“我的行程”属于可选能力。
           </p>
         </div>
       </section>
@@ -75,7 +77,7 @@ export default function SimplifiedTripsLanding(): ReactElement {
         {[
           ["01", "建立或导入", "加入每天的城市、行程类型、活动和不可变更的订单约束。"],
           ["02", "更新行程天气", "查看降雨、风力、高温以及亲子或老人同行的敏感风险。"],
-          ["03", "带着备选方案出发", "分享、导出，并在当前设备保留最近一次天气结果。"],
+          ["03", "带着备选方案出发", "按需保存到云端，生成只读分享链接，同时保留本地离线副本。"],
         ].map(([number, title, description]) => (
           <article key={number} className="trip-process-card">
             <span>{number}</span>
@@ -119,7 +121,7 @@ export default function SimplifiedTripsLanding(): ReactElement {
           <li className="trip-side-card">保留固定航班、列车和定时门票。</li>
           <li className="trip-side-card">把海滩、船班和观景台视为风力敏感活动。</li>
           <li className="trip-side-card">亲子或老人同行时，提高高温与低温警戒。</li>
-          <li className="trip-side-card">行程默认保存在本机，可用分享链接创建可编辑副本。</li>
+          <li className="trip-side-card">本机优先保存，按需开启云端和只读分享。</li>
         </ul>
       </section>
 

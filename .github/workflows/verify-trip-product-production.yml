@@ -75,6 +75,12 @@ jobs:
             "Opening your trip workspace"
 
           fetch_and_match \
+            "English read-only share route" \
+            "https://868656.xyz/trips/share" \
+            /tmp/trip-share-page.html \
+            "Read-only shared trip" "noindex"
+
+          fetch_and_match \
             "English country direct trip action" \
             "https://868656.xyz/jp" \
             /tmp/weather-en-country.html \
@@ -97,6 +103,12 @@ jobs:
             "https://868656.xyz/zh-hant/trips/workspace" \
             /tmp/workspace-hant.html \
             "正在開啟你的行程工作台"
+
+          fetch_and_match \
+            "Traditional read-only share route" \
+            "https://868656.xyz/zh-hant/trips/share" \
+            /tmp/trip-share-hant.html \
+            "唯讀分享行程" "noindex"
 
           fetch_and_match \
             "Traditional weather radar" \
@@ -129,6 +141,12 @@ jobs:
             "把你现有的计划直接变成天气行程工作台" "粘贴已经整理好的旅行行程"
 
           fetch_and_match \
+            "Simplified read-only share route" \
+            "https://868656.xyz/zh-cn/trips/share" \
+            /tmp/trip-share-cn.html \
+            "只读分享行程" "noindex"
+
+          fetch_and_match \
             "Simplified country weather route" \
             "https://868656.xyz/zh-cn/jp" \
             /tmp/weather-cn-country.html \
@@ -156,7 +174,7 @@ jobs:
             "Cloud Trip API health" \
             "https://trip.868656.xyz/health" \
             /tmp/cloud-trip-health.json \
-            '"ok":true' '"service":"trip-api"' '"cloudTrip":true' '"auth":true'
+            '"ok":true' '"service":"trip-api"' '"cloudTrip":true' '"cloudSharing":true' '"auth":true'
 
           CLOUD_TRIP_ANON_STATUS=$(curl --silent --output /tmp/cloud-trip-anonymous.json --write-out '%{http_code}' \
             "https://trip.868656.xyz/api/v1/trips")

@@ -26,9 +26,25 @@ export interface CloudTripRecord extends CloudTripSummary {
   readonly document: TripWorkspace;
 }
 
+export interface SharedCloudTripRecord {
+  readonly title: string;
+  readonly startDate: string | null;
+  readonly endDate: string | null;
+  readonly locale: "en" | "zh-cn" | "zh-hant";
+  readonly updatedAt: string;
+  readonly document: TripWorkspace;
+}
+
+export interface CloudTripShareLink {
+  readonly token: string;
+  readonly tokenPrefix: string;
+  readonly createdAt: string;
+}
+
 export interface TripApiHealth {
   readonly ok: boolean;
   readonly cloudTrip: boolean;
+  readonly cloudSharing?: boolean;
   readonly providers: {
     readonly auth: boolean;
     readonly google: boolean;
@@ -75,6 +91,10 @@ async function api<T>(path: string, init?: RequestInit): Promise<T> {
   return payload.data;
 }
 
+function shareHeaders(token: string): HeadersInit {
+  return { "x-wnr-share-token": token };
+}
+
 export async function readTripApiHealth(): Promise<TripApiHealth> {
   const response = await fetch(`${TRIP_API_BASE}/health`, { credentials: "include" });
   if (!response.ok) throw new CloudTripError("HEALTH_UNAVAILABLE", response.status);
@@ -116,9 +136,11 @@ export async function createCloudTrip(
   });
 }
 
-export async function listCloudTrips(): Promise<ReadonlyArray<CloudTripSummary>> {
+export async function listCloudTrips(
+  status: "active" | "archived" | "all" = "all",
+): Promise<ReadonlyArray<CloudTripSummary>> {
   const result = await api<{ readonly items: ReadonlyArray<CloudTripSummary> }>(
-    "/api/v1/trips?limit=20",
+    `/api/v1/trips?limit=50&status=${status}`,
   );
   return result.items;
 }
@@ -140,5 +162,49 @@ export async function updateCloudTrip(
       locale: localLocale(locale),
       document: workspace,
     }),
+  });
+}
+
+export async function updateCloudTripStatus(
+  id: string,
+  baseVersion: number,
+  status: "active" | "archived",
+): Promise<CloudTripRecord> {
+  return api<CloudTripRecord>(`/api/v1/trips/${encodeURIComponent(id)}/status`, {
+    method: "PATCH",
+    body: JSON.stringify({ baseVersion, status }),
+  });
+}
+
+export async function deleteCloudTrip(id: string): Promise<void> {
+  await api<{ readonly deleted: boolean }>(`/api/v1/trips/${encodeURIComponent(id)}`, {
+    method: "DELETE",
+  });
+}
+
+export async function createCloudTripShare(id: string): Promise<CloudTripShareLink> {
+  return api<CloudTripShareLink>(`/api/v1/trips/${encodeURIComponent(id)}/share`, {
+    method: "POST",
+  });
+}
+
+export async function revokeCloudTripShare(id: string): Promise<boolean> {
+  const result = await api<{ readonly revoked: boolean }>(
+    `/api/v1/trips/${encodeURIComponent(id)}/share`,
+    { method: "DELETE" },
+  );
+  return result.revoked;
+}
+
+export async function readSharedCloudTrip(token: string): Promise<SharedCloudTripRecord> {
+  return api<SharedCloudTripRecord>("/api/v1/shared-trips/current", {
+    headers: shareHeaders(token),
+  });
+}
+
+export async function copySharedCloudTrip(token: string): Promise<CloudTripRecord> {
+  return api<CloudTripRecord>("/api/v1/shared-trips/current/copy", {
+    method: "POST",
+    headers: shareHeaders(token),
   });
 }

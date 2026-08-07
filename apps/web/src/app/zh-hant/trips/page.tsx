@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
 import type { ReactElement } from "react";
 import { JsonLd } from "../../../components/JsonLd";
+import { MyTripsDashboard } from "../../../components/MyTripsDashboard";
 import { buildAlternates, localeUrl } from "../../seo";
 
 export const metadata: Metadata = {
   title: "日本、南韓與東南亞天氣行程規劃",
-  description: "建立多城市自由行，結合每日天氣與固定訂單，知道哪些行程照常、提前、縮短或替換。",
+  description: "建立多城市自由行，管理雲端行程，並結合每日天氣判斷哪些照常、提前、縮短或替換。",
   alternates: buildAlternates("/trips", "zh-hant", ["en", "zh-hant", "zh-cn"]),
   robots: { index: true, follow: true },
 };
@@ -46,6 +47,7 @@ export default function TraditionalTripsLanding(): ReactElement {
   return (
     <main id="main-content" className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-10">
       <JsonLd schema={jsonLd} />
+      <MyTripsDashboard locale="zh-hant" />
       <section className="trip-hero">
         <div className="relative z-10 max-w-4xl">
           <p className="eyebrow">Weather-aware travel across Asia</p>
@@ -58,7 +60,7 @@ export default function TraditionalTripsLanding(): ReactElement {
             為日本、南韓與東南亞多城市自由行加入天氣決策。固定列車與定時門票受到保護，可調整的戶外行程則會得到具體備用方案。
           </p>
           <div className="mt-7 flex flex-wrap gap-3">
-            <a className="trip-primary-button" href="/zh-hant/trips/workspace">
+            <a className="trip-primary-button" href="/zh-hant/trips/workspace?new=1">
               建立我的行程
             </a>
             <a className="trip-secondary-button" href="/zh-hant/trips/new">
@@ -66,7 +68,7 @@ export default function TraditionalTripsLanding(): ReactElement {
             </a>
           </div>
           <p className="mt-4 max-w-2xl text-xs leading-5 text-muted">
-            目前涵蓋日本、南韓、泰國、越南、新加坡、馬來西亞、印尼、菲律賓與柬埔寨。不需要註冊帳號。
+            目前涵蓋日本、南韓、泰國、越南、新加坡、馬來西亞、印尼、菲律賓與柬埔寨。不需要註冊即可開始；雲端儲存與「我的行程」都是可選功能。
           </p>
         </div>
       </section>
@@ -75,7 +77,7 @@ export default function TraditionalTripsLanding(): ReactElement {
         {[
           ["01", "建立或匯入", "加入每日城市、行程類型、活動與不可變更的訂單限制。"],
           ["02", "更新行程天氣", "查看降雨、風力、高溫與親子或年長者敏感風險。"],
-          ["03", "帶著備案出發", "分享、匯出並離線保留最近一次天氣結果。"],
+          ["03", "帶著備案出發", "按需儲存到雲端，產生唯讀分享連結，同時保留本機離線副本。"],
         ].map(([number, title, description]) => (
           <article key={number} className="trip-process-card">
             <span>{number}</span>
@@ -120,7 +122,7 @@ export default function TraditionalTripsLanding(): ReactElement {
           <li className="trip-side-card">保留固定航班、列車與定時門票。</li>
           <li className="trip-side-card">把海灘、船班與觀景台視為風力敏感活動。</li>
           <li className="trip-side-card">親子與年長者同行時，提高高溫與低溫警戒。</li>
-          <li className="trip-side-card">行程預設保存在本機，分享時建立可編輯副本。</li>
+          <li className="trip-side-card">本機優先儲存，按需開啟雲端與唯讀分享。</li>
         </ul>
       </section>
 

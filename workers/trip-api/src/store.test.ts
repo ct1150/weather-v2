@@ -50,6 +50,26 @@ describe("trip store", () => {
     expect(await readTrip(db, "user-b", created.id)).toBeNull();
   });
 
+  it("filters archived trips in D1 before applying the list limit", async () => {
+    const valid = validateTripDocument(document)!;
+    const archived = await createTrip(db, "user-a", "en", valid, "2026-08-01T00:00:00.000Z");
+    await db.prepare("UPDATE trips SET status = 'archived' WHERE id = ?").bind(archived.id).run();
+
+    for (let index = 0; index < 50; index += 1) {
+      await createTrip(
+        db,
+        "user-a",
+        "en",
+        valid,
+        `2026-08-07T${String(index % 24).padStart(2, "0")}:${String(index).padStart(2, "0")}:00.000Z`,
+      );
+    }
+
+    const archivedTrips = await listTrips(db, "user-a", 50, "archived");
+    expect(archivedTrips).toHaveLength(1);
+    expect(archivedTrips[0]?.id).toBe(archived.id);
+  });
+
   it("uses optimistic concurrency and never silently overwrites", async () => {
     const valid = validateTripDocument(document)!;
     const created = await createTrip(db, "user-a", "en", valid, "2026-08-07T01:00:00.000Z");
