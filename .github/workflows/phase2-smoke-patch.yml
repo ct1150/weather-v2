@@ -25,251 +25,136 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - name: Extend Cloud Trip smoke contracts
+      - name: Extend Cloud Trip deploy smoke
         run: |
           python - <<'PY'
           from pathlib import Path
 
-          deploy = Path('.github/workflows/deploy.yml')
-          text = deploy.read_text()
+          path = Path('.github/workflows/deploy.yml')
+          text = path.read_text()
 
-          def replace_once(old: str, new: str) -> None:
-              global text
-              count = text.count(old)
-              if count != 1:
-                  raise SystemExit(f'expected one match, found {count}: {old[:100]!r}')
+          for env in ('preview', 'production'):
+              old = f'          grep -Fq \'"cloudTrip":true\' /tmp/trip-health-{env}.json\n'
+              new = old + f'          grep -Fq \'"cloudSharing":true\' /tmp/trip-health-{env}.json\n'
+              if old not in text:
+                  raise SystemExit(f'missing health marker for {env}')
               text = text.replace(old, new, 1)
 
-          replace_once(
-              "          grep -Fq '\"cloudTrip\":true' /tmp/trip-health-preview.json\n",
-              "          grep -Fq '\"cloudTrip\":true' /tmp/trip-health-preview.json\n          grep -Fq '\"cloudSharing\":true' /tmp/trip-health-preview.json\n",
-          )
-          replace_once(
-              "          grep -Fq '\"cloudTrip\":true' /tmp/trip-health-production.json\n",
-              "          grep -Fq '\"cloudTrip\":true' /tmp/trip-health-production.json\n          grep -Fq '\"cloudSharing\":true' /tmp/trip-health-production.json\n",
-          )
+          marker = '          test "$STALE_STATUS" = "409"\n'
+          positions = []
+          start = 0
+          while True:
+              index = text.find(marker, start)
+              if index < 0:
+                  break
+              positions.append(index + len(marker))
+              start = index + len(marker)
+          if len(positions) != 2:
+              raise SystemExit(f'expected 2 stale markers, found {len(positions)}')
 
-          preview_anchor = '''          test "$STALE_STATUS" = "409"
-          curl --fail --silent --show-error \\
-            --request DELETE \\
-            --header "authorization: Bearer $SMOKE_TOKEN" \\
-            --header 'x-wnr-smoke-user: deploy-preview' \\
-            "${TRIP_PREVIEW_URL}/api/v1/trips/${TRIP_ID}" -o /tmp/trip-deleted-preview.json
-          grep -Fq '"deleted":true' /tmp/trip-deleted-preview.json
-'''
-          preview_phase2 = '''          test "$STALE_STATUS" = "409"
-          cat >/tmp/trip-archive-preview.json <<'JSON'
-          {"baseVersion":2,"status":"archived"}
-          JSON
-          curl --fail --silent --show-error \\
-            --request PATCH \\
-            --header "authorization: Bearer $SMOKE_TOKEN" \\
-            --header 'x-wnr-smoke-user: deploy-preview' \\
-            --header 'content-type: application/json' \\
-            --data-binary @/tmp/trip-archive-preview.json \\
-            "${TRIP_PREVIEW_URL}/api/v1/trips/${TRIP_ID}/status" -o /tmp/trip-archived-preview.json
-          grep -Fq '"status":"archived"' /tmp/trip-archived-preview.json
-          grep -Fq '"version":3' /tmp/trip-archived-preview.json
-          STALE_RESTORE_STATUS=$(curl --silent --output /tmp/trip-stale-restore-preview.json --write-out '%{http_code}' \\
-            --request PATCH \\
-            --header "authorization: Bearer $SMOKE_TOKEN" \\
-            --header 'x-wnr-smoke-user: deploy-preview' \\
-            --header 'content-type: application/json' \\
-            --data '{"baseVersion":2,"status":"active"}' \\
-            "${TRIP_PREVIEW_URL}/api/v1/trips/${TRIP_ID}/status")
+          template = r'''          curl --fail --silent --show-error \
+            --request PATCH \
+            --header "authorization: Bearer $SMOKE_TOKEN" \
+            --header 'x-wnr-smoke-user: @@USER@@' \
+            --header 'content-type: application/json' \
+            --data '{"baseVersion":2,"status":"archived"}' \
+            "${@@URL@@}/api/v1/trips/${TRIP_ID}/status" -o /tmp/trip-archived-@@ENV@@.json
+          grep -Fq '"status":"archived"' /tmp/trip-archived-@@ENV@@.json
+          grep -Fq '"version":3' /tmp/trip-archived-@@ENV@@.json
+          STALE_RESTORE_STATUS=$(curl --silent --output /tmp/trip-stale-restore-@@ENV@@.json --write-out '%{http_code}' \
+            --request PATCH \
+            --header "authorization: Bearer $SMOKE_TOKEN" \
+            --header 'x-wnr-smoke-user: @@USER@@' \
+            --header 'content-type: application/json' \
+            --data '{"baseVersion":2,"status":"active"}' \
+            "${@@URL@@}/api/v1/trips/${TRIP_ID}/status")
           test "$STALE_RESTORE_STATUS" = "409"
-          curl --fail --silent --show-error \\
-            --request PATCH \\
-            --header "authorization: Bearer $SMOKE_TOKEN" \\
-            --header 'x-wnr-smoke-user: deploy-preview' \\
-            --header 'content-type: application/json' \\
-            --data '{"baseVersion":3,"status":"active"}' \\
-            "${TRIP_PREVIEW_URL}/api/v1/trips/${TRIP_ID}/status" -o /tmp/trip-restored-preview.json
-          grep -Fq '"status":"active"' /tmp/trip-restored-preview.json
-          grep -Fq '"version":4' /tmp/trip-restored-preview.json
-          curl --fail --silent --show-error \\
-            --request POST \\
-            --header "authorization: Bearer $SMOKE_TOKEN" \\
-            --header 'x-wnr-smoke-user: deploy-preview' \\
-            "${TRIP_PREVIEW_URL}/api/v1/trips/${TRIP_ID}/share" -o /tmp/trip-share1-preview.json
-          SHARE1_TOKEN=$(node -e "const x=require('/tmp/trip-share1-preview.json');process.stdout.write(x.data.token)")
+          curl --fail --silent --show-error \
+            --request PATCH \
+            --header "authorization: Bearer $SMOKE_TOKEN" \
+            --header 'x-wnr-smoke-user: @@USER@@' \
+            --header 'content-type: application/json' \
+            --data '{"baseVersion":3,"status":"active"}' \
+            "${@@URL@@}/api/v1/trips/${TRIP_ID}/status" -o /tmp/trip-restored-@@ENV@@.json
+          grep -Fq '"status":"active"' /tmp/trip-restored-@@ENV@@.json
+          grep -Fq '"version":4' /tmp/trip-restored-@@ENV@@.json
+          curl --fail --silent --show-error \
+            --request POST \
+            --header "authorization: Bearer $SMOKE_TOKEN" \
+            --header 'x-wnr-smoke-user: @@USER@@' \
+            "${@@URL@@}/api/v1/trips/${TRIP_ID}/share" -o /tmp/trip-share1-@@ENV@@.json
+          SHARE1_TOKEN=$(node -e "const x=require('/tmp/trip-share1-@@ENV@@.json');process.stdout.write(x.data.token)")
           test "${#SHARE1_TOKEN}" = "68"
-          curl --fail --silent --show-error \\
-            "${TRIP_PREVIEW_URL}/api/v1/shared-trips/${SHARE1_TOKEN}" -o /tmp/trip-shared1-preview.json
-          grep -Fq '"title":"CI preview cloud trip updated"' /tmp/trip-shared1-preview.json
-          ANON_COPY_STATUS=$(curl --silent --output /tmp/trip-anon-copy-preview.json --write-out '%{http_code}' \\
-            --request POST \\
-            "${TRIP_PREVIEW_URL}/api/v1/shared-trips/${SHARE1_TOKEN}/copy")
+          curl --fail --silent --show-error \
+            "${@@URL@@}/api/v1/shared-trips/${SHARE1_TOKEN}" -o /tmp/trip-shared1-@@ENV@@.json
+          grep -Fq '"title":"@@TITLE@@"' /tmp/trip-shared1-@@ENV@@.json
+          ANON_COPY_STATUS=$(curl --silent --output /tmp/trip-anon-copy-@@ENV@@.json --write-out '%{http_code}' \
+            --request POST \
+            "${@@URL@@}/api/v1/shared-trips/${SHARE1_TOKEN}/copy")
           test "$ANON_COPY_STATUS" = "401"
-          curl --fail --silent --show-error \\
-            --request POST \\
-            --header "authorization: Bearer $SMOKE_TOKEN" \\
-            --header 'x-wnr-smoke-user: deploy-preview-copy' \\
-            "${TRIP_PREVIEW_URL}/api/v1/shared-trips/${SHARE1_TOKEN}/copy" -o /tmp/trip-copied-preview.json
-          COPY_TRIP_ID=$(node -e "const x=require('/tmp/trip-copied-preview.json');process.stdout.write(x.data.id)")
+          curl --fail --silent --show-error \
+            --request POST \
+            --header "authorization: Bearer $SMOKE_TOKEN" \
+            --header 'x-wnr-smoke-user: @@COPYUSER@@' \
+            "${@@URL@@}/api/v1/shared-trips/${SHARE1_TOKEN}/copy" -o /tmp/trip-copied-@@ENV@@.json
+          COPY_TRIP_ID=$(node -e "const x=require('/tmp/trip-copied-@@ENV@@.json');process.stdout.write(x.data.id)")
           test "$COPY_TRIP_ID" != "$TRIP_ID"
-          grep -Fq '"version":1' /tmp/trip-copied-preview.json
-          curl --fail --silent --show-error \\
-            --request POST \\
-            --header "authorization: Bearer $SMOKE_TOKEN" \\
-            --header 'x-wnr-smoke-user: deploy-preview' \\
-            "${TRIP_PREVIEW_URL}/api/v1/trips/${TRIP_ID}/share" -o /tmp/trip-share2-preview.json
-          SHARE2_TOKEN=$(node -e "const x=require('/tmp/trip-share2-preview.json');process.stdout.write(x.data.token)")
+          grep -Fq '"version":1' /tmp/trip-copied-@@ENV@@.json
+          curl --fail --silent --show-error \
+            --request POST \
+            --header "authorization: Bearer $SMOKE_TOKEN" \
+            --header 'x-wnr-smoke-user: @@USER@@' \
+            "${@@URL@@}/api/v1/trips/${TRIP_ID}/share" -o /tmp/trip-share2-@@ENV@@.json
+          SHARE2_TOKEN=$(node -e "const x=require('/tmp/trip-share2-@@ENV@@.json');process.stdout.write(x.data.token)")
           test "$SHARE2_TOKEN" != "$SHARE1_TOKEN"
-          OLD_SHARE_STATUS=$(curl --silent --output /tmp/trip-old-share-preview.json --write-out '%{http_code}' \\
-            "${TRIP_PREVIEW_URL}/api/v1/shared-trips/${SHARE1_TOKEN}")
+          OLD_SHARE_STATUS=$(curl --silent --output /tmp/trip-old-share-@@ENV@@.json --write-out '%{http_code}' \
+            "${@@URL@@}/api/v1/shared-trips/${SHARE1_TOKEN}")
           test "$OLD_SHARE_STATUS" = "404"
-          curl --fail --silent --show-error \\
-            --request DELETE \\
-            --header "authorization: Bearer $SMOKE_TOKEN" \\
-            --header 'x-wnr-smoke-user: deploy-preview' \\
-            "${TRIP_PREVIEW_URL}/api/v1/trips/${TRIP_ID}/share" -o /tmp/trip-share-revoked-preview.json
-          grep -Fq '"revoked":true' /tmp/trip-share-revoked-preview.json
-          REVOKED_SHARE_STATUS=$(curl --silent --output /tmp/trip-revoked-share-preview.json --write-out '%{http_code}' \\
-            "${TRIP_PREVIEW_URL}/api/v1/shared-trips/${SHARE2_TOKEN}")
+          curl --fail --silent --show-error \
+            --request DELETE \
+            --header "authorization: Bearer $SMOKE_TOKEN" \
+            --header 'x-wnr-smoke-user: @@USER@@' \
+            "${@@URL@@}/api/v1/trips/${TRIP_ID}/share" -o /tmp/trip-share-revoked-@@ENV@@.json
+          grep -Fq '"revoked":true' /tmp/trip-share-revoked-@@ENV@@.json
+          REVOKED_SHARE_STATUS=$(curl --silent --output /tmp/trip-revoked-share-@@ENV@@.json --write-out '%{http_code}' \
+            "${@@URL@@}/api/v1/shared-trips/${SHARE2_TOKEN}")
           test "$REVOKED_SHARE_STATUS" = "404"
-          curl --fail --silent --show-error \\
-            --request DELETE \\
-            --header "authorization: Bearer $SMOKE_TOKEN" \\
-            --header 'x-wnr-smoke-user: deploy-preview-copy' \\
-            "${TRIP_PREVIEW_URL}/api/v1/trips/${COPY_TRIP_ID}" -o /tmp/trip-copy-deleted-preview.json
-          grep -Fq '"deleted":true' /tmp/trip-copy-deleted-preview.json
-          curl --fail --silent --show-error \\
-            --request DELETE \\
-            --header "authorization: Bearer $SMOKE_TOKEN" \\
-            --header 'x-wnr-smoke-user: deploy-preview' \\
-            "${TRIP_PREVIEW_URL}/api/v1/trips/${TRIP_ID}" -o /tmp/trip-deleted-preview.json
-          grep -Fq '"deleted":true' /tmp/trip-deleted-preview.json
+          curl --fail --silent --show-error \
+            --request DELETE \
+            --header "authorization: Bearer $SMOKE_TOKEN" \
+            --header 'x-wnr-smoke-user: @@COPYUSER@@' \
+            "${@@URL@@}/api/v1/trips/${COPY_TRIP_ID}" -o /tmp/trip-copy-deleted-@@ENV@@.json
+          grep -Fq '"deleted":true' /tmp/trip-copy-deleted-@@ENV@@.json
 '''
-          replace_once(preview_anchor, preview_phase2)
 
-          production_anchor = '''          test "$STALE_STATUS" = "409"
-          curl --fail --silent --show-error \\
-            --request DELETE \\
-            --header "authorization: Bearer $SMOKE_TOKEN" \\
-            --header 'x-wnr-smoke-user: deploy-production' \\
-            "${TRIP_PRODUCTION_URL}/api/v1/trips/${TRIP_ID}" -o /tmp/trip-deleted-production.json
-          grep -Fq '"deleted":true' /tmp/trip-deleted-production.json
-'''
-          production_phase2 = '''          test "$STALE_STATUS" = "409"
-          curl --fail --silent --show-error \\
-            --request PATCH \\
-            --header "authorization: Bearer $SMOKE_TOKEN" \\
-            --header 'x-wnr-smoke-user: deploy-production' \\
-            --header 'content-type: application/json' \\
-            --data '{"baseVersion":2,"status":"archived"}' \\
-            "${TRIP_PRODUCTION_URL}/api/v1/trips/${TRIP_ID}/status" -o /tmp/trip-archived-production.json
-          grep -Fq '"status":"archived"' /tmp/trip-archived-production.json
-          grep -Fq '"version":3' /tmp/trip-archived-production.json
-          STALE_RESTORE_STATUS=$(curl --silent --output /tmp/trip-stale-restore-production.json --write-out '%{http_code}' \\
-            --request PATCH \\
-            --header "authorization: Bearer $SMOKE_TOKEN" \\
-            --header 'x-wnr-smoke-user: deploy-production' \\
-            --header 'content-type: application/json' \\
-            --data '{"baseVersion":2,"status":"active"}' \\
-            "${TRIP_PRODUCTION_URL}/api/v1/trips/${TRIP_ID}/status")
-          test "$STALE_RESTORE_STATUS" = "409"
-          curl --fail --silent --show-error \\
-            --request PATCH \\
-            --header "authorization: Bearer $SMOKE_TOKEN" \\
-            --header 'x-wnr-smoke-user: deploy-production' \\
-            --header 'content-type: application/json' \\
-            --data '{"baseVersion":3,"status":"active"}' \\
-            "${TRIP_PRODUCTION_URL}/api/v1/trips/${TRIP_ID}/status" -o /tmp/trip-restored-production.json
-          grep -Fq '"status":"active"' /tmp/trip-restored-production.json
-          grep -Fq '"version":4' /tmp/trip-restored-production.json
-          curl --fail --silent --show-error \\
-            --request POST \\
-            --header "authorization: Bearer $SMOKE_TOKEN" \\
-            --header 'x-wnr-smoke-user: deploy-production' \\
-            "${TRIP_PRODUCTION_URL}/api/v1/trips/${TRIP_ID}/share" -o /tmp/trip-share1-production.json
-          SHARE1_TOKEN=$(node -e "const x=require('/tmp/trip-share1-production.json');process.stdout.write(x.data.token)")
-          test "${#SHARE1_TOKEN}" = "68"
-          curl --fail --silent --show-error \\
-            "${TRIP_PRODUCTION_URL}/api/v1/shared-trips/${SHARE1_TOKEN}" -o /tmp/trip-shared1-production.json
-          grep -Fq '"title":"CI production cloud trip updated"' /tmp/trip-shared1-production.json
-          ANON_COPY_STATUS=$(curl --silent --output /tmp/trip-anon-copy-production.json --write-out '%{http_code}' \\
-            --request POST \\
-            "${TRIP_PRODUCTION_URL}/api/v1/shared-trips/${SHARE1_TOKEN}/copy")
-          test "$ANON_COPY_STATUS" = "401"
-          curl --fail --silent --show-error \\
-            --request POST \\
-            --header "authorization: Bearer $SMOKE_TOKEN" \\
-            --header 'x-wnr-smoke-user: deploy-production-copy' \\
-            "${TRIP_PRODUCTION_URL}/api/v1/shared-trips/${SHARE1_TOKEN}/copy" -o /tmp/trip-copied-production.json
-          COPY_TRIP_ID=$(node -e "const x=require('/tmp/trip-copied-production.json');process.stdout.write(x.data.id)")
-          test "$COPY_TRIP_ID" != "$TRIP_ID"
-          grep -Fq '"version":1' /tmp/trip-copied-production.json
-          curl --fail --silent --show-error \\
-            --request POST \\
-            --header "authorization: Bearer $SMOKE_TOKEN" \\
-            --header 'x-wnr-smoke-user: deploy-production' \\
-            "${TRIP_PRODUCTION_URL}/api/v1/trips/${TRIP_ID}/share" -o /tmp/trip-share2-production.json
-          SHARE2_TOKEN=$(node -e "const x=require('/tmp/trip-share2-production.json');process.stdout.write(x.data.token)")
-          test "$SHARE2_TOKEN" != "$SHARE1_TOKEN"
-          OLD_SHARE_STATUS=$(curl --silent --output /tmp/trip-old-share-production.json --write-out '%{http_code}' \\
-            "${TRIP_PRODUCTION_URL}/api/v1/shared-trips/${SHARE1_TOKEN}")
-          test "$OLD_SHARE_STATUS" = "404"
-          curl --fail --silent --show-error \\
-            --request DELETE \\
-            --header "authorization: Bearer $SMOKE_TOKEN" \\
-            --header 'x-wnr-smoke-user: deploy-production' \\
-            "${TRIP_PRODUCTION_URL}/api/v1/trips/${TRIP_ID}/share" -o /tmp/trip-share-revoked-production.json
-          grep -Fq '"revoked":true' /tmp/trip-share-revoked-production.json
-          REVOKED_SHARE_STATUS=$(curl --silent --output /tmp/trip-revoked-share-production.json --write-out '%{http_code}' \\
-            "${TRIP_PRODUCTION_URL}/api/v1/shared-trips/${SHARE2_TOKEN}")
-          test "$REVOKED_SHARE_STATUS" = "404"
-          curl --fail --silent --show-error \\
-            --request DELETE \\
-            --header "authorization: Bearer $SMOKE_TOKEN" \\
-            --header 'x-wnr-smoke-user: deploy-production-copy' \\
-            "${TRIP_PRODUCTION_URL}/api/v1/trips/${COPY_TRIP_ID}" -o /tmp/trip-copy-deleted-production.json
-          grep -Fq '"deleted":true' /tmp/trip-copy-deleted-production.json
-          curl --fail --silent --show-error \\
-            --request DELETE \\
-            --header "authorization: Bearer $SMOKE_TOKEN" \\
-            --header 'x-wnr-smoke-user: deploy-production' \\
-            "${TRIP_PRODUCTION_URL}/api/v1/trips/${TRIP_ID}" -o /tmp/trip-deleted-production.json
-          grep -Fq '"deleted":true' /tmp/trip-deleted-production.json
-'''
-          replace_once(production_anchor, production_phase2)
-          deploy.write_text(text)
+          configs = [
+              ('preview', 'TRIP_PREVIEW_URL', 'deploy-preview', 'deploy-preview-copy', 'CI preview cloud trip updated'),
+              ('production', 'TRIP_PRODUCTION_URL', 'deploy-production', 'deploy-production-copy', 'CI production cloud trip updated'),
+          ]
+          blocks = []
+          for env, url, user, copy_user, title in configs:
+              block = template
+              for old, new in (
+                  ('@@ENV@@', env),
+                  ('@@URL@@', url),
+                  ('@@USER@@', user),
+                  ('@@COPYUSER@@', copy_user),
+                  ('@@TITLE@@', title),
+              ):
+                  block = block.replace(old, new)
+              blocks.append(block)
 
-          verify = Path('.github/workflows/verify-trip-product-production.yml')
-          v = verify.read_text()
+          for position, block in reversed(list(zip(positions, blocks))):
+              text = text[:position] + block + text[position:]
 
-          def vreplace(old: str, new: str) -> None:
-              nonlocal_marker = None
-              global v
-              count = v.count(old)
-              if count != 1:
-                  raise SystemExit(f'verify: expected one match, found {count}: {old[:100]!r}')
-              v = v.replace(old, new, 1)
-
-          vreplace(
-              '          fetch_and_match \\\n            "English workspace route" \\\n            "https://868656.xyz/trips/workspace" \\\n            /tmp/workspace.html \\\n            "Opening your trip workspace"\n',
-              '          fetch_and_match \\\n            "English workspace route" \\\n            "https://868656.xyz/trips/workspace" \\\n            /tmp/workspace.html \\\n            "Opening your trip workspace"\n\n          fetch_and_match \\\n            "English read-only share route" \\\n            "https://868656.xyz/trips/share" \\\n            /tmp/trip-share-page.html \\\n            "Read-only shared trip" "noindex"\n',
-          )
-          vreplace(
-              '          fetch_and_match \\\n            "Traditional workspace route" \\\n            "https://868656.xyz/zh-hant/trips/workspace" \\\n            /tmp/workspace-hant.html \\\n            "正在開啟你的行程工作台"\n',
-              '          fetch_and_match \\\n            "Traditional workspace route" \\\n            "https://868656.xyz/zh-hant/trips/workspace" \\\n            /tmp/workspace-hant.html \\\n            "正在開啟你的行程工作台"\n\n          fetch_and_match \\\n            "Traditional read-only share route" \\\n            "https://868656.xyz/zh-hant/trips/share" \\\n            /tmp/trip-share-hant.html \\\n            "唯讀分享行程" "noindex"\n',
-          )
-          vreplace(
-              '          fetch_and_match \\\n            "Simplified import route" \\\n            "https://868656.xyz/zh-cn/trips/new" \\\n            /tmp/trips-new-cn.html \\\n            "把你现有的计划直接变成天气行程工作台" "粘贴已经整理好的旅行行程"\n',
-              '          fetch_and_match \\\n            "Simplified import route" \\\n            "https://868656.xyz/zh-cn/trips/new" \\\n            /tmp/trips-new-cn.html \\\n            "把你现有的计划直接变成天气行程工作台" "粘贴已经整理好的旅行行程"\n\n          fetch_and_match \\\n            "Simplified read-only share route" \\\n            "https://868656.xyz/zh-cn/trips/share" \\\n            /tmp/trip-share-cn.html \\\n            "只读分享行程" "noindex"\n',
-          )
-          vreplace(
-              '            /tmp/trip-api-health.json \\\n            \'"cloudTrip":true\'\n',
-              '            /tmp/trip-api-health.json \\\n            \'"cloudTrip":true\' \'"cloudSharing":true\'\n',
-          )
-          verify.write_text(v)
+          path.write_text(text)
           PY
       - name: Format workflow files
-        run: pnpm exec prettier --write .github/workflows/deploy.yml .github/workflows/verify-trip-product-production.yml
+        run: pnpm exec prettier --write .github/workflows/deploy.yml .github/workflows/phase2-smoke-patch.yml
       - name: Commit smoke coverage
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add .github/workflows/deploy.yml .github/workflows/verify-trip-product-production.yml
-          git commit -m "test(cloud-trip): add phase 2 preview and production smoke [skip ci]"
+          git add .github/workflows/deploy.yml .github/workflows/phase2-smoke-patch.yml
+          git commit -m "test(cloud-trip): add phase 2 deploy smoke [skip ci]"
           git push origin HEAD:feature/cloud-trip-phase2
