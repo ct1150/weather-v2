@@ -64,9 +64,6 @@ export default function TraditionalTripsLanding(): ReactElement {
             <a className="trip-secondary-button" href="/zh-hant/trips/new">
               匯入 Markdown 行程
             </a>
-            <a className="trip-secondary-button" href="/trips">
-              English
-            </a>
           </div>
           <p className="mt-4 max-w-2xl text-xs leading-5 text-muted">
             目前涵蓋日本、南韓、泰國、越南、新加坡、馬來西亞、印尼、菲律賓與柬埔寨。不需要註冊帳號。
