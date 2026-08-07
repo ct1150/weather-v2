@@ -48,7 +48,7 @@ export default async function SimplifiedChineseCountryPage({
   if (country === undefined) notFound();
   const countryCities = dataset.citiesByCountry.get(country.id) ?? [];
   const citySlugById = new Map(countryCities.map((item) => [item.city.id, item.city.slug] as const));
-  const localizeLink = <T extends { readonly cityId: string; readonly path: string }>(link: T): T => ({
+  const localizeLink = <T extends { readonly cityId: string; readonly path: string },>(link: T): T => ({
     ...link,
     path: `/zh-cn/${country.slug}/${citySlugById.get(link.cityId) ?? link.cityId}`,
   });
