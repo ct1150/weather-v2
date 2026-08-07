@@ -29,7 +29,7 @@ export function SiteHeader(): ReactElement {
   const isChinese = isTraditional || isSimplified;
 
   const homeHref = isTraditional ? "/zh-hant/trips" : isSimplified ? "/zh-cn/trips" : "/trips";
-  const weatherHref = isSimplified ? "/zh-cn" : "/";
+  const weatherHref = isTraditional ? "/zh-hant" : isSimplified ? "/zh-cn" : "/";
   const languageHref = isTraditional ? "/trips" : "/zh-hant/trips";
 
   return (
