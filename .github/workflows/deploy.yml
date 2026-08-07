@@ -1,7 +1,7 @@
-# Where Not Rain — Deploy to Cloudflare Pages + weather Workers
+# Where Not Rain — Deploy to Cloudflare Pages + weather / trip Workers
 #
 # Pipeline: install -> verify -> build -> dry-run gates -> secret scan -> real deploy.
-# The static export is built once and the same artifact is promoted.
+# The static web export is built once and the same artifact is promoted.
 
 name: Deploy
 
@@ -23,6 +23,8 @@ env:
   NODE_VERSION: "22"
   CLOUDFLARE_ACCOUNT_ID: "b266970852cbc371061c94c5b1fe76a9"
   WEATHER_PRIMARY_PROVIDER: "open-meteo"
+  TRIP_PREVIEW_URL: "https://where-not-rain-trip-preview.ct1150.workers.dev"
+  TRIP_PRODUCTION_URL: "https://trip.868656.xyz"
 
 jobs:
   deploy:
@@ -71,6 +73,7 @@ jobs:
       - name: Build web (Next.js static export)
         env:
           APP_BASE_URL: https://868656.xyz
+          NEXT_PUBLIC_TRIP_API_URL: ${{ github.event_name == 'pull_request' && env.TRIP_PREVIEW_URL || env.TRIP_PRODUCTION_URL }}
           NEXT_PUBLIC_CLOUDFLARE_ANALYTICS_ENABLED: ${{ secrets.NEXT_PUBLIC_CLOUDFLARE_ANALYTICS_ENABLED }}
           NEXT_PUBLIC_CLOUDFLARE_ANALYTICS_TOKEN: ${{ secrets.NEXT_PUBLIC_CLOUDFLARE_ANALYTICS_TOKEN }}
         run: pnpm --filter @wnr/web build
@@ -80,6 +83,9 @@ jobs:
 
       - name: Build weather-read Worker
         run: pnpm --filter @wnr/weather-read build
+
+      - name: Build trip-api Worker
+        run: pnpm --filter @wnr/trip-api build
 
       - name: Pipeline contract tests
         run: node --test tooling/deploy/pipeline-contract.test.mjs
@@ -105,14 +111,14 @@ jobs:
 
       - name: Secret scan
         run: |
-          if grep -RIiE "WEATHERAPI_SECRET|CLOUDFLARE_API_TOKEN" apps/web/out apps/web/src 2>/dev/null; then
+          if grep -RIiE "WEATHERAPI_SECRET|CLOUDFLARE_API_TOKEN|BETTER_AUTH_SECRET|GOOGLE_CLIENT_SECRET|RESEND_API_KEY" apps/web/out apps/web/src workers/trip-api/src 2>/dev/null; then
             echo "::error::Possible secret leaked into build output or source"
             exit 1
           fi
           echo "secret scan: clean"
 
       # Preview deployment is available only to internal pull requests.
-      - name: Apply D1 migrations (preview, 0001 ONLY — no 0002)
+      - name: Apply weather D1 migrations (preview, 0001 ONLY — no 0002)
         if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -146,6 +152,104 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: pnpm --filter @wnr/weather-read exec wrangler deploy --env preview
 
+      - name: Apply Trip D1 migrations (preview)
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: pnpm --filter @wnr/trip-api exec wrangler d1 migrations apply wnr-trip-preview --env preview --remote
+
+      - name: Deploy trip-api Worker (preview)
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: pnpm --filter @wnr/trip-api exec wrangler deploy --env preview
+
+      - name: Configure trip-api secrets (preview)
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CONFIGURED_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET }}
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+        run: |
+          set -euo pipefail
+          AUTH_SECRET="${CONFIGURED_AUTH_SECRET:-$(printf 'wnr-trip-auth:%s' "$CLOUDFLARE_API_TOKEN" | sha256sum | cut -d' ' -f1)}"
+          MIGRATION_TOKEN="$(printf 'wnr-trip-migrate:%s' "$CLOUDFLARE_API_TOKEN" | sha256sum | cut -d' ' -f1)"
+          SMOKE_TOKEN="$(printf 'wnr-trip-smoke:%s' "$CLOUDFLARE_API_TOKEN" | sha256sum | cut -d' ' -f1)"
+          printf '%s' "$AUTH_SECRET" | pnpm --filter @wnr/trip-api exec wrangler secret put BETTER_AUTH_SECRET --env preview
+          printf '%s' "$MIGRATION_TOKEN" | pnpm --filter @wnr/trip-api exec wrangler secret put INTERNAL_MIGRATION_TOKEN --env preview
+          printf '%s' "$SMOKE_TOKEN" | pnpm --filter @wnr/trip-api exec wrangler secret put INTERNAL_SMOKE_TOKEN --env preview
+          if [ -n "${GOOGLE_CLIENT_ID:-}" ] && [ -n "${GOOGLE_CLIENT_SECRET:-}" ]; then
+            printf '%s' "$GOOGLE_CLIENT_ID" | pnpm --filter @wnr/trip-api exec wrangler secret put GOOGLE_CLIENT_ID --env preview
+            printf '%s' "$GOOGLE_CLIENT_SECRET" | pnpm --filter @wnr/trip-api exec wrangler secret put GOOGLE_CLIENT_SECRET --env preview
+          fi
+          if [ -n "${RESEND_API_KEY:-}" ]; then
+            printf '%s' "$RESEND_API_KEY" | pnpm --filter @wnr/trip-api exec wrangler secret put RESEND_API_KEY --env preview
+          fi
+
+      - name: Migrate Better Auth schema (preview)
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          MIGRATION_TOKEN="$(printf 'wnr-trip-migrate:%s' "$CLOUDFLARE_API_TOKEN" | sha256sum | cut -d' ' -f1)"
+          curl --fail --silent --show-error --retry 5 --retry-all-errors \
+            --request POST \
+            --header "authorization: Bearer $MIGRATION_TOKEN" \
+            --connect-timeout 15 --max-time 90 \
+            "${TRIP_PREVIEW_URL}/internal/migrate-auth" \
+            -o /tmp/trip-auth-preview.json
+          grep -Fq '"migrated":true' /tmp/trip-auth-preview.json
+
+      - name: Trip API preview smoke (auth isolation / CRUD / conflict)
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --retry 5 --retry-all-errors "${TRIP_PREVIEW_URL}/health" -o /tmp/trip-health-preview.json
+          grep -Fq '"cloudTrip":true' /tmp/trip-health-preview.json
+          ANON_STATUS=$(curl --silent --output /tmp/trip-anon-preview.json --write-out '%{http_code}' "${TRIP_PREVIEW_URL}/api/v1/trips")
+          test "$ANON_STATUS" = "401"
+          SMOKE_TOKEN="$(printf 'wnr-trip-smoke:%s' "$CLOUDFLARE_API_TOKEN" | sha256sum | cut -d' ' -f1)"
+          cat >/tmp/trip-create.json <<'JSON'
+          {"locale":"en","document":{"version":1,"id":"ci-local","title":"CI preview cloud trip","partyProfile":"adults","createdAt":"2026-08-07T00:00:00.000Z","updatedAt":"2026-08-07T00:00:00.000Z","days":[{"id":"day-1","dayNumber":1,"date":"2026-08-08","cityId":"jp-tokyo","cityName":"Tokyo","countryName":"Japan","theme":"city","flexible":true,"activities":[],"notes":""}]}}
+          JSON
+          curl --fail --silent --show-error \
+            --request POST \
+            --header "authorization: Bearer $SMOKE_TOKEN" \
+            --header 'x-wnr-smoke-user: deploy-preview' \
+            --header 'content-type: application/json' \
+            --data-binary @/tmp/trip-create.json \
+            "${TRIP_PREVIEW_URL}/api/v1/trips" -o /tmp/trip-created-preview.json
+          TRIP_ID=$(node -e "const x=require('/tmp/trip-created-preview.json');process.stdout.write(x.data.id)")
+          cat >/tmp/trip-update.json <<'JSON'
+          {"baseVersion":1,"locale":"en","document":{"version":1,"id":"ci-local","title":"CI preview cloud trip updated","partyProfile":"adults","createdAt":"2026-08-07T00:00:00.000Z","updatedAt":"2026-08-07T00:01:00.000Z","days":[{"id":"day-1","dayNumber":1,"date":"2026-08-08","cityId":"jp-tokyo","cityName":"Tokyo","countryName":"Japan","theme":"city","flexible":true,"activities":[],"notes":""}]}}
+          JSON
+          curl --fail --silent --show-error \
+            --request PATCH \
+            --header "authorization: Bearer $SMOKE_TOKEN" \
+            --header 'x-wnr-smoke-user: deploy-preview' \
+            --header 'content-type: application/json' \
+            --data-binary @/tmp/trip-update.json \
+            "${TRIP_PREVIEW_URL}/api/v1/trips/${TRIP_ID}" -o /tmp/trip-updated-preview.json
+          grep -Fq '"version":2' /tmp/trip-updated-preview.json
+          STALE_STATUS=$(curl --silent --output /tmp/trip-stale-preview.json --write-out '%{http_code}' \
+            --request PATCH \
+            --header "authorization: Bearer $SMOKE_TOKEN" \
+            --header 'x-wnr-smoke-user: deploy-preview' \
+            --header 'content-type: application/json' \
+            --data-binary @/tmp/trip-update.json \
+            "${TRIP_PREVIEW_URL}/api/v1/trips/${TRIP_ID}")
+          test "$STALE_STATUS" = "409"
+          curl --fail --silent --show-error \
+            --request DELETE \
+            --header "authorization: Bearer $SMOKE_TOKEN" \
+            --header 'x-wnr-smoke-user: deploy-preview' \
+            "${TRIP_PREVIEW_URL}/api/v1/trips/${TRIP_ID}" -o /tmp/trip-deleted-preview.json
+          grep -Fq '"deleted":true' /tmp/trip-deleted-preview.json
+
       - name: Extended preview smoke (KV hit / D1 fallback / no user-path provider call)
         if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
         env:
@@ -159,7 +263,7 @@ jobs:
         run: pnpm --filter @wnr/web exec wrangler pages deploy out --branch ${{ github.event.pull_request.number }} --project-name where-not-rain
 
       # Production promotion runs only for main.
-      - name: Apply D1 migrations (production, 0001 ONLY — no 0002)
+      - name: Apply weather D1 migrations (production, 0001 ONLY — no 0002)
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -206,6 +310,104 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: pnpm --filter @wnr/weather-read exec wrangler deploy --env production
+
+      - name: Apply Trip D1 migrations (production)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: pnpm --filter @wnr/trip-api exec wrangler d1 migrations apply wnr-trip-production --env production --remote
+
+      - name: Deploy trip-api Worker (production)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: pnpm --filter @wnr/trip-api exec wrangler deploy --env production
+
+      - name: Configure trip-api secrets (production)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CONFIGURED_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET }}
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+        run: |
+          set -euo pipefail
+          AUTH_SECRET="${CONFIGURED_AUTH_SECRET:-$(printf 'wnr-trip-auth:%s' "$CLOUDFLARE_API_TOKEN" | sha256sum | cut -d' ' -f1)}"
+          MIGRATION_TOKEN="$(printf 'wnr-trip-migrate:%s' "$CLOUDFLARE_API_TOKEN" | sha256sum | cut -d' ' -f1)"
+          SMOKE_TOKEN="$(printf 'wnr-trip-smoke:%s' "$CLOUDFLARE_API_TOKEN" | sha256sum | cut -d' ' -f1)"
+          printf '%s' "$AUTH_SECRET" | pnpm --filter @wnr/trip-api exec wrangler secret put BETTER_AUTH_SECRET --env production
+          printf '%s' "$MIGRATION_TOKEN" | pnpm --filter @wnr/trip-api exec wrangler secret put INTERNAL_MIGRATION_TOKEN --env production
+          printf '%s' "$SMOKE_TOKEN" | pnpm --filter @wnr/trip-api exec wrangler secret put INTERNAL_SMOKE_TOKEN --env production
+          if [ -n "${GOOGLE_CLIENT_ID:-}" ] && [ -n "${GOOGLE_CLIENT_SECRET:-}" ]; then
+            printf '%s' "$GOOGLE_CLIENT_ID" | pnpm --filter @wnr/trip-api exec wrangler secret put GOOGLE_CLIENT_ID --env production
+            printf '%s' "$GOOGLE_CLIENT_SECRET" | pnpm --filter @wnr/trip-api exec wrangler secret put GOOGLE_CLIENT_SECRET --env production
+          fi
+          if [ -n "${RESEND_API_KEY:-}" ]; then
+            printf '%s' "$RESEND_API_KEY" | pnpm --filter @wnr/trip-api exec wrangler secret put RESEND_API_KEY --env production
+          fi
+
+      - name: Migrate Better Auth schema (production)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          MIGRATION_TOKEN="$(printf 'wnr-trip-migrate:%s' "$CLOUDFLARE_API_TOKEN" | sha256sum | cut -d' ' -f1)"
+          curl --fail --silent --show-error --retry 5 --retry-all-errors \
+            --request POST \
+            --header "authorization: Bearer $MIGRATION_TOKEN" \
+            --connect-timeout 15 --max-time 90 \
+            "${TRIP_PRODUCTION_URL}/internal/migrate-auth" \
+            -o /tmp/trip-auth-production.json
+          grep -Fq '"migrated":true' /tmp/trip-auth-production.json
+
+      - name: Trip API production smoke (auth isolation / CRUD / conflict)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --retry 5 --retry-all-errors "${TRIP_PRODUCTION_URL}/health" -o /tmp/trip-health-production.json
+          grep -Fq '"cloudTrip":true' /tmp/trip-health-production.json
+          ANON_STATUS=$(curl --silent --output /tmp/trip-anon-production.json --write-out '%{http_code}' "${TRIP_PRODUCTION_URL}/api/v1/trips")
+          test "$ANON_STATUS" = "401"
+          SMOKE_TOKEN="$(printf 'wnr-trip-smoke:%s' "$CLOUDFLARE_API_TOKEN" | sha256sum | cut -d' ' -f1)"
+          cat >/tmp/trip-create-production.json <<'JSON'
+          {"locale":"en","document":{"version":1,"id":"ci-local","title":"CI production cloud trip","partyProfile":"adults","createdAt":"2026-08-07T00:00:00.000Z","updatedAt":"2026-08-07T00:00:00.000Z","days":[{"id":"day-1","dayNumber":1,"date":"2026-08-08","cityId":"jp-tokyo","cityName":"Tokyo","countryName":"Japan","theme":"city","flexible":true,"activities":[],"notes":""}]}}
+          JSON
+          curl --fail --silent --show-error \
+            --request POST \
+            --header "authorization: Bearer $SMOKE_TOKEN" \
+            --header 'x-wnr-smoke-user: deploy-production' \
+            --header 'content-type: application/json' \
+            --data-binary @/tmp/trip-create-production.json \
+            "${TRIP_PRODUCTION_URL}/api/v1/trips" -o /tmp/trip-created-production.json
+          TRIP_ID=$(node -e "const x=require('/tmp/trip-created-production.json');process.stdout.write(x.data.id)")
+          cat >/tmp/trip-update-production.json <<'JSON'
+          {"baseVersion":1,"locale":"en","document":{"version":1,"id":"ci-local","title":"CI production cloud trip updated","partyProfile":"adults","createdAt":"2026-08-07T00:00:00.000Z","updatedAt":"2026-08-07T00:01:00.000Z","days":[{"id":"day-1","dayNumber":1,"date":"2026-08-08","cityId":"jp-tokyo","cityName":"Tokyo","countryName":"Japan","theme":"city","flexible":true,"activities":[],"notes":""}]}}
+          JSON
+          curl --fail --silent --show-error \
+            --request PATCH \
+            --header "authorization: Bearer $SMOKE_TOKEN" \
+            --header 'x-wnr-smoke-user: deploy-production' \
+            --header 'content-type: application/json' \
+            --data-binary @/tmp/trip-update-production.json \
+            "${TRIP_PRODUCTION_URL}/api/v1/trips/${TRIP_ID}" -o /tmp/trip-updated-production.json
+          grep -Fq '"version":2' /tmp/trip-updated-production.json
+          STALE_STATUS=$(curl --silent --output /tmp/trip-stale-production.json --write-out '%{http_code}' \
+            --request PATCH \
+            --header "authorization: Bearer $SMOKE_TOKEN" \
+            --header 'x-wnr-smoke-user: deploy-production' \
+            --header 'content-type: application/json' \
+            --data-binary @/tmp/trip-update-production.json \
+            "${TRIP_PRODUCTION_URL}/api/v1/trips/${TRIP_ID}")
+          test "$STALE_STATUS" = "409"
+          curl --fail --silent --show-error \
+            --request DELETE \
+            --header "authorization: Bearer $SMOKE_TOKEN" \
+            --header 'x-wnr-smoke-user: deploy-production' \
+            "${TRIP_PRODUCTION_URL}/api/v1/trips/${TRIP_ID}" -o /tmp/trip-deleted-production.json
+          grep -Fq '"deleted":true' /tmp/trip-deleted-production.json
 
       - name: Deploy to production (main)
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
