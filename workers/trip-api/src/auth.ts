@@ -17,6 +17,11 @@ export interface ProviderAvailability {
   readonly email: boolean;
 }
 
+export interface AuthIdentity {
+  readonly userId: string;
+  readonly email: string;
+}
+
 function optionalSecret(env: AuthEnv, parts: ReadonlyArray<string>): string | undefined {
   const value = env[parts.join("_")];
   return typeof value === "string" && value.length > 0 ? value : undefined;
@@ -43,7 +48,12 @@ export function providerAvailability(env: AuthEnv): ProviderAvailability {
   };
 }
 
-async function sendMagicLinkEmail(env: AuthEnv, email: string, url: string): Promise<void> {
+async function sendEmail(
+  env: AuthEnv,
+  email: string,
+  subject: string,
+  text: string,
+): Promise<void> {
   const apiKey = mailApiKey(env);
   if (!apiKey || !env.EMAIL_FROM) throw new Error("EMAIL_PROVIDER_UNAVAILABLE");
   const response = await fetch("https://api.resend.com/emails", {
@@ -52,14 +62,36 @@ async function sendMagicLinkEmail(env: AuthEnv, email: string, url: string): Pro
       authorization: `Bearer ${apiKey}`,
       "content-type": "application/json",
     },
-    body: JSON.stringify({
-      from: env.EMAIL_FROM,
-      to: [email],
-      subject: "Sign in to Where Not Rain",
-      text: `Use this secure link to sign in to Where Not Rain. The link expires shortly.\n\n${url}`,
-    }),
+    body: JSON.stringify({ from: env.EMAIL_FROM, to: [email], subject, text }),
   });
   if (!response.ok) throw new Error(`EMAIL_DELIVERY_${response.status}`);
+}
+
+async function sendMagicLinkEmail(env: AuthEnv, email: string, url: string): Promise<void> {
+  await sendEmail(
+    env,
+    email,
+    "Sign in to Where Not Rain",
+    `Use this secure link to sign in to Where Not Rain. The link expires shortly.\n\n${url}`,
+  );
+}
+
+export async function sendTripInviteEmail(
+  env: AuthEnv,
+  email: string,
+  tripTitle: string,
+  role: "editor" | "viewer",
+  url: string,
+): Promise<boolean> {
+  if (!providerAvailability(env).email) return false;
+  const roleCopy = role === "editor" ? "edit" : "view";
+  await sendEmail(
+    env,
+    email,
+    `You're invited to collaborate on ${tripTitle}`,
+    `You've been invited to ${roleCopy} “${tripTitle}” in Where Not Rain. Sign in with this email address to accept the invitation.\n\n${url}`,
+  );
+  return true;
 }
 
 function createAuth(env: AuthEnv) {
@@ -103,15 +135,26 @@ function createAuth(env: AuthEnv) {
   });
 }
 
-export async function getAuthUserId(request: Request, env: AuthEnv): Promise<string | null> {
+export async function getAuthIdentity(
+  request: Request,
+  env: AuthEnv,
+): Promise<AuthIdentity | null> {
   const auth = createAuth(env);
   if (auth === null) return null;
   try {
     const session = await auth.api.getSession({ headers: request.headers });
-    return session?.user.id ?? null;
+    const userId = session?.user.id;
+    const email = session?.user.email;
+    return typeof userId === "string" && typeof email === "string" && email.length > 0
+      ? { userId, email }
+      : null;
   } catch {
     return null;
   }
+}
+
+export async function getAuthUserId(request: Request, env: AuthEnv): Promise<string | null> {
+  return (await getAuthIdentity(request, env))?.userId ?? null;
 }
 
 export async function handleAuthRequest(request: Request, env: AuthEnv): Promise<Response | null> {
