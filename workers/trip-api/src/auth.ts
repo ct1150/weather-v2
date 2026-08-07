@@ -1,4 +1,5 @@
 import { betterAuth } from "better-auth";
+import { getMigrations } from "better-auth/db/migration";
 import { magicLink } from "better-auth/plugins";
 
 export interface AuthEnv {
@@ -17,8 +18,6 @@ export interface ProviderAvailability {
   readonly google: boolean;
   readonly email: boolean;
 }
-
-export type TripAuth = ReturnType<typeof betterAuth>;
 
 export function providerAvailability(env: AuthEnv): ProviderAvailability {
   return {
@@ -46,7 +45,7 @@ async function sendMagicLinkEmail(env: AuthEnv, email: string, url: string): Pro
   if (!response.ok) throw new Error(`EMAIL_DELIVERY_${response.status}`);
 }
 
-export function createAuth(env: AuthEnv): TripAuth | null {
+function createAuth(env: AuthEnv) {
   const availability = providerAvailability(env);
   if (!availability.auth || !env.BETTER_AUTH_SECRET || !env.AUTH_BASE_URL) return null;
 
@@ -83,4 +82,28 @@ export function createAuth(env: AuthEnv): TripAuth | null {
       },
     },
   });
+}
+
+export async function getAuthUserId(request: Request, env: AuthEnv): Promise<string | null> {
+  const auth = createAuth(env);
+  if (auth === null) return null;
+  try {
+    const session = await auth.api.getSession({ headers: request.headers });
+    return session?.user.id ?? null;
+  } catch {
+    return null;
+  }
+}
+
+export async function handleAuthRequest(request: Request, env: AuthEnv): Promise<Response | null> {
+  const auth = createAuth(env);
+  return auth === null ? null : auth.handler(request);
+}
+
+export async function runAuthMigrations(env: AuthEnv): Promise<boolean> {
+  const auth = createAuth(env);
+  if (auth === null) return false;
+  const migrations = await getMigrations(auth.options);
+  await migrations.runMigrations();
+  return true;
 }
