@@ -29,7 +29,8 @@ export default function NewTripEnglishPage(): ReactElement {
         </h1>
         <p className="mt-4 text-base leading-7 text-muted">
           Paste the itinerary you already have. The importer recognizes D1 or Day1 sections, tries
-          to match supported cities and day types, and leaves only ambiguous days for you to confirm.
+          to match supported cities and day types, and leaves only ambiguous days for you to
+          confirm.
         </p>
       </section>
       <div className="mt-8">

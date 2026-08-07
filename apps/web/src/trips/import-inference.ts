@@ -86,7 +86,10 @@ const OUTDOOR_TERMS = [
 ];
 
 function normalize(value: string): string {
-  return value.toLocaleLowerCase().replace(/[\s_–—-]+/gu, " ").trim();
+  return value
+    .toLocaleLowerCase()
+    .replace(/[\s_–—-]+/gu, " ")
+    .trim();
 }
 
 function includesTerm(text: string, term: string): boolean {

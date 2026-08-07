@@ -1,10 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, type ReactElement } from "react";
-import {
-  inferImportedWorkspace,
-  unresolvedImportedDays,
-} from "../trips/import-inference";
+import { inferImportedWorkspace, unresolvedImportedDays } from "../trips/import-inference";
 import { parseTripMarkdown } from "../trips/markdown-parser";
 import {
   TRIP_WORKSPACE_STORAGE_KEY,
@@ -49,9 +46,7 @@ function themeLabel(theme: TripDayTheme, locale: TripImportLocale): string {
   return "城市游览";
 }
 
-export function SmartTripImportForm({
-  locale = "zh-cn",
-}: SmartTripImportFormProps): ReactElement {
+export function SmartTripImportForm({ locale = "zh-cn" }: SmartTripImportFormProps): ReactElement {
   const isEnglish = locale === "en";
   const isTraditional = locale === "zh-hant";
   const [markdown, setMarkdown] = useState("");
@@ -74,7 +69,8 @@ export function SmartTripImportForm({
         daysUnit: "days",
         scheduleItems: "Schedule items",
         itemsUnit: "items",
-        noDays: "No D1 or Day1 headings were found. Try a heading such as “# Day1 (2026-09-12) Tokyo”.",
+        noDays:
+          "No D1 or Day1 headings were found. Try a heading such as “# Day1 (2026-09-12) Tokyo”.",
         next: "Next: review only what needs attention",
         nextDescription:
           "Recognized cities and day types are filled automatically. Ambiguous days stay unassigned for you to confirm in the workspace.",

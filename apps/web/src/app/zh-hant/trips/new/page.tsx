@@ -27,7 +27,8 @@ export default function TraditionalTripImportPage(): ReactElement {
           把你現有的計畫直接變成天氣行程工作台
         </h1>
         <p className="mt-4 text-base leading-7 text-muted">
-          貼上已經整理好的旅行行程。系統會辨識 D1、Day1、支援城市與行程類型，只把有歧義的日期留給你確認。
+          貼上已經整理好的旅行行程。系統會辨識
+          D1、Day1、支援城市與行程類型，只把有歧義的日期留給你確認。
         </p>
       </section>
       <div className="mt-8">

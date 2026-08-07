@@ -5,7 +5,8 @@ import { buildAlternates } from "../../../seo";
 
 export const metadata: Metadata = {
   title: { absolute: "导入现有旅行行程 - Where Not Rain" },
-  description: "粘贴 Markdown、ChatGPT 或已整理好的旅行计划，自动识别城市和行程类型并创建天气行程工作台。",
+  description:
+    "粘贴 Markdown、ChatGPT 或已整理好的旅行计划，自动识别城市和行程类型并创建天气行程工作台。",
   alternates: buildAlternates("/trips/new", "zh-cn", ["en", "zh-hant", "zh-cn"]),
   robots: { index: false, follow: true },
 };
@@ -27,7 +28,8 @@ export default function NewTripPage(): ReactElement {
           把你现有的计划直接变成天气行程工作台
         </h1>
         <p className="mt-4 text-base leading-7 text-muted">
-          粘贴已经整理好的旅行行程。系统会识别 D1、Day1、支持城市和行程类型，只把有歧义的日期留给你确认。
+          粘贴已经整理好的旅行行程。系统会识别
+          D1、Day1、支持城市和行程类型，只把有歧义的日期留给你确认。
         </p>
       </section>
       <div className="mt-8">
