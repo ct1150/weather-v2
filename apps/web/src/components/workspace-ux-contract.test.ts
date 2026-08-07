@@ -1,7 +1,10 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
-const localizedSource = readFileSync(new URL("./LocalizedTripWorkspace.tsx", import.meta.url), "utf8");
+const localizedSource = readFileSync(
+  new URL("./LocalizedTripWorkspace.tsx", import.meta.url),
+  "utf8",
+);
 const simplifiedSource = readFileSync(new URL("./TripWorkspace.tsx", import.meta.url), "utf8");
 
 describe("decision-first workspace UX contract", () => {
