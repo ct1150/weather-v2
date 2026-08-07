@@ -6,12 +6,19 @@ on:
       - main
     paths:
       - .github/direct-discovery-trip-main-trigger
+  pull_request:
+    branches:
+      - main
+    paths:
+      - .github/direct-discovery-trip-trigger
+      - .github/workflows/build-direct-discovery-trip.yml
 
 permissions:
   contents: write
 
 jobs:
   build:
+    if: github.event_name == 'push' || github.head_ref == 'agent/direct-discovery-trip'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
