@@ -32,8 +32,7 @@ function corsHeaders(request: Request, env: WorkerEnv): Record<string, string> {
     "access-control-allow-origin": allowedOrigin(request, env),
     "access-control-allow-credentials": "true",
     "access-control-allow-methods": "GET,POST,PATCH,DELETE,OPTIONS",
-    "access-control-allow-headers":
-      "content-type,authorization,x-wnr-smoke-user,x-wnr-share-token",
+    "access-control-allow-headers": "content-type,authorization,x-wnr-smoke-user,x-wnr-share-token",
     "cache-control": "private, no-store",
     vary: "Origin",
   };
@@ -132,12 +131,7 @@ async function handleTrips(request: Request, env: WorkerEnv): Promise<Response> 
       const requestedStatus = url.searchParams.get("status");
       const status =
         requestedStatus === "active" || requestedStatus === "archived" ? requestedStatus : "all";
-      const items = await listTrips(
-        env.DB,
-        userId,
-        Number.isFinite(limit) ? limit : 50,
-        status,
-      );
+      const items = await listTrips(env.DB, userId, Number.isFinite(limit) ? limit : 50, status);
       return json(request, env, { data: { items } });
     }
     if (request.method === "POST") {

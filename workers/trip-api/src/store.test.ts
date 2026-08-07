@@ -52,17 +52,8 @@ describe("trip store", () => {
 
   it("filters archived trips in D1 before applying the list limit", async () => {
     const valid = validateTripDocument(document)!;
-    const archived = await createTrip(
-      db,
-      "user-a",
-      "en",
-      valid,
-      "2026-08-01T00:00:00.000Z",
-    );
-    await db
-      .prepare("UPDATE trips SET status = 'archived' WHERE id = ?")
-      .bind(archived.id)
-      .run();
+    const archived = await createTrip(db, "user-a", "en", valid, "2026-08-01T00:00:00.000Z");
+    await db.prepare("UPDATE trips SET status = 'archived' WHERE id = ?").bind(archived.id).run();
 
     for (let index = 0; index < 50; index += 1) {
       await createTrip(

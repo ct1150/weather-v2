@@ -176,9 +176,7 @@ describe("Trip API", () => {
 
   it("redacts bearer share tokens from error log paths", () => {
     const token = `shr_${"a".repeat(64)}`;
-    expect(safeLogPath(`/api/v1/shared-trips/${token}`)).toBe(
-      "/api/v1/shared-trips/[redacted]",
-    );
+    expect(safeLogPath(`/api/v1/shared-trips/${token}`)).toBe("/api/v1/shared-trips/[redacted]");
     expect(safeLogPath(`/api/v1/shared-trips/${token}/copy`)).toBe(
       "/api/v1/shared-trips/[redacted]/copy",
     );
