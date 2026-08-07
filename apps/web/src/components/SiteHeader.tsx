@@ -8,6 +8,7 @@ import {
   isAutoLocalizablePath,
   localeFromPath,
   localizedPath,
+  stripLocalePrefix,
   type SiteLocale,
 } from "../i18n/locale-routing";
 
@@ -33,12 +34,15 @@ function BrandMark(): ReactElement {
 export function SiteHeader(): ReactElement {
   const pathname = usePathname();
   const currentLocale = localeFromPath(pathname);
+  const basePath = stripLocalePrefix(pathname);
   const isTraditional = currentLocale === "zh-hant";
   const isSimplified = currentLocale === "zh-cn";
   const isChinese = currentLocale !== "en";
+  const isTripArea = basePath === "/trips" || basePath.startsWith("/trips/");
+  const isWeatherArea = !isTripArea;
 
-  const homeHref = isTraditional ? "/zh-hant/trips" : isSimplified ? "/zh-cn/trips" : "/trips";
   const weatherHref = isTraditional ? "/zh-hant" : isSimplified ? "/zh-cn" : "/";
+  const tripHref = isTraditional ? "/zh-hant/trips" : isSimplified ? "/zh-cn/trips" : "/trips";
 
   function chooseLocale(event: ChangeEvent<HTMLSelectElement>): void {
     const locale = event.target.value as SiteLocale;
@@ -60,14 +64,14 @@ export function SiteHeader(): ReactElement {
       </a>
       <div className="mx-auto flex h-[72px] max-w-6xl items-center justify-between px-4 sm:px-6">
         <a
-          href={homeHref}
+          href={weatherHref}
           className="group flex items-center gap-2.5 rounded-lg focus-ring"
           aria-label={
             isTraditional
-              ? "Where Not Rain 繁體中文行程助手"
+              ? "Where Not Rain 天氣雷達首頁"
               : isSimplified
-                ? "Where Not Rain 中文旅行助手"
-                : "Where Not Rain trip planner"
+                ? "Where Not Rain 天气雷达首页"
+                : "Where Not Rain weather radar home"
           }
         >
           <BrandMark />
@@ -75,27 +79,35 @@ export function SiteHeader(): ReactElement {
             Where Not Rain
           </span>
           <span className="hidden rounded-full border border-border bg-surface-elevated px-2 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-muted md:inline">
-            {isTraditional ? "天氣行程" : isSimplified ? "天气行程" : "Trip planner"}
+            {isTraditional ? "旅行天氣決策" : isSimplified ? "旅行天气决策" : "Travel weather"}
           </span>
         </a>
         <nav
           aria-label={isChinese ? "主導覽" : "Main navigation"}
           className="flex items-center gap-1"
         >
-          <a href={homeHref} className="nav-link focus-ring">
-            <span className="hidden sm:inline">
-              {isTraditional ? "行程助手" : isSimplified ? "行程助手" : "Trip planner"}
-            </span>
-            <span className="sm:hidden">
-              {isTraditional ? "行程" : isSimplified ? "行程" : "Trips"}
-            </span>
-          </a>
-          <a href={weatherHref} className="nav-link focus-ring">
+          <a
+            href={weatherHref}
+            aria-current={isWeatherArea ? "page" : undefined}
+            className={`nav-link focus-ring ${isWeatherArea ? "bg-foreground !text-white shadow-sm" : ""}`}
+          >
             <span className="hidden sm:inline">
               {isTraditional ? "天氣雷達" : isSimplified ? "目的地天气" : "Weather radar"}
             </span>
             <span className="sm:hidden">
               {isTraditional ? "天氣" : isSimplified ? "天气" : "Radar"}
+            </span>
+          </a>
+          <a
+            href={tripHref}
+            aria-current={isTripArea ? "page" : undefined}
+            className={`nav-link focus-ring ${isTripArea ? "bg-foreground !text-white shadow-sm" : ""}`}
+          >
+            <span className="hidden sm:inline">
+              {isTraditional ? "行程助手" : isSimplified ? "行程助手" : "Trip planner"}
+            </span>
+            <span className="sm:hidden">
+              {isTraditional ? "行程" : isSimplified ? "行程" : "Trips"}
             </span>
           </a>
           <label className="nav-link focus-within:ring-2 focus-within:ring-primary/30">
