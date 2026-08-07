@@ -1,0 +1,114 @@
+name: Phase 3 safe smoke patch once
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  contents: write
+  issues: write
+
+jobs:
+  patch:
+    if: "github.event.issue.title == 'internal: phase3 safe smoke patch'"
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/cloud-trip-phase3
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.11.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Wire Phase 3 runtime smoke safely
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          secret_expr = "$" + "{{ secrets.CLOUDFLARE_API_TOKEN }}"
+          deploy = Path('.github/workflows/deploy.yml')
+          text = deploy.read_text()
+
+          preview_anchor = "      - name: Extended preview smoke (KV hit / D1 fallback / no user-path provider call)\n"
+          preview_step = f'''      - name: Phase 3 Trip API preview smoke (collaboration / revisions)
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        env:
+          CLOUDFLARE_API_TOKEN: {secret_expr}
+        run: |
+          SMOKE_TOKEN="$(printf 'wnr-trip-smoke:%s' "$CLOUDFLARE_API_TOKEN" | sha256sum | cut -d' ' -f1)"
+          TRIP_SMOKE_TOKEN="$SMOKE_TOKEN" node tooling/deploy/trip-collaboration-smoke.mjs \\
+            --trip-url "$TRIP_PREVIEW_URL" --suffix preview
+
+'''
+          if text.count(preview_anchor) != 1:
+              raise SystemExit('preview smoke anchor mismatch')
+          text = text.replace(preview_anchor, preview_step + preview_anchor, 1)
+
+          production_anchor = "      - name: Deploy to production (main)\n"
+          production_step = f'''      - name: Phase 3 Trip API production smoke (collaboration / revisions)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          CLOUDFLARE_API_TOKEN: {secret_expr}
+        run: |
+          SMOKE_TOKEN="$(printf 'wnr-trip-smoke:%s' "$CLOUDFLARE_API_TOKEN" | sha256sum | cut -d' ' -f1)"
+          TRIP_SMOKE_TOKEN="$SMOKE_TOKEN" node tooling/deploy/trip-collaboration-smoke.mjs \\
+            --trip-url "$TRIP_PRODUCTION_URL" --suffix production
+
+'''
+          if text.count(production_anchor) != 1:
+              raise SystemExit('production smoke anchor mismatch')
+          deploy.write_text(text.replace(production_anchor, production_step + production_anchor, 1))
+
+          verify = Path('.github/workflows/verify-trip-product-production.yml')
+          text = verify.read_text()
+
+          replacements = [
+            (
+              '          fetch_and_match \\\n            "English country direct trip action" \\\n',
+              '          fetch_and_match \\\n            "English collaboration invite route" \\\n            "https://868656.xyz/trips/invite" \\\n            /tmp/trip-invite-page.html \\\n            "Trip collaboration invite" "noindex"\n\n          fetch_and_match \\\n            "English country direct trip action" \\\n',
+            ),
+            (
+              '          fetch_and_match \\\n            "Traditional weather radar" \\\n',
+              '          fetch_and_match \\\n            "Traditional collaboration invite route" \\\n            "https://868656.xyz/zh-hant/trips/invite" \\\n            /tmp/trip-invite-hant.html \\\n            "行程協作邀請" "noindex"\n\n          fetch_and_match \\\n            "Traditional weather radar" \\\n',
+            ),
+            (
+              '          fetch_and_match \\\n            "Simplified country weather route" \\\n',
+              '          fetch_and_match \\\n            "Simplified collaboration invite route" \\\n            "https://868656.xyz/zh-cn/trips/invite" \\\n            /tmp/trip-invite-cn.html \\\n            "行程协作邀请" "noindex"\n\n          fetch_and_match \\\n            "Simplified country weather route" \\\n',
+            ),
+            (
+              '            \'"ok":true\' \'"service":"trip-api"\' \'"cloudTrip":true\' \'"cloudSharing":true\' \'"auth":true\'\n',
+              '            \'"ok":true\' \'"service":"trip-api"\' \'"cloudTrip":true\' \'"cloudSharing":true\' \\\n            \'"cloudCollaboration":true\' \'"revisionHistory":true\' \'"auth":true\'\n',
+            ),
+          ]
+          for old, new in replacements:
+              if text.count(old) != 1:
+                  raise SystemExit(f'verify anchor mismatch: {old[:80]!r}')
+              text = text.replace(old, new, 1)
+          verify.write_text(text)
+          PY
+      - name: Format runtime smoke files
+        run: |
+          pnpm exec prettier --write \
+            .github/workflows/deploy.yml \
+            .github/workflows/verify-trip-product-production.yml \
+            tooling/deploy/trip-collaboration-smoke.mjs
+      - name: Commit runtime smoke
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            .github/workflows/deploy.yml \
+            .github/workflows/verify-trip-product-production.yml \
+            tooling/deploy/trip-collaboration-smoke.mjs
+          git commit -m "test(cloud-trip): add phase 3 runtime smoke"
+          git push origin HEAD:feature/cloud-trip-phase3
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.issues.createComment({ owner: context.repo.owner, repo: context.repo.repo, issue_number: context.issue.number, body: 'Phase 3 safe runtime smoke patch completed.' });
+            await github.rest.issues.update({ owner: context.repo.owner, repo: context.repo.repo, issue_number: context.issue.number, state: 'closed', state_reason: 'not_planned' });
