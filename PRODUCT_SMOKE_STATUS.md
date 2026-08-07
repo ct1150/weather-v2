@@ -1,9 +1,9 @@
 # Production product smoke status
 
 - Conclusion: failure
-- Deploy head SHA: 2a035895326682830f11b8699667fde8cdcaf463
-- Deploy run: https://github.com/ct1150/weather-v2/actions/runs/31154970804
-- Verified at: 2026-08-07T07:05:59Z
+- Deploy head SHA: 12b8dfc724fe9fa03a6e58cc6cc5457811b2404e
+- Deploy run: https://github.com/ct1150/weather-v2/actions/runs/31156691005
+- Verified at: 2026-08-07T07:15:38Z
 
 ## Checks
 
@@ -15,11 +15,11 @@
 - Traditional import route: success
 - Traditional workspace route: success
 - Traditional weather radar: success
-- Traditional country weather route: failure (missing: /zh-hant/trips/workspace)
+- Traditional country weather route: failure (missing: data-direct-trip-action="enabled")
 - Traditional city weather route: success
 - Simplified landing: success
 - Simplified import route: success
-- Simplified country weather route: failure (missing: /zh-cn/trips/workspace)
+- Simplified country weather route: success
 - Simplified city weather route: success
 - English city-to-trip bridge: success
 - Trip cities API: success
