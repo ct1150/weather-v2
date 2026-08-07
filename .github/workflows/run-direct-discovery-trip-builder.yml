@@ -90,9 +90,15 @@ jobs:
             apps/web/src/components/discovery-trip-action.test.ts \
             .github/workflows/verify-trip-product-production.yml
 
+      - name: Build libraries for validation
+        run: pnpm -r --filter '!@wnr/web' --filter '!@wnr/weather-sync' --filter '!@wnr/maintenance' build
+
       - name: Focused validation
         run: |
-          pnpm --filter @wnr/web test -- add-destination discovery-trip-action country-weather-explorer
+          pnpm --filter @wnr/web exec vitest run \
+            src/trips/add-destination.test.ts \
+            src/components/discovery-trip-action.test.ts \
+            src/components/country-weather-explorer.test.tsx
           pnpm --filter @wnr/web typecheck
           pnpm --filter @wnr/web lint
           pnpm format:check
