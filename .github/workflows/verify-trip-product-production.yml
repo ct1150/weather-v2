@@ -84,7 +84,7 @@ jobs:
             "Traditional import route" \
             "https://868656.xyz/zh-hant/trips/new" \
             /tmp/trips-new-hant.html \
-            "把你現有的計畫直接變成天氣行程工作台" "貼上已經整理好的旅行行程"
+            "行程匯入器" "貼上已經整理好的旅行行程"
 
           fetch_and_match \
             "Traditional workspace route" \
