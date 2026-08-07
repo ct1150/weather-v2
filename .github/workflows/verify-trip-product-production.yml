@@ -78,7 +78,7 @@ jobs:
             "English country direct trip action" \
             "https://868656.xyz/jp" \
             /tmp/weather-en-country.html \
-            "Japan" "Add to trip"
+            "Japan" 'data-direct-trip-action="enabled"'
 
           fetch_and_match \
             "Traditional landing" \
@@ -108,7 +108,7 @@ jobs:
             "Traditional country weather route" \
             "https://868656.xyz/zh-hant/jp" \
             /tmp/weather-hant-country.html \
-            "國家旅行天氣地圖" "地圖上比較全部旅遊城市" "日本" "/zh-hant/trips/workspace"
+            "國家旅行天氣地圖" "地圖上比較全部旅遊城市" "日本" 'data-direct-trip-action="enabled"'
 
           fetch_and_match \
             "Traditional city weather route" \
@@ -132,7 +132,7 @@ jobs:
             "Simplified country weather route" \
             "https://868656.xyz/zh-cn/jp" \
             /tmp/weather-cn-country.html \
-            "国家旅行天气地图" "地图上比较全部旅游城市" "日本" "/zh-cn/trips/workspace"
+            "国家旅行天气地图" "地图上比较全部旅游城市" "日本" 'data-direct-trip-action="enabled"'
 
           fetch_and_match \
             "Simplified city weather route" \
