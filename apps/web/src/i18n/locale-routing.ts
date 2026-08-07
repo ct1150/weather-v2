@@ -10,6 +10,15 @@ const SIMPLIFIED_TIMEZONES = new Set([
   "Asia/Urumqi",
 ]);
 const WEATHER_COUNTRY_SLUGS = new Set([
+  "jp",
+  "kr",
+  "th",
+  "vn",
+  "sg",
+  "my",
+  "id",
+  "ph",
+  "kh",
   "japan",
   "south-korea",
   "thailand",
