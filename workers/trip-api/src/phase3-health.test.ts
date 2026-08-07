@@ -13,4 +13,20 @@ describe("phase 3 health capabilities", () => {
       revisionHistory: true,
     });
   });
+
+  it("allows fragment-derived invite tokens through CORS preflight", async () => {
+    const env = {
+      DB: {} as D1Database,
+      WEB_ORIGIN: "https://868656.xyz",
+    } satisfies WorkerEnv;
+    const response = await handleRequest(
+      new Request("https://trip.example.test/api/v1/trip-invites/current", {
+        method: "OPTIONS",
+        headers: { origin: "https://868656.xyz" },
+      }),
+      env,
+    );
+    expect(response.status).toBe(204);
+    expect(response.headers.get("access-control-allow-headers")).toContain("x-wnr-invite-token");
+  });
 });
