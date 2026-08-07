@@ -1,9 +1,9 @@
 # Production product smoke status
 
 - Conclusion: success
-- Deploy head SHA: 12b8dfc724fe9fa03a6e58cc6cc5457811b2404e
-- Deploy run: https://github.com/ct1150/weather-v2/actions/runs/31156691005
-- Verified at: 2026-08-07T07:22:22Z
+- Deploy head SHA: 44b193b884207b37f4815ce00cc35ecfe7d04b47
+- Deploy run: https://github.com/ct1150/weather-v2/actions/runs/31164816969
+- Verified at: 2026-08-07T09:24:58Z
 
 ## Checks
 
@@ -23,6 +23,8 @@
 - Simplified city weather route: success
 - English city-to-trip bridge: success
 - Trip cities API: success
+- Cloud Trip API health: success
+- Anonymous Cloud Trip access rejected: success
 - Protected sync health: success
 - Anonymous sync rejected: success
 - Trip forecast API: success
