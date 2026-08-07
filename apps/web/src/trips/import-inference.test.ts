@@ -70,4 +70,16 @@ describe("import inference", () => {
     expect(inferred.days[0]?.cityId).toBe("");
     expect(unresolvedImportedDays(inferred)).toEqual([1]);
   });
+
+  it("does not guess a city outside the supported directory", () => {
+    const parsed = parseTripMarkdown(
+      "# Europe trip\n\n# D1 Paris\n| Time | Plan |\n|---|---|\n|09:00|Louvre Museum|",
+    );
+    const base = createWorkspaceFromParsed(parsed, { now: "2026-08-07T00:00:00.000Z" });
+    const inferred = inferImportedWorkspace(base, parsed, cities);
+
+    expect(inferred.days[0]?.cityId).toBe("");
+    expect(inferred.days[0]?.theme).toBe("indoor");
+    expect(unresolvedImportedDays(inferred)).toEqual([1]);
+  });
 });
