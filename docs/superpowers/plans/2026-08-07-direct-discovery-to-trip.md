@@ -1,7 +1,7 @@
 # Direct Discovery-to-Trip UX Increment
 
 Date: 2026-08-07
-Status: Production verification
+Status: Complete
 
 ## Problem
 
@@ -32,12 +32,12 @@ Make weather discovery results directly actionable:
 - EN / zh-CN / zh-Hant country weather routes expose the direct action.
 - CI, production deploy and product smoke pass.
 
-## Verification progress
+## Production verification
 
 - Implementation merge commit: `2a035895326682830f11b8699667fde8cdcaf463`.
 - Full PR Deploy validation run: `31154693667` — success.
-- Initial production deploy run: `31154970804` — success.
-- Product behavior is implemented in all three localized country explorers and the city-detail fallback bridge.
-- Raw client-component Chinese text is not a reliable static-HTML smoke hook, so country routes now expose a non-visual server-rendered `data-direct-trip-action="enabled"` capability marker when the weather comparison console is active.
-- Production smoke now verifies that stable server-rendered capability marker for EN / zh-CN / zh-Hant.
-- Final production deploy + product smoke: running from this verification commit.
+- Final production verification head: `12b8dfc724fe9fa03a6e58cc6cc5457811b2404e`.
+- Final production run: `31156691005` — success.
+- Final product smoke: success at `2026-08-07T07:22:22Z`.
+- Product smoke passed English, Simplified Chinese and Traditional Chinese landing/import/workspace/weather routes plus the direct country-to-trip coverage available to static production checks.
+- Direct trip action wiring for both the standard and Traditional country explorers remains locked by CI source-contract tests; range insertion, preservation and de-duplication are locked by focused unit tests.
