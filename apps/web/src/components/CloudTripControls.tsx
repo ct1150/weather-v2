@@ -214,7 +214,7 @@ export function CloudTripControls({
         try {
           const remote = await readCloudTrip(localMetadata.cloudTripId);
           applyAccessRole(remote.accessRole);
-          if (remote.version > localMetadata.lastSyncedVersion) {
+          if (remote.accessRole === "viewer" || remote.version > localMetadata.lastSyncedVersion) {
             persistRemote(remote);
           }
           setSyncState("saved");
@@ -277,6 +277,12 @@ export function CloudTripControls({
     }, 900);
     return () => window.clearTimeout(timer);
   }, [accessRole, applyAccessRole, locale, metadata, signedInEmail, syncState, workspace]);
+
+  useEffect(() => {
+    if (accessRole !== "viewer" || metadata === null) return;
+    if (sameDocument(workspace, metadata.localDocument)) return;
+    onRemoteWorkspace(normalizeWorkspace(metadata.localDocument));
+  }, [accessRole, metadata, onRemoteWorkspace, workspace]);
 
   const saveToCloud = useCallback(async (): Promise<void> => {
     if (signedInEmail === null) {

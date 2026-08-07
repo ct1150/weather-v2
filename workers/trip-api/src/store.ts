@@ -180,7 +180,8 @@ export async function updateTrip(
       .prepare(
         "INSERT INTO trip_revisions (id, trip_id, actor_user_id, version, operation, locale, document_json, created_at) " +
           "SELECT ?, id, ?, version, ?, locale, document_json, ? FROM trips " +
-          "WHERE id = ? AND deleted_at IS NULL AND version = ? AND updated_at = ?",
+          "WHERE id = ? AND deleted_at IS NULL AND version = ? AND updated_at = ? " +
+          "AND NOT EXISTS (SELECT 1 FROM trip_revisions r WHERE r.trip_id = trips.id AND r.version = trips.version)",
       )
       .bind(revisionId, userId, operation, now, id, nextVersion, now),
   ]);

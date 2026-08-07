@@ -330,7 +330,7 @@ describe("Trip API phase 3 collaboration", () => {
 
     const editorCannotManage = await handleRequest(
       request(
-        `/api/v1/trips/${trip.id}/members/${encodeURIComponent(editorUserId)}`,
+        `/api/v1/trips/${trip.id}/members/${editorUserId}`,
         { method: "PATCH", body: JSON.stringify({ role: "viewer" }) },
         "editor-a",
         "editor@example.com",
@@ -340,7 +340,7 @@ describe("Trip API phase 3 collaboration", () => {
     expect(editorCannotManage.status).toBe(404);
 
     const demoted = await handleRequest(
-      request(`/api/v1/trips/${trip.id}/members/${encodeURIComponent(editorUserId)}`, {
+      request(`/api/v1/trips/${trip.id}/members/${editorUserId}`, {
         method: "PATCH",
         body: JSON.stringify({ role: "viewer" }),
       }),
@@ -363,7 +363,7 @@ describe("Trip API phase 3 collaboration", () => {
     expect(revoked.status).toBe(200);
 
     const removed = await handleRequest(
-      request(`/api/v1/trips/${trip.id}/members/${encodeURIComponent(editorUserId)}`, {
+      request(`/api/v1/trips/${trip.id}/members/${editorUserId}`, {
         method: "DELETE",
       }),
       env,
