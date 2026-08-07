@@ -60,7 +60,7 @@ jobs:
             "English landing" \
             "https://868656.xyz/trips" \
             /tmp/trips.html \
-            "Know what to keep" Tokyo Bangkok Seoul "繁體中文"
+            "Know what to keep" Tokyo Bangkok Seoul "Import a Markdown itinerary"
 
           fetch_and_match \
             "English workspace route" \
