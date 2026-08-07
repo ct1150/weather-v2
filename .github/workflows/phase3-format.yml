@@ -1,0 +1,73 @@
+name: Phase 3 format once
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  contents: write
+  issues: write
+
+jobs:
+  format:
+    if: "github.event.issue.title == 'internal: phase3 format'"
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/cloud-trip-phase3
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.11.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Format Phase 3 files
+        run: |
+          pnpm exec prettier --write \
+            apps/web/src/components/cloud-trip-phase3-contract.test.ts \
+            apps/web/src/components/CloudTripControls.tsx \
+            apps/web/src/components/MyTripsDashboard.tsx \
+            apps/web/src/components/TripCollaboratorManager.tsx \
+            apps/web/src/components/TripInviteViewer.tsx \
+            apps/web/src/trips/cloud-sync.ts \
+            workers/trip-api/src/collaboration-migration.test.ts \
+            workers/trip-api/src/index.ts \
+            workers/trip-api/src/phase3.test.ts
+      - name: Commit formatting
+        run: |
+          if ! git diff --quiet; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add \
+              apps/web/src/components/cloud-trip-phase3-contract.test.ts \
+              apps/web/src/components/CloudTripControls.tsx \
+              apps/web/src/components/MyTripsDashboard.tsx \
+              apps/web/src/components/TripCollaboratorManager.tsx \
+              apps/web/src/components/TripInviteViewer.tsx \
+              apps/web/src/trips/cloud-sync.ts \
+              workers/trip-api/src/collaboration-migration.test.ts \
+              workers/trip-api/src/index.ts \
+              workers/trip-api/src/phase3.test.ts
+            git commit -m "style(cloud-trip): format phase 3 files [skip ci]"
+            git push origin HEAD:feature/cloud-trip-phase3
+          fi
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: 'Phase 3 formatter completed.'
+            });
+            await github.rest.issues.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              state: 'closed',
+              state_reason: 'not_planned'
+            });
