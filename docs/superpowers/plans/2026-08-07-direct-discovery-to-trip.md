@@ -37,6 +37,7 @@ Make weather discovery results directly actionable:
 - Implementation merge commit: `2a035895326682830f11b8699667fde8cdcaf463`.
 - Full PR Deploy validation run: `31154693667` — success.
 - Initial production deploy run: `31154970804` — success.
-- Initial localized smoke exposed only a raw-HTML Unicode serialization assertion issue; the product code and English direct action were deployed successfully.
-- Localized smoke assertions now verify the unique localized workspace paths instead of raw Chinese client-component text.
-- Final production deploy + corrected product smoke: running from this verification commit.
+- Product behavior is implemented in all three localized country explorers and the city-detail fallback bridge.
+- Raw client-component Chinese text is not a reliable static-HTML smoke hook, so country routes now expose a non-visual server-rendered `data-direct-trip-action="enabled"` capability marker when the weather comparison console is active.
+- Production smoke now verifies that stable server-rendered capability marker for EN / zh-CN / zh-Hant.
+- Final production deploy + product smoke: running from this verification commit.
