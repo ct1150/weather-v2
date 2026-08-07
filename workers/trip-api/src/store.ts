@@ -164,7 +164,9 @@ export async function deleteTrip(
   now = new Date().toISOString(),
 ): Promise<boolean> {
   const result = await db
-    .prepare("UPDATE trips SET deleted_at = ?, updated_at = ? WHERE id = ? AND owner_user_id = ? AND deleted_at IS NULL")
+    .prepare(
+      "UPDATE trips SET deleted_at = ?, updated_at = ? WHERE id = ? AND owner_user_id = ? AND deleted_at IS NULL",
+    )
     .bind(now, now, id, ownerUserId)
     .run();
   return (result.meta.changes ?? 0) > 0;

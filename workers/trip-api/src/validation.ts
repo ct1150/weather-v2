@@ -25,9 +25,7 @@ function isIsoDate(value: unknown): value is string {
 
 function boundedString(value: unknown, max: number, allowEmpty = false): value is string {
   return (
-    typeof value === "string" &&
-    value.length <= max &&
-    (allowEmpty || value.trim().length > 0)
+    typeof value === "string" && value.length <= max && (allowEmpty || value.trim().length > 0)
   );
 }
 
@@ -39,7 +37,7 @@ function validDay(value: unknown): value is Record<string, unknown> {
   if (!boundedString(value.cityId, 96, true)) return false;
   if (!boundedString(value.cityName, 120, true)) return false;
   if (!boundedString(value.countryName, 120, true)) return false;
-  if (!['city', 'beach', 'outdoor', 'indoor'].includes(String(value.theme))) return false;
+  if (!["city", "beach", "outdoor", "indoor"].includes(String(value.theme))) return false;
   if (typeof value.flexible !== "boolean") return false;
   if (!Array.isArray(value.activities) || value.activities.length > MAX_ACTIVITIES) return false;
   if (!value.activities.every((item) => boundedString(item, 300))) return false;
@@ -58,12 +56,16 @@ export function validateTripDocument(value: unknown): ValidTripDocument | null {
   if (value.version !== 1) return null;
   if (!boundedString(value.id, 128)) return null;
   if (!boundedString(value.title, 120)) return null;
-  if (!['adults', 'family', 'senior'].includes(String(value.partyProfile))) return null;
+  if (!["adults", "family", "senior"].includes(String(value.partyProfile))) return null;
   if (!boundedString(value.createdAt, 64) || !boundedString(value.updatedAt, 64)) return null;
-  if (!Array.isArray(value.days) || value.days.length < 1 || value.days.length > MAX_DAYS) return null;
+  if (!Array.isArray(value.days) || value.days.length < 1 || value.days.length > MAX_DAYS)
+    return null;
   if (!value.days.every(validDay)) return null;
 
-  const dates = value.days.map((day) => (day as Record<string, unknown>).date).filter(isIsoDate).sort();
+  const dates = value.days
+    .map((day) => (day as Record<string, unknown>).date)
+    .filter(isIsoDate)
+    .sort();
   return {
     document: value,
     title: value.title,

@@ -117,7 +117,9 @@ export async function createCloudTrip(
 }
 
 export async function listCloudTrips(): Promise<ReadonlyArray<CloudTripSummary>> {
-  const result = await api<{ readonly items: ReadonlyArray<CloudTripSummary> }>("/api/v1/trips?limit=20");
+  const result = await api<{ readonly items: ReadonlyArray<CloudTripSummary> }>(
+    "/api/v1/trips?limit=20",
+  );
   return result.items;
 }
 

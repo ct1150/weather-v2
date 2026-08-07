@@ -6,19 +6,19 @@
   "compatibility_flags": ["nodejs_compat"],
   "observability": {
     "enabled": true,
-    "logs": { "head_sampling_rate": 1 }
+    "logs": { "head_sampling_rate": 1 },
   },
   "vars": {
     "WEB_ORIGIN": "http://localhost:3000",
     "AUTH_BASE_URL": "http://localhost:8787",
-    "EMAIL_FROM": "Where Not Rain <noreply@868656.xyz>"
+    "EMAIL_FROM": "Where Not Rain <noreply@868656.xyz>",
   },
   "d1_databases": [
     {
       "binding": "DB",
       "database_name": "wnr-trip-production",
-      "database_id": "00000000-0000-0000-0000-000000000000"
-    }
+      "database_id": "d8ffa28b-87dc-414e-b35c-068b1c70c39a",
+    },
   ],
   "env": {
     "preview": {
@@ -27,15 +27,15 @@
       "vars": {
         "WEB_ORIGIN": "https://where-not-rain.pages.dev",
         "AUTH_BASE_URL": "https://where-not-rain-trip-preview.ct1150.workers.dev",
-        "EMAIL_FROM": "Where Not Rain <noreply@868656.xyz>"
+        "EMAIL_FROM": "Where Not Rain <noreply@868656.xyz>",
       },
       "d1_databases": [
         {
           "binding": "DB",
           "database_name": "wnr-trip-preview",
-          "database_id": "11111111-1111-1111-1111-111111111111"
-        }
-      ]
+          "database_id": "e0fcd786-4a32-43fe-bff6-e05d6c1a922f",
+        },
+      ],
     },
     "production": {
       "name": "where-not-rain-trip-production",
@@ -43,21 +43,21 @@
       "routes": [
         {
           "pattern": "trip.868656.xyz",
-          "custom_domain": true
-        }
+          "custom_domain": true,
+        },
       ],
       "vars": {
         "WEB_ORIGIN": "https://868656.xyz",
         "AUTH_BASE_URL": "https://trip.868656.xyz",
-        "EMAIL_FROM": "Where Not Rain <noreply@868656.xyz>"
+        "EMAIL_FROM": "Where Not Rain <noreply@868656.xyz>",
       },
       "d1_databases": [
         {
           "binding": "DB",
           "database_name": "wnr-trip-production",
-          "database_id": "00000000-0000-0000-0000-000000000000"
-        }
-      ]
-    }
-  }
+          "database_id": "d8ffa28b-87dc-414e-b35c-068b1c70c39a",
+        },
+      ],
+    },
+  },
 }

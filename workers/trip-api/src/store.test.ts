@@ -32,7 +32,10 @@ describe("trip store", () => {
 
   beforeEach(async () => {
     db = createInMemoryD1() as D1Database;
-    const migration = readFileSync(new URL("../migrations/0001_trips.sql", import.meta.url), "utf8");
+    const migration = readFileSync(
+      new URL("../migrations/0001_trips.sql", import.meta.url),
+      "utf8",
+    );
     await db.exec(migration);
   });
 

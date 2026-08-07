@@ -45,7 +45,11 @@ function json(request: Request, env: WorkerEnv, body: unknown, status = 200): Re
 function withCors(request: Request, env: WorkerEnv, response: Response): Response {
   const headers = new Headers(response.headers);
   Object.entries(corsHeaders(request, env)).forEach(([key, value]) => headers.set(key, value));
-  return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
 }
 
 async function secretMatches(expected: string | undefined, request: Request): Promise<boolean> {
@@ -69,9 +73,7 @@ async function secretMatches(expected: string | undefined, request: Request): Pr
 async function resolveUserId(request: Request, env: WorkerEnv): Promise<string | null> {
   if (await secretMatches(env.INTERNAL_SMOKE_TOKEN, request)) {
     const requested = request.headers.get("x-wnr-smoke-user") ?? "ci-smoke";
-    return /^[a-zA-Z0-9_-]{2,64}$/u.test(requested)
-      ? `internal:${requested}`
-      : "internal:ci-smoke";
+    return /^[a-zA-Z0-9_-]{2,64}$/u.test(requested) ? `internal:${requested}` : "internal:ci-smoke";
   }
   return getAuthUserId(request, env);
 }

@@ -174,12 +174,7 @@ export function CloudTripControls({
     if (sameDocument(workspace, metadata.localDocument)) return;
     const timer = window.setTimeout(() => {
       setSyncState("saving");
-      void updateCloudTrip(
-        metadata.cloudTripId,
-        metadata.lastSyncedVersion,
-        workspace,
-        locale,
-      )
+      void updateCloudTrip(metadata.cloudTripId, metadata.lastSyncedVersion, workspace, locale)
         .then((remote) => {
           const next = {
             cloudTripId: remote.id,
@@ -310,12 +305,20 @@ export function CloudTripControls({
         </div>
         <div className="flex flex-wrap gap-2">
           {metadata === null ? (
-            <button type="button" className="trip-primary-button" onClick={() => void saveToCloud()}>
+            <button
+              type="button"
+              className="trip-primary-button"
+              onClick={() => void saveToCloud()}
+            >
               {copy.save}
             </button>
           ) : null}
           {signedInEmail === null ? (
-            <button type="button" className="trip-secondary-button" onClick={() => setShowAuth(true)}>
+            <button
+              type="button"
+              className="trip-secondary-button"
+              onClick={() => setShowAuth(true)}
+            >
               {copy.signIn}
             </button>
           ) : (
@@ -324,7 +327,11 @@ export function CloudTripControls({
             </button>
           )}
           {syncState === "conflict" ? (
-            <button type="button" className="trip-secondary-button" onClick={() => void loadLatest()}>
+            <button
+              type="button"
+              className="trip-secondary-button"
+              onClick={() => void loadLatest()}
+            >
               {copy.latest}
             </button>
           ) : null}
@@ -336,7 +343,11 @@ export function CloudTripControls({
           <p className="text-sm text-foreground">
             {copy.restorePrefix}: <strong>{recent.title}</strong>
           </p>
-          <button type="button" className="trip-secondary-button" onClick={() => void restoreRecent()}>
+          <button
+            type="button"
+            className="trip-secondary-button"
+            onClick={() => void restoreRecent()}
+          >
             {copy.restore}
           </button>
         </div>
@@ -347,7 +358,11 @@ export function CloudTripControls({
           {providersAvailable ? (
             <div className="grid gap-3 sm:grid-cols-2">
               {health?.providers.google ? (
-                <button type="button" className="trip-primary-button" onClick={() => void startGoogle()}>
+                <button
+                  type="button"
+                  className="trip-primary-button"
+                  onClick={() => void startGoogle()}
+                >
                   {copy.google}
                 </button>
               ) : null}
@@ -360,7 +375,11 @@ export function CloudTripControls({
                     className="min-h-11 min-w-0 flex-1 rounded-xl border border-border bg-white px-3 text-sm"
                     onChange={(event) => setEmail(event.target.value)}
                   />
-                  <button type="button" className="trip-secondary-button" onClick={() => void sendEmail()}>
+                  <button
+                    type="button"
+                    className="trip-secondary-button"
+                    onClick={() => void sendEmail()}
+                  >
                     {copy.email}
                   </button>
                 </div>

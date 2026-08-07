@@ -27,6 +27,7 @@ import {
   type WorkspaceDayDecision,
   type WorkspaceRiskLevel,
 } from "../trips/workspace";
+import { CloudTripControls } from "./CloudTripControls";
 
 const API_BASE = (process.env.NEXT_PUBLIC_WEATHER_READ_URL ?? "").replace(/\/$/u, "");
 const WEATHER_STORAGE_PREFIX = "wnr:trip-weather:v1:";
@@ -557,6 +558,8 @@ export function TripWorkspace(): ReactElement {
           </button>
         </div>
       </section>
+
+      <CloudTripControls locale="zh-cn" workspace={workspace} onRemoteWorkspace={setWorkspace} />
 
       <section className="trip-summary-grid mt-5" aria-label="行程工作台摘要">
         <div>
