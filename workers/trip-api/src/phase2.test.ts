@@ -141,7 +141,12 @@ describe("Trip API phase 2", () => {
     });
 
     const anonymousCopy = await handleRequest(
-      request(`/api/v1/shared-trips/${firstShare.data.token}/copy`, { method: "POST" }, "guest", false),
+      request(
+        `/api/v1/shared-trips/${firstShare.data.token}/copy`,
+        { method: "POST" },
+        "guest",
+        false,
+      ),
       env,
     );
     expect(anonymousCopy.status).toBe(401);
@@ -160,15 +165,13 @@ describe("Trip API phase 2", () => {
     expect(oldRead.status).toBe(404);
 
     const copiedResponse = await handleRequest(
-      request(
-        `/api/v1/shared-trips/${secondShare.data.token}/copy`,
-        { method: "POST" },
-        "owner-b",
-      ),
+      request(`/api/v1/shared-trips/${secondShare.data.token}/copy`, { method: "POST" }, "owner-b"),
       env,
     );
     expect(copiedResponse.status).toBe(201);
-    const copied = await json<{ data: { id: string; version: number; title: string } }>(copiedResponse);
+    const copied = await json<{ data: { id: string; version: number; title: string } }>(
+      copiedResponse,
+    );
     expect(copied.data.id).not.toBe(trip.id);
     expect(copied.data.version).toBe(1);
     expect(copied.data.title).toBe("Phase 2 Japan trip");

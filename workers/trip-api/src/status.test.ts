@@ -49,6 +49,8 @@ describe("trip status updates", () => {
 
   it("hides trip existence from another owner", async () => {
     const trip = await createTrip(db, "owner-a", "en", validateTripDocument(document)!);
-    expect(await updateTripStatus(db, "owner-b", trip.id, 1, "archived")).toEqual({ kind: "missing" });
+    expect(await updateTripStatus(db, "owner-b", trip.id, 1, "archived")).toEqual({
+      kind: "missing",
+    });
   });
 });

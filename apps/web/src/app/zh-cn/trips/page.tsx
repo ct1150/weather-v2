@@ -60,8 +60,12 @@ export default function SimplifiedTripsLanding(): ReactElement {
             为日本、韩国和东南亚多城市自由行加入天气决策。固定列车和定时门票受到保护，可调整的户外行程则会得到具体备用方案。
           </p>
           <div className="mt-7 flex flex-wrap gap-3">
-            <a className="trip-primary-button" href="/zh-cn/trips/workspace">建立我的行程</a>
-            <a className="trip-secondary-button" href="/zh-cn/trips/new">导入现有行程</a>
+            <a className="trip-primary-button" href="/zh-cn/trips/workspace">
+              建立我的行程
+            </a>
+            <a className="trip-secondary-button" href="/zh-cn/trips/new">
+              导入现有行程
+            </a>
           </div>
           <p className="mt-4 max-w-2xl text-xs leading-5 text-muted">
             目前涵盖日本、韩国、泰国、越南、新加坡、马来西亚、印度尼西亚、菲律宾和柬埔寨。无需注册即可开始；云端保存和“我的行程”属于可选能力。
@@ -85,14 +89,21 @@ export default function SimplifiedTripsLanding(): ReactElement {
 
       <section className="mt-12" aria-labelledby="simplified-trip-templates">
         <p className="eyebrow">从真实亚洲行程开始</p>
-        <h2 id="simplified-trip-templates" className="section-title mt-3">用可编辑示例展示真实天气决策</h2>
+        <h2 id="simplified-trip-templates" className="section-title mt-3">
+          用可编辑示例展示真实天气决策
+        </h2>
         <div className="mt-6 grid gap-4 lg:grid-cols-3">
           {templates.map((template) => (
             <article key={template.id} className="trip-process-card flex flex-col">
               <span>{template.label}</span>
               <h3>{template.title}</h3>
               <p className="flex-1">{template.description}</p>
-              <a className="mt-5 text-sm font-bold text-primary" href={`/zh-cn/trips/workspace?template=${template.id}`}>打开可编辑示例 →</a>
+              <a
+                className="mt-5 text-sm font-bold text-primary"
+                href={`/zh-cn/trips/workspace?template=${template.id}`}
+              >
+                打开可编辑示例 →
+              </a>
             </article>
           ))}
         </div>
@@ -102,7 +113,9 @@ export default function SimplifiedTripsLanding(): ReactElement {
         <div>
           <p className="eyebrow">真正会改变行程的天气时刻</p>
           <h2 className="section-title mt-3">比一个下雨图标更有用</h2>
-          <p className="mt-4 text-sm leading-7 text-muted">60%降雨对博物馆、出海、海滩和定时观景台代表完全不同的影响。系统会结合活动类型、当天是否可调整，以及是否有儿童或老人同行，给出不同判断。</p>
+          <p className="mt-4 text-sm leading-7 text-muted">
+            60%降雨对博物馆、出海、海滩和定时观景台代表完全不同的影响。系统会结合活动类型、当天是否可调整，以及是否有儿童或老人同行，给出不同判断。
+          </p>
         </div>
         <ul className="grid gap-3 text-sm leading-6 text-body">
           <li className="trip-side-card">保留固定航班、列车和定时门票。</li>

@@ -1,11 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState, type ReactElement } from "react";
-import {
-  getTripSession,
-  sendTripMagicLink,
-  signInTripWithGoogle,
-} from "../trips/auth-client";
+import { getTripSession, sendTripMagicLink, signInTripWithGoogle } from "../trips/auth-client";
 import {
   copySharedCloudTrip,
   readSharedCloudTrip,
@@ -24,19 +20,22 @@ import type { CloudTripLocale } from "./CloudTripControls";
 const COPY = {
   en: {
     eyebrow: "Read-only shared trip",
-    readOnly: "You are viewing a read-only cloud snapshot. The owner's trip cannot be changed here.",
+    readOnly:
+      "You are viewing a read-only cloud snapshot. The owner's trip cannot be changed here.",
     copy: "Copy to My Trips",
     copying: "Copying…",
     copied: "Copied. Opening your independent trip…",
     signIn: "Sign in to copy this trip",
-    signInBody: "Viewing is public. Copying creates a new independent cloud trip under your account.",
+    signInBody:
+      "Viewing is public. Copying creates a new independent cloud trip under your account.",
     google: "Continue with Google",
     emailPlaceholder: "you@example.com",
     email: "Email me a sign-in link",
     emailSent: "Sign-in link sent. Check your email.",
     unavailable: "Cloud sign-in providers are not configured yet. You can still view this trip.",
     missing: "This share link is missing or invalid.",
-    revoked: "This shared trip is no longer available. The owner may have regenerated or revoked the link.",
+    revoked:
+      "This shared trip is no longer available. The owner may have regenerated or revoked the link.",
     updated: "Shared snapshot updated",
     dates: "Trip dates",
     noDates: "Dates not set",
@@ -94,7 +93,12 @@ function workspacePath(locale: CloudTripLocale): string {
   return locale === "en" ? "/trips/workspace" : `/${locale}/trips/workspace`;
 }
 
-function persistCopiedTrip(remote: { readonly id: string; readonly version: number; readonly updatedAt: string; readonly document: TripWorkspace }): void {
+function persistCopiedTrip(remote: {
+  readonly id: string;
+  readonly version: number;
+  readonly updatedAt: string;
+  readonly document: TripWorkspace;
+}): void {
   const normalized = normalizeWorkspace(remote.document);
   window.localStorage.setItem(TRIP_WORKSPACE_STORAGE_KEY, JSON.stringify(normalized));
   writeCloudMetadata({
@@ -177,7 +181,11 @@ export function SharedTripViewer({ locale }: { readonly locale: CloudTripLocale 
 
   if (loading) {
     return (
-      <main id="main-content" className="mx-auto max-w-4xl px-4 py-10 sm:px-6" data-shared-trip="loading">
+      <main
+        id="main-content"
+        className="mx-auto max-w-4xl px-4 py-10 sm:px-6"
+        data-shared-trip="loading"
+      >
         <p className="eyebrow">{copy.eyebrow}</p>
       </main>
     );
@@ -185,7 +193,11 @@ export function SharedTripViewer({ locale }: { readonly locale: CloudTripLocale 
 
   if (trip === null || workspace === null) {
     return (
-      <main id="main-content" className="mx-auto max-w-4xl px-4 py-10 sm:px-6" data-shared-trip="unavailable">
+      <main
+        id="main-content"
+        className="mx-auto max-w-4xl px-4 py-10 sm:px-6"
+        data-shared-trip="unavailable"
+      >
         <section className="info-panel">
           <p className="eyebrow">{copy.eyebrow}</p>
           <h1 className="mt-3 text-3xl font-bold text-foreground">{message || copy.error}</h1>
@@ -202,17 +214,30 @@ export function SharedTripViewer({ locale }: { readonly locale: CloudTripLocale 
         : `${trip.startDate} → ${trip.endDate}`;
 
   return (
-    <main id="main-content" className="mx-auto max-w-4xl px-4 py-8 sm:px-6 sm:py-10" data-shared-trip="ready">
+    <main
+      id="main-content"
+      className="mx-auto max-w-4xl px-4 py-8 sm:px-6 sm:py-10"
+      data-shared-trip="ready"
+    >
       <section className="rounded-[2rem] border border-border/80 bg-white p-6 shadow-sm sm:p-8">
         <p className="eyebrow">{copy.eyebrow}</p>
         <h1 className="mt-3 text-4xl font-bold tracking-[-0.04em] text-foreground">{trip.title}</h1>
         <p className="mt-3 text-sm leading-6 text-muted">{copy.readOnly}</p>
         <div className="mt-5 flex flex-wrap gap-3 text-xs text-muted">
-          <span>{copy.dates}: {dateRange}</span>
-          <span>{copy.updated}: {new Date(trip.updatedAt).toLocaleString()}</span>
+          <span>
+            {copy.dates}: {dateRange}
+          </span>
+          <span>
+            {copy.updated}: {new Date(trip.updatedAt).toLocaleString()}
+          </span>
         </div>
         <div className="mt-6 flex flex-wrap gap-3">
-          <button type="button" className="trip-primary-button" disabled={copying} onClick={() => void copyTrip()}>
+          <button
+            type="button"
+            className="trip-primary-button"
+            disabled={copying}
+            onClick={() => void copyTrip()}
+          >
             {copying ? copy.copying : copy.copy}
           </button>
         </div>
@@ -224,7 +249,13 @@ export function SharedTripViewer({ locale }: { readonly locale: CloudTripLocale 
             {providerAvailable ? (
               <div className="mt-4 grid gap-3 sm:grid-cols-2">
                 {health?.providers.google ? (
-                  <button type="button" className="trip-primary-button" onClick={() => void startGoogle()}>{copy.google}</button>
+                  <button
+                    type="button"
+                    className="trip-primary-button"
+                    onClick={() => void startGoogle()}
+                  >
+                    {copy.google}
+                  </button>
                 ) : null}
                 {health?.providers.email ? (
                   <div className="flex gap-2">
@@ -235,7 +266,13 @@ export function SharedTripViewer({ locale }: { readonly locale: CloudTripLocale 
                       className="min-h-11 min-w-0 flex-1 rounded-xl border border-border bg-white px-3 text-sm"
                       onChange={(event) => setEmail(event.target.value)}
                     />
-                    <button type="button" className="trip-secondary-button" onClick={() => void sendEmail()}>{copy.email}</button>
+                    <button
+                      type="button"
+                      className="trip-secondary-button"
+                      onClick={() => void sendEmail()}
+                    >
+                      {copy.email}
+                    </button>
                   </div>
                 ) : null}
               </div>
@@ -244,23 +281,31 @@ export function SharedTripViewer({ locale }: { readonly locale: CloudTripLocale 
             )}
           </div>
         ) : null}
-        {message.length > 0 && trip !== null ? <p className="mt-4 text-xs text-muted">{message}</p> : null}
+        {message.length > 0 && trip !== null ? (
+          <p className="mt-4 text-xs text-muted">{message}</p>
+        ) : null}
       </section>
 
       <section className="mt-6 grid gap-4" aria-label={trip.title}>
         {workspace.days.map((day) => (
           <article key={day.id} className="trip-process-card">
-            <span>D{day.dayNumber} · {day.date || "—"}</span>
+            <span>
+              D{day.dayNumber} · {day.date || "—"}
+            </span>
             <h3>{day.cityName || day.countryName || `Day ${day.dayNumber}`}</h3>
             {day.activities.length > 0 ? (
               <ul className="mt-3 grid gap-2 text-sm leading-6 text-body">
-                {day.activities.map((activity) => <li key={activity}>{activity}</li>)}
+                {day.activities.map((activity) => (
+                  <li key={activity}>{activity}</li>
+                ))}
               </ul>
             ) : (
               <p className="mt-3 text-sm text-muted">{copy.noActivities}</p>
             )}
             {day.notes.trim().length > 0 ? (
-              <p className="mt-3 text-sm leading-6 text-muted"><strong>{copy.notes}:</strong> {day.notes}</p>
+              <p className="mt-3 text-sm leading-6 text-muted">
+                <strong>{copy.notes}:</strong> {day.notes}
+              </p>
             ) : null}
           </article>
         ))}

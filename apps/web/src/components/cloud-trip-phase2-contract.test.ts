@@ -4,8 +4,14 @@ import { describe, expect, it } from "vitest";
 const dashboard = readFileSync(new URL("./MyTripsDashboard.tsx", import.meta.url), "utf8");
 const sharedViewer = readFileSync(new URL("./SharedTripViewer.tsx", import.meta.url), "utf8");
 const englishTrips = readFileSync(new URL("../app/trips/page.tsx", import.meta.url), "utf8");
-const simplifiedTrips = readFileSync(new URL("../app/zh-cn/trips/page.tsx", import.meta.url), "utf8");
-const traditionalTrips = readFileSync(new URL("../app/zh-hant/trips/page.tsx", import.meta.url), "utf8");
+const simplifiedTrips = readFileSync(
+  new URL("../app/zh-cn/trips/page.tsx", import.meta.url),
+  "utf8",
+);
+const traditionalTrips = readFileSync(
+  new URL("../app/zh-hant/trips/page.tsx", import.meta.url),
+  "utf8",
+);
 const englishShare = readFileSync(new URL("../app/trips/share/page.tsx", import.meta.url), "utf8");
 const simplifiedShare = readFileSync(
   new URL("../app/zh-cn/trips/share/page.tsx", import.meta.url),

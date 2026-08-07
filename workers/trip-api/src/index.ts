@@ -96,7 +96,9 @@ function tripShareIdFromPath(pathname: string): string | null {
   return match?.[1] ?? null;
 }
 
-function sharedTripPath(pathname: string): { readonly token: string; readonly copy: boolean } | null {
+function sharedTripPath(
+  pathname: string,
+): { readonly token: string; readonly copy: boolean } | null {
   const match = /^\/api\/v1\/shared-trips\/(shr_[a-f0-9]{64})(\/copy)?$/u.exec(pathname);
   if (match?.[1] === undefined || !SHARE_TOKEN_PATTERN.test(match[1])) return null;
   return { token: match[1], copy: match[2] === "/copy" };

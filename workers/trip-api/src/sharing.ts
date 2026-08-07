@@ -37,7 +37,9 @@ export async function createShareLink(
   now = new Date().toISOString(),
 ): Promise<ShareLink | null> {
   const owned = await db
-    .prepare("SELECT id FROM trips WHERE id = ? AND owner_user_id = ? AND deleted_at IS NULL LIMIT 1")
+    .prepare(
+      "SELECT id FROM trips WHERE id = ? AND owner_user_id = ? AND deleted_at IS NULL LIMIT 1",
+    )
     .bind(tripId, ownerUserId)
     .first<{ readonly id: string }>();
   if (owned === null) return null;
