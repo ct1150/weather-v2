@@ -68,7 +68,7 @@ describe("Trip API phase 2", () => {
 
   beforeEach(async () => {
     const db = createInMemoryD1() as D1Database;
-    for (const name of ["0001_trips.sql", "0002_trip_shares.sql"]) {
+    for (const name of ["0001_trips.sql", "0002_trip_shares.sql", "0003_collaboration.sql"]) {
       await db.exec(readFileSync(new URL(`../migrations/${name}`, import.meta.url), "utf8"));
     }
     env = {
