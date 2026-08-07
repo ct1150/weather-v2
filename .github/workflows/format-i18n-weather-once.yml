@@ -1,0 +1,56 @@
+name: Format weather localization once
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.11.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Format weather localization files
+        run: |
+          pnpm exec prettier --write \
+            apps/web/src/app/sitemap.ts \
+            'apps/web/src/app/zh-cn/[countrySlug]/[citySlug]/page.tsx' \
+            'apps/web/src/app/zh-cn/[countrySlug]/page.tsx' \
+            'apps/web/src/app/zh-hant/[countrySlug]/[citySlug]/page.tsx' \
+            'apps/web/src/app/zh-hant/[countrySlug]/page.tsx' \
+            apps/web/src/components/ChineseCityWeatherPage.tsx \
+            apps/web/src/components/LocaleBootstrap.tsx \
+            apps/web/src/components/SiteHeader.tsx \
+            apps/web/src/components/TraditionalCountryWeatherExplorer.tsx \
+            apps/web/src/i18n/locale-routing.ts \
+            apps/web/src/i18n/locale-routing.test.ts \
+            apps/web/src/seo/seo-wiring.test.ts
+
+      - name: Commit formatting and remove one-shot workflow
+        run: |
+          rm .github/workflows/format-i18n-weather-once.yml FORMAT_I18N_ONCE.md
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .
+          git commit -m "style(i18n): format weather localization [skip ci]"
+          git pull --rebase origin main
+          git push origin HEAD:main
