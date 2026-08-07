@@ -1,7 +1,7 @@
 # Direct Discovery-to-Trip UX Increment
 
 Date: 2026-08-07
-Status: In progress
+Status: Validation
 
 ## Problem
 
