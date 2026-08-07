@@ -56,11 +56,9 @@ describe("Trip API", () => {
 
   beforeEach(async () => {
     const db = createInMemoryD1() as D1Database;
-    const migration = readFileSync(
-      new URL("../migrations/0001_trips.sql", import.meta.url),
-      "utf8",
-    );
-    await db.exec(migration);
+    for (const name of ["0001_trips.sql", "0002_trip_shares.sql", "0003_collaboration.sql"]) {
+      await db.exec(readFileSync(new URL(`../migrations/${name}`, import.meta.url), "utf8"));
+    }
     env = {
       DB: db,
       WEB_ORIGIN: "https://868656.xyz",
@@ -84,8 +82,11 @@ describe("Trip API", () => {
       env,
     );
     expect(createdResponse.status).toBe(201);
-    const created = await json<{ data: { id: string; version: number } }>(createdResponse);
+    const created = await json<{ data: { id: string; version: number; accessRole: string } }>(
+      createdResponse,
+    );
     expect(created.data.version).toBe(1);
+    expect(created.data.accessRole).toBe("owner");
 
     const readResponse = await handleRequest(request(`/api/v1/trips/${created.data.id}`), env);
     expect(readResponse.status).toBe(200);
@@ -95,7 +96,7 @@ describe("Trip API", () => {
 
     const listResponse = await handleRequest(request("/api/v1/trips"), env);
     expect(await json<{ data: { items: unknown[] } }>(listResponse)).toMatchObject({
-      data: { items: [{ id: created.data.id, version: 1 }] },
+      data: { items: [{ id: created.data.id, version: 1, accessRole: "owner" }] },
     });
   });
 

@@ -33,7 +33,9 @@ describe("trip status updates", () => {
 
   beforeEach(async () => {
     db = createInMemoryD1() as D1Database;
-    await db.exec(readFileSync(new URL("../migrations/0001_trips.sql", import.meta.url), "utf8"));
+    for (const name of ["0001_trips.sql", "0002_trip_shares.sql", "0003_collaboration.sql"]) {
+      await db.exec(readFileSync(new URL(`../migrations/${name}`, import.meta.url), "utf8"));
+    }
   });
 
   it("archives and restores with optimistic version checks", async () => {

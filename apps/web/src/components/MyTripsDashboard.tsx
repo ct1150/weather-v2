@@ -27,12 +27,13 @@ import {
   type TripWorkspace,
 } from "../trips/workspace";
 import type { CloudTripLocale } from "./CloudTripControls";
+import { TripCollaboratorManager } from "./TripCollaboratorManager";
 
 const COPY = {
   en: {
     eyebrow: "My Trips",
     title: "Your cloud trips, in one place",
-    subtitle: "Open, archive, share or remove trips without losing the local-first workspace.",
+    subtitle: "Open your own trips or trips shared with you, with clear collaboration permissions.",
     signInTitle: "Sign in to see My Trips",
     signInBody:
       "Trip planning still works without an account. Sign in only when you want cloud storage and cross-device access.",
@@ -55,6 +56,10 @@ const COPY = {
     archive: "Archive",
     restore: "Restore",
     delete: "Delete",
+    manage: "Manage collaborators",
+    owner: "Owner",
+    editor: "Editor",
+    viewer: "Viewer",
     deleteConfirm:
       "Delete this cloud trip? Your current local workspace will be kept unless it is linked to this trip.",
     sharedCopied: "New read-only share link copied to clipboard.",
@@ -71,8 +76,8 @@ const COPY = {
   },
   "zh-cn": {
     eyebrow: "我的行程",
-    title: "集中管理你的云端行程",
-    subtitle: "打开、归档、分享或删除行程，同时继续使用本地优先的工作台。",
+    title: "集中管理你的云端与协作行程",
+    subtitle: "打开自己的行程或别人与你协作的行程，并清楚看到当前权限。",
     signInTitle: "登录后查看“我的行程”",
     signInBody: "不登录也能继续规划；只有需要云端保存和跨设备访问时才需要登录。",
     signIn: "登录",
@@ -93,6 +98,10 @@ const COPY = {
     archive: "归档",
     restore: "恢复",
     delete: "删除",
+    manage: "管理协作者",
+    owner: "所有者",
+    editor: "可编辑",
+    viewer: "仅查看",
     deleteConfirm: "确定删除这份云端行程吗？如果当前本地工作台正关联这份行程，会解除云端关联。",
     sharedCopied: "新的只读分享链接已复制。",
     sharedReady: "新的只读分享链接已生成。",
@@ -108,8 +117,8 @@ const COPY = {
   },
   "zh-hant": {
     eyebrow: "我的行程",
-    title: "集中管理你的雲端行程",
-    subtitle: "開啟、封存、分享或刪除行程，同時繼續使用本機優先的工作台。",
+    title: "集中管理你的雲端與協作行程",
+    subtitle: "開啟自己的行程或別人與你協作的行程，並清楚看到目前權限。",
     signInTitle: "登入後查看「我的行程」",
     signInBody: "不登入也能繼續規劃；只有需要雲端儲存和跨裝置存取時才需要登入。",
     signIn: "登入",
@@ -130,6 +139,10 @@ const COPY = {
     archive: "封存",
     restore: "恢復",
     delete: "刪除",
+    manage: "管理協作者",
+    owner: "擁有者",
+    editor: "可編輯",
+    viewer: "僅查看",
     deleteConfirm: "確定刪除這份雲端行程嗎？如果目前本機工作台正關聯這份行程，會解除雲端關聯。",
     sharedCopied: "新的唯讀分享連結已複製。",
     sharedReady: "新的唯讀分享連結已產生。",
@@ -193,6 +206,7 @@ export function MyTripsDashboard({ locale }: { readonly locale: CloudTripLocale 
   const [tab, setTab] = useState<"active" | "archived">("active");
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [manageTripId, setManageTripId] = useState<string | null>(null);
   const [message, setMessage] = useState("");
   const [shareUrl, setShareUrl] = useState<{
     readonly tripId: string;
@@ -273,6 +287,7 @@ export function MyTripsDashboard({ locale }: { readonly locale: CloudTripLocale 
         if (metadata?.cloudTripId === trip.id) clearCloudMetadata();
         setTrips((current) => current.filter((item) => item.id !== trip.id));
         setShareUrl((current) => (current?.tripId === trip.id ? null : current));
+        setManageTripId((current) => (current === trip.id ? null : current));
       } catch {
         setMessage(copy.error);
       } finally {
@@ -340,6 +355,7 @@ export function MyTripsDashboard({ locale }: { readonly locale: CloudTripLocale 
     setEmailAddress(null);
     setTrips([]);
     setShareUrl(null);
+    setManageTripId(null);
   }, []);
 
   if (loading) {
@@ -458,72 +474,103 @@ export function MyTripsDashboard({ locale }: { readonly locale: CloudTripLocale 
             {tab === "active" ? copy.emptyActive : copy.emptyArchived}
           </div>
         ) : (
-          visibleTrips.map((trip) => (
-            <article key={trip.id} className="trip-process-card">
-              <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                <div>
-                  <span>{displayDateRange(trip, copy.noDates)}</span>
-                  <h3>{trip.title}</h3>
-                  <p>
-                    {copy.updated} {new Date(trip.updatedAt).toLocaleString()} · {copy.version}{" "}
-                    {trip.version}
-                  </p>
+          visibleTrips.map((trip) => {
+            const isOwner = trip.accessRole === "owner";
+            const roleLabel =
+              trip.accessRole === "owner"
+                ? copy.owner
+                : trip.accessRole === "editor"
+                  ? copy.editor
+                  : copy.viewer;
+            return (
+              <article
+                key={trip.id}
+                className="trip-process-card"
+                data-trip-access-role={trip.accessRole}
+              >
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                  <div>
+                    <span>{displayDateRange(trip, copy.noDates)}</span>
+                    <h3>{trip.title}</h3>
+                    <p>
+                      <strong>{roleLabel}</strong> · {copy.updated}{" "}
+                      {new Date(trip.updatedAt).toLocaleString()} · {copy.version} {trip.version}
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      className="trip-primary-button"
+                      disabled={busyId === trip.id}
+                      onClick={() => void openTrip(trip)}
+                    >
+                      {copy.open}
+                    </button>
+                    {isOwner ? (
+                      <>
+                        <button
+                          type="button"
+                          className="trip-secondary-button"
+                          disabled={busyId === trip.id}
+                          onClick={() =>
+                            setManageTripId((current) => (current === trip.id ? null : trip.id))
+                          }
+                        >
+                          {copy.manage}
+                        </button>
+                        <button
+                          type="button"
+                          className="trip-secondary-button"
+                          disabled={busyId === trip.id}
+                          onClick={() => void createShare(trip)}
+                        >
+                          {copy.share}
+                        </button>
+                        <button
+                          type="button"
+                          className="trip-secondary-button"
+                          disabled={busyId === trip.id}
+                          onClick={() => void revokeShare(trip)}
+                        >
+                          {copy.revoke}
+                        </button>
+                        <button
+                          type="button"
+                          className="trip-secondary-button"
+                          disabled={busyId === trip.id}
+                          onClick={() => void changeStatus(trip)}
+                        >
+                          {trip.status === "active" ? copy.archive : copy.restore}
+                        </button>
+                        <button
+                          type="button"
+                          className="trip-secondary-button"
+                          disabled={busyId === trip.id}
+                          onClick={() => void removeTrip(trip)}
+                        >
+                          {copy.delete}
+                        </button>
+                      </>
+                    ) : null}
+                  </div>
                 </div>
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    className="trip-primary-button"
-                    disabled={busyId === trip.id}
-                    onClick={() => void openTrip(trip)}
-                  >
-                    {copy.open}
-                  </button>
-                  <button
-                    type="button"
-                    className="trip-secondary-button"
-                    disabled={busyId === trip.id}
-                    onClick={() => void createShare(trip)}
-                  >
-                    {copy.share}
-                  </button>
-                  <button
-                    type="button"
-                    className="trip-secondary-button"
-                    disabled={busyId === trip.id}
-                    onClick={() => void revokeShare(trip)}
-                  >
-                    {copy.revoke}
-                  </button>
-                  <button
-                    type="button"
-                    className="trip-secondary-button"
-                    disabled={busyId === trip.id}
-                    onClick={() => void changeStatus(trip)}
-                  >
-                    {trip.status === "active" ? copy.archive : copy.restore}
-                  </button>
-                  <button
-                    type="button"
-                    className="trip-secondary-button"
-                    disabled={busyId === trip.id}
-                    onClick={() => void removeTrip(trip)}
-                  >
-                    {copy.delete}
-                  </button>
-                </div>
-              </div>
-              {shareUrl?.tripId === trip.id ? (
-                <div className="mt-4 rounded-xl border border-border/80 bg-surface-elevated p-3">
-                  <input
-                    readOnly
-                    value={shareUrl.url}
-                    className="w-full bg-transparent text-xs text-muted outline-none"
-                    aria-label={copy.share}
-                  />
-                </div>
-              ) : null}
-            </article>
-          ))
+                {isOwner && shareUrl?.tripId === trip.id ? (
+                  <div className="mt-4 rounded-xl border border-border/80 bg-surface-elevated p-3">
+                    <input
+                      readOnly
+                      value={shareUrl.url}
+                      className="w-full bg-transparent text-xs text-muted outline-none"
+                      aria-label={copy.share}
+                      onFocus={(event) => event.currentTarget.select()}
+                    />
+                  </div>
+                ) : null}
+                {isOwner && manageTripId === trip.id ? (
+                  <TripCollaboratorManager tripId={trip.id} locale={locale} />
+                ) : null}
+              </article>
+            );
+          })
         )}
       </div>
 

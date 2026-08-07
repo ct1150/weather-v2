@@ -52,7 +52,14 @@ export function localizedPath(pathname: string, locale: SiteLocale): string {
 export function isAutoLocalizablePath(pathname: string): boolean {
   const base = stripLocalePrefix(pathname);
   if (base === "/") return true;
-  if (base === "/trips" || base === "/trips/new" || base === "/trips/workspace") return true;
+  if (
+    base === "/trips" ||
+    base === "/trips/new" ||
+    base === "/trips/workspace" ||
+    base === "/trips/invite"
+  ) {
+    return true;
+  }
   if (base.startsWith("/trips/")) return false;
 
   const segments = base.split("/").filter(Boolean);

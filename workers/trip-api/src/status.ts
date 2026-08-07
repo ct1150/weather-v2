@@ -1,6 +1,10 @@
-import { readTrip, type TripRecord, type UpdateTripResult } from "./store";
+import { readTrip, type TripRecord } from "./store";
 
 export type TripStatus = "active" | "archived";
+export type UpdateTripStatusResult =
+  | { readonly kind: "updated"; readonly trip: TripRecord }
+  | { readonly kind: "conflict"; readonly currentVersion: number }
+  | { readonly kind: "missing" };
 
 export async function updateTripStatus(
   db: D1Database,
@@ -9,7 +13,7 @@ export async function updateTripStatus(
   baseVersion: number,
   status: TripStatus,
   now = new Date().toISOString(),
-): Promise<UpdateTripResult> {
+): Promise<UpdateTripStatusResult> {
   const result = await db
     .prepare(
       "UPDATE trips SET status = ?, version = version + 1, updated_at = ? " +

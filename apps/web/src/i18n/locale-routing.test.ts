@@ -20,6 +20,7 @@ describe("locale routing", () => {
     expect(localizedPath("/zh-hant/jp/tokyo", "zh-cn")).toBe("/zh-cn/jp/tokyo");
     expect(localizedPath("/zh-cn/jp/tokyo", "en")).toBe("/jp/tokyo");
     expect(localizedPath("/", "zh-hant")).toBe("/zh-hant");
+    expect(localizedPath("/trips/invite", "zh-hant")).toBe("/zh-hant/trips/invite");
   });
 
   it("only auto-localizes published weather and core trip routes", () => {
@@ -31,6 +32,8 @@ describe("locale routing", () => {
     expect(isAutoLocalizablePath("/trips")).toBe(true);
     expect(isAutoLocalizablePath("/trips/new")).toBe(true);
     expect(isAutoLocalizablePath("/trips/workspace")).toBe(true);
+    expect(isAutoLocalizablePath("/trips/invite")).toBe(true);
+    expect(isAutoLocalizablePath("/zh-cn/trips/invite")).toBe(true);
     expect(isAutoLocalizablePath("/explore")).toBe(false);
     expect(isAutoLocalizablePath("/trips/qinggan-family-2026")).toBe(false);
   });
