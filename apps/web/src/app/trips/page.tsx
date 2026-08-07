@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
 import type { ReactElement } from "react";
 import { JsonLd } from "../../components/JsonLd";
+import { MyTripsDashboard } from "../../components/MyTripsDashboard";
 import { buildAlternates, localeUrl } from "../seo";
 
 export const metadata: Metadata = {
   title: "Weather-aware trip planning for Japan, Korea and Southeast Asia",
   description:
-    "Build a multi-city itinerary, connect daily weather and know what to keep, move, shorten or replace when conditions change.",
+    "Build a multi-city itinerary, manage cloud trips and know what to keep, move, shorten or replace when conditions change.",
   alternates: buildAlternates("/trips", "en", ["en", "zh-hant", "zh-cn"]),
   robots: { index: true, follow: true },
 };
@@ -50,6 +51,8 @@ export default function TripsLanding(): ReactElement {
   return (
     <main id="main-content" className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-10">
       <JsonLd schema={jsonLd} />
+      <MyTripsDashboard locale="en" />
+
       <section className="trip-hero">
         <div className="relative z-10 max-w-4xl">
           <p className="eyebrow">Weather-aware travel across Asia</p>
@@ -73,8 +76,8 @@ export default function TripsLanding(): ReactElement {
           </div>
           <p className="mt-4 max-w-2xl text-xs leading-5 text-muted">
             Current weather coverage includes Japan, South Korea, Thailand, Vietnam, Singapore,
-            Malaysia, Indonesia, the Philippines and Cambodia. Built for international travellers
-            and overseas Chinese users; no account is required.
+            Malaysia, Indonesia, the Philippines and Cambodia. Start without an account; cloud save
+            and My Trips are optional.
           </p>
         </div>
       </section>
@@ -94,7 +97,7 @@ export default function TripsLanding(): ReactElement {
           [
             "03",
             "Travel with a fallback",
-            "Share the plan, export it and keep the last forecast offline.",
+            "Save to the cloud when you choose, create a read-only share and keep a local copy offline.",
           ],
         ].map(([number, title, description]) => (
           <article key={number} className="trip-process-card">
@@ -144,7 +147,7 @@ export default function TripsLanding(): ReactElement {
             Increase heat and cold caution for families and seniors.
           </li>
           <li className="trip-side-card">
-            Store the itinerary locally and share an editable copy.
+            Keep a local-first workspace, then opt into cloud storage and read-only sharing.
           </li>
         </ul>
       </section>
