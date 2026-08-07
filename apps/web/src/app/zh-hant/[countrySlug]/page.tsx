@@ -77,7 +77,9 @@ export default async function TraditionalChineseCountryPage({
     })),
   }));
   const countryCities = dataset.citiesByCountry.get(sourceCountry.id) ?? [];
-  const cityPathById = new Map(countryCities.map((item) => [item.city.id, item.city.slug] as const));
+  const cityPathById = new Map(
+    countryCities.map((item) => [item.city.id, item.city.slug] as const),
+  );
   const localizedCities = cities.map((city) => ({
     ...city,
     path: `/zh-hant/${sourceCountry.slug}/${cityPathById.get(city.cityId) ?? city.cityId}`,
@@ -104,7 +106,12 @@ export default async function TraditionalChineseCountryPage({
       {
         "@type": "BreadcrumbList",
         itemListElement: [
-          { "@type": "ListItem", position: 1, name: "亞洲旅行天氣", item: localeUrl("zh-hant", "/") },
+          {
+            "@type": "ListItem",
+            position: 1,
+            name: "亞洲旅行天氣",
+            item: localeUrl("zh-hant", "/"),
+          },
           { "@type": "ListItem", position: 2, name: country.name, item: pageUrl },
         ],
       },
@@ -116,7 +123,10 @@ export default async function TraditionalChineseCountryPage({
           "@type": "ListItem",
           position: index + 1,
           name: city.cityName,
-          url: localeUrl("zh-hant", `/${sourceCountry.slug}/${cityPathById.get(city.cityId) ?? city.cityId}`),
+          url: localeUrl(
+            "zh-hant",
+            `/${sourceCountry.slug}/${cityPathById.get(city.cityId) ?? city.cityId}`,
+          ),
         })),
       },
     ],
@@ -132,16 +142,22 @@ export default async function TraditionalChineseCountryPage({
         <div className="relative z-10 max-w-3xl">
           <nav aria-label="麵包屑" className="country-breadcrumb">
             <ol>
-              <li><a href="/zh-hant" className="focus-ring">亞洲旅行天氣</a></li>
+              <li>
+                <a href="/zh-hant" className="focus-ring">
+                  亞洲旅行天氣
+                </a>
+              </li>
               <li aria-current="page">{country.name}</li>
             </ol>
           </nav>
           <p className="eyebrow mt-7">國家旅行天氣地圖</p>
           <h1 className="mt-4 max-w-4xl text-4xl font-bold tracking-[-0.045em] text-foreground sm:text-6xl">
-            比較{country.name}{localizedCities.length}個旅遊城市的天氣
+            比較{country.name}
+            {localizedCities.length}個旅遊城市的天氣
           </h1>
           <p className="mt-4 max-w-2xl text-base leading-7 text-muted sm:text-lg">
-            {country.summary ?? `選擇旅行日期，在地圖上直接比較${country.name}全部旅遊城市的降雨、氣溫與旅行評分。`}
+            {country.summary ??
+              `選擇旅行日期，在地圖上直接比較${country.name}全部旅遊城市的降雨、氣溫與旅行評分。`}
           </p>
         </div>
       </section>
@@ -159,7 +175,9 @@ export default async function TraditionalChineseCountryPage({
 
       <footer className="page-footer">
         <span>Where Not Rain · 用天氣決定去哪裡</span>
-        <span>天氣資料：<a href="https://open-meteo.com/">Open-Meteo</a> · 衍生旅行評分</span>
+        <span>
+          天氣資料：<a href="https://open-meteo.com/">Open-Meteo</a> · 衍生旅行評分
+        </span>
       </footer>
     </main>
   );

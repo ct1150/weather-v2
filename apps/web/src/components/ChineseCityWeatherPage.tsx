@@ -124,20 +124,22 @@ function reasonLabel(reason: string, locale: ChineseWeatherLocale): string {
     STALE_DATA: "資料可能過期",
   };
   const traditional = labels[reason] ?? reason;
-  return locale === "zh-hant" ? traditional : traditional
-    .replaceAll("機率", "概率")
-    .replaceAll("氣", "气")
-    .replaceAll("濕", "湿")
-    .replaceAll("風", "风")
-    .replaceAll("線", "线")
-    .replaceAll("險", "险")
-    .replaceAll("黃", "黄")
-    .replaceAll("時", "时")
-    .replaceAll("條", "条")
-    .replaceAll("資", "资")
-    .replaceAll("料", "料")
-    .replaceAll("過", "过")
-    .replaceAll("期", "期");
+  return locale === "zh-hant"
+    ? traditional
+    : traditional
+        .replaceAll("機率", "概率")
+        .replaceAll("氣", "气")
+        .replaceAll("濕", "湿")
+        .replaceAll("風", "风")
+        .replaceAll("線", "线")
+        .replaceAll("險", "险")
+        .replaceAll("黃", "黄")
+        .replaceAll("時", "时")
+        .replaceAll("條", "条")
+        .replaceAll("資", "资")
+        .replaceAll("料", "料")
+        .replaceAll("過", "过")
+        .replaceAll("期", "期");
 }
 
 function isCautionReason(reason: string): boolean {
@@ -180,7 +182,9 @@ function WeatherSummary({
   const copy = COPY[locale];
   return (
     <div className="info-panel h-full">
-      <p className="text-xs font-bold uppercase tracking-[0.12em] text-muted">{copy.currentCondition}</p>
+      <p className="text-xs font-bold uppercase tracking-[0.12em] text-muted">
+        {copy.currentCondition}
+      </p>
       <p className="mt-2 text-2xl font-bold text-foreground">
         {conditionLabel(weather.conditionLabel, locale)}
       </p>
@@ -200,7 +204,8 @@ function WeatherSummary({
         </div>
       </dl>
       <p className="mt-4 text-xs text-muted">
-        {copy.updated} <time dateTime={weather.observedAt}>{formatObservation(weather.observedAt, locale)}</time>
+        {copy.updated}{" "}
+        <time dateTime={weather.observedAt}>{formatObservation(weather.observedAt, locale)}</time>
       </p>
     </div>
   );
@@ -231,8 +236,16 @@ export function ChineseCityWeatherPage({
         <div className="relative z-10">
           <nav aria-label={copy.breadcrumb} className="country-breadcrumb">
             <ol>
-              <li><a href={localePrefix} className="focus-ring">{copy.radar}</a></li>
-              <li><a href={`${localePrefix}/${city.countrySlug}`} className="focus-ring">{city.countryName}</a></li>
+              <li>
+                <a href={localePrefix} className="focus-ring">
+                  {copy.radar}
+                </a>
+              </li>
+              <li>
+                <a href={`${localePrefix}/${city.countrySlug}`} className="focus-ring">
+                  {city.countryName}
+                </a>
+              </li>
               <li aria-current="page">{city.cityName}</li>
             </ol>
           </nav>
@@ -251,10 +264,22 @@ export function ChineseCityWeatherPage({
 
       <div className="mt-10 grid gap-5 md:grid-cols-2">
         <section aria-label={copy.current}>
-          {weatherState === "loading" ? <p role="status" className="text-body text-muted">{copy.loadingWeather}</p> : null}
-          {weatherState === "error" ? <p role="alert" className="text-body text-danger">{copy.weatherError}</p> : null}
-          {weatherState === "empty" ? <p className="text-body text-muted">{copy.weatherEmpty}</p> : null}
-          {weatherState === "ready" && weather !== null ? <WeatherSummary weather={weather} locale={locale} /> : null}
+          {weatherState === "loading" ? (
+            <p role="status" className="text-body text-muted">
+              {copy.loadingWeather}
+            </p>
+          ) : null}
+          {weatherState === "error" ? (
+            <p role="alert" className="text-body text-danger">
+              {copy.weatherError}
+            </p>
+          ) : null}
+          {weatherState === "empty" ? (
+            <p className="text-body text-muted">{copy.weatherEmpty}</p>
+          ) : null}
+          {weatherState === "ready" && weather !== null ? (
+            <WeatherSummary weather={weather} locale={locale} />
+          ) : null}
         </section>
 
         <section aria-label={copy.score} className="info-panel h-full">
@@ -263,7 +288,9 @@ export function ChineseCityWeatherPage({
             <span className="text-5xl font-bold tracking-[-0.05em] text-foreground">
               {renderScoreValue(score, locale)}
             </span>
-            {score.value !== null ? <span className="mb-1 text-sm font-semibold text-muted">/ 100</span> : null}
+            {score.value !== null ? (
+              <span className="mb-1 text-sm font-semibold text-muted">/ 100</span>
+            ) : null}
           </div>
           {score.reasonCodes.length > 0 ? (
             <ul className="mt-5 flex flex-wrap gap-2" aria-label={copy.reason}>
@@ -282,12 +309,25 @@ export function ChineseCityWeatherPage({
 
       <section aria-label={copy.outlook} className="info-panel mt-5">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-          <div><p className="eyebrow">{copy.plan}</p><h2 className="section-title mt-3">{copy.outlook}</h2></div>
+          <div>
+            <p className="eyebrow">{copy.plan}</p>
+            <h2 className="section-title mt-3">{copy.outlook}</h2>
+          </div>
           <p className="text-xs text-muted">{copy.timezone(city.timezone)}</p>
         </div>
-        {forecastState === "loading" ? <p role="status" className="mt-2 text-body text-muted">{copy.loadingForecast}</p> : null}
-        {forecastState === "error" ? <p role="alert" className="mt-2 text-body text-danger">{copy.forecastError}</p> : null}
-        {forecastState === "empty" ? <p className="mt-2 text-body text-muted">{copy.forecastEmpty}</p> : null}
+        {forecastState === "loading" ? (
+          <p role="status" className="mt-2 text-body text-muted">
+            {copy.loadingForecast}
+          </p>
+        ) : null}
+        {forecastState === "error" ? (
+          <p role="alert" className="mt-2 text-body text-danger">
+            {copy.forecastError}
+          </p>
+        ) : null}
+        {forecastState === "empty" ? (
+          <p className="mt-2 text-body text-muted">{copy.forecastEmpty}</p>
+        ) : null}
         {forecastState === "ready" && (forecastDays?.length ?? 0) > 0 ? (
           <ol className="forecast-timeline mt-6">
             {forecastDays?.map((day, index) => (
@@ -296,26 +336,46 @@ export function ChineseCityWeatherPage({
                   <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted">
                     {index === 0 ? copy.today : index === 1 ? copy.tomorrow : copy.day(index)}
                   </p>
-                  <time dateTime={day.localDate} className="mt-1 block text-sm font-bold text-foreground">{day.localDate}</time>
+                  <time
+                    dateTime={day.localDate}
+                    className="mt-1 block text-sm font-bold text-foreground"
+                  >
+                    {day.localDate}
+                  </time>
                 </div>
                 <div className="sm:text-center">
-                  <p className="text-sm font-semibold text-foreground">{conditionLabel(day.weather.conditionLabel, locale)}</p>
-                  <p className="mt-1 text-xs text-muted">{day.weather.temperatureMin ?? "–"}° / {day.weather.temperatureMax ?? "–"}°</p>
+                  <p className="text-sm font-semibold text-foreground">
+                    {conditionLabel(day.weather.conditionLabel, locale)}
+                  </p>
+                  <p className="mt-1 text-xs text-muted">
+                    {day.weather.temperatureMin ?? "–"}° / {day.weather.temperatureMax ?? "–"}°
+                  </p>
                 </div>
                 <div className="flex items-center justify-between gap-5 sm:justify-end">
-                  <span className={day.weather.rainProbability !== null && day.weather.rainProbability <= 45 ? "text-sm font-bold text-success" : "text-sm font-bold text-accent"}>
+                  <span
+                    className={
+                      day.weather.rainProbability !== null && day.weather.rainProbability <= 45
+                        ? "text-sm font-bold text-success"
+                        : "text-sm font-bold text-accent"
+                    }
+                  >
                     {day.weather.rainProbability ?? "—"}% {copy.peakRainShort}
                   </span>
                   <span className="min-w-12 text-right text-sm font-bold text-foreground">
                     {renderScoreValue(day.score, locale)}
-                    <span className="block text-[9px] uppercase tracking-[0.1em] text-muted">{copy.scoreShort}</span>
+                    <span className="block text-[9px] uppercase tracking-[0.1em] text-muted">
+                      {copy.scoreShort}
+                    </span>
                   </span>
                 </div>
               </li>
             ))}
           </ol>
         ) : forecastState === "ready" && localDates.length > 0 ? (
-          <p className="mt-4 text-body text-muted">{copy.covering}{localDates.join("、")}</p>
+          <p className="mt-4 text-body text-muted">
+            {copy.covering}
+            {localDates.join("、")}
+          </p>
         ) : null}
       </section>
 
@@ -327,8 +387,13 @@ export function ChineseCityWeatherPage({
             {relatedLinks.map((dest: DestinationLinkViewModel) => (
               <li key={dest.cityId}>
                 <a href={dest.path} className="destination-link focus-ring">
-                  <span><span className="font-bold text-foreground">{dest.cityName}</span><span className="ml-2 text-xs text-muted">{dest.countryName}</span></span>
-                  <span aria-hidden="true" className="text-lg text-primary">→</span>
+                  <span>
+                    <span className="font-bold text-foreground">{dest.cityName}</span>
+                    <span className="ml-2 text-xs text-muted">{dest.countryName}</span>
+                  </span>
+                  <span aria-hidden="true" className="text-lg text-primary">
+                    →
+                  </span>
                 </a>
               </li>
             ))}
@@ -338,7 +403,11 @@ export function ChineseCityWeatherPage({
 
       <footer className="page-footer">
         <span>{copy.footer}</span>
-        <span>{copy.source}<a href="https://open-meteo.com/">Open-Meteo</a>{copy.derived}</span>
+        <span>
+          {copy.source}
+          <a href="https://open-meteo.com/">Open-Meteo</a>
+          {copy.derived}
+        </span>
       </footer>
     </main>
   );

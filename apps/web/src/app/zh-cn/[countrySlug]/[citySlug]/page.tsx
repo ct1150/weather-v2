@@ -5,7 +5,9 @@ import { getBakedDataset, projectCity } from "../../../../build/bake";
 import { ChineseCityWeatherPage } from "../../../../components/ChineseCityWeatherPage";
 import { buildAlternates, localeUrl, routeRobots } from "../../../seo";
 
-export async function generateStaticParams(): Promise<ReadonlyArray<{ countrySlug: string; citySlug: string }>> {
+export async function generateStaticParams(): Promise<
+  ReadonlyArray<{ countrySlug: string; citySlug: string }>
+> {
   const dataset = await getBakedDataset();
   return dataset.cities.map((item) => ({
     countrySlug: item.country.slug,
@@ -30,7 +32,11 @@ export async function generateMetadata({
   return {
     title,
     description,
-    alternates: buildAlternates(`/${params.countrySlug}/${params.citySlug}`, "zh-cn", ["en", "zh-cn", "zh-hant"]),
+    alternates: buildAlternates(`/${params.countrySlug}/${params.citySlug}`, "zh-cn", [
+      "en",
+      "zh-cn",
+      "zh-hant",
+    ]),
     robots: routeRobots("city", true),
     openGraph: {
       type: "website",

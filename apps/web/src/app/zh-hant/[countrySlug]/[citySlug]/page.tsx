@@ -6,7 +6,9 @@ import { ChineseCityWeatherPage } from "../../../../components/ChineseCityWeathe
 import { toTraditionalText } from "../../../../trips/traditional";
 import { buildAlternates, localeUrl, routeRobots } from "../../../seo";
 
-export async function generateStaticParams(): Promise<ReadonlyArray<{ countrySlug: string; citySlug: string }>> {
+export async function generateStaticParams(): Promise<
+  ReadonlyArray<{ countrySlug: string; citySlug: string }>
+> {
   const dataset = await getBakedDataset();
   return dataset.cities.map((item) => ({
     countrySlug: item.country.slug,
@@ -31,7 +33,11 @@ export async function generateMetadata({
   return {
     title,
     description,
-    alternates: buildAlternates(`/${params.countrySlug}/${params.citySlug}`, "zh-hant", ["en", "zh-cn", "zh-hant"]),
+    alternates: buildAlternates(`/${params.countrySlug}/${params.citySlug}`, "zh-hant", [
+      "en",
+      "zh-cn",
+      "zh-hant",
+    ]),
     robots: routeRobots("city", true),
     openGraph: {
       type: "website",
@@ -56,7 +62,9 @@ export default async function TraditionalChineseCityPage({
   if (baked === undefined) notFound();
 
   const base = projectCity(dataset, params.countrySlug, params.citySlug, "zh-cn");
-  const citySlugById = new Map(dataset.cities.map((item) => [item.city.id, item.city.slug] as const));
+  const citySlugById = new Map(
+    dataset.cities.map((item) => [item.city.id, item.city.slug] as const),
+  );
   const viewModel = {
     ...base,
     city: {

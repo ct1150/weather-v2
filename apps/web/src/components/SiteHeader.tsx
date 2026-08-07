@@ -106,7 +106,9 @@ export function SiteHeader(): ReactElement {
               value={currentLocale}
               onChange={chooseLocale}
               className="cursor-pointer bg-transparent text-xs font-bold sm:text-sm"
-              aria-label={isTraditional ? "選擇語言" : isSimplified ? "选择语言" : "Choose language"}
+              aria-label={
+                isTraditional ? "選擇語言" : isSimplified ? "选择语言" : "Choose language"
+              }
             >
               <option value="en">English</option>
               <option value="zh-cn">简体中文</option>

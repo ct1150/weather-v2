@@ -325,7 +325,10 @@ export function TraditionalCountryWeatherExplorer({
       const button = document.createElement("button");
       button.type = "button";
       button.className = "country-weather-marker-button";
-      button.setAttribute("aria-label", `${summary.city.cityName}：${rainLabel(summary)}。選擇城市。`);
+      button.setAttribute(
+        "aria-label",
+        `${summary.city.cityName}：${rainLabel(summary)}。選擇城市。`,
+      );
       if (summary.city.cityId === selected?.city.cityId) button.dataset.selected = "true";
       const name = document.createElement("strong");
       name.textContent = summary.city.cityName;
@@ -474,14 +477,23 @@ export function TraditionalCountryWeatherExplorer({
             data-testid="country-weather-map"
           />
           <div className="country-map-legend" aria-label="地圖天氣風險圖例">
-            <span><i className="legend-good" /> 少雨</span>
-            <span><i className="legend-mixed" /> 天氣不定</span>
-            <span><i className="legend-wet" /> 降雨偏多</span>
+            <span>
+              <i className="legend-good" /> 少雨
+            </span>
+            <span>
+              <i className="legend-mixed" /> 天氣不定
+            </span>
+            <span>
+              <i className="legend-wet" /> 降雨偏多
+            </span>
           </div>
         </div>
 
         {selected !== null ? (
-          <aside className="country-city-inspector" aria-label={`${selected.city.cityName}天氣摘要`}>
+          <aside
+            className="country-city-inspector"
+            aria-label={`${selected.city.cityName}天氣摘要`}
+          >
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-white/55">
@@ -500,9 +512,24 @@ export function TraditionalCountryWeatherExplorer({
               </div>
             </div>
             <div className="country-inspector-summary">
-              <div><span>少雨天數</span><strong>{selected.dryDays}/{selected.days.length}</strong></div>
-              <div><span>預計降雨量 · 最高機率</span><strong>{selected.totalRainMm ?? "—"} mm · {selected.maxRain ?? "—"}%</strong></div>
-              <div><span>氣溫</span><strong>{selected.temperatureMin ?? "–"}–{selected.temperatureMax ?? "–"}°C</strong></div>
+              <div>
+                <span>少雨天數</span>
+                <strong>
+                  {selected.dryDays}/{selected.days.length}
+                </strong>
+              </div>
+              <div>
+                <span>預計降雨量 · 最高機率</span>
+                <strong>
+                  {selected.totalRainMm ?? "—"} mm · {selected.maxRain ?? "—"}%
+                </strong>
+              </div>
+              <div>
+                <span>氣溫</span>
+                <strong>
+                  {selected.temperatureMin ?? "–"}–{selected.temperatureMax ?? "–"}°C
+                </strong>
+              </div>
             </div>
             <ol className="country-daily-strip" aria-label="所選日期的逐日天氣">
               {selected.days.map((day) => (
@@ -511,11 +538,17 @@ export function TraditionalCountryWeatherExplorer({
                     <time dateTime={day.localDate} className="text-xs font-bold text-white">
                       {shortDate(day.localDate)}
                     </time>
-                    <p className="mt-0.5 text-[11px] text-white/55">{conditionLabel(day.weather.conditionLabel)}</p>
+                    <p className="mt-0.5 text-[11px] text-white/55">
+                      {conditionLabel(day.weather.conditionLabel)}
+                    </p>
                   </div>
                   <div className="text-right">
-                    <p className="text-xs font-bold text-white">{day.weather.rainProbability ?? "—"}% 最高降雨機率</p>
-                    <p className="mt-0.5 text-[11px] text-white/50">{day.weather.temperatureMin ?? "–"}–{day.weather.temperatureMax ?? "–"}°</p>
+                    <p className="text-xs font-bold text-white">
+                      {day.weather.rainProbability ?? "—"}% 最高降雨機率
+                    </p>
+                    <p className="mt-0.5 text-[11px] text-white/50">
+                      {day.weather.temperatureMin ?? "–"}–{day.weather.temperatureMax ?? "–"}°
+                    </p>
                   </div>
                 </li>
               ))}
@@ -550,7 +583,9 @@ export function TraditionalCountryWeatherExplorer({
               >
                 <span className="country-city-rank">#{index + 1}</span>
                 <span className="min-w-0 flex-1 text-left">
-                  <strong className="block truncate text-base text-foreground">{summary.city.cityName}</strong>
+                  <strong className="block truncate text-base text-foreground">
+                    {summary.city.cityName}
+                  </strong>
                   <span className="mt-1 block text-xs text-muted">{rainLabel(summary)}</span>
                 </span>
                 <span className="text-right">
@@ -566,7 +601,10 @@ export function TraditionalCountryWeatherExplorer({
         </ul>
       </div>
 
-      <section className="country-evidence-panel" aria-labelledby="traditional-comparison-methodology">
+      <section
+        className="country-evidence-panel"
+        aria-labelledby="traditional-comparison-methodology"
+      >
         <div className="country-evidence-heading">
           <p className="eyebrow">如何理解這份比較</p>
           <p>{updatedLabel}</p>
@@ -574,15 +612,22 @@ export function TraditionalCountryWeatherExplorer({
         <div className="country-evidence-grid">
           <article>
             <h2 id="traditional-comparison-methodology">城市是如何排序的？</h2>
-            <p>先比較少雨天數，再比較預計降雨量、最高降雨機率和旅行評分。評分用於橫向決策，不是天氣保證。</p>
+            <p>
+              先比較少雨天數，再比較預計降雨量、最高降雨機率和旅行評分。評分用於橫向決策，不是天氣保證。
+            </p>
           </article>
           <article>
             <h2>高降雨機率等於會下一整天嗎？</h2>
-            <p>不等於。降雨機率表示出現可測降雨的可能性，不代表持續時間；決策時應同時查看預計毫米數和逐日天氣。</p>
+            <p>
+              不等於。降雨機率表示出現可測降雨的可能性，不代表持續時間；決策時應同時查看預計毫米數和逐日天氣。
+            </p>
           </article>
           <article>
             <h2>天氣資料來自哪裡？</h2>
-            <p>預報資料統一換算成便於比較各城市的旅行天氣指標，來源： <a href="https://open-meteo.com/">Open-Meteo</a></p>
+            <p>
+              預報資料統一換算成便於比較各城市的旅行天氣指標，來源：{" "}
+              <a href="https://open-meteo.com/">Open-Meteo</a>
+            </p>
           </article>
         </div>
       </section>
