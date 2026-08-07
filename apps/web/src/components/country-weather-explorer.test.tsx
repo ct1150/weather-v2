@@ -199,7 +199,7 @@ describe("CountryWeatherExplorer", () => {
         screen.getByRole("button", { name: /This weekend/ }).getAttribute("aria-pressed"),
       ).toBe("true"),
     );
-    expect(screen.getByText("Aug 9–Aug 10")).toBeTruthy();
+    expect(screen.getByText("Aug 8–Aug 9")).toBeTruthy();
   });
 
   it("renders the complete country decision console in Simplified Chinese", () => {
