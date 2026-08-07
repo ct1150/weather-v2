@@ -1,0 +1,117 @@
+name: Build UX phase 2 branch once
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/ux-phase2-branch-trigger
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/ux-phase2
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.11.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Connect Radar, city detail and trip workspace
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          def replace(path: str, old: str, new: str) -> None:
+              file = Path(path)
+              text = file.read_text()
+              if old not in text:
+                  raise SystemExit(f"expected text not found in {path}: {old[:100]!r}")
+              file.write_text(text.replace(old, new, 1))
+
+          explorer = "apps/web/src/components/CountryWeatherExplorer.tsx"
+          replace(
+              explorer,
+              '''  function selectCustomRange(start: number, end: number): void {\n    const next = { start: Math.min(start, end), end: Math.max(start, end) };\n    setCustomRange(next);\n    setSelectedCityId("");\n    const url = new URL(window.location.href);\n    url.searchParams.delete("window");\n    url.searchParams.set("from", String(next.start));\n    url.searchParams.set("to", String(next.end));\n    window.history.pushState({}, "", url);\n  }\n\n  return (\n''',
+              '''  function selectCustomRange(start: number, end: number): void {\n    const next = { start: Math.min(start, end), end: Math.max(start, end) };\n    setCustomRange(next);\n    setSelectedCityId("");\n    const url = new URL(window.location.href);\n    url.searchParams.delete("window");\n    url.searchParams.set("from", String(next.start));\n    url.searchParams.set("to", String(next.end));\n    window.history.pushState({}, "", url);\n  }\n\n  function cityDetailHref(path: string): string {\n    const selectedDays = referenceDays(cities, selectedIndices);\n    const start = selectedDays[0]?.localDate;\n    if (start === undefined) return path;\n    const end = selectedDays.at(-1)?.localDate ?? start;\n    const params = new URLSearchParams({ start, end });\n    if (customRange === null) params.set("window", activeWindow);\n    return `${path}?${params.toString()}`;\n  }\n\n  return (\n''',
+          )
+          replace(explorer, 'href={selected.city.path}', 'href={cityDetailHref(selected.city.path)}')
+          replace(explorer, 'href={summary.city.path}', 'href={cityDetailHref(summary.city.path)}')
+
+          traditional = "apps/web/src/components/TraditionalCountryWeatherExplorer.tsx"
+          replace(
+              traditional,
+              '''  function selectCustomRange(start: number, end: number): void {\n    const next = { start: Math.min(start, end), end: Math.max(start, end) };\n    setCustomRange(next);\n    setSelectedCityId("");\n    const url = new URL(window.location.href);\n    url.searchParams.delete("window");\n    url.searchParams.set("from", String(next.start));\n    url.searchParams.set("to", String(next.end));\n    window.history.pushState({}, "", url);\n  }\n\n  return (\n''',
+              '''  function selectCustomRange(start: number, end: number): void {\n    const next = { start: Math.min(start, end), end: Math.max(start, end) };\n    setCustomRange(next);\n    setSelectedCityId("");\n    const url = new URL(window.location.href);\n    url.searchParams.delete("window");\n    url.searchParams.set("from", String(next.start));\n    url.searchParams.set("to", String(next.end));\n    window.history.pushState({}, "", url);\n  }\n\n  function cityDetailHref(path: string): string {\n    const selectedDays = referenceDays(cities, selectedIndices);\n    const start = selectedDays[0]?.localDate;\n    if (start === undefined) return path;\n    const end = selectedDays.at(-1)?.localDate ?? start;\n    const params = new URLSearchParams({ start, end });\n    if (customRange === null) params.set("window", activeWindow);\n    return `${path}?${params.toString()}`;\n  }\n\n  return (\n''',
+          )
+          replace(traditional, 'href={selected.city.path}', 'href={cityDetailHref(selected.city.path)}')
+          replace(traditional, 'href={summary.city.path}', 'href={cityDetailHref(summary.city.path)}')
+
+          english_city = "apps/web/src/app/[countrySlug]/[citySlug]/page.tsx"
+          replace(
+              english_city,
+              'import { JsonLd } from "../../../components/JsonLd";\n',
+              'import { JsonLd } from "../../../components/JsonLd";\nimport { CityTripBridge } from "../../../components/CityTripBridge";\n',
+          )
+          replace(
+              english_city,
+              '''      </section>\n\n      <div className="mt-10 grid gap-5 md:grid-cols-2">\n''',
+              '''      </section>\n\n      <CityTripBridge\n        locale="en"\n        cityId={city.cityId}\n        cityName={city.cityName}\n        countryName={city.countryName}\n        defaultDate={localDates[0] ?? ""}\n        workspacePath="/trips/workspace"\n      />\n\n      <div className="mt-10 grid gap-5 md:grid-cols-2">\n''',
+          )
+
+          chinese_city = "apps/web/src/components/ChineseCityWeatherPage.tsx"
+          replace(
+              chinese_city,
+              'import { JsonLd } from "./JsonLd";\n',
+              'import { JsonLd } from "./JsonLd";\nimport { CityTripBridge } from "./CityTripBridge";\n',
+          )
+          replace(
+              chinese_city,
+              '''      </section>\n\n      <div className="mt-10 grid gap-5 md:grid-cols-2">\n''',
+              '''      </section>\n\n      <CityTripBridge\n        locale={locale}\n        cityId={city.cityId}\n        cityName={city.cityName}\n        countryName={city.countryName}\n        defaultDate={localDates[0] ?? ""}\n        workspacePath={`${localePrefix}/trips/workspace`}\n      />\n\n      <div className="mt-10 grid gap-5 md:grid-cols-2">\n''',
+          )
+
+          test = "apps/web/src/components/country-weather-explorer.test.tsx"
+          replace(
+              test,
+              '''    expect(screen.getByRole("link", { name: "Tokyo 7-day forecast" }).getAttribute("href")).toBe(\n      "/jp/tokyo",\n    );\n    expect(screen.getByRole("link", { name: "Osaka 7-day forecast" }).getAttribute("href")).toBe(\n      "/jp/osaka",\n    );\n''',
+              '''    expect(screen.getByRole("link", { name: "Tokyo 7-day forecast" }).getAttribute("href")).toBe(\n      "/jp/tokyo?start=2026-08-04&end=2026-08-04&window=today",\n    );\n    expect(screen.getByRole("link", { name: "Osaka 7-day forecast" }).getAttribute("href")).toBe(\n      "/jp/osaka?start=2026-08-04&end=2026-08-04&window=today",\n    );\n''',
+          )
+          replace(
+              test,
+              '''    expect(screen.getByRole("link", { name: /Open 7-day city outlook/ }).getAttribute("href")).toBe(\n      "/jp/sapporo",\n    );\n''',
+              '''    expect(screen.getByRole("link", { name: /Open 7-day city outlook/ }).getAttribute("href")).toBe(\n      "/jp/sapporo?start=2026-08-04&end=2026-08-04&window=today",\n    );\n''',
+          )
+          PY
+
+          rm -f .github/workflows/ux-phase2-once.yml .github/ux-phase2-trigger
+          pnpm exec prettier --write \
+            apps/web/src/trips/add-destination.ts \
+            apps/web/src/trips/add-destination.test.ts \
+            apps/web/src/components/CityTripBridge.tsx \
+            apps/web/src/components/CountryWeatherExplorer.tsx \
+            apps/web/src/components/TraditionalCountryWeatherExplorer.tsx \
+            apps/web/src/components/ChineseCityWeatherPage.tsx \
+            'apps/web/src/app/[countrySlug]/[citySlug]/page.tsx' \
+            apps/web/src/components/country-weather-explorer.test.tsx
+
+          pnpm --filter @wnr/web lint
+          pnpm --filter @wnr/web typecheck
+          pnpm --filter @wnr/web test
+
+      - name: Commit branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .
+          git commit -m "feat(ux): connect weather discovery to trip planning"
+          git pull --rebase origin agent/ux-phase2
+          git push origin HEAD:agent/ux-phase2
