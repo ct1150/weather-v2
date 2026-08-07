@@ -32,12 +32,22 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   for (const country of dataset.countries) {
     const countryPath = `/${country.slug}`;
     entries.push(
-      ...localizedSitemapEntries(countryPath, { lastModified, changeFrequency }, ["en", "zh-cn"]),
+      ...localizedSitemapEntries(countryPath, { lastModified, changeFrequency }, [
+        "en",
+        "zh-cn",
+        "zh-hant",
+      ]),
     );
     const cities = dataset.citiesByCountry.get(country.id) ?? [];
     for (const city of cities) {
       const cityPath = `/${country.slug}/${city.city.slug}`;
-      entries.push(...localizedSitemapEntries(cityPath, { lastModified, changeFrequency }));
+      entries.push(
+        ...localizedSitemapEntries(cityPath, { lastModified, changeFrequency }, [
+          "en",
+          "zh-cn",
+          "zh-hant",
+        ]),
+      );
     }
   }
 
