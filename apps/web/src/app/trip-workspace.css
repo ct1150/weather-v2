@@ -96,6 +96,38 @@
   @apply rounded-lg bg-white/70 px-3 py-2 text-foreground;
 }
 
+.trip-day-editor,
+.trip-workspace-disclosure {
+  @apply rounded-2xl border border-border/80 bg-surface/60;
+}
+
+.trip-day-editor > summary,
+.trip-workspace-disclosure > summary {
+  @apply cursor-pointer list-none px-4 py-3 text-sm font-bold text-foreground outline-none transition hover:bg-surface-elevated focus-visible:ring-4 focus-visible:ring-primary/10;
+}
+
+.trip-day-editor > summary::-webkit-details-marker,
+.trip-workspace-disclosure > summary::-webkit-details-marker {
+  display: none;
+}
+
+.trip-day-editor > summary::after,
+.trip-workspace-disclosure > summary::after {
+  content: "+";
+  float: right;
+  color: rgb(var(--wnr-muted));
+}
+
+.trip-day-editor[open] > summary::after,
+.trip-workspace-disclosure[open] > summary::after {
+  content: "−";
+}
+
+.trip-day-editor-body,
+.trip-workspace-disclosure-body {
+  @apply border-t border-border/70 p-4;
+}
+
 .trip-risk-unknown {
   color: rgb(var(--wnr-muted));
   background-color: rgb(var(--wnr-border) / 0.22);
@@ -119,5 +151,10 @@
   .trip-workspace-day {
     break-inside: avoid;
     box-shadow: none !important;
+  }
+
+  .trip-day-editor,
+  .trip-workspace-disclosure {
+    display: none !important;
   }
 }
