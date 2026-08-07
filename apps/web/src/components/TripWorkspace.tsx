@@ -8,6 +8,7 @@ import {
   type ChangeEvent,
   type ReactElement,
 } from "react";
+import { clearCloudMetadata } from "../trips/cloud-sync";
 import {
   TRIP_SHARE_HASH_KEY,
   TRIP_WORKSPACE_STORAGE_KEY,
@@ -105,11 +106,20 @@ function parseStoredWeather(value: string | null): StoredWeather | null {
 }
 
 function loadInitialWorkspace(): TripWorkspace {
+  const search = new URLSearchParams(window.location.search);
+  if (search.get("new") === "1") {
+    clearCloudMetadata();
+    window.localStorage.removeItem(TRIP_WORKSPACE_STORAGE_KEY);
+    return createBlankWorkspace();
+  }
   const hash = new URLSearchParams(window.location.hash.replace(/^#/u, ""));
   const shared = hash.get(TRIP_SHARE_HASH_KEY);
   if (shared !== null) {
     const decoded = decodeWorkspaceShare(shared);
-    if (decoded !== null) return decoded;
+    if (decoded !== null) {
+      clearCloudMetadata();
+      return decoded;
+    }
   }
 
   const stored = window.localStorage.getItem(TRIP_WORKSPACE_STORAGE_KEY);
@@ -558,12 +568,6 @@ export function TripWorkspace(): ReactElement {
           </button>
         </div>
       </section>
-
-      <CloudTripControls locale="zh-cn" workspace={workspace} onRemoteWorkspace={setWorkspace} />
-
-      <CloudTripControls locale="zh-cn" workspace={workspace} onRemoteWorkspace={setWorkspace} />
-
-      <CloudTripControls locale="zh-cn" workspace={workspace} onRemoteWorkspace={setWorkspace} />
 
       <CloudTripControls locale="zh-cn" workspace={workspace} onRemoteWorkspace={setWorkspace} />
 

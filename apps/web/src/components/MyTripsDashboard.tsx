@@ -416,16 +416,16 @@ export function MyTripsDashboard({ locale }: { readonly locale: CloudTripLocale 
       <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
         <div>
           <p className="eyebrow">{copy.eyebrow}</p>
-          <h1 className="mt-2 text-3xl font-bold tracking-[-0.035em] text-foreground">
+          <h2 className="mt-2 text-3xl font-bold tracking-[-0.035em] text-foreground">
             {copy.title}
-          </h1>
+          </h2>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-muted">{copy.subtitle}</p>
           <p className="mt-3 text-xs text-muted">
             {copy.signedIn}: {emailAddress}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <a className="trip-primary-button" href={workspacePath(locale)}>
+          <a className="trip-primary-button" href={`${workspacePath(locale)}?new=1`}>
             {copy.newTrip}
           </a>
           <a className="trip-secondary-button" href={importPath(locale)}>

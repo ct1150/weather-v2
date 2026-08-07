@@ -67,7 +67,7 @@ export default function TripsLanding(): ReactElement {
             practical fallback decisions.
           </p>
           <div className="mt-7 flex flex-wrap gap-3">
-            <a className="trip-primary-button" href="/trips/workspace">
+            <a className="trip-primary-button" href="/trips/workspace?new=1">
               Build my trip
             </a>
             <a className="trip-secondary-button" href="/trips/new">

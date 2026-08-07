@@ -8,6 +8,7 @@ import {
   type ChangeEvent,
   type ReactElement,
 } from "react";
+import { clearCloudMetadata } from "../trips/cloud-sync";
 import {
   TRIP_SHARE_HASH_KEY,
   TRIP_WORKSPACE_STORAGE_KEY,
@@ -272,15 +273,25 @@ function localizeForecasts(
 
 function loadInitialWorkspace(locale: TripProductLocale): TripWorkspace {
   const copy = COPY[locale];
+  const search = new URLSearchParams(window.location.search);
+  if (search.get("new") === "1") {
+    clearCloudMetadata();
+    window.localStorage.removeItem(TRIP_WORKSPACE_STORAGE_KEY);
+    return createBlankWorkspace({ title: copy.blankTitle });
+  }
   const hash = new URLSearchParams(window.location.hash.replace(/^#/u, ""));
   const shared = hash.get(TRIP_SHARE_HASH_KEY);
   if (shared !== null) {
     const decoded = decodeWorkspaceShare(shared);
-    if (decoded !== null) return localizeWorkspace(decoded, locale);
+    if (decoded !== null) {
+      clearCloudMetadata();
+      return localizeWorkspace(decoded, locale);
+    }
   }
 
-  const templateId = new URLSearchParams(window.location.search).get("template");
+  const templateId = search.get("template");
   if (isTemplateId(templateId)) {
+    clearCloudMetadata();
     return localizeWorkspace(
       createWorkspaceFromTemplate(templateId, locale === "en" ? "en" : "zh-cn"),
       locale,
@@ -647,6 +658,7 @@ export function LocalizedTripWorkspace({ locale }: LocalizedTripWorkspaceProps):
         createWorkspaceFromTemplate(templateId, workspaceLocale),
         locale,
       );
+      clearCloudMetadata();
       setWorkspace(next);
       resetWeather();
       window.history.replaceState({}, "", copy.sharePath);
@@ -665,6 +677,7 @@ export function LocalizedTripWorkspace({ locale }: LocalizedTripWorkspaceProps):
   const startBlank = useCallback((): void => {
     if (!window.confirm(copy.blankConfirm)) return;
     const next = createBlankWorkspace({ title: copy.blankTitle });
+    clearCloudMetadata();
     setWorkspace(next);
     resetWeather();
     window.history.replaceState({}, "", copy.sharePath);

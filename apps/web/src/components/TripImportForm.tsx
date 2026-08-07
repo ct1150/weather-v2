@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState, type ReactElement } from "react";
+import { clearCloudMetadata } from "../trips/cloud-sync";
 import { parseTripMarkdown } from "../trips/markdown-parser";
 import { TRIP_WORKSPACE_STORAGE_KEY, createWorkspaceFromParsed } from "../trips/workspace";
 
@@ -90,6 +91,7 @@ export function TripImportForm({ locale = "zh-cn" }: TripImportFormProps): React
       return;
     }
     const workspace = createWorkspaceFromParsed(parsed, { title: copy.title });
+    clearCloudMetadata();
     window.localStorage.setItem(TRIP_WORKSPACE_STORAGE_KEY, JSON.stringify(workspace));
     window.location.assign(copy.path);
   };

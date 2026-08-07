@@ -60,7 +60,7 @@ export default function SimplifiedTripsLanding(): ReactElement {
             为日本、韩国和东南亚多城市自由行加入天气决策。固定列车和定时门票受到保护，可调整的户外行程则会得到具体备用方案。
           </p>
           <div className="mt-7 flex flex-wrap gap-3">
-            <a className="trip-primary-button" href="/zh-cn/trips/workspace">
+            <a className="trip-primary-button" href="/zh-cn/trips/workspace?new=1">
               建立我的行程
             </a>
             <a className="trip-secondary-button" href="/zh-cn/trips/new">
