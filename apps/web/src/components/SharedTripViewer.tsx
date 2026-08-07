@@ -1,7 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState, type ReactElement } from "react";
-import { getTripSession, sendTripMagicLink, signInTripWithGoogle } from "../trips/auth-client";
+import {
+  getTripSession,
+  sendTripMagicLink,
+  signInTripWithGoogle,
+} from "../trips/auth-client";
 import {
   copySharedCloudTrip,
   readSharedCloudTrip,
@@ -122,7 +126,7 @@ export function SharedTripViewer({ locale }: { readonly locale: CloudTripLocale 
   const [message, setMessage] = useState("");
 
   useEffect(() => {
-    const nextToken = new URLSearchParams(window.location.search).get("token");
+    const nextToken = new URLSearchParams(window.location.hash.replace(/^#/u, "")).get("token");
     if (nextToken === null || !/^shr_[a-f0-9]{64}$/u.test(nextToken)) {
       setMessage(copy.missing);
       setLoading(false);
@@ -249,11 +253,7 @@ export function SharedTripViewer({ locale }: { readonly locale: CloudTripLocale 
             {providerAvailable ? (
               <div className="mt-4 grid gap-3 sm:grid-cols-2">
                 {health?.providers.google ? (
-                  <button
-                    type="button"
-                    className="trip-primary-button"
-                    onClick={() => void startGoogle()}
-                  >
+                  <button type="button" className="trip-primary-button" onClick={() => void startGoogle()}>
                     {copy.google}
                   </button>
                 ) : null}
@@ -266,11 +266,7 @@ export function SharedTripViewer({ locale }: { readonly locale: CloudTripLocale 
                       className="min-h-11 min-w-0 flex-1 rounded-xl border border-border bg-white px-3 text-sm"
                       onChange={(event) => setEmail(event.target.value)}
                     />
-                    <button
-                      type="button"
-                      className="trip-secondary-button"
-                      onClick={() => void sendEmail()}
-                    >
+                    <button type="button" className="trip-secondary-button" onClick={() => void sendEmail()}>
                       {copy.email}
                     </button>
                   </div>
@@ -281,9 +277,7 @@ export function SharedTripViewer({ locale }: { readonly locale: CloudTripLocale 
             )}
           </div>
         ) : null}
-        {message.length > 0 && trip !== null ? (
-          <p className="mt-4 text-xs text-muted">{message}</p>
-        ) : null}
+        {message.length > 0 && trip !== null ? <p className="mt-4 text-xs text-muted">{message}</p> : null}
       </section>
 
       <section className="mt-6 grid gap-4" aria-label={trip.title}>
