@@ -96,7 +96,7 @@ jobs:
             "Traditional city weather route" \
             "https://868656.xyz/zh-hant/jp/tokyo" \
             /tmp/weather-hant-city.html \
-            "目的地天氣" "7 天旅行天氣" "東京"
+            "目的地天氣" "7 天旅行天氣" "東京" "加入我的行程"
 
           fetch_and_match \
             "Simplified legacy route" \
@@ -108,7 +108,13 @@ jobs:
             "Simplified city weather route" \
             "https://868656.xyz/zh-cn/jp/tokyo" \
             /tmp/weather-cn-city.html \
-            "目的地天气" "7 天旅行天气" "东京"
+            "目的地天气" "7 天旅行天气" "东京" "加入我的行程"
+
+          fetch_and_match \
+            "English city-to-trip bridge" \
+            "https://868656.xyz/japan/tokyo" \
+            /tmp/weather-en-city.html \
+            "Tokyo" "Add to my trip"
 
           fetch_and_match \
             "Trip cities API" \
