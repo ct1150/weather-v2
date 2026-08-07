@@ -32,11 +32,9 @@ describe("trip store", () => {
 
   beforeEach(async () => {
     db = createInMemoryD1() as D1Database;
-    const migration = readFileSync(
-      new URL("../migrations/0001_trips.sql", import.meta.url),
-      "utf8",
-    );
-    await db.exec(migration);
+    for (const name of ["0001_trips.sql", "0002_trip_shares.sql", "0003_collaboration.sql"]) {
+      await db.exec(readFileSync(new URL(`../migrations/${name}`, import.meta.url), "utf8"));
+    }
   });
 
   it("creates, lists and reads only the owner's cloud trip", async () => {
@@ -45,6 +43,7 @@ describe("trip store", () => {
     const created = await createTrip(db, "user-a", "en", valid!, "2026-08-07T01:00:00.000Z");
     expect(created.version).toBe(1);
     expect(created.document.title).toBe("Japan family trip");
+    expect(created.accessRole).toBe("owner");
     expect(await listTrips(db, "user-a")).toHaveLength(1);
     expect(await listTrips(db, "user-b")).toHaveLength(0);
     expect(await readTrip(db, "user-b", created.id)).toBeNull();
