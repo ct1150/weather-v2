@@ -38,6 +38,7 @@ import {
   toTraditionalText,
   toTraditionalWorkspace,
 } from "../trips/traditional";
+import { CloudTripControls } from "./CloudTripControls";
 
 export type TripProductLocale = "en" | "zh-hant";
 
@@ -812,6 +813,12 @@ export function LocalizedTripWorkspace({ locale }: LocalizedTripWorkspaceProps):
           </button>
         </div>
       </section>
+
+      <CloudTripControls
+        locale={locale}
+        workspace={workspace}
+        onRemoteWorkspace={(remote) => setWorkspace(localizeWorkspace(remote, locale))}
+      />
 
       <section className="trip-summary-grid" aria-label={copy.average}>
         <div>
