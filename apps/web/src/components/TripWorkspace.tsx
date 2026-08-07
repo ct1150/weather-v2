@@ -219,79 +219,84 @@ function DayEditor({
         </button>
       </header>
 
-      <div className="trip-workspace-fields mt-5">
-        <label>
-          <span>日期</span>
-          <input
-            type="date"
-            value={day.date}
-            onChange={(event) => onChange({ date: event.target.value })}
-          />
-        </label>
-        <label>
-          <span>天气城市</span>
-          <select value={day.cityId} onChange={handleCity}>
-            <option value="">请选择城市</option>
-            {cities.map((city) => (
-              <option key={city.cityId} value={city.cityId}>
-                {city.countryName} · {city.cityName}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label>
-          <span>当天类型</span>
-          <select
-            value={day.theme}
-            onChange={(event) => onChange({ theme: event.target.value as TripDayTheme })}
-          >
-            {(["city", "beach", "outdoor", "indoor"] as const).map((theme) => (
-              <option key={theme} value={theme}>
-                {themeCopy(theme)}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="trip-workspace-checkbox">
-          <input
-            type="checkbox"
-            checked={day.flexible}
-            onChange={(event) => onChange({ flexible: event.target.checked })}
-          />
-          <span>当天可根据天气调整</span>
-        </label>
-      </div>
-
-      <div className="mt-5 grid gap-4 lg:grid-cols-2">
-        <label className="trip-workspace-textarea">
-          <span>行程安排（每行一项）</span>
-          <textarea
-            value={day.activities.join("\n")}
-            placeholder="09:00 浅草寺\n14:00 东京国立博物馆"
-            onChange={(event) =>
-              onChange({
-                activities: event.target.value
-                  .split("\n")
-                  .map((item) => item.trim())
-                  .filter(Boolean)
-                  .slice(0, 12),
-              })
-            }
-          />
-        </label>
-        <label className="trip-workspace-textarea">
-          <span>固定约束和备注</span>
-          <textarea
-            value={day.notes}
-            placeholder="例如：18:00前必须回酒店；门票不可改期"
-            onChange={(event) => onChange({ notes: event.target.value.slice(0, 500) })}
-          />
-        </label>
-      </div>
-
       <div className="mt-5">
         <DecisionCard day={day} forecast={forecast} decision={decision} />
       </div>
+
+      <details className="trip-day-editor mt-5">
+        <summary>编辑当天安排</summary>
+        <div className="trip-day-editor-body">
+          <div className="trip-workspace-fields">
+            <label>
+              <span>日期</span>
+              <input
+                type="date"
+                value={day.date}
+                onChange={(event) => onChange({ date: event.target.value })}
+              />
+            </label>
+            <label>
+              <span>天气城市</span>
+              <select value={day.cityId} onChange={handleCity}>
+                <option value="">请选择城市</option>
+                {cities.map((city) => (
+                  <option key={city.cityId} value={city.cityId}>
+                    {city.countryName} · {city.cityName}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              <span>当天类型</span>
+              <select
+                value={day.theme}
+                onChange={(event) => onChange({ theme: event.target.value as TripDayTheme })}
+              >
+                {(["city", "beach", "outdoor", "indoor"] as const).map((theme) => (
+                  <option key={theme} value={theme}>
+                    {themeCopy(theme)}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="trip-workspace-checkbox">
+              <input
+                type="checkbox"
+                checked={day.flexible}
+                onChange={(event) => onChange({ flexible: event.target.checked })}
+              />
+              <span>当天可根据天气调整</span>
+            </label>
+          </div>
+
+          <div className="mt-5 grid gap-4 lg:grid-cols-2">
+            <label className="trip-workspace-textarea">
+              <span>行程安排（每行一项）</span>
+              <textarea
+                value={day.activities.join("\n")}
+                placeholder="09:00 浅草寺\n14:00 东京国立博物馆"
+                onChange={(event) =>
+                  onChange({
+                    activities: event.target.value
+                      .split("\n")
+                      .map((item) => item.trim())
+                      .filter(Boolean)
+                      .slice(0, 12),
+                  })
+                }
+              />
+            </label>
+            <label className="trip-workspace-textarea">
+              <span>固定约束和备注</span>
+              <textarea
+                value={day.notes}
+                placeholder="例如：18:00前必须回酒店；门票不可改期"
+                onChange={(event) => onChange({ notes: event.target.value.slice(0, 500) })}
+              />
+            </label>
+          </div>
+        </div>
+      </details>
     </article>
   );
 }
@@ -574,45 +579,50 @@ export function TripWorkspace(): ReactElement {
         </div>
       </section>
 
-      <section className="trip-workspace-settings mt-5">
-        <label>
-          <span>旅行名称</span>
-          <input
-            value={workspace.title}
-            maxLength={120}
-            onChange={(event) =>
-              updateWorkspace((current) => ({ ...current, title: event.target.value }))
-            }
-          />
-        </label>
-        <label>
-          <span>同行人群</span>
-          <select
-            value={workspace.partyProfile}
-            onChange={(event) =>
-              updateWorkspace((current) => ({
-                ...current,
-                partyProfile: event.target.value as TripPartyProfile,
-              }))
-            }
-          >
-            {(["adults", "family", "senior"] as const).map((profile) => (
-              <option key={profile} value={profile}>
-                {partyCopy(profile)}
-              </option>
-            ))}
-          </select>
-        </label>
-        <div className="trip-workspace-save-state">
-          <span>保存状态</span>
-          <strong>已自动保存在此设备</strong>
-          <small>
-            {weatherUpdatedAt.length === 0
-              ? "天气尚未更新"
-              : `天气更新于 ${new Date(weatherUpdatedAt).toLocaleString("zh-CN")}${weatherStale ? " · 数据可能过期" : ""}`}
-          </small>
+      <details className="trip-workspace-disclosure mt-5">
+        <summary>行程设置</summary>
+        <div className="trip-workspace-disclosure-body">
+          <section className="trip-workspace-settings">
+            <label>
+              <span>旅行名称</span>
+              <input
+                value={workspace.title}
+                maxLength={120}
+                onChange={(event) =>
+                  updateWorkspace((current) => ({ ...current, title: event.target.value }))
+                }
+              />
+            </label>
+            <label>
+              <span>同行人群</span>
+              <select
+                value={workspace.partyProfile}
+                onChange={(event) =>
+                  updateWorkspace((current) => ({
+                    ...current,
+                    partyProfile: event.target.value as TripPartyProfile,
+                  }))
+                }
+              >
+                {(["adults", "family", "senior"] as const).map((profile) => (
+                  <option key={profile} value={profile}>
+                    {partyCopy(profile)}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <div className="trip-workspace-save-state">
+              <span>保存状态</span>
+              <strong>已自动保存在此设备</strong>
+              <small>
+                {weatherUpdatedAt.length === 0
+                  ? "天气尚未更新"
+                  : `天气更新于 ${new Date(weatherUpdatedAt).toLocaleString("zh-CN")}${weatherStale ? " · 数据可能过期" : ""}`}
+              </small>
+            </div>
+          </section>
         </div>
-      </section>
+      </details>
 
       {message.length > 0 ? (
         <p className="trip-workspace-message mt-4" role="status">
