@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   format:
-    if: github.event.issue.title == 'internal: phase2 final format'
+    if: "${{ github.event.issue.title == 'internal: phase2 final format' }}"
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
