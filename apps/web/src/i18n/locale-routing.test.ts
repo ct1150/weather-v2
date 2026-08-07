@@ -37,6 +37,7 @@ describe("locale routing", () => {
 describe("locale detection", () => {
   it("lets an explicitly supported browser language win over timezone", () => {
     expect(detectPreferredLocale(["zh-TW"], "Asia/Shanghai")).toBe("zh-hant");
+    expect(detectPreferredLocale(["zh-HK"], "Asia/Hong_Kong")).toBe("zh-hant");
     expect(detectPreferredLocale(["zh-CN"], "Asia/Taipei")).toBe("zh-cn");
     expect(detectPreferredLocale(["en-US"], "Asia/Taipei")).toBe("en");
   });
