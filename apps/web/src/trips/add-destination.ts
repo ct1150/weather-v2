@@ -32,10 +32,11 @@ export function addDestinationToWorkspace(
 ): TripWorkspace {
   const now = options.now ?? new Date().toISOString();
   const current =
-    workspace ?? createBlankWorkspace({ now, title: options.blankTitle ?? "My weather-aware trip" });
+    workspace ??
+    createBlankWorkspace({ now, title: options.blankTitle ?? "My weather-aware trip" });
   const targetDate = /^\d{4}-\d{2}-\d{2}$/u.test(destination.date)
     ? destination.date
-    : current.days[0]?.date ?? now.slice(0, 10);
+    : (current.days[0]?.date ?? now.slice(0, 10));
   const destinationDay = (day: TripWorkspaceDay, dayNumber: number): TripWorkspaceDay => ({
     ...day,
     dayNumber,
@@ -47,7 +48,8 @@ export function addDestinationToWorkspace(
     flexible: true,
   });
 
-  const reuseBlank = current.days.length === 1 && current.days[0] !== undefined && isBlankDay(current.days[0]);
+  const reuseBlank =
+    current.days.length === 1 && current.days[0] !== undefined && isBlankDay(current.days[0]);
   const days = reuseBlank
     ? [destinationDay(current.days[0]!, 1)]
     : [

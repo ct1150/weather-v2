@@ -367,6 +367,16 @@ export function TraditionalCountryWeatherExplorer({
     window.history.pushState({}, "", url);
   }
 
+  function cityDetailHref(path: string): string {
+    const selectedDays = referenceDays(cities, selectedIndices);
+    const start = selectedDays[0]?.localDate;
+    if (start === undefined) return path;
+    const end = selectedDays.at(-1)?.localDate ?? start;
+    const params = new URLSearchParams({ start, end });
+    if (customRange === null) params.set("window", activeWindow);
+    return `${path}?${params.toString()}`;
+  }
+
   return (
     <section className="country-weather-console" aria-label={`${country.name}旅行天氣地圖`}>
       <div className="country-console-toolbar">
@@ -564,7 +574,7 @@ export function TraditionalCountryWeatherExplorer({
                 </li>
               ))}
             </ol>
-            <a href={selected.city.path} className="country-detail-link focus-ring">
+            <a href={cityDetailHref(selected.city.path)} className="country-detail-link focus-ring">
               查看 7 天天氣 <span aria-hidden="true">→</span>
             </a>
           </aside>
@@ -604,7 +614,10 @@ export function TraditionalCountryWeatherExplorer({
                   <span className="text-[9px] uppercase tracking-[0.1em] text-muted">評分</span>
                 </span>
               </button>
-              <a href={summary.city.path} className="country-city-forecast-link focus-ring">
+              <a
+                href={cityDetailHref(summary.city.path)}
+                className="country-city-forecast-link focus-ring"
+              >
                 7 天天氣 <span aria-hidden="true">→</span>
               </a>
             </li>

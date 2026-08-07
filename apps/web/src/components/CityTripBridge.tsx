@@ -2,7 +2,11 @@
 
 import { useEffect, useState, type ReactElement } from "react";
 import { addDestinationToWorkspace } from "../trips/add-destination";
-import { TRIP_WORKSPACE_STORAGE_KEY, normalizeWorkspace, type TripWorkspace } from "../trips/workspace";
+import {
+  TRIP_WORKSPACE_STORAGE_KEY,
+  normalizeWorkspace,
+  type TripWorkspace,
+} from "../trips/workspace";
 
 export type CityTripBridgeLocale = "en" | "zh-cn" | "zh-hant";
 
@@ -19,21 +23,24 @@ const COPY = {
   en: {
     eyebrow: "Use this weather in your itinerary",
     generic: "Add this destination to your trip and keep weather decisions attached to the day.",
-    range: (start: string, end: string) => `Selected travel dates: ${start}${start === end ? "" : ` – ${end}`}`,
+    range: (start: string, end: string) =>
+      `Selected travel dates: ${start}${start === end ? "" : ` – ${end}`}`,
     add: "Add to my trip",
     title: "My weather-aware trip",
   },
   "zh-cn": {
     eyebrow: "把天气结论带进行程",
     generic: "把这个目的地加入行程，让当天的天气风险和 Plan B 一起进入工作台。",
-    range: (start: string, end: string) => `已选择旅行日期：${start}${start === end ? "" : ` – ${end}`}`,
+    range: (start: string, end: string) =>
+      `已选择旅行日期：${start}${start === end ? "" : ` – ${end}`}`,
     add: "加入我的行程",
     title: "我的天气行程",
   },
   "zh-hant": {
     eyebrow: "把天氣結論帶進行程",
     generic: "把這個目的地加入行程，讓當天的天氣風險和備用方案一起進入工作台。",
-    range: (start: string, end: string) => `已選擇旅行日期：${start}${start === end ? "" : ` – ${end}`}`,
+    range: (start: string, end: string) =>
+      `已選擇旅行日期：${start}${start === end ? "" : ` – ${end}`}`,
     add: "加入我的行程",
     title: "我的天氣行程",
   },
