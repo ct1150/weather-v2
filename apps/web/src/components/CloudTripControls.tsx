@@ -1,7 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState, type ReactElement } from "react";
-import { tripAuthClient } from "../trips/auth-client";
+import {
+  getTripSession,
+  sendTripMagicLink,
+  signInTripWithGoogle,
+  signOutTrip,
+} from "../trips/auth-client";
 import {
   CloudTripError,
   createCloudTrip,
@@ -121,16 +126,12 @@ export function CloudTripControls({
 
   const refreshIdentity = useCallback(async (): Promise<void> => {
     try {
-      const [healthResult, sessionResult] = await Promise.all([
-        readTripApiHealth(),
-        tripAuthClient.getSession(),
-      ]);
+      const [healthResult, user] = await Promise.all([readTripApiHealth(), getTripSession()]);
       setHealth(healthResult);
-      const user = sessionResult.data?.user;
       setSignedInEmail(user?.email ?? null);
       const localMetadata = readCloudMetadata();
       setMetadata(localMetadata);
-      if (user === undefined || user === null) {
+      if (user === null) {
         setSyncState(localMetadata === null ? "device" : "auth-required");
         return;
       }
@@ -268,23 +269,20 @@ export function CloudTripControls({
   }, [metadata, onRemoteWorkspace]);
 
   const startGoogle = useCallback(async (): Promise<void> => {
-    await tripAuthClient.signIn.social({
-      provider: "google",
-      callbackURL: `${window.location.origin}${workspacePath(locale)}`,
-    });
+    await signInTripWithGoogle(`${window.location.origin}${workspacePath(locale)}`);
   }, [locale]);
 
   const sendEmail = useCallback(async (): Promise<void> => {
     if (email.trim().length === 0) return;
-    const result = await tripAuthClient.signIn.magicLink({
-      email: email.trim(),
-      callbackURL: `${window.location.origin}${workspacePath(locale)}`,
-    });
-    setMessage(result.error ? result.error.message ?? String(result.error.code) : copy.emailSent);
+    const result = await sendTripMagicLink(
+      email.trim(),
+      `${window.location.origin}${workspacePath(locale)}`,
+    );
+    setMessage(result.ok ? copy.emailSent : (result.message ?? "SIGN_IN_FAILED"));
   }, [copy.emailSent, email, locale]);
 
   const signOut = useCallback(async (): Promise<void> => {
-    await tripAuthClient.signOut();
+    await signOutTrip();
     setSignedInEmail(null);
     setSyncState(metadata === null ? "device" : "auth-required");
   }, [metadata]);
