@@ -317,11 +317,16 @@ export async function readCloudTripInvite(token: string): Promise<CloudTripInvit
 
 export async function acceptCloudTripInvite(
   token: string,
-): Promise<{ readonly kind: "accepted"; readonly tripId: string; readonly role: CollaborationRole }> {
-  return api<{ readonly kind: "accepted"; readonly tripId: string; readonly role: CollaborationRole }>(
-    "/api/v1/trip-invites/current/accept",
-    { method: "POST", headers: inviteHeaders(token) },
-  );
+): Promise<{
+  readonly kind: "accepted";
+  readonly tripId: string;
+  readonly role: CollaborationRole;
+}> {
+  return api<{
+    readonly kind: "accepted";
+    readonly tripId: string;
+    readonly role: CollaborationRole;
+  }>("/api/v1/trip-invites/current/accept", { method: "POST", headers: inviteHeaders(token) });
 }
 
 export async function listCloudTripRevisions(

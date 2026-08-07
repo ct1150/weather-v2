@@ -40,13 +40,15 @@ const COPY = {
     emailPlaceholder: "Invited email address",
     email: "Email me a sign-in link",
     emailSent: "Sign-in link sent. Return here after signing in.",
-    mismatch: "This invitation is for a different email address. Sign in with the invited email to accept it.",
+    mismatch:
+      "This invitation is for a different email address. Sign in with the invited email to accept it.",
     accept: "Accept invitation",
     accepting: "Accepting…",
     accepted: "Invitation accepted. Opening the shared trip…",
     missing: "This invitation link is missing or invalid.",
     unavailable: "This invitation has expired, was revoked, or has already been used.",
-    authUnavailable: "Sign-in is not configured right now. You can still ask the owner for a read-only share link.",
+    authUnavailable:
+      "Sign-in is not configured right now. You can still ask the owner for a read-only share link.",
     error: "The invitation could not be loaded right now.",
   },
   "zh-cn": {
@@ -215,9 +217,14 @@ export function TripInviteViewer({ locale }: { readonly locale: CloudTripLocale 
   }
 
   return (
-    <section className="rounded-[2rem] border border-border/80 bg-white p-5 shadow-sm sm:p-7" data-trip-invite="ready">
+    <section
+      className="rounded-[2rem] border border-border/80 bg-white p-5 shadow-sm sm:p-7"
+      data-trip-invite="ready"
+    >
       <p className="eyebrow">{copy.eyebrow}</p>
-      <h1 className="mt-3 text-3xl font-bold tracking-[-0.035em] text-foreground">{invite.tripTitle}</h1>
+      <h1 className="mt-3 text-3xl font-bold tracking-[-0.035em] text-foreground">
+        {invite.tripTitle}
+      </h1>
       <dl className="mt-6 grid gap-3 sm:grid-cols-3">
         <div className="trip-side-card">
           <dt className="text-xs text-muted">{copy.role}</dt>
@@ -243,7 +250,11 @@ export function TripInviteViewer({ locale }: { readonly locale: CloudTripLocale 
           {providerAvailable ? (
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
               {health?.providers.google ? (
-                <button type="button" className="trip-primary-button" onClick={() => void startGoogle()}>
+                <button
+                  type="button"
+                  className="trip-primary-button"
+                  onClick={() => void startGoogle()}
+                >
                   {copy.google}
                 </button>
               ) : null}
@@ -256,7 +267,11 @@ export function TripInviteViewer({ locale }: { readonly locale: CloudTripLocale 
                     className="min-h-11 min-w-0 flex-1 rounded-xl border border-border bg-white px-3 text-sm"
                     onChange={(event) => setEmail(event.target.value)}
                   />
-                  <button type="button" className="trip-secondary-button" onClick={() => void sendEmail()}>
+                  <button
+                    type="button"
+                    className="trip-secondary-button"
+                    onClick={() => void sendEmail()}
+                  >
                     {copy.email}
                   </button>
                 </div>

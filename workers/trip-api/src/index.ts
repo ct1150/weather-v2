@@ -147,10 +147,9 @@ function tripInviteItemFromPath(
 function tripMemberItemFromPath(
   pathname: string,
 ): { readonly tripId: string; readonly userId: string } | null {
-  const match =
-    /^\/api\/v1\/trips\/([a-zA-Z0-9_-]{8,96})\/members\/([a-zA-Z0-9:_-]{2,128})$/u.exec(
-      pathname,
-    );
+  const match = /^\/api\/v1\/trips\/([a-zA-Z0-9_-]{8,96})\/members\/([a-zA-Z0-9:_-]{2,128})$/u.exec(
+    pathname,
+  );
   return match?.[1] && match[2] ? { tripId: match[1], userId: match[2] } : null;
 }
 
@@ -162,8 +161,9 @@ function tripRevisionsIdFromPath(pathname: string): string | null {
 function tripRevisionRestoreFromPath(
   pathname: string,
 ): { readonly tripId: string; readonly version: number } | null {
-  const match =
-    /^\/api\/v1\/trips\/([a-zA-Z0-9_-]{8,96})\/revisions\/(\d+)\/restore$/u.exec(pathname);
+  const match = /^\/api\/v1\/trips\/([a-zA-Z0-9_-]{8,96})\/revisions\/(\d+)\/restore$/u.exec(
+    pathname,
+  );
   if (!match?.[1] || !match[2]) return null;
   const version = Number(match[2]);
   return Number.isInteger(version) && version > 0 ? { tripId: match[1], version } : null;
@@ -222,12 +222,7 @@ async function handleTripInvites(request: Request, env: WorkerEnv): Promise<Resp
   if (route.accept && request.method === "POST") {
     const identity = await resolveIdentity(request, env);
     if (identity === null) return json(request, env, { error: { code: "UNAUTHORIZED" } }, 401);
-    const accepted = await acceptTripInvite(
-      env.DB,
-      route.token,
-      identity.userId,
-      identity.email,
-    );
+    const accepted = await acceptTripInvite(env.DB, route.token, identity.userId, identity.email);
     if (accepted.kind === "email_mismatch") {
       return json(request, env, { error: { code: "INVITE_EMAIL_MISMATCH" } }, 403);
     }

@@ -179,7 +179,10 @@ export function TripCollaboratorManager({
   );
 
   return (
-    <div className="mt-4 rounded-2xl border border-border/80 bg-surface-elevated p-4" data-trip-collaboration="owner-manager">
+    <div
+      className="mt-4 rounded-2xl border border-border/80 bg-surface-elevated p-4"
+      data-trip-collaboration="owner-manager"
+    >
       <h4 className="text-base font-bold text-foreground">{copy.title}</h4>
       <p className="mt-1 text-xs leading-5 text-muted">{copy.roleHint}</p>
 
@@ -221,13 +224,18 @@ export function TripCollaboratorManager({
 
       <div className="mt-5 grid gap-4 lg:grid-cols-2">
         <section>
-          <h5 className="text-xs font-bold uppercase tracking-[0.12em] text-muted">{copy.members}</h5>
+          <h5 className="text-xs font-bold uppercase tracking-[0.12em] text-muted">
+            {copy.members}
+          </h5>
           <div className="mt-2 grid gap-2">
             {data === null || data.members.length === 0 ? (
               <p className="text-sm text-muted">{copy.none}</p>
             ) : (
               data.members.map((member) => (
-                <div key={member.userId} className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-white p-3">
+                <div
+                  key={member.userId}
+                  className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-white p-3"
+                >
                   <div className="min-w-0">
                     <p className="truncate text-sm font-semibold text-foreground">{member.email}</p>
                   </div>
@@ -259,13 +267,18 @@ export function TripCollaboratorManager({
         </section>
 
         <section>
-          <h5 className="text-xs font-bold uppercase tracking-[0.12em] text-muted">{copy.pending}</h5>
+          <h5 className="text-xs font-bold uppercase tracking-[0.12em] text-muted">
+            {copy.pending}
+          </h5>
           <div className="mt-2 grid gap-2">
             {data === null || data.invites.length === 0 ? (
               <p className="text-sm text-muted">{copy.noPending}</p>
             ) : (
               data.invites.map((invite) => (
-                <div key={invite.id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-white p-3">
+                <div
+                  key={invite.id}
+                  className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-white p-3"
+                >
                   <div className="min-w-0">
                     <p className="truncate text-sm font-semibold text-foreground">{invite.email}</p>
                     <p className="mt-1 text-xs text-muted">

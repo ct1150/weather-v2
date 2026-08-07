@@ -6,7 +6,10 @@ const manager = readFileSync(new URL("./TripCollaboratorManager.tsx", import.met
 const inviteViewer = readFileSync(new URL("./TripInviteViewer.tsx", import.meta.url), "utf8");
 const cloudControls = readFileSync(new URL("./CloudTripControls.tsx", import.meta.url), "utf8");
 const cloudClient = readFileSync(new URL("../trips/cloud-sync.ts", import.meta.url), "utf8");
-const englishInvite = readFileSync(new URL("../app/trips/invite/page.tsx", import.meta.url), "utf8");
+const englishInvite = readFileSync(
+  new URL("../app/trips/invite/page.tsx", import.meta.url),
+  "utf8",
+);
 const simplifiedInvite = readFileSync(
   new URL("../app/zh-cn/trips/invite/page.tsx", import.meta.url),
   "utf8",
@@ -20,7 +23,7 @@ describe("Cloud Trip phase 3 UX contract", () => {
   it("surfaces collaboration roles and keeps owner controls owner-only", () => {
     expect(dashboard).toContain("trip.accessRole");
     expect(dashboard).toContain("data-trip-access-role");
-    expect(dashboard).toContain("const isOwner = trip.accessRole === \"owner\"");
+    expect(dashboard).toContain('const isOwner = trip.accessRole === "owner"');
     expect(dashboard).toContain("TripCollaboratorManager");
   });
 

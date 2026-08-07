@@ -400,7 +400,11 @@ export function CloudTripControls({
   const providersAvailable = health?.providers.google === true || health?.providers.email === true;
 
   return (
-    <section className="info-panel mt-5" aria-label={copy.label} data-cloud-access-role={accessRole ?? "local"}>
+    <section
+      className="info-panel mt-5"
+      aria-label={copy.label}
+      data-cloud-access-role={accessRole ?? "local"}
+    >
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="eyebrow">{copy.label}</p>
@@ -412,17 +416,29 @@ export function CloudTripControls({
         </div>
         <div className="flex flex-wrap gap-2">
           {metadata === null ? (
-            <button type="button" className="trip-primary-button" onClick={() => void saveToCloud()}>
+            <button
+              type="button"
+              className="trip-primary-button"
+              onClick={() => void saveToCloud()}
+            >
               {copy.save}
             </button>
           ) : null}
           {metadata !== null && signedInEmail !== null ? (
-            <button type="button" className="trip-secondary-button" onClick={() => void loadHistory()}>
+            <button
+              type="button"
+              className="trip-secondary-button"
+              onClick={() => void loadHistory()}
+            >
               {showHistory ? copy.hideHistory : copy.history}
             </button>
           ) : null}
           {signedInEmail === null ? (
-            <button type="button" className="trip-secondary-button" onClick={() => setShowAuth(true)}>
+            <button
+              type="button"
+              className="trip-secondary-button"
+              onClick={() => setShowAuth(true)}
+            >
               {copy.signIn}
             </button>
           ) : (
@@ -431,7 +447,11 @@ export function CloudTripControls({
             </button>
           )}
           {syncState === "conflict" ? (
-            <button type="button" className="trip-secondary-button" onClick={() => void loadLatest()}>
+            <button
+              type="button"
+              className="trip-secondary-button"
+              onClick={() => void loadLatest()}
+            >
               {copy.latest}
             </button>
           ) : null}
@@ -439,7 +459,10 @@ export function CloudTripControls({
       </div>
 
       {showHistory && metadata !== null ? (
-        <div className="mt-4 rounded-xl border border-border/80 bg-surface-elevated p-4" data-trip-revisions="visible">
+        <div
+          className="mt-4 rounded-xl border border-border/80 bg-surface-elevated p-4"
+          data-trip-revisions="visible"
+        >
           <h3 className="text-sm font-bold text-foreground">{copy.history}</h3>
           <div className="mt-3 grid gap-2">
             {historyLoading ? (
@@ -448,7 +471,10 @@ export function CloudTripControls({
               <p className="text-xs text-muted">{copy.noHistory}</p>
             ) : (
               revisions.map((revision) => (
-                <div key={revision.version} className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-white p-3">
+                <div
+                  key={revision.version}
+                  className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-white p-3"
+                >
                   <div>
                     <p className="text-sm font-semibold text-foreground">
                       {copy.version} {revision.version}
@@ -478,7 +504,11 @@ export function CloudTripControls({
           <p className="text-sm text-foreground">
             {copy.restorePrefix}: <strong>{recent.title}</strong>
           </p>
-          <button type="button" className="trip-secondary-button" onClick={() => void restoreRecent()}>
+          <button
+            type="button"
+            className="trip-secondary-button"
+            onClick={() => void restoreRecent()}
+          >
             {copy.restore}
           </button>
         </div>
@@ -489,7 +519,11 @@ export function CloudTripControls({
           {providersAvailable ? (
             <div className="grid gap-3 sm:grid-cols-2">
               {health?.providers.google ? (
-                <button type="button" className="trip-primary-button" onClick={() => void startGoogle()}>
+                <button
+                  type="button"
+                  className="trip-primary-button"
+                  onClick={() => void startGoogle()}
+                >
                   {copy.google}
                 </button>
               ) : null}
@@ -502,7 +536,11 @@ export function CloudTripControls({
                     className="min-h-11 min-w-0 flex-1 rounded-xl border border-border bg-white px-3 text-sm"
                     onChange={(event) => setEmail(event.target.value)}
                   />
-                  <button type="button" className="trip-secondary-button" onClick={() => void sendEmail()}>
+                  <button
+                    type="button"
+                    className="trip-secondary-button"
+                    onClick={() => void sendEmail()}
+                  >
                     {copy.email}
                   </button>
                 </div>

@@ -483,7 +483,11 @@ export function MyTripsDashboard({ locale }: { readonly locale: CloudTripLocale 
                   ? copy.editor
                   : copy.viewer;
             return (
-              <article key={trip.id} className="trip-process-card" data-trip-access-role={trip.accessRole}>
+              <article
+                key={trip.id}
+                className="trip-process-card"
+                data-trip-access-role={trip.accessRole}
+              >
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                   <div>
                     <span>{displayDateRange(trip, copy.noDates)}</span>

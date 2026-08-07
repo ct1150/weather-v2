@@ -221,7 +221,12 @@ describe("Trip API phase 3 collaboration", () => {
     expect(viewerArchive.status).toBe(404);
 
     const viewerShare = await handleRequest(
-      request(`/api/v1/trips/${trip.id}/share`, { method: "POST" }, "viewer-a", "viewer@example.com"),
+      request(
+        `/api/v1/trips/${trip.id}/share`,
+        { method: "POST" },
+        "viewer-a",
+        "viewer@example.com",
+      ),
       env,
     );
     expect(viewerShare.status).toBe(404);
@@ -266,7 +271,12 @@ describe("Trip API phase 3 collaboration", () => {
       env,
     );
     expect(await json(revisions)).toMatchObject({
-      data: { items: [{ version: 2, operation: "update" }, { version: 1, operation: "create" }] },
+      data: {
+        items: [
+          { version: 2, operation: "update" },
+          { version: 1, operation: "create" },
+        ],
+      },
     });
 
     const restored = await handleRequest(

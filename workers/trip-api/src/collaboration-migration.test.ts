@@ -9,7 +9,12 @@ describe("phase 3 collaboration migration", () => {
       await db.exec(readFileSync(new URL(`../migrations/${name}`, import.meta.url), "utf8"));
     }
 
-    const document = JSON.stringify({ version: 1, id: "legacy", title: "Existing cloud trip", days: [] });
+    const document = JSON.stringify({
+      version: 1,
+      id: "legacy",
+      title: "Existing cloud trip",
+      days: [],
+    });
     await db
       .prepare(
         "INSERT INTO trips (id, owner_user_id, title, status, locale, document_json, version, created_at, updated_at) " +
