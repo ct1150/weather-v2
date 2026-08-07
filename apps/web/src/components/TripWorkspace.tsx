@@ -565,6 +565,8 @@ export function TripWorkspace(): ReactElement {
 
       <CloudTripControls locale="zh-cn" workspace={workspace} onRemoteWorkspace={setWorkspace} />
 
+      <CloudTripControls locale="zh-cn" workspace={workspace} onRemoteWorkspace={setWorkspace} />
+
       <section className="trip-summary-grid mt-5" aria-label="行程工作台摘要">
         <div>
           <span>行程天数</span>
