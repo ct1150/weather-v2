@@ -26,6 +26,8 @@ describe("locale routing", () => {
     expect(isAutoLocalizablePath("/")).toBe(true);
     expect(isAutoLocalizablePath("/jp")).toBe(true);
     expect(isAutoLocalizablePath("/jp/tokyo")).toBe(true);
+    expect(isAutoLocalizablePath("/zh-hant/jp/tokyo")).toBe(true);
+    expect(isAutoLocalizablePath("/zh-cn/kr/seoul")).toBe(true);
     expect(isAutoLocalizablePath("/trips")).toBe(true);
     expect(isAutoLocalizablePath("/trips/new")).toBe(true);
     expect(isAutoLocalizablePath("/trips/workspace")).toBe(true);
