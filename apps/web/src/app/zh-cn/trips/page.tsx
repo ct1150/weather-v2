@@ -46,9 +46,6 @@ export default function TripsPage(): ReactElement {
             <a className="trip-secondary-button" href="/zh-cn/trips/new">
               从 Markdown 导入
             </a>
-            <a className="trip-secondary-button" href="/trips">
-              English product
-            </a>
           </div>
           <p className="mt-4 text-xs leading-5 text-muted">
             当前天气城市覆盖日本、韩国、泰国、越南、新加坡、马来西亚、印度尼西亚、菲律宾和柬埔寨。无需注册，行程默认保存在当前设备。
