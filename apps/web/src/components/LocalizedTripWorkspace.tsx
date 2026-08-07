@@ -94,6 +94,12 @@ const COPY = {
     addDay: "Add another day",
     print: "Print itinerary",
     blank: "Start a blank trip",
+    editDay: "Edit day details",
+    tripSettings: "Trip settings",
+    templatesLabel: "Start from a template",
+    moreActions: "More trip actions",
+    replaceConfirm: "Loading a template will replace your current itinerary. Continue?",
+    blankConfirm: "Starting a blank trip will replace your current itinerary. Continue?",
     blankTitle: "My weather-aware trip",
     blankReady: "A new blank itinerary is ready.",
     templateReady: "Template loaded. Check the dates and refresh weather when ready.",
@@ -164,6 +170,12 @@ const COPY = {
     addDay: "新增一天",
     print: "列印行程",
     blank: "建立空白行程",
+    editDay: "編輯當天安排",
+    tripSettings: "行程設定",
+    templatesLabel: "從範本重新開始",
+    moreActions: "更多行程操作",
+    replaceConfirm: "載入範本會取代目前行程，是否繼續？",
+    blankConfirm: "建立空白行程會取代目前行程，是否繼續？",
     blankTitle: "我的天氣行程",
     blankReady: "新的空白行程已建立。",
     templateReady: "範本已載入，確認日期後即可更新天氣。",
@@ -419,79 +431,84 @@ function DayEditor({
         </button>
       </header>
 
-      <div className="trip-workspace-fields mt-5">
-        <label>
-          <span>{copy.date}</span>
-          <input
-            type="date"
-            value={day.date}
-            onChange={(event) => onChange({ date: event.target.value })}
-          />
-        </label>
-        <label>
-          <span>{copy.forecastCity}</span>
-          <select value={day.cityId} onChange={handleCity}>
-            <option value="">{copy.chooseCity}</option>
-            {cities.map((city) => (
-              <option key={city.cityId} value={city.cityId}>
-                {city.countryName} · {city.cityName}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label>
-          <span>{copy.dayType}</span>
-          <select
-            value={day.theme}
-            onChange={(event) => onChange({ theme: event.target.value as TripDayTheme })}
-          >
-            {(["city", "beach", "outdoor", "indoor"] as const).map((theme) => (
-              <option key={theme} value={theme}>
-                {themeCopy(theme, locale)}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="trip-workspace-checkbox">
-          <input
-            type="checkbox"
-            checked={day.flexible}
-            onChange={(event) => onChange({ flexible: event.target.checked })}
-          />
-          <span>{copy.flexible}</span>
-        </label>
-      </div>
-
-      <div className="mt-5 grid gap-4 lg:grid-cols-2">
-        <label className="trip-workspace-textarea">
-          <span>{copy.activities}</span>
-          <textarea
-            value={day.activities.join("\n")}
-            placeholder={copy.activitiesPlaceholder}
-            onChange={(event) =>
-              onChange({
-                activities: event.target.value
-                  .split("\n")
-                  .map((item) => item.trim())
-                  .filter(Boolean)
-                  .slice(0, 12),
-              })
-            }
-          />
-        </label>
-        <label className="trip-workspace-textarea">
-          <span>{copy.notes}</span>
-          <textarea
-            value={day.notes}
-            placeholder={copy.notesPlaceholder}
-            onChange={(event) => onChange({ notes: event.target.value.slice(0, 500) })}
-          />
-        </label>
-      </div>
-
       <div className="mt-5">
         <DecisionCard locale={locale} day={day} forecast={forecast} decision={decision} />
       </div>
+
+      <details className="trip-day-editor mt-5">
+        <summary>{copy.editDay}</summary>
+        <div className="trip-day-editor-body">
+          <div className="trip-workspace-fields">
+            <label>
+              <span>{copy.date}</span>
+              <input
+                type="date"
+                value={day.date}
+                onChange={(event) => onChange({ date: event.target.value })}
+              />
+            </label>
+            <label>
+              <span>{copy.forecastCity}</span>
+              <select value={day.cityId} onChange={handleCity}>
+                <option value="">{copy.chooseCity}</option>
+                {cities.map((city) => (
+                  <option key={city.cityId} value={city.cityId}>
+                    {city.countryName} · {city.cityName}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              <span>{copy.dayType}</span>
+              <select
+                value={day.theme}
+                onChange={(event) => onChange({ theme: event.target.value as TripDayTheme })}
+              >
+                {(["city", "beach", "outdoor", "indoor"] as const).map((theme) => (
+                  <option key={theme} value={theme}>
+                    {themeCopy(theme, locale)}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="trip-workspace-checkbox">
+              <input
+                type="checkbox"
+                checked={day.flexible}
+                onChange={(event) => onChange({ flexible: event.target.checked })}
+              />
+              <span>{copy.flexible}</span>
+            </label>
+          </div>
+
+          <div className="mt-5 grid gap-4 lg:grid-cols-2">
+            <label className="trip-workspace-textarea">
+              <span>{copy.activities}</span>
+              <textarea
+                value={day.activities.join("\n")}
+                placeholder={copy.activitiesPlaceholder}
+                onChange={(event) =>
+                  onChange({
+                    activities: event.target.value
+                      .split("\n")
+                      .map((item) => item.trim())
+                      .filter(Boolean)
+                      .slice(0, 12),
+                  })
+                }
+              />
+            </label>
+            <label className="trip-workspace-textarea">
+              <span>{copy.notes}</span>
+              <textarea
+                value={day.notes}
+                placeholder={copy.notesPlaceholder}
+                onChange={(event) => onChange({ notes: event.target.value.slice(0, 500) })}
+              />
+            </label>
+          </div>
+        </div>
+      </details>
     </article>
   );
 }
@@ -624,6 +641,7 @@ export function LocalizedTripWorkspace({ locale }: LocalizedTripWorkspaceProps):
 
   const applyTemplate = useCallback(
     (templateId: TripWorkspaceTemplateId): void => {
+      if (!window.confirm(copy.replaceConfirm)) return;
       const next = localizeWorkspace(
         createWorkspaceFromTemplate(templateId, workspaceLocale),
         locale,
@@ -633,16 +651,24 @@ export function LocalizedTripWorkspace({ locale }: LocalizedTripWorkspaceProps):
       window.history.replaceState({}, "", copy.sharePath);
       setMessage(copy.templateReady);
     },
-    [copy.sharePath, copy.templateReady, locale, resetWeather, workspaceLocale],
+    [
+      copy.replaceConfirm,
+      copy.sharePath,
+      copy.templateReady,
+      locale,
+      resetWeather,
+      workspaceLocale,
+    ],
   );
 
   const startBlank = useCallback((): void => {
+    if (!window.confirm(copy.blankConfirm)) return;
     const next = createBlankWorkspace({ title: copy.blankTitle });
     setWorkspace(next);
     resetWeather();
     window.history.replaceState({}, "", copy.sharePath);
     setMessage(copy.blankReady);
-  }, [copy.blankReady, copy.blankTitle, copy.sharePath, resetWeather]);
+  }, [copy.blankConfirm, copy.blankReady, copy.blankTitle, copy.sharePath, resetWeather]);
 
   const refreshWeather = useCallback(async (): Promise<void> => {
     if (workspace === null) return;
@@ -787,58 +813,6 @@ export function LocalizedTripWorkspace({ locale }: LocalizedTripWorkspaceProps):
         </div>
       </section>
 
-      <section className="grid gap-3 rounded-2xl border border-border/80 bg-white p-5 md:grid-cols-3">
-        {templates.map((template) => (
-          <button
-            key={template.id}
-            type="button"
-            className="trip-process-card text-left"
-            onClick={() => applyTemplate(template.id)}
-          >
-            <span>{template.duration}</span>
-            <h3>{template.title}</h3>
-            <p>{template.description}</p>
-            <strong className="mt-4 block text-xs text-primary">{template.route} →</strong>
-          </button>
-        ))}
-      </section>
-
-      <section className="trip-workspace-settings">
-        <label>
-          <span>{copy.tripTitle}</span>
-          <input
-            value={workspace.title}
-            maxLength={120}
-            onChange={(event) =>
-              updateWorkspace((current) => ({ ...current, title: event.target.value }))
-            }
-          />
-        </label>
-        <label>
-          <span>{copy.party}</span>
-          <select
-            value={workspace.partyProfile}
-            onChange={(event) =>
-              updateWorkspace((current) => ({
-                ...current,
-                partyProfile: event.target.value as TripPartyProfile,
-              }))
-            }
-          >
-            {(["adults", "family", "senior"] as const).map((profile) => (
-              <option key={profile} value={profile}>
-                {partyCopy(profile, locale)}
-              </option>
-            ))}
-          </select>
-        </label>
-        <div className="trip-workspace-save-state">
-          <span>{copy.storageLabel}</span>
-          <strong>{copy.storageTitle}</strong>
-          <small>{copy.storageNote}</small>
-        </div>
-      </section>
-
       <section className="trip-summary-grid" aria-label={copy.average}>
         <div>
           <span>{copy.tripLength}</span>
@@ -861,6 +835,68 @@ export function LocalizedTripWorkspace({ locale }: LocalizedTripWorkspaceProps):
           <strong>{summary.highRisk}</strong>
         </div>
       </section>
+
+      <details className="trip-workspace-disclosure">
+        <summary>{copy.tripSettings}</summary>
+        <div className="trip-workspace-disclosure-body">
+          <section className="trip-workspace-settings">
+            <label>
+              <span>{copy.tripTitle}</span>
+              <input
+                value={workspace.title}
+                maxLength={120}
+                onChange={(event) =>
+                  updateWorkspace((current) => ({ ...current, title: event.target.value }))
+                }
+              />
+            </label>
+            <label>
+              <span>{copy.party}</span>
+              <select
+                value={workspace.partyProfile}
+                onChange={(event) =>
+                  updateWorkspace((current) => ({
+                    ...current,
+                    partyProfile: event.target.value as TripPartyProfile,
+                  }))
+                }
+              >
+                {(["adults", "family", "senior"] as const).map((profile) => (
+                  <option key={profile} value={profile}>
+                    {partyCopy(profile, locale)}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <div className="trip-workspace-save-state">
+              <span>{copy.storageLabel}</span>
+              <strong>{copy.storageTitle}</strong>
+              <small>{copy.storageNote}</small>
+            </div>
+          </section>
+        </div>
+      </details>
+
+      <details className="trip-workspace-disclosure">
+        <summary>{copy.templatesLabel}</summary>
+        <div className="trip-workspace-disclosure-body">
+          <section className="grid gap-3 md:grid-cols-3">
+            {templates.map((template) => (
+              <button
+                key={template.id}
+                type="button"
+                className="trip-process-card text-left"
+                onClick={() => applyTemplate(template.id)}
+              >
+                <span>{template.duration}</span>
+                <h3>{template.title}</h3>
+                <p>{template.description}</p>
+                <strong className="mt-4 block text-xs text-primary">{template.route} →</strong>
+              </button>
+            ))}
+          </section>
+        </div>
+      </details>
 
       {weatherUpdatedAt.length > 0 ? (
         <p className="text-xs text-muted">
@@ -899,16 +935,21 @@ export function LocalizedTripWorkspace({ locale }: LocalizedTripWorkspaceProps):
         })}
       </div>
 
-      <div className="flex flex-wrap gap-3">
+      <div className="flex flex-wrap items-start gap-3">
         <button type="button" className="trip-primary-button" onClick={addDay}>
           {copy.addDay}
         </button>
-        <button type="button" className="trip-secondary-button" onClick={() => window.print()}>
-          {copy.print}
-        </button>
-        <button type="button" className="trip-secondary-button" onClick={startBlank}>
-          {copy.blank}
-        </button>
+        <details className="trip-workspace-disclosure min-w-56">
+          <summary>{copy.moreActions}</summary>
+          <div className="trip-workspace-disclosure-body flex flex-wrap gap-3">
+            <button type="button" className="trip-secondary-button" onClick={() => window.print()}>
+              {copy.print}
+            </button>
+            <button type="button" className="trip-secondary-button" onClick={startBlank}>
+              {copy.blank}
+            </button>
+          </div>
+        </details>
       </div>
     </div>
   );
