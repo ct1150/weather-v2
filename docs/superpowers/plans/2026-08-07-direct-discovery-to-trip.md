@@ -1,7 +1,7 @@
 # Direct Discovery-to-Trip UX Increment
 
 Date: 2026-08-07
-Status: Validation
+Status: Production verification
 
 ## Problem
 
@@ -21,7 +21,7 @@ Make weather discovery results directly actionable:
 - Adding a selected date range creates itinerary days for the full range, not only the first date.
 - Preserve existing itinerary data and avoid duplicate `same city + same date` days.
 - Do not force navigation after adding; show an `Added` state plus `View trip` so users can continue comparing or add another destination.
-- Keep the existing city-detail bridge as a fallback/secondary entry point.
+- Keep the existing city-detail bridge as a fallback/secondary entry point, with the same full-range semantics.
 
 ## Acceptance criteria
 
@@ -31,3 +31,12 @@ Make weather discovery results directly actionable:
 - Existing itinerary content is not replaced.
 - EN / zh-CN / zh-Hant country weather routes expose the direct action.
 - CI, production deploy and product smoke pass.
+
+## Verification progress
+
+- Implementation merge commit: `2a035895326682830f11b8699667fde8cdcaf463`.
+- Full PR Deploy validation run: `31154693667` — success.
+- Initial production deploy run: `31154970804` — success.
+- Initial localized smoke exposed only a raw-HTML Unicode serialization assertion issue; the product code and English direct action were deployed successfully.
+- Localized smoke assertions now verify the unique localized workspace paths instead of raw Chinese client-component text.
+- Final production deploy + corrected product smoke: running from this verification commit.
