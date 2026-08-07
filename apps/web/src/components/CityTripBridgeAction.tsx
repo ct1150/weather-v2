@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, type ReactElement } from "react";
-import { addDestinationToWorkspace } from "../trips/add-destination";
+import { addDestinationRangeToWorkspace } from "../trips/add-destination";
 import {
   TRIP_WORKSPACE_STORAGE_KEY,
   normalizeWorkspace,
@@ -21,6 +21,21 @@ interface CityTripBridgeActionProps {
 
 function validDate(value: string | null): value is string {
   return value !== null && /^\d{4}-\d{2}-\d{2}$/u.test(value);
+}
+
+function rangeDates(start: string, end: string): string[] {
+  const first = new Date(`${start}T00:00:00Z`);
+  const last = new Date(`${end}T00:00:00Z`);
+  if (Number.isNaN(first.getTime()) || Number.isNaN(last.getTime()) || last < first) return [start];
+  const dates: string[] = [];
+  for (
+    const cursor = new Date(first);
+    cursor <= last && dates.length < 16;
+    cursor.setUTCDate(cursor.getUTCDate() + 1)
+  ) {
+    dates.push(cursor.toISOString().slice(0, 10));
+  }
+  return dates;
 }
 
 function readStoredWorkspace(): TripWorkspace | null {
@@ -53,11 +68,13 @@ export function CityTripBridgeAction({
   }, []);
 
   const addToTrip = (): void => {
-    const existing = readStoredWorkspace();
-    const date = range?.start ?? defaultDate;
-    const next = addDestinationToWorkspace(
-      existing,
-      { cityId, cityName, countryName, date },
+    const start = range?.start ?? defaultDate;
+    const end = range?.end ?? start;
+    const dates = validDate(start) ? rangeDates(start, validDate(end) ? end : start) : [];
+    const next = addDestinationRangeToWorkspace(
+      readStoredWorkspace(),
+      { cityId, cityName, countryName },
+      dates,
       { blankTitle },
     );
     window.localStorage.setItem(TRIP_WORKSPACE_STORAGE_KEY, JSON.stringify(next));

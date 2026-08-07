@@ -12,6 +12,7 @@ import type {
 import type { Window } from "../api/v1/schemas";
 import { toTraditionalText } from "../trips/traditional";
 import { windowIndicesForDates } from "../weather/window-selection";
+import { DiscoveryTripAction } from "./DiscoveryTripAction";
 import { MAPLIBRE_STYLE_URL } from "./ExplorerMap";
 
 import "maplibre-gl/dist/maplibre-gl.css";
@@ -574,6 +575,15 @@ export function TraditionalCountryWeatherExplorer({
                 </li>
               ))}
             </ol>
+            <DiscoveryTripAction
+              locale="zh-hant"
+              cityId={selected.city.cityId}
+              cityName={selected.city.cityName}
+              countryName={selected.city.countryName}
+              dates={selected.days.map((day) => day.localDate)}
+              workspacePath="/zh-hant/trips/workspace"
+              variant="inspector"
+            />
             <a href={cityDetailHref(selected.city.path)} className="country-detail-link focus-ring">
               查看 7 天天氣 <span aria-hidden="true">→</span>
             </a>
@@ -614,6 +624,14 @@ export function TraditionalCountryWeatherExplorer({
                   <span className="text-[9px] uppercase tracking-[0.1em] text-muted">評分</span>
                 </span>
               </button>
+              <DiscoveryTripAction
+                locale="zh-hant"
+                cityId={summary.city.cityId}
+                cityName={summary.city.cityName}
+                countryName={summary.city.countryName}
+                dates={summary.days.map((day) => day.localDate)}
+                workspacePath="/zh-hant/trips/workspace"
+              />
               <a
                 href={cityDetailHref(summary.city.path)}
                 className="country-city-forecast-link focus-ring"

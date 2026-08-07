@@ -11,6 +11,7 @@ import type {
 } from "../app/view-models";
 import type { Window } from "../api/v1/schemas";
 import { windowIndicesForDates } from "../weather/window-selection";
+import { DiscoveryTripAction } from "./DiscoveryTripAction";
 import { MAPLIBRE_STYLE_URL } from "./ExplorerMap";
 
 import "maplibre-gl/dist/maplibre-gl.css";
@@ -87,7 +88,7 @@ const COPY = {
     temperature: "气温",
     dailyWeather: "所选日期的逐日天气",
     peakRain: "最高降雨概率",
-    detail: "查看英文7天天气",
+    detail: "查看7天天气",
     compare: "不用打开详情页，直接比较",
     allCities: (country: string) => `${country}全部旅游城市`,
     sorted: "按少雨天数、预计降雨量和评分排序",
@@ -752,6 +753,15 @@ export function CountryWeatherExplorer({
                 </li>
               ))}
             </ol>
+            <DiscoveryTripAction
+              locale={locale}
+              cityId={selected.city.cityId}
+              cityName={selected.city.cityName}
+              countryName={selected.city.countryName}
+              dates={selected.days.map((day) => day.localDate)}
+              workspacePath={locale === "zh-cn" ? "/zh-cn/trips/workspace" : "/trips/workspace"}
+              variant="inspector"
+            />
             <a href={cityDetailHref(selected.city.path)} className="country-detail-link focus-ring">
               {copy.detail} <span aria-hidden="true">→</span>
             </a>
@@ -796,6 +806,14 @@ export function CountryWeatherExplorer({
                   </span>
                 </span>
               </button>
+              <DiscoveryTripAction
+                locale={locale}
+                cityId={summary.city.cityId}
+                cityName={summary.city.cityName}
+                countryName={summary.city.countryName}
+                dates={summary.days.map((day) => day.localDate)}
+                workspacePath={locale === "zh-cn" ? "/zh-cn/trips/workspace" : "/trips/workspace"}
+              />
               <a
                 href={cityDetailHref(summary.city.path)}
                 className="country-city-forecast-link focus-ring"
