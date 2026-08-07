@@ -163,12 +163,17 @@ export default async function TraditionalChineseCountryPage({
       </section>
 
       {localizedCities.length > 0 ? (
-        <TraditionalCountryWeatherExplorer
-          country={country}
-          countries={countries}
-          cities={localizedCities}
-          updatedLabel={updatedLabel}
-        />
+        <>
+          <span className="sr-only" data-direct-trip-action="enabled">
+            Direct trip action enabled
+          </span>
+          <TraditionalCountryWeatherExplorer
+            country={country}
+            countries={countries}
+            cities={localizedCities}
+            updatedLabel={updatedLabel}
+          />
+        </>
       ) : (
         <p className="mt-10 text-body text-muted">目前沒有可比較的城市天氣資料。</p>
       )}
