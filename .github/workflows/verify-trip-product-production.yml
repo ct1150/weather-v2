@@ -81,10 +81,34 @@ jobs:
             "正在開啟你的行程工作台"
 
           fetch_and_match \
+            "Traditional weather radar" \
+            "https://868656.xyz/zh-hant" \
+            /tmp/weather-hant.html \
+            "亞洲旅行天氣雷達" "先看天氣，再決定去哪個城市" "日本"
+
+          fetch_and_match \
+            "Traditional country weather route" \
+            "https://868656.xyz/zh-hant/jp" \
+            /tmp/weather-hant-country.html \
+            "國家旅行天氣地圖" "地圖上比較全部旅遊城市" "日本"
+
+          fetch_and_match \
+            "Traditional city weather route" \
+            "https://868656.xyz/zh-hant/jp/tokyo" \
+            /tmp/weather-hant-city.html \
+            "目的地天氣" "7 天旅行天氣" "東京"
+
+          fetch_and_match \
             "Simplified legacy route" \
             "https://868656.xyz/zh-cn/trips" \
             /tmp/trips-cn.html \
             "海外中文用户" "日韩东南亚"
+
+          fetch_and_match \
+            "Simplified city weather route" \
+            "https://868656.xyz/zh-cn/jp/tokyo" \
+            /tmp/weather-cn-city.html \
+            "目的地天气" "7 天旅行天气" "东京"
 
           fetch_and_match \
             "Trip cities API" \
