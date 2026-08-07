@@ -121,13 +121,16 @@ async function handleTrips(request: Request, env: WorkerEnv): Promise<Response> 
   if (url.pathname === "/api/v1/trips") {
     if (request.method === "GET") {
       const limit = Number(url.searchParams.get("limit") ?? "50");
-      const status = url.searchParams.get("status");
-      const items = await listTrips(env.DB, userId, Number.isFinite(limit) ? limit : 50);
-      const filtered =
-        status === "active" || status === "archived"
-          ? items.filter((item) => item.status === status)
-          : items;
-      return json(request, env, { data: { items: filtered } });
+      const requestedStatus = url.searchParams.get("status");
+      const status =
+        requestedStatus === "active" || requestedStatus === "archived" ? requestedStatus : "all";
+      const items = await listTrips(
+        env.DB,
+        userId,
+        Number.isFinite(limit) ? limit : 50,
+        status,
+      );
+      return json(request, env, { data: { items } });
     }
     if (request.method === "POST") {
       const body = await readJsonBody(request);
