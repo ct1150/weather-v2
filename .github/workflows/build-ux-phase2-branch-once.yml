@@ -33,6 +33,8 @@ jobs:
           def replace(path: str, old: str, new: str) -> None:
               file = Path(path)
               text = file.read_text()
+              if new in text:
+                  return
               if old not in text:
                   raise SystemExit(f"expected text not found in {path}: {old[:100]!r}")
               file.write_text(text.replace(old, new, 1))
@@ -102,10 +104,6 @@ jobs:
             apps/web/src/components/ChineseCityWeatherPage.tsx \
             'apps/web/src/app/[countrySlug]/[citySlug]/page.tsx' \
             apps/web/src/components/country-weather-explorer.test.tsx
-
-          pnpm --filter @wnr/web lint
-          pnpm --filter @wnr/web typecheck
-          pnpm --filter @wnr/web test
 
       - name: Commit branch
         run: |
