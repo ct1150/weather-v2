@@ -60,7 +60,13 @@ jobs:
             "English landing" \
             "https://868656.xyz/trips" \
             /tmp/trips.html \
-            "Know what to keep" Tokyo Bangkok Seoul "Import a Markdown itinerary"
+            "Know what to keep" Tokyo Bangkok Seoul "Import existing itinerary"
+
+          fetch_and_match \
+            "English import route" \
+            "https://868656.xyz/trips/new" \
+            /tmp/trips-new.html \
+            "Turn your existing plan into a weather-aware workspace" "Paste the itinerary you already have"
 
           fetch_and_match \
             "English workspace route" \
@@ -72,7 +78,13 @@ jobs:
             "Traditional landing" \
             "https://868656.xyz/zh-hant/trips" \
             /tmp/trips-hant.html \
-            "天氣變化時" "東京" "曼谷" "首爾"
+            "天氣變化時" "東京" "曼谷" "首爾" "匯入現有行程"
+
+          fetch_and_match \
+            "Traditional import route" \
+            "https://868656.xyz/zh-hant/trips/new" \
+            /tmp/trips-new-hant.html \
+            "把你現有的計畫直接變成天氣行程工作台" "貼上已經整理好的旅行行程"
 
           fetch_and_match \
             "Traditional workspace route" \
@@ -99,10 +111,16 @@ jobs:
             "目的地天氣" "7 天旅行天氣" "東京" "把天氣結論帶進行程"
 
           fetch_and_match \
-            "Simplified legacy route" \
+            "Simplified landing" \
             "https://868656.xyz/zh-cn/trips" \
             /tmp/trips-cn.html \
             "天气变化时" "东京" "曼谷" "首尔" "导入现有行程"
+
+          fetch_and_match \
+            "Simplified import route" \
+            "https://868656.xyz/zh-cn/trips/new" \
+            /tmp/trips-new-cn.html \
+            "把你现有的计划直接变成天气行程工作台" "粘贴已经整理好的旅行行程"
 
           fetch_and_match \
             "Simplified city weather route" \
