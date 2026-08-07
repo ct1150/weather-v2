@@ -1,25 +1,44 @@
 import type { Metadata } from "next";
 import type { ReactElement } from "react";
 import { JsonLd } from "../../../components/JsonLd";
-import { qingganFamilyTrip } from "../../../trips/qinggan-family-2026";
 import { buildAlternates, localeUrl } from "../../seo";
 
 export const metadata: Metadata = {
-  title: { absolute: "日韩东南亚天气行程助手 - Where Not Rain" },
-  description:
-    "面向港澳台、新加坡、马来西亚及海外中文用户，为日韩东南亚行程生成逐日天气风险、Plan B、分享和导出。",
-  alternates: buildAlternates("/trips", "zh-cn", ["en", "zh-cn"]),
+  title: "日本、韩国和东南亚天气行程规划",
+  description: "建立多城市自由行，结合每日天气和固定订单，知道哪些行程照常、提前、缩短或替换。",
+  alternates: buildAlternates("/trips", "zh-cn", ["en", "zh-hant", "zh-cn"]),
   robots: { index: true, follow: true },
 };
 
-export default function TripsPage(): ReactElement {
+const templates = [
+  {
+    id: "japan-family",
+    label: "7天亲子旅行",
+    title: "东京 → 京都 → 大阪",
+    description: "把寺院、城市散步、定时门票和乐园日，搭配可靠的室内备用方案。",
+  },
+  {
+    id: "thailand-islands",
+    label: "6天城市与海岛旅行",
+    title: "曼谷 → 普吉岛",
+    description: "根据降雨和风力判断保留海滩、调整出海日，或切换城市行程。",
+  },
+  {
+    id: "korea-city",
+    label: "5天城市假期",
+    title: "首尔 → 釜山",
+    description: "在不改动固定列车的前提下，重新安排宫殿、观景台、市场和海滩。",
+  },
+] as const;
+
+export default function SimplifiedTripsLanding(): ReactElement {
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "SoftwareApplication",
-    name: "Where Not Rain 日韩东南亚天气行程助手",
+    name: "Where Not Rain 天气行程助手",
     applicationCategory: "TravelApplication",
     operatingSystem: "Web",
-    description: "面向海外中文旅行者，根据逐日天气、同行人群和行程类型生成风险与Plan B。",
+    description: "为日本、韩国和东南亚自由行提供天气驱动的每日行程决策。",
     url: localeUrl("zh-cn", "/trips"),
     inLanguage: "zh-CN",
   };
@@ -29,35 +48,34 @@ export default function TripsPage(): ReactElement {
       <JsonLd schema={jsonLd} />
       <section className="trip-hero">
         <div className="relative z-10 max-w-4xl">
-          <p className="eyebrow">面向海外中文用户的 Weather-aware Trip Planner</p>
+          <p className="eyebrow">亚洲旅行的天气行程助手</p>
           <h1 className="mt-5 text-4xl font-bold tracking-[-0.05em] text-foreground sm:text-6xl">
-            天气变化时，
+            天气变化时，知道哪些照常、
             <br className="hidden sm:block" />
-            告诉你哪些照常、提前或替换
+            哪些提前、缩短或替换
           </h1>
           <p className="mt-5 max-w-2xl text-base leading-7 text-muted sm:text-lg">
-            为前往日本、韩国和东南亚的多城市自由行绑定逐日天气，结合海岛、户外、室内、老人儿童同行等条件，生成适宜度、风险原因和可执行Plan
-            B。适合港澳台、新加坡、马来西亚及其他地区的海外中文用户。
+            为日本、韩国和东南亚多城市自由行加入天气决策。固定列车和定时门票受到保护，可调整的户外行程则会得到具体备用方案。
           </p>
           <div className="mt-7 flex flex-wrap gap-3">
             <a className="trip-primary-button" href="/zh-cn/trips/workspace">
-              创建中文天气行程
+              建立我的行程
             </a>
             <a className="trip-secondary-button" href="/zh-cn/trips/new">
-              从 Markdown 导入
+              导入现有行程
             </a>
           </div>
-          <p className="mt-4 text-xs leading-5 text-muted">
-            当前天气城市覆盖日本、韩国、泰国、越南、新加坡、马来西亚、印度尼西亚、菲律宾和柬埔寨。无需注册，行程默认保存在当前设备。
+          <p className="mt-4 max-w-2xl text-xs leading-5 text-muted">
+            目前涵盖日本、韩国、泰国、越南、新加坡、马来西亚、印度尼西亚、菲律宾和柬埔寨。无需注册，行程默认保存在当前设备。
           </p>
         </div>
       </section>
 
-      <section className="mt-12 grid gap-4 md:grid-cols-3" aria-label="用户可完成的旅行任务">
+      <section className="mt-12 grid gap-4 md:grid-cols-3" aria-label="产品使用流程">
         {[
-          ["01", "建行程", "逐日选择城市、日期、活动类型和固定约束，或直接导入Markdown。"],
-          ["02", "看决策", "根据降雨、风、高温、紫外线和同行人群生成每天的风险与Plan B。"],
-          ["03", "带着走", "自动保存在当前设备，可复制分享链接，也可导出Markdown和打印。"],
+          ["01", "建立或导入", "加入每天的城市、行程类型、活动和不可变更的订单约束。"],
+          ["02", "更新行程天气", "查看降雨、风力、高温以及亲子或老人同行的敏感风险。"],
+          ["03", "带着备选方案出发", "分享、导出，并在当前设备保留最近一次天气结果。"],
         ].map(([number, title, description]) => (
           <article key={number} className="trip-process-card">
             <span>{number}</span>
@@ -67,60 +85,47 @@ export default function TripsPage(): ReactElement {
         ))}
       </section>
 
+      <section className="mt-12" aria-labelledby="simplified-trip-templates">
+        <p className="eyebrow">从真实亚洲行程开始</p>
+        <h2 id="simplified-trip-templates" className="section-title mt-3">
+          用可编辑示例展示真实天气决策
+        </h2>
+        <div className="mt-6 grid gap-4 lg:grid-cols-3">
+          {templates.map((template) => (
+            <article key={template.id} className="trip-process-card flex flex-col">
+              <span>{template.label}</span>
+              <h3>{template.title}</h3>
+              <p className="flex-1">{template.description}</p>
+              <a
+                className="mt-5 text-sm font-bold text-primary"
+                href={`/zh-cn/trips/workspace?template=${template.id}`}
+              >
+                打开可编辑示例 →
+              </a>
+            </article>
+          ))}
+        </div>
+      </section>
+
       <section className="mt-12 grid gap-5 rounded-[2rem] border border-border/80 bg-white p-6 sm:p-8 lg:grid-cols-2">
         <div>
-          <p className="eyebrow">目标市场</p>
-          <h2 className="section-title mt-3">全球基础设施，亚洲目的地，多语言服务</h2>
+          <p className="eyebrow">真正会改变行程的天气时刻</p>
+          <h2 className="section-title mt-3">比一个下雨图标更有用</h2>
           <p className="mt-4 text-sm leading-7 text-muted">
-            产品以英文作为默认主语言，简体中文作为重要本地化版本。中国大陆市场不作为当前直接C端获客重点，后续优先通过具备本地资质的旅行社、定制游机构或OTA合作进入。
+            60%降雨对博物馆、出海、海滩和定时观景台代表完全不同的影响。系统会结合活动类型、当天是否可调整，以及是否有儿童或老人同行，给出不同判断。
           </p>
         </div>
         <ul className="grid gap-3 text-sm leading-6 text-body">
-          <li className="trip-side-card">日韩东南亚家庭、多城市、海岛和户外自由行。</li>
-          <li className="trip-side-card">港澳台、新马及欧美澳洲的海外中文旅行者。</li>
-          <li className="trip-side-card">海外旅行顾问、小型旅行社和地接机构。</li>
-          <li className="trip-side-card">中国大陆通过B2B2C与白标合作进入。</li>
+          <li className="trip-side-card">保留固定航班、列车和定时门票。</li>
+          <li className="trip-side-card">把海滩、船班和观景台视为风力敏感活动。</li>
+          <li className="trip-side-card">亲子或老人同行时，提高高温与低温警戒。</li>
+          <li className="trip-side-card">行程默认保存在本机，可用分享链接创建可编辑副本。</li>
         </ul>
       </section>
 
-      <section className="mt-12" aria-labelledby="trip-template-heading">
-        <p className="eyebrow">复杂天气决策能力展示</p>
-        <h2 id="trip-template-heading" className="section-title mt-3">
-          青甘家庭环线保留为高复杂度案例
-        </h2>
-        <p className="mt-3 max-w-3xl text-sm leading-6 text-muted">
-          该案例同时包含高温、盐湖风力、沙漠、山区、长途驾驶、老人儿童和固定高铁约束，用于展示决策引擎能力；它不再代表产品首要目标市场。
-        </p>
-        <article className="trip-list-card mt-6">
-          <div>
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="trip-risk-badge trip-risk-medium">天气动态优化</span>
-              <span className="trip-constraint-badge">9天8晚</span>
-              <span className="trip-constraint-badge">家庭旅行</span>
-            </div>
-            <h3 className="mt-4 text-2xl font-bold tracking-[-0.035em] text-foreground">
-              {qingganFamilyTrip.title}
-            </h3>
-            <p className="mt-2 text-sm leading-6 text-muted">{qingganFamilyTrip.subtitle}</p>
-            <div className="trip-list-route mt-5">
-              {qingganFamilyTrip.days.map((day) => (
-                <span key={day.dayNumber}>
-                  D{day.dayNumber} {day.route.at(-1)}
-                </span>
-              ))}
-            </div>
-          </div>
-          <div className="trip-list-actions">
-            <strong>8/8—8/16</strong>
-            <span>{qingganFamilyTrip.transportSummary}</span>
-            <a href="/zh-cn/trips/qinggan-family-2026">打开天气决策看板 →</a>
-          </div>
-        </article>
-      </section>
-
       <footer className="page-footer">
-        <span>Where Not Rain · 日韩东南亚天气行程助手</span>
-        <span>Global infrastructure · Asian destinations · multilingual localization</span>
+        <span>Where Not Rain · 天气行程执行助手</span>
+        <span>亚洲目的地 · 多语言服务 · 本机优先隐私</span>
       </footer>
     </main>
   );
