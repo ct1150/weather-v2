@@ -1,12 +1,12 @@
 # Where Not Rain — End-to-End UX Execution Plan
 
 Date: 2026-08-07
-Status: Active
+Status: Complete
 Owner: Product / UX / Web
 
 ## Goal
 
-Turn the current Weather Radar and Trip Planner from two adjacent feature sets into one coherent travel-weather decision journey:
+Turn Weather Radar and Trip Planner from two adjacent feature sets into one coherent travel-weather decision journey:
 
 1. Discover where / when weather is suitable.
 2. Inspect a country and city without losing the selected date context.
@@ -14,119 +14,126 @@ Turn the current Weather Radar and Trip Planner from two adjacent feature sets i
 4. Import an existing itinerary with as little manual cleanup as possible.
 5. Use the workspace in a decision-first mode, with editing available only when needed.
 
-Every phase must be independently releasable and must pass the existing production deployment and smoke gates before the next phase is considered complete.
+All four phases were released independently through the existing Cloudflare production workflow and closed only after production verification.
 
 ---
 
 ## Phase 1 — Navigation, trust and landing-page consistency
 
 Priority: P0
-Implementation: complete
-Release: validating production
+Status: Complete
+Production run: `31146771831`
 
-### Changes
+### Delivered
 
-- Make the Where Not Rain logo return to the true localized Weather Radar homepage (`/`, `/zh-cn`, `/zh-hant`).
-- Add active-state semantics/styles for Weather Radar and Trip Planner navigation.
-- Replace fixed forecast array indexes for `weekend` and `next_week` with calendar-aware date-window selection derived from actual forecast dates.
-- Apply the same window logic to homepage radar and country weather explorers.
-- Keep exact dates visible for ambiguous windows.
-- Align the Simplified Chinese `/zh-cn/trips` landing information architecture with the English and Traditional Chinese product landing pages.
-- Remove internal go-to-market / B2B strategy copy from the consumer page.
+- Where Not Rain logo now returns to the true localized Weather Radar homepage (`/`, `/zh-cn`, `/zh-hant`).
+- Weather Radar and Trip Planner expose active navigation state.
+- Fixed array offsets for `weekend` and `next_week` were replaced by calendar-aware date-window selection from actual forecast dates.
+- Homepage Radar and country weather explorers use the same window semantics.
+- Exact dates remain visible for ambiguous windows.
+- Simplified Chinese `/zh-cn/trips` now follows the same consumer product structure as English and Traditional Chinese.
+- Internal go-to-market / B2B strategy copy was removed from the consumer page.
 
-### Acceptance criteria
+### Verification
 
-- Clicking the logo from any public page returns to the localized Weather Radar root.
-- The current top-level product area is visually and semantically active in the header.
-- On a Friday, `This weekend / 本周末` resolves to the immediately following Saturday and Sunday, not fixed offsets 5 and 6.
-- `Next week / 下周` is based on the next calendar Monday and uses only forecast days that actually exist.
-- English, Simplified Chinese and Traditional Chinese trip landing pages expose the same product structure and primary tasks.
-- Deploy + product smoke pass.
+- Friday weekend tests resolve to the immediately following Saturday and Sunday.
+- Format, lint, typecheck, unit/integration tests, docs gate, static export, Workers and production deployment passed.
+- Production smoke passed before Phase 2 was released.
 
 ---
 
 ## Phase 2 — Connect Weather Radar to Trip Planner
 
 Priority: P1
+Status: Complete
+Production run: `31148100356`
 
-### Changes
+### Delivered
 
-- Preserve selected date/window context from country comparison into city detail URLs.
-- Read that context on city pages and visually emphasize the selected travel dates.
-- Add a localized `Add to my trip / 加入我的行程 / 加入我的行程` action from city weather detail.
-- Pre-populate a workspace day with selected city and selected date when entering from Weather Radar.
-- Preserve locale and existing workspace data when adding a destination.
+- Country comparison preserves selected travel dates/window in city-detail URLs.
+- City detail surfaces the selected date context when entered from Weather Radar.
+- English, Simplified Chinese and Traditional Chinese city pages now bridge into Trip Planner.
+- `Add to my trip / 加入我的行程` safely reuses a pristine blank day or appends to an existing itinerary.
+- Existing itinerary title, party profile, days and activities are preserved.
+- Locale is preserved into the destination workspace.
+- The bridge includes server-visible explanatory copy plus a client action for local-storage mutation/navigation.
 
-### Acceptance criteria
+### Verification
 
-- Country -> city navigation retains the selected date range/window in the URL.
-- City pages visibly explain which dates are being evaluated.
-- `Add to trip` creates or appends a workspace day without destroying an existing itinerary.
-- The user lands on the correct localized workspace.
-- Deploy + product smoke pass for EN / zh-CN / zh-Hant routes.
+- PR Deploy CI was fully green before merge.
+- Production smoke verified English, Simplified Chinese and Traditional Chinese city-to-trip surfaces.
+- Existing Radar, city, workspace and API smoke checks remained green.
 
 ---
 
-## Phase 3 — Reduce Markdown-import manual work
+## Phase 3 — Reduce itinerary-import manual work
 
 Priority: P1
+Status: Complete
+Production run: `31148642476`
 
-### Changes
+### Delivered
 
-- Change the import affordance language from implementation terminology to user terminology (`Import existing itinerary`), keeping Markdown as a supported-format hint.
-- Start with an empty editor instead of pre-filling a sample itinerary.
-- Provide a distinct `Try sample / 使用示例 / 試用範例` action.
-- Infer forecast city from imported headings / route text when an unambiguous supported city is present.
-- Infer day type from recognizable activity keywords (beach/island, outdoor, indoor, otherwise city).
-- Preserve manual override for every inferred field.
-- Surface only unresolved days as needing user attention.
+- User-facing CTA changed from implementation terminology to `Import existing itinerary / 导入现有行程 / 匯入現有行程`.
+- Import editor now starts empty instead of pre-filling sample content.
+- Explicit `Try sample / 使用示例 / 試用範例` action is available.
+- Supported cities are inferred from headings/route text only when exactly one city matches.
+- Obvious beach/island, indoor and outdoor day types are inferred from itinerary content.
+- Ambiguous multi-city days and unsupported cities remain unresolved instead of being silently guessed.
+- Preview surfaces inferred city/day type and identifies only days needing confirmation.
+- Existing Markdown parser and manual workspace editing remain available.
 
-### Acceptance criteria
+### Verification
 
-- A normal Tokyo / Kyoto / Osaka style itinerary imports with cities pre-selected when names are recognizable.
-- Obvious beach/island days are inferred as beach; museum-heavy days can be inferred as indoor.
-- Ambiguous content remains unassigned rather than being guessed silently.
-- Existing Markdown parsing remains backward compatible.
-- Deploy + product smoke pass.
+- Tests cover Chinese and English city inference, beach/indoor/outdoor inference, ambiguous multi-city input and unsupported destinations.
+- PR Deploy CI was fully green before merge.
+- Production smoke verified EN / zh-CN / zh-Hant landing and import routes, plus all prior product checks.
 
 ---
 
 ## Phase 4 — Decision-first workspace and destructive-action protection
 
 Priority: P2
+Status: Complete
+PR validation run: `31148437283`
+Production run: `31149012406`
 
-### Changes
+### Delivered
 
-- Reorder the workspace so the first meaningful view is the trip decision summary and high-risk days, not a wall of edit fields.
-- Default each day to a compact decision card with an explicit `Edit day / 编辑当天 / 編輯當天` affordance.
-- Keep detailed city/date/type/flexibility/activity/notes controls collapsible.
-- Add confirmation before replacing the current itinerary with a template.
-- Add confirmation before starting a blank itinerary.
-- Move `Start blank trip` into a lower-priority / more-actions area.
-- Keep Refresh Weather as the primary workspace action; Share and Export remain secondary.
+- Workspace trip summary appears before low-frequency configuration.
+- Each day shows its weather decision before edit controls.
+- Per-day city/date/type/flexibility/activity/notes controls are collapsed behind an accessible native `<details>` editor.
+- Global trip settings and templates are collapsible.
+- Template replacement requires explicit confirmation.
+- Starting a blank itinerary requires explicit confirmation.
+- Print / blank-trip controls were moved behind a lower-priority `More trip actions` disclosure.
+- Refresh Weather remains the primary workspace action; sharing/export behavior and local storage remain unchanged.
+- Print CSS hides editing disclosures while preserving decision output.
 
-### Acceptance criteria
+### Verification
 
-- A returning user can see overall trip status and high-risk days before editing fields.
-- Editing controls are reachable but do not dominate the initial mobile viewport.
-- Template and blank-trip actions cannot wipe work without confirmation.
-- Existing local storage, sharing and export behavior remain intact.
-- Deploy + product smoke pass.
+- A focused UX contract test locks summary-before-settings, decision-before-editor and destructive-action confirmations.
+- Phase 4 PR CI passed Format, Lint, library build, Typecheck, tests, docs, static export, Worker builds and pipeline checks before merge.
+- Final production deployment and complete product smoke passed.
 
 ---
 
-## Release discipline
+## Final production state
+
+Final production commit: `009ba3cece5aa74721b9c6213f9249f7ed45122f`
+Final production run: `31149012406`
+Final production smoke: success
+
+The released user journey is now:
+
+**Choose dates -> discover suitable weather -> inspect a city -> add it to a trip -> import or edit the itinerary -> understand what to keep/change -> act on Plan B.**
+
+## Release discipline used
 
 For every phase:
 
-1. Add or update focused tests before/with implementation.
-2. Run through repository quality gates: format, lint, library build, typecheck, tests, docs gate, static export, worker builds, pipeline contracts, secret scan.
+1. Add or update focused tests with the implementation.
+2. Pass repository quality gates: format, lint, library build, typecheck, tests, docs gate, static export, Worker builds, pipeline contracts and secret scan.
 3. Deploy through the existing main-branch Cloudflare workflow.
-4. Verify production product smoke.
-5. Record the phase completion in this plan by changing its status and adding the deployed commit/run.
-
-## Definition of done
-
-The UX refactor is complete when a first-time user can naturally follow this path without learning the site architecture:
-
-**Choose dates -> discover suitable weather -> inspect a city -> add it to a trip -> import or edit the itinerary -> understand what to keep/change -> act on Plan B.**
+4. Verify production product smoke before allowing the next phase to merge.
+5. Keep temporary codemod/build helpers out of the final main branch.
