@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
 import type { ReactElement } from "react";
-import { TripImportForm } from "../../../components/TripImportForm";
+import { SmartTripImportForm } from "../../../components/SmartTripImportForm";
 import { buildAlternates } from "../../seo";
 
 export const metadata: Metadata = {
-  title: "Import a trip itinerary",
+  title: "Import an existing trip itinerary",
   description:
-    "Paste a Markdown itinerary and turn it into an editable weather-aware trip workspace.",
+    "Paste a Markdown, ChatGPT or structured itinerary and turn it into an editable weather-aware trip workspace.",
   alternates: buildAlternates("/trips/new", "en", ["en", "zh-hant", "zh-cn"]),
   robots: { index: false, follow: true },
 };
@@ -25,16 +25,15 @@ export default function NewTripEnglishPage(): ReactElement {
       <section className="mt-6 max-w-3xl">
         <p className="eyebrow">Itinerary importer</p>
         <h1 className="mt-4 text-4xl font-bold tracking-[-0.05em] text-foreground sm:text-5xl">
-          Turn an existing plan into a weather-aware workspace
+          Turn your existing plan into a weather-aware workspace
         </h1>
         <p className="mt-4 text-base leading-7 text-muted">
-          Paste D1 or Day1 headings and Markdown schedule tables. The importer creates an editable
-          trip where you can select forecast cities, protect fixed bookings and generate day-by-day
-          fallback decisions.
+          Paste the itinerary you already have. The importer recognizes D1 or Day1 sections, tries
+          to match supported cities and day types, and leaves only ambiguous days for you to confirm.
         </p>
       </section>
       <div className="mt-8">
-        <TripImportForm locale="en" />
+        <SmartTripImportForm locale="en" />
       </div>
     </main>
   );
