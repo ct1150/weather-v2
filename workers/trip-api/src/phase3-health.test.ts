@@ -14,7 +14,7 @@ describe("phase 3 health capabilities", () => {
     });
   });
 
-  it("allows fragment-derived invite tokens through CORS preflight", async () => {
+  it("allows collaboration headers and mutation methods through CORS preflight", async () => {
     const env = {
       DB: {} as D1Database,
       WEB_ORIGIN: "https://868656.xyz",
@@ -28,5 +28,7 @@ describe("phase 3 health capabilities", () => {
     );
     expect(response.status).toBe(204);
     expect(response.headers.get("access-control-allow-headers")).toContain("x-wnr-invite-token");
+    expect(response.headers.get("access-control-allow-methods")).toContain("PATCH");
+    expect(response.headers.get("access-control-allow-methods")).toContain("DELETE");
   });
 });
