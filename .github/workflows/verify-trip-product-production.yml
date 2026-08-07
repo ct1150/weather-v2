@@ -102,7 +102,7 @@ jobs:
             "Simplified legacy route" \
             "https://868656.xyz/zh-cn/trips" \
             /tmp/trips-cn.html \
-            "海外中文用户" "日韩东南亚"
+            "天气变化时" "东京" "曼谷" "首尔" "导入现有行程"
 
           fetch_and_match \
             "Simplified city weather route" \
