@@ -18,6 +18,7 @@ import {
   updateTripMemberRole,
   type CollaborationRole,
 } from "./collaboration";
+import { handleCollaborationIntelligenceRoute } from "./collaboration-intelligence-routes";
 import { listTripRevisions, restoreTripRevision } from "./revisions";
 import { createShareLink, readSharedTripByToken, revokeShareLink } from "./sharing";
 import { updateTripStatus, type TripStatus } from "./status";
@@ -103,10 +104,6 @@ async function resolveIdentity(request: Request, env: WorkerEnv): Promise<AuthId
     };
   }
   return getAuthIdentity(request, env);
-}
-
-async function resolveUserId(request: Request, env: WorkerEnv): Promise<string | null> {
-  return (await resolveIdentity(request, env))?.userId ?? null;
 }
 
 function tripIdFromPath(pathname: string): string | null {
@@ -241,6 +238,9 @@ async function handleTrips(request: Request, env: WorkerEnv): Promise<Response> 
   const userId = identity.userId;
   const url = new URL(request.url);
 
+  const phase4 = await handleCollaborationIntelligenceRoute(request, env.DB, identity);
+  if (phase4 !== null) return json(request, env, phase4.body, phase4.status);
+
   if (url.pathname === "/api/v1/trips") {
     if (request.method === "GET") {
       const limit = Number(url.searchParams.get("limit") ?? "50");
@@ -261,7 +261,14 @@ async function handleTrips(request: Request, env: WorkerEnv): Promise<Response> 
       if (locale === null || trip === null) {
         return json(request, env, { error: { code: "INVALID_TRIP" } }, 400);
       }
-      const created = await createTrip(env.DB, userId, locale, trip);
+      const created = await createTrip(
+        env.DB,
+        userId,
+        locale,
+        trip,
+        new Date().toISOString(),
+        identity.email,
+      );
       return json(request, env, { data: created }, 201);
     }
     return json(request, env, { error: { code: "METHOD_NOT_ALLOWED" } }, 405);
@@ -400,6 +407,8 @@ async function handleTrips(request: Request, env: WorkerEnv): Promise<Response> 
       revisionRestore.tripId,
       revisionRestore.version,
       Number(baseVersion),
+      new Date().toISOString(),
+      identity.email,
     );
     if (result.kind === "missing") {
       return json(request, env, { error: { code: "NOT_FOUND" } }, 404);
@@ -500,7 +509,17 @@ async function handleTrips(request: Request, env: WorkerEnv): Promise<Response> 
     ) {
       return json(request, env, { error: { code: "INVALID_TRIP" } }, 400);
     }
-    const result = await updateTrip(env.DB, userId, tripId, Number(baseVersion), locale, trip);
+    const result = await updateTrip(
+      env.DB,
+      userId,
+      tripId,
+      Number(baseVersion),
+      locale,
+      trip,
+      new Date().toISOString(),
+      "update",
+      identity.email,
+    );
     if (result.kind === "missing") {
       return json(request, env, { error: { code: "NOT_FOUND" } }, 404);
     }
@@ -540,11 +559,18 @@ async function handleSharedTrips(request: Request, env: WorkerEnv): Promise<Resp
   }
 
   if (route.copy && request.method === "POST") {
-    const userId = await resolveUserId(request, env);
-    if (userId === null) return json(request, env, { error: { code: "UNAUTHORIZED" } }, 401);
+    const identity = await resolveIdentity(request, env);
+    if (identity === null) return json(request, env, { error: { code: "UNAUTHORIZED" } }, 401);
     const trip = validateTripDocument(shared.document);
     if (trip === null) return json(request, env, { error: { code: "INVALID_SHARED_TRIP" } }, 409);
-    const copied = await createTrip(env.DB, userId, shared.locale, trip);
+    const copied = await createTrip(
+      env.DB,
+      identity.userId,
+      shared.locale,
+      trip,
+      new Date().toISOString(),
+      identity.email,
+    );
     return json(request, env, { data: copied }, 201);
   }
 
@@ -576,6 +602,10 @@ export async function handleRequest(request: Request, env: WorkerEnv): Promise<R
       cloudSharing: true,
       cloudCollaboration: true,
       revisionHistory: true,
+      collaborationActivity: true,
+      tripComments: true,
+      tripDecisions: true,
+      revisionDiff: true,
     });
   }
 

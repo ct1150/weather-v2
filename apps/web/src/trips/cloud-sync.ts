@@ -94,12 +94,83 @@ export interface CloudTripRevision {
   readonly createdAt: string;
 }
 
+export type CloudTripActivityKind =
+  | "revision"
+  | "comment_created"
+  | "comment_deleted"
+  | "decision_created"
+  | "decision_resolved"
+  | "decision_reopened"
+  | "decision_deleted";
+
+export interface CloudTripActivity {
+  readonly id: string;
+  readonly kind: CloudTripActivityKind;
+  readonly actorUserId: string;
+  readonly actorEmail: string | null;
+  readonly payload: Readonly<Record<string, unknown>>;
+  readonly createdAt: string;
+}
+
+export interface CloudTripComment {
+  readonly id: string;
+  readonly authorUserId: string;
+  readonly authorEmail: string;
+  readonly body: string;
+  readonly dayId: string | null;
+  readonly revisionVersion: number | null;
+  readonly createdAt: string;
+}
+
+export interface CloudTripDecision {
+  readonly id: string;
+  readonly createdByUserId: string;
+  readonly createdByEmail: string;
+  readonly title: string;
+  readonly detail: string;
+  readonly dayId: string | null;
+  readonly status: "open" | "resolved";
+  readonly resolvedByUserId: string | null;
+  readonly resolvedByEmail: string | null;
+  readonly resolvedAt: string | null;
+  readonly createdAt: string;
+  readonly updatedAt: string;
+}
+
+export interface CloudTripRevisionChange {
+  readonly kind: "added" | "removed" | "changed";
+  readonly field:
+    | "trip.title"
+    | "trip.partyProfile"
+    | "day"
+    | "day.date"
+    | "day.destination"
+    | "day.theme"
+    | "day.flexible"
+    | "day.activities"
+    | "day.notes";
+  readonly dayId: string | null;
+  readonly dayNumber: number | null;
+  readonly before: unknown;
+  readonly after: unknown;
+}
+
+export interface CloudTripRevisionDiff {
+  readonly fromVersion: number | null;
+  readonly toVersion: number;
+  readonly changes: ReadonlyArray<CloudTripRevisionChange>;
+}
+
 export interface TripApiHealth {
   readonly ok: boolean;
   readonly cloudTrip: boolean;
   readonly cloudSharing?: boolean;
   readonly cloudCollaboration?: boolean;
   readonly revisionHistory?: boolean;
+  readonly collaborationActivity?: boolean;
+  readonly tripComments?: boolean;
+  readonly tripDecisions?: boolean;
+  readonly revisionDiff?: boolean;
   readonly providers: {
     readonly auth: boolean;
     readonly google: boolean;
@@ -344,5 +415,86 @@ export async function restoreCloudTripRevision(
   return api<CloudTripRecord>(
     `/api/v1/trips/${encodeURIComponent(id)}/revisions/${targetVersion}/restore`,
     { method: "POST", body: JSON.stringify({ baseVersion }) },
+  );
+}
+
+export async function readCloudTripRevisionDiff(
+  id: string,
+  version: number,
+): Promise<CloudTripRevisionDiff> {
+  return api<CloudTripRevisionDiff>(
+    `/api/v1/trips/${encodeURIComponent(id)}/revisions/${version}/diff`,
+  );
+}
+
+export async function listCloudTripActivity(id: string): Promise<ReadonlyArray<CloudTripActivity>> {
+  const result = await api<{ readonly items: ReadonlyArray<CloudTripActivity> }>(
+    `/api/v1/trips/${encodeURIComponent(id)}/activity?limit=50`,
+  );
+  return result.items;
+}
+
+export async function listCloudTripComments(id: string): Promise<ReadonlyArray<CloudTripComment>> {
+  const result = await api<{ readonly items: ReadonlyArray<CloudTripComment> }>(
+    `/api/v1/trips/${encodeURIComponent(id)}/comments`,
+  );
+  return result.items;
+}
+
+export async function createCloudTripComment(
+  id: string,
+  body: string,
+  dayId: string | null,
+  revisionVersion: number | null,
+): Promise<CloudTripComment> {
+  return api<CloudTripComment>(`/api/v1/trips/${encodeURIComponent(id)}/comments`, {
+    method: "POST",
+    body: JSON.stringify({ body, dayId, revisionVersion }),
+  });
+}
+
+export async function deleteCloudTripComment(id: string, commentId: string): Promise<void> {
+  await api<{ readonly deleted: boolean }>(
+    `/api/v1/trips/${encodeURIComponent(id)}/comments/${encodeURIComponent(commentId)}`,
+    { method: "DELETE" },
+  );
+}
+
+export async function listCloudTripDecisions(
+  id: string,
+): Promise<ReadonlyArray<CloudTripDecision>> {
+  const result = await api<{ readonly items: ReadonlyArray<CloudTripDecision> }>(
+    `/api/v1/trips/${encodeURIComponent(id)}/decisions`,
+  );
+  return result.items;
+}
+
+export async function createCloudTripDecision(
+  id: string,
+  title: string,
+  detail: string,
+  dayId: string | null,
+): Promise<CloudTripDecision> {
+  return api<CloudTripDecision>(`/api/v1/trips/${encodeURIComponent(id)}/decisions`, {
+    method: "POST",
+    body: JSON.stringify({ title, detail, dayId }),
+  });
+}
+
+export async function updateCloudTripDecisionStatus(
+  id: string,
+  decisionId: string,
+  status: "open" | "resolved",
+): Promise<CloudTripDecision> {
+  return api<CloudTripDecision>(
+    `/api/v1/trips/${encodeURIComponent(id)}/decisions/${encodeURIComponent(decisionId)}`,
+    { method: "PATCH", body: JSON.stringify({ status }) },
+  );
+}
+
+export async function deleteCloudTripDecision(id: string, decisionId: string): Promise<void> {
+  await api<{ readonly deleted: boolean }>(
+    `/api/v1/trips/${encodeURIComponent(id)}/decisions/${encodeURIComponent(decisionId)}`,
+    { method: "DELETE" },
   );
 }

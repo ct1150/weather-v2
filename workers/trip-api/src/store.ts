@@ -55,6 +55,10 @@ function record(row: TripRow): TripRecord {
   return { ...summary(row), document: JSON.parse(row.document_json) as Record<string, unknown> };
 }
 
+function normalizedActorEmail(value: string | null): string | null {
+  return value === null ? null : value.trim().toLowerCase();
+}
+
 const tripSelect =
   "SELECT t.id, t.owner_user_id, t.title, t.start_date, t.end_date, t.status, t.locale, " +
   "t.document_json, t.version, t.created_at, t.updated_at, t.deleted_at, " +
@@ -67,9 +71,11 @@ export async function createTrip(
   locale: TripLocale,
   trip: ValidTripDocument,
   now = new Date().toISOString(),
+  actorEmail: string | null = null,
 ): Promise<TripRecord> {
   const id = `trip_${crypto.randomUUID().replaceAll("-", "")}`;
   const revisionId = `rev_${crypto.randomUUID().replaceAll("-", "")}`;
+  const activityId = `act_${crypto.randomUUID().replaceAll("-", "")}`;
   const documentJson = JSON.stringify(trip.document);
   await db.batch([
     db
@@ -94,6 +100,20 @@ export async function createTrip(
           "VALUES (?, ?, ?, 1, 'create', ?, ?, ?)",
       )
       .bind(revisionId, id, ownerUserId, locale, documentJson, now),
+    db
+      .prepare(
+        "INSERT OR IGNORE INTO trip_activity " +
+          "(id, trip_id, actor_user_id, actor_email_normalized, kind, revision_version, payload_json, created_at) " +
+          "VALUES (?, ?, ?, ?, 'revision', 1, ?, ?)",
+      )
+      .bind(
+        activityId,
+        id,
+        ownerUserId,
+        normalizedActorEmail(actorEmail),
+        JSON.stringify({ version: 1, operation: "create" }),
+        now,
+      ),
   ]);
   const created = await readTrip(db, ownerUserId, id);
   if (created === null) throw new Error("TRIP_CREATE_READBACK_FAILED");
@@ -152,9 +172,11 @@ export async function updateTrip(
   trip: ValidTripDocument,
   now = new Date().toISOString(),
   operation = "update",
+  actorEmail: string | null = null,
 ): Promise<UpdateTripResult> {
   const nextVersion = baseVersion + 1;
   const revisionId = `rev_${crypto.randomUUID().replaceAll("-", "")}`;
+  const activityId = `act_${crypto.randomUUID().replaceAll("-", "")}`;
   const documentJson = JSON.stringify(trip.document);
   const results = await db.batch([
     db
@@ -184,6 +206,23 @@ export async function updateTrip(
           "AND NOT EXISTS (SELECT 1 FROM trip_revisions r WHERE r.trip_id = trips.id AND r.version = trips.version)",
       )
       .bind(revisionId, userId, operation, now, id, nextVersion, now),
+    db
+      .prepare(
+        "INSERT OR IGNORE INTO trip_activity " +
+          "(id, trip_id, actor_user_id, actor_email_normalized, kind, revision_version, payload_json, created_at) " +
+          "SELECT ?, id, ?, ?, 'revision', version, ?, ? FROM trips " +
+          "WHERE id = ? AND deleted_at IS NULL AND version = ? AND updated_at = ?",
+      )
+      .bind(
+        activityId,
+        userId,
+        normalizedActorEmail(actorEmail),
+        JSON.stringify({ version: nextVersion, operation }),
+        now,
+        id,
+        nextVersion,
+        now,
+      ),
   ]);
   const updated = results[0];
 

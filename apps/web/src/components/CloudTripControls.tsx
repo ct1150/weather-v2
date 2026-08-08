@@ -25,6 +25,7 @@ import {
   type TripApiHealth,
 } from "../trips/cloud-sync";
 import { normalizeWorkspace, type TripWorkspace } from "../trips/workspace";
+import { TripCollaborationPanel } from "./TripCollaborationPanel";
 
 export type CloudTripLocale = "en" | "zh-cn" | "zh-hant";
 
@@ -503,6 +504,16 @@ export function CloudTripControls({
             )}
           </div>
         </div>
+      ) : null}
+
+      {metadata !== null && signedInEmail !== null && accessRole !== null ? (
+        <TripCollaborationPanel
+          locale={locale}
+          tripId={metadata.cloudTripId}
+          accessRole={accessRole}
+          workspace={workspace}
+          currentVersion={metadata.lastSyncedVersion}
+        />
       ) : null}
 
       {recent !== null && metadata === null && signedInEmail !== null ? (
