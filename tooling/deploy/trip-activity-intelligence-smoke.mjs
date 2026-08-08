@@ -97,11 +97,7 @@ try {
   const health = await fetch(`${tripUrl}/health`);
   if (!health.ok) throw new Error(`health returned ${health.status}`);
 
-  const originalActivity = activity(
-    "Arashiyama Bamboo Grove",
-    "outdoor",
-    "jp-kyoto-arashiyama",
-  );
+  const originalActivity = activity("Arashiyama Bamboo Grove", "outdoor", "jp-kyoto-arashiyama");
   const created = await jsonRequest(
     "/api/v1/trips",
     {
@@ -122,11 +118,7 @@ try {
     throw new Error(`structured activity was not persisted: ${JSON.stringify(created)}`);
   }
 
-  const indoorActivity = activity(
-    "Kyoto Railway Museum",
-    "indoor",
-    "jp-kyoto-railway-museum",
-  );
+  const indoorActivity = activity("Kyoto Railway Museum", "indoor", "jp-kyoto-railway-museum");
   const updated = await jsonRequest(
     `/api/v1/trips/${tripId}`,
     {

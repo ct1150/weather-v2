@@ -3,8 +3,14 @@ import { describe, expect, it } from "vitest";
 
 const editor = readFileSync(new URL("./StructuredActivityEditor.tsx", import.meta.url), "utf8");
 const zhWorkspace = readFileSync(new URL("./TripWorkspace.tsx", import.meta.url), "utf8");
-const localizedWorkspace = readFileSync(new URL("./LocalizedTripWorkspace.tsx", import.meta.url), "utf8");
-const activity = readFileSync(new URL("../trips/activity-intelligence.ts", import.meta.url), "utf8");
+const localizedWorkspace = readFileSync(
+  new URL("./LocalizedTripWorkspace.tsx", import.meta.url),
+  "utf8",
+);
+const activity = readFileSync(
+  new URL("../trips/activity-intelligence.ts", import.meta.url),
+  "utf8",
+);
 const poi = readFileSync(new URL("../trips/poi-catalog.ts", import.meta.url), "utf8");
 const planB = readFileSync(new URL("../trips/activity-plan-b.ts", import.meta.url), "utf8");
 const workspace = readFileSync(new URL("../trips/workspace.ts", import.meta.url), "utf8");
