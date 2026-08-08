@@ -1,6 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState, type ChangeEvent, type ReactElement } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type ChangeEvent,
+  type ReactElement,
+} from "react";
 import { clearCloudMetadata } from "../trips/cloud-sync";
 import {
   TRIP_WORKSPACE_STORAGE_KEY,
@@ -52,7 +59,8 @@ const COPY = {
   en: {
     eyebrow: "Weather Discovery 2.0",
     title: "Start with the weather. Decide the destination second.",
-    intro: "Choose exact dates and the conditions you care about. Rankings, map markers and comparisons use the same persisted forecast snapshot.",
+    intro:
+      "Choose exact dates and the conditions you care about. Rankings, map markers and comparisons use the same persisted forecast snapshot.",
     when: "Travel dates",
     from: "From",
     to: "To",
@@ -94,7 +102,8 @@ const COPY = {
     uvMetric: "Peak UV",
     forecast: "Daily outlook",
     trip: "Turn shortlist into a trip",
-    tripIntro: "The selected dates are split into contiguous city blocks. This creates city/day scaffolding only—POIs come in Phase 7.",
+    tripIntro:
+      "The selected dates are split into contiguous city blocks. This creates city/day scaffolding only—POIs come in Phase 7.",
     create: "Create new trip",
     append: "Append to current trip",
     openTrip: "Open trip",
@@ -232,27 +241,104 @@ const COPY = {
 } as const;
 
 const INTENT_COPY: Record<WeatherDiscoveryLocale, Record<WeatherDiscoveryIntent, string>> = {
-  en: { dry: "Least rain", outdoor: "Best outdoors", beach: "Beach weather", cool_escape: "Cool escape", warm_escape: "Warm escape", family_comfort: "Family comfort", senior_comfort: "Senior comfort" },
-  "zh-cn": { dry: "哪里不下雨", outdoor: "适合户外", beach: "适合海岛", cool_escape: "避暑", warm_escape: "暖和一点", family_comfort: "亲子舒适", senior_comfort: "长辈友好" },
-  "zh-hant": { dry: "哪裡不下雨", outdoor: "適合戶外", beach: "適合海島", cool_escape: "避暑", warm_escape: "暖和一點", family_comfort: "親子舒適", senior_comfort: "長輩友好" },
+  en: {
+    dry: "Least rain",
+    outdoor: "Best outdoors",
+    beach: "Beach weather",
+    cool_escape: "Cool escape",
+    warm_escape: "Warm escape",
+    family_comfort: "Family comfort",
+    senior_comfort: "Senior comfort",
+  },
+  "zh-cn": {
+    dry: "哪里不下雨",
+    outdoor: "适合户外",
+    beach: "适合海岛",
+    cool_escape: "避暑",
+    warm_escape: "暖和一点",
+    family_comfort: "亲子舒适",
+    senior_comfort: "长辈友好",
+  },
+  "zh-hant": {
+    dry: "哪裡不下雨",
+    outdoor: "適合戶外",
+    beach: "適合海島",
+    cool_escape: "避暑",
+    warm_escape: "暖和一點",
+    family_comfort: "親子舒適",
+    senior_comfort: "長輩友好",
+  },
 };
 
 const REASON_COPY: Record<WeatherDiscoveryLocale, Record<DiscoveryReasonCode, string>> = {
-  en: { DRY_WINDOW: "Low rain risk", RAIN_RISK: "High rain risk", COMFORTABLE_TEMPERATURE: "Comfortable temperature", HEAT_RISK: "Heat risk", COLD_RISK: "Cold risk", LOW_WIND: "Low wind", WIND_RISK: "Wind risk", UV_CAUTION: "High UV", BEACH_READY: "Good beach profile", FAMILY_COMFORT: "Family-friendly comfort", SENIOR_COMFORT: "Senior-friendly comfort", LIMITED_DATA: "Limited data", CUSTOM_CONSTRAINT_MISS: "Outside your limits" },
-  "zh-cn": { DRY_WINDOW: "降雨风险低", RAIN_RISK: "降雨风险高", COMFORTABLE_TEMPERATURE: "温度舒适", HEAT_RISK: "高温风险", COLD_RISK: "低温风险", LOW_WIND: "风力较小", WIND_RISK: "风力偏大", UV_CAUTION: "紫外线较强", BEACH_READY: "海岛条件较好", FAMILY_COMFORT: "亲子舒适度较好", SENIOR_COMFORT: "长辈舒适度较好", LIMITED_DATA: "数据有限", CUSTOM_CONSTRAINT_MISS: "超出你的限制条件" },
-  "zh-hant": { DRY_WINDOW: "降雨風險低", RAIN_RISK: "降雨風險高", COMFORTABLE_TEMPERATURE: "溫度舒適", HEAT_RISK: "高溫風險", COLD_RISK: "低溫風險", LOW_WIND: "風力較小", WIND_RISK: "風力偏大", UV_CAUTION: "紫外線較強", BEACH_READY: "海島條件較好", FAMILY_COMFORT: "親子舒適度較好", SENIOR_COMFORT: "長輩舒適度較好", LIMITED_DATA: "資料有限", CUSTOM_CONSTRAINT_MISS: "超出你的限制條件" },
+  en: {
+    DRY_WINDOW: "Low rain risk",
+    RAIN_RISK: "High rain risk",
+    COMFORTABLE_TEMPERATURE: "Comfortable temperature",
+    HEAT_RISK: "Heat risk",
+    COLD_RISK: "Cold risk",
+    LOW_WIND: "Low wind",
+    WIND_RISK: "Wind risk",
+    UV_CAUTION: "High UV",
+    BEACH_READY: "Good beach profile",
+    FAMILY_COMFORT: "Family-friendly comfort",
+    SENIOR_COMFORT: "Senior-friendly comfort",
+    LIMITED_DATA: "Limited data",
+    CUSTOM_CONSTRAINT_MISS: "Outside your limits",
+  },
+  "zh-cn": {
+    DRY_WINDOW: "降雨风险低",
+    RAIN_RISK: "降雨风险高",
+    COMFORTABLE_TEMPERATURE: "温度舒适",
+    HEAT_RISK: "高温风险",
+    COLD_RISK: "低温风险",
+    LOW_WIND: "风力较小",
+    WIND_RISK: "风力偏大",
+    UV_CAUTION: "紫外线较强",
+    BEACH_READY: "海岛条件较好",
+    FAMILY_COMFORT: "亲子舒适度较好",
+    SENIOR_COMFORT: "长辈舒适度较好",
+    LIMITED_DATA: "数据有限",
+    CUSTOM_CONSTRAINT_MISS: "超出你的限制条件",
+  },
+  "zh-hant": {
+    DRY_WINDOW: "降雨風險低",
+    RAIN_RISK: "降雨風險高",
+    COMFORTABLE_TEMPERATURE: "溫度舒適",
+    HEAT_RISK: "高溫風險",
+    COLD_RISK: "低溫風險",
+    LOW_WIND: "風力較小",
+    WIND_RISK: "風力偏大",
+    UV_CAUTION: "紫外線較強",
+    BEACH_READY: "海島條件較好",
+    FAMILY_COMFORT: "親子舒適度較好",
+    SENIOR_COMFORT: "長輩舒適度較好",
+    LIMITED_DATA: "資料有限",
+    CUSTOM_CONSTRAINT_MISS: "超出你的限制條件",
+  },
 };
 
 function initialPreferences(): DiscoveryPreferences {
   const from = new Date().toISOString().slice(0, 10);
   const toDate = new Date(`${from}T00:00:00Z`);
   toDate.setUTCDate(toDate.getUTCDate() + 2);
-  return { intent: "dry", from, to: toDate.toISOString().slice(0, 10), rainProbabilityMax: null, temperatureMinC: null, temperatureMaxC: null, windSpeedMaxKph: null, partyProfile: null, theme: null };
+  return {
+    intent: "dry",
+    from,
+    to: toDate.toISOString().slice(0, 10),
+    rainProbabilityMax: null,
+    temperatureMinC: null,
+    temperatureMaxC: null,
+    windSpeedMaxKph: null,
+    partyProfile: null,
+    theme: null,
+  };
 }
 
 function chunks<T>(items: ReadonlyArray<T>, size: number): ReadonlyArray<ReadonlyArray<T>> {
   const output: T[][] = [];
-  for (let index = 0; index < items.length; index += size) output.push(items.slice(index, index + size));
+  for (let index = 0; index < items.length; index += size)
+    output.push(items.slice(index, index + size));
   return output;
 }
 function numeric(value: string): number | null {
@@ -263,7 +349,11 @@ function numeric(value: string): number | null {
 function readStoredWorkspace(): TripWorkspace | null {
   const value = window.localStorage.getItem(TRIP_WORKSPACE_STORAGE_KEY);
   if (value === null) return null;
-  try { return normalizeWorkspace(JSON.parse(value) as unknown); } catch { return null; }
+  try {
+    return normalizeWorkspace(JSON.parse(value) as unknown);
+  } catch {
+    return null;
+  }
 }
 function cityPath(locale: WeatherDiscoveryLocale, city: TripCityOption): string {
   const suffix = `/${city.countrySlug}/${city.citySlug}`;
@@ -272,13 +362,19 @@ function cityPath(locale: WeatherDiscoveryLocale, city: TripCityOption): string 
 function workspacePath(locale: WeatherDiscoveryLocale): string {
   return locale === "en" ? "/trips/workspace" : `/${locale}/trips/workspace`;
 }
-function format(value: number | null, suffix: string): string { return value === null ? "—" : `${value}${suffix}`; }
+function format(value: number | null, suffix: string): string {
+  return value === null ? "—" : `${value}${suffix}`;
+}
 function temperature(result: DiscoveryCityResult): string {
   const { averageMinC: low, averageMaxC: high } = result.metrics;
   return low === null || high === null ? "—" : `${low}°–${high}°`;
 }
 
-export function WeatherDiscoveryPlannerV2({ locale }: { readonly locale: WeatherDiscoveryLocale }): ReactElement {
+export function WeatherDiscoveryPlannerV2({
+  locale,
+}: {
+  readonly locale: WeatherDiscoveryLocale;
+}): ReactElement {
   const copy = COPY[locale];
   const apiLocale = locale === "en" ? "en" : "zh-cn";
   const [draft, setDraft] = useState<DiscoveryPreferences>(initialPreferences);
@@ -302,7 +398,11 @@ export function WeatherDiscoveryPlannerV2({ locale }: { readonly locale: Weather
   }, []);
 
   useEffect(() => {
-    if (API_BASE.length === 0) { setState("error"); setMessage(copy.apiMissing); return; }
+    if (API_BASE.length === 0) {
+      setState("error");
+      setMessage(copy.apiMissing);
+      return;
+    }
     let active = true;
     void fetch(`${API_BASE}/api/v1/trip-cities?locale=${apiLocale}`)
       .then(async (response) => {
@@ -314,13 +414,24 @@ export function WeatherDiscoveryPlannerV2({ locale }: { readonly locale: Weather
         const raw = payload.data?.items ?? [];
         setCities(locale === "zh-hant" ? raw.map(toTraditionalCity) : raw);
       })
-      .catch(() => { if (active) { setState("error"); setMessage(copy.unavailable); } });
-    return () => { active = false; };
+      .catch(() => {
+        if (active) {
+          setState("error");
+          setMessage(copy.unavailable);
+        }
+      });
+    return () => {
+      active = false;
+    };
   }, [apiLocale, copy.apiMissing, copy.unavailable, locale]);
 
   const loadForecast = useCallback(async (): Promise<void> => {
     if (cities.length === 0 || API_BASE.length === 0) return;
-    if (discoveryDateRange(applied.from, applied.to).length === 0) { setState("error"); setMessage(copy.invalidRange); return; }
+    if (discoveryDateRange(applied.from, applied.to).length === 0) {
+      setState("error");
+      setMessage(copy.invalidRange);
+      return;
+    }
     setState("loading");
     setMessage("");
     try {
@@ -329,13 +440,19 @@ export function WeatherDiscoveryPlannerV2({ locale }: { readonly locale: Weather
       let anyStale = false;
       const items: TripForecastDay[] = [];
       for (const batch of chunks(cities, MAX_CITIES_PER_REQUEST)) {
-        const search = new URLSearchParams({ cityIds: batch.map((city) => city.cityId).join(","), from: applied.from, to: applied.to, locale: apiLocale });
+        const search = new URLSearchParams({
+          cityIds: batch.map((city) => city.cityId).join(","),
+          from: applied.from,
+          to: applied.to,
+          locale: apiLocale,
+        });
         const response = await fetch(`${API_BASE}/api/v1/trip-forecast?${search.toString()}`);
         if (!response.ok) throw new Error(`FORECAST_API_${response.status}`);
         const payload = (await response.json()) as TripForecastResponse;
         const nextSnapshot = payload.data?.snapshotId;
         if (typeof nextSnapshot !== "string") throw new Error("FORECAST_SNAPSHOT_MISSING");
-        if (snapshot !== null && snapshot !== nextSnapshot) throw new Error("FORECAST_SNAPSHOT_CHANGED");
+        if (snapshot !== null && snapshot !== nextSnapshot)
+          throw new Error("FORECAST_SNAPSHOT_CHANGED");
         snapshot = nextSnapshot;
         freshness = payload.data?.freshness?.dataUpdatedAt ?? freshness;
         anyStale ||= payload.data?.freshness?.stale === true;
@@ -346,10 +463,15 @@ export function WeatherDiscoveryPlannerV2({ locale }: { readonly locale: Weather
       setUpdatedAt(freshness);
       setStale(anyStale);
       setState("ready");
-    } catch { setState("error"); setMessage(copy.unavailable); }
+    } catch {
+      setState("error");
+      setMessage(copy.unavailable);
+    }
   }, [apiLocale, applied, cities, copy.invalidRange, copy.unavailable, locale]);
 
-  useEffect(() => { void loadForecast(); }, [loadForecast]);
+  useEffect(() => {
+    void loadForecast();
+  }, [loadForecast]);
 
   const results = useMemo(
     () => contextualizeDiscoveryResults(rankDiscoveryCities(cities, forecast, applied), applied),
@@ -357,11 +479,23 @@ export function WeatherDiscoveryPlannerV2({ locale }: { readonly locale: Weather
   );
   const resultIds = useMemo(() => new Set(results.map((result) => result.city.cityId)), [results]);
   const selectedResults = useMemo(
-    () => shortlist.map((id) => results.find((result) => result.city.cityId === id)).filter((result): result is DiscoveryCityResult => result !== undefined),
+    () =>
+      shortlist
+        .map((id) => results.find((result) => result.city.cityId === id))
+        .filter((result): result is DiscoveryCityResult => result !== undefined),
     [results, shortlist],
   );
   const markers = useMemo(
-    () => results.map((result) => ({ id: result.city.cityId, latitude: result.city.latitude, longitude: result.city.longitude, label: result.city.cityName, path: cityPath(locale, result.city), score: result.score, theme: applied.theme ?? applied.intent })),
+    () =>
+      results.map((result) => ({
+        id: result.city.cityId,
+        latitude: result.city.latitude,
+        longitude: result.city.longitude,
+        label: result.city.cityName,
+        path: cityPath(locale, result.city),
+        score: result.score,
+        theme: applied.theme ?? applied.intent,
+      })),
     [applied.intent, applied.theme, locale, results],
   );
 
@@ -369,43 +503,73 @@ export function WeatherDiscoveryPlannerV2({ locale }: { readonly locale: Weather
     if (state === "ready") setShortlist((current) => current.filter((id) => resultIds.has(id)));
   }, [resultIds, state]);
 
-  const updateUrl = useCallback((preferences: DiscoveryPreferences, selected: ReadonlyArray<string>): void => {
-    const search = serializeDiscoveryPreferences(preferences);
-    if (selected.length > 0) search.set("cities", selected.join(","));
-    window.history.replaceState({}, "", `${window.location.pathname}?${search.toString()}`);
-  }, []);
+  const updateUrl = useCallback(
+    (preferences: DiscoveryPreferences, selected: ReadonlyArray<string>): void => {
+      const search = serializeDiscoveryPreferences(preferences);
+      if (selected.length > 0) search.set("cities", selected.join(","));
+      window.history.replaceState({}, "", `${window.location.pathname}?${search.toString()}`);
+    },
+    [],
+  );
 
   const apply = useCallback((): void => {
-    if (discoveryDateRange(draft.from, draft.to).length === 0) { setMessage(copy.invalidRange); return; }
+    if (discoveryDateRange(draft.from, draft.to).length === 0) {
+      setMessage(copy.invalidRange);
+      return;
+    }
     setTripReady(false);
     setApplied(draft);
     updateUrl(draft, shortlist);
   }, [copy.invalidRange, draft, shortlist, updateUrl]);
 
-  const toggle = useCallback((cityId: string): void => {
-    setShortlist((current) => {
-      const next = current.includes(cityId)
-        ? current.filter((id) => id !== cityId)
-        : current.length < MAX_SHORTLIST ? [...current, cityId] : current;
-      if (next === current) setMessage(copy.shortlistFull); else setMessage("");
-      updateUrl(applied, next);
-      return next;
-    });
-  }, [applied, copy.shortlistFull, updateUrl]);
+  const toggle = useCallback(
+    (cityId: string): void => {
+      setShortlist((current) => {
+        const next = current.includes(cityId)
+          ? current.filter((id) => id !== cityId)
+          : current.length < MAX_SHORTLIST
+            ? [...current, cityId]
+            : current;
+        if (next === current) setMessage(copy.shortlistFull);
+        else setMessage("");
+        updateUrl(applied, next);
+        return next;
+      });
+    },
+    [applied, copy.shortlistFull, updateUrl],
+  );
 
-  const createTrip = useCallback((append: boolean): void => {
-    if (selectedResults.length === 0) { setMessage(copy.needCity); return; }
-    const allocations = allocateDiscoveryDates(selectedResults.map((result) => result.city), discoveryDateRange(applied.from, applied.to));
-    if (allocations.length === 0) { setMessage(copy.needDates); return; }
-    const next = buildDiscoveryWorkspace(readStoredWorkspace(), allocations, { append, title: copy.titleTrip });
-    if (next === null) return;
-    if (!append) clearCloudMetadata();
-    window.localStorage.setItem(TRIP_WORKSPACE_STORAGE_KEY, JSON.stringify(next));
-    setTripReady(true);
-    setMessage(append ? copy.appended : copy.created);
-  }, [applied.from, applied.to, copy, selectedResults]);
+  const createTrip = useCallback(
+    (append: boolean): void => {
+      if (selectedResults.length === 0) {
+        setMessage(copy.needCity);
+        return;
+      }
+      const allocations = allocateDiscoveryDates(
+        selectedResults.map((result) => result.city),
+        discoveryDateRange(applied.from, applied.to),
+      );
+      if (allocations.length === 0) {
+        setMessage(copy.needDates);
+        return;
+      }
+      const next = buildDiscoveryWorkspace(readStoredWorkspace(), allocations, {
+        append,
+        title: copy.titleTrip,
+      });
+      if (next === null) return;
+      if (!append) clearCloudMetadata();
+      window.localStorage.setItem(TRIP_WORKSPACE_STORAGE_KEY, JSON.stringify(next));
+      setTripReady(true);
+      setMessage(append ? copy.appended : copy.created);
+    },
+    [applied.from, applied.to, copy, selectedResults],
+  );
 
-  const updateNumber = (key: "rainProbabilityMax" | "temperatureMinC" | "temperatureMaxC" | "windSpeedMaxKph", event: ChangeEvent<HTMLInputElement>): void => {
+  const updateNumber = (
+    key: "rainProbabilityMax" | "temperatureMinC" | "temperatureMaxC" | "windSpeedMaxKph",
+    event: ChangeEvent<HTMLInputElement>,
+  ): void => {
     setDraft((current) => ({ ...current, [key]: numeric(event.target.value) }));
   };
 
@@ -413,7 +577,9 @@ export function WeatherDiscoveryPlannerV2({ locale }: { readonly locale: Weather
     <main id="main-content" className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-10">
       <section className="hero-panel">
         <p className="eyebrow">{copy.eyebrow}</p>
-        <h1 className="mt-4 max-w-4xl text-4xl font-bold tracking-[-0.045em] text-foreground sm:text-6xl">{copy.title}</h1>
+        <h1 className="mt-4 max-w-4xl text-4xl font-bold tracking-[-0.045em] text-foreground sm:text-6xl">
+          {copy.title}
+        </h1>
         <p className="mt-5 max-w-3xl text-base leading-7 text-muted sm:text-lg">{copy.intro}</p>
       </section>
 
@@ -422,32 +588,143 @@ export function WeatherDiscoveryPlannerV2({ locale }: { readonly locale: Weather
           <div>
             <p className="eyebrow">{copy.when}</p>
             <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
-              <label className="grid gap-1 text-sm font-semibold text-foreground">{copy.from}<input type="date" value={draft.from} className="min-h-11 rounded-xl border border-border bg-white px-3" onChange={(event) => setDraft((current) => ({ ...current, from: event.target.value }))} /></label>
-              <label className="grid gap-1 text-sm font-semibold text-foreground">{copy.to}<input type="date" value={draft.to} className="min-h-11 rounded-xl border border-border bg-white px-3" onChange={(event) => setDraft((current) => ({ ...current, to: event.target.value }))} /></label>
+              <label className="grid gap-1 text-sm font-semibold text-foreground">
+                {copy.from}
+                <input
+                  type="date"
+                  value={draft.from}
+                  className="min-h-11 rounded-xl border border-border bg-white px-3"
+                  onChange={(event) =>
+                    setDraft((current) => ({ ...current, from: event.target.value }))
+                  }
+                />
+              </label>
+              <label className="grid gap-1 text-sm font-semibold text-foreground">
+                {copy.to}
+                <input
+                  type="date"
+                  value={draft.to}
+                  className="min-h-11 rounded-xl border border-border bg-white px-3"
+                  onChange={(event) =>
+                    setDraft((current) => ({ ...current, to: event.target.value }))
+                  }
+                />
+              </label>
             </div>
             <p className="eyebrow mt-6">{copy.intent}</p>
             <div className="mt-3 flex flex-wrap gap-2">
-              {listDiscoveryIntents().map((intent) => <button key={intent} type="button" aria-pressed={draft.intent === intent} className={`min-h-11 rounded-full border px-3 text-sm font-semibold focus-ring ${draft.intent === intent ? "border-foreground bg-foreground text-white" : "border-border bg-white text-foreground"}`} onClick={() => setDraft((current) => ({ ...current, intent }))}>{INTENT_COPY[locale][intent]}</button>)}
+              {listDiscoveryIntents().map((intent) => (
+                <button
+                  key={intent}
+                  type="button"
+                  aria-pressed={draft.intent === intent}
+                  className={`min-h-11 rounded-full border px-3 text-sm font-semibold focus-ring ${draft.intent === intent ? "border-foreground bg-foreground text-white" : "border-border bg-white text-foreground"}`}
+                  onClick={() => setDraft((current) => ({ ...current, intent }))}
+                >
+                  {INTENT_COPY[locale][intent]}
+                </button>
+              ))}
             </div>
           </div>
 
           <div>
             <p className="eyebrow">{copy.context}</p>
             <div className="mt-3 grid gap-3">
-              <label className="grid gap-1 text-xs font-semibold text-muted">{copy.party}<select className="min-h-11 rounded-xl border border-border bg-white px-3 text-sm text-foreground" value={draft.partyProfile ?? ""} onChange={(event) => setDraft((current) => ({ ...current, partyProfile: (event.target.value || null) as TripPartyProfile | null }))}><option value="">{copy.any}</option><option value="adults">{copy.adults}</option><option value="family">{copy.family}</option><option value="senior">{copy.senior}</option></select></label>
-              <label className="grid gap-1 text-xs font-semibold text-muted">{copy.theme}<select className="min-h-11 rounded-xl border border-border bg-white px-3 text-sm text-foreground" value={draft.theme ?? ""} onChange={(event) => setDraft((current) => ({ ...current, theme: (event.target.value || null) as DiscoveryTheme | null }))}><option value="">{copy.any}</option><option value="city">{copy.city}</option><option value="beach">{copy.beach}</option><option value="outdoor">{copy.outdoor}</option><option value="indoor">{copy.indoor}</option></select></label>
+              <label className="grid gap-1 text-xs font-semibold text-muted">
+                {copy.party}
+                <select
+                  className="min-h-11 rounded-xl border border-border bg-white px-3 text-sm text-foreground"
+                  value={draft.partyProfile ?? ""}
+                  onChange={(event) =>
+                    setDraft((current) => ({
+                      ...current,
+                      partyProfile: (event.target.value || null) as TripPartyProfile | null,
+                    }))
+                  }
+                >
+                  <option value="">{copy.any}</option>
+                  <option value="adults">{copy.adults}</option>
+                  <option value="family">{copy.family}</option>
+                  <option value="senior">{copy.senior}</option>
+                </select>
+              </label>
+              <label className="grid gap-1 text-xs font-semibold text-muted">
+                {copy.theme}
+                <select
+                  className="min-h-11 rounded-xl border border-border bg-white px-3 text-sm text-foreground"
+                  value={draft.theme ?? ""}
+                  onChange={(event) =>
+                    setDraft((current) => ({
+                      ...current,
+                      theme: (event.target.value || null) as DiscoveryTheme | null,
+                    }))
+                  }
+                >
+                  <option value="">{copy.any}</option>
+                  <option value="city">{copy.city}</option>
+                  <option value="beach">{copy.beach}</option>
+                  <option value="outdoor">{copy.outdoor}</option>
+                  <option value="indoor">{copy.indoor}</option>
+                </select>
+              </label>
             </div>
           </div>
 
           <div>
             <p className="eyebrow">{copy.constraints}</p>
             <div className="mt-3 grid gap-3 sm:grid-cols-2">
-              <label className="grid gap-1 text-xs font-semibold text-muted">{copy.rain} (%)<input type="number" min="0" max="100" value={draft.rainProbabilityMax ?? ""} placeholder={copy.noLimit} className="min-h-11 rounded-xl border border-border bg-white px-3 text-sm text-foreground" onChange={(event) => updateNumber("rainProbabilityMax", event)} /></label>
-              <label className="grid gap-1 text-xs font-semibold text-muted">{copy.wind} (km/h)<input type="number" min="0" max="250" value={draft.windSpeedMaxKph ?? ""} placeholder={copy.noLimit} className="min-h-11 rounded-xl border border-border bg-white px-3 text-sm text-foreground" onChange={(event) => updateNumber("windSpeedMaxKph", event)} /></label>
-              <label className="grid gap-1 text-xs font-semibold text-muted">{copy.tempMin} (°C)<input type="number" min="-50" max="60" value={draft.temperatureMinC ?? ""} placeholder={copy.noLimit} className="min-h-11 rounded-xl border border-border bg-white px-3 text-sm text-foreground" onChange={(event) => updateNumber("temperatureMinC", event)} /></label>
-              <label className="grid gap-1 text-xs font-semibold text-muted">{copy.tempMax} (°C)<input type="number" min="-50" max="60" value={draft.temperatureMaxC ?? ""} placeholder={copy.noLimit} className="min-h-11 rounded-xl border border-border bg-white px-3 text-sm text-foreground" onChange={(event) => updateNumber("temperatureMaxC", event)} /></label>
+              <label className="grid gap-1 text-xs font-semibold text-muted">
+                {copy.rain} (%)
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  value={draft.rainProbabilityMax ?? ""}
+                  placeholder={copy.noLimit}
+                  className="min-h-11 rounded-xl border border-border bg-white px-3 text-sm text-foreground"
+                  onChange={(event) => updateNumber("rainProbabilityMax", event)}
+                />
+              </label>
+              <label className="grid gap-1 text-xs font-semibold text-muted">
+                {copy.wind} (km/h)
+                <input
+                  type="number"
+                  min="0"
+                  max="250"
+                  value={draft.windSpeedMaxKph ?? ""}
+                  placeholder={copy.noLimit}
+                  className="min-h-11 rounded-xl border border-border bg-white px-3 text-sm text-foreground"
+                  onChange={(event) => updateNumber("windSpeedMaxKph", event)}
+                />
+              </label>
+              <label className="grid gap-1 text-xs font-semibold text-muted">
+                {copy.tempMin} (°C)
+                <input
+                  type="number"
+                  min="-50"
+                  max="60"
+                  value={draft.temperatureMinC ?? ""}
+                  placeholder={copy.noLimit}
+                  className="min-h-11 rounded-xl border border-border bg-white px-3 text-sm text-foreground"
+                  onChange={(event) => updateNumber("temperatureMinC", event)}
+                />
+              </label>
+              <label className="grid gap-1 text-xs font-semibold text-muted">
+                {copy.tempMax} (°C)
+                <input
+                  type="number"
+                  min="-50"
+                  max="60"
+                  value={draft.temperatureMaxC ?? ""}
+                  placeholder={copy.noLimit}
+                  className="min-h-11 rounded-xl border border-border bg-white px-3 text-sm text-foreground"
+                  onChange={(event) => updateNumber("temperatureMaxC", event)}
+                />
+              </label>
             </div>
-            <button type="button" className="trip-primary-button mt-4 w-full" onClick={apply}>{copy.apply}</button>
+            <button type="button" className="trip-primary-button mt-4 w-full" onClick={apply}>
+              {copy.apply}
+            </button>
             <p className="mt-2 text-xs leading-5 text-muted">{copy.filtersShare}</p>
           </div>
         </div>
@@ -457,21 +734,233 @@ export function WeatherDiscoveryPlannerV2({ locale }: { readonly locale: Weather
       {state === "loading" ? <p className="mt-6 text-sm text-muted">{copy.loading}</p> : null}
       {state === "error" ? <p className="mt-6 text-sm text-danger">{copy.unavailable}</p> : null}
 
-      {state === "ready" ? <>
-        <section className="mt-10" aria-labelledby="discovery-results">
-          <div className="flex flex-wrap items-end justify-between gap-3"><div><p className="eyebrow">{INTENT_COPY[locale][applied.intent]}</p><h2 id="discovery-results" className="section-title mt-2">{copy.results}</h2></div><p className="text-xs text-muted">{results.length} {copy.checked}{updatedAt ? ` · ${copy.refreshed} ${new Date(updatedAt).toLocaleString()}` : ""}{stale ? ` · ${copy.stale}` : ""}</p></div>
-          {results.length === 0 ? <p className="mt-5 rounded-2xl border border-border bg-surface p-5 text-sm text-muted">{copy.noMatches}</p> : <ul className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{results.map((result, index) => {
-            const selected = shortlist.includes(result.city.cityId);
-            return <li key={result.city.cityId}><article className="destination-card h-full"><div className="flex items-start justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-[0.12em] text-muted">#{index + 1} · {result.city.countryName}</p><h3 className="mt-1 text-xl font-bold text-foreground"><a href={cityPath(locale, result.city)} className="focus-ring hover:text-primary">{result.city.cityName}</a></h3></div><div className="score-orbit"><div><p className="text-lg font-bold leading-none text-foreground">{result.score}</p><span className="text-[8px] font-bold uppercase tracking-[0.08em] text-muted">{copy.score}</span></div></div></div><dl className="relative mt-4 grid grid-cols-2 gap-2 text-sm"><div className="metric-block"><dt className="text-xs text-muted">{copy.rainMetric}</dt><dd className="mt-1 font-bold">{format(result.metrics.maxRainProbability, "%")}</dd></div><div className="metric-block"><dt className="text-xs text-muted">{copy.tempMetric}</dt><dd className="mt-1 font-bold">{temperature(result)}</dd></div><div className="metric-block"><dt className="text-xs text-muted">{copy.windMetric}</dt><dd className="mt-1 font-bold">{format(result.metrics.maxWindKph, " km/h")}</dd></div><div className="metric-block"><dt className="text-xs text-muted">{copy.uvMetric}</dt><dd className="mt-1 font-bold">{format(result.metrics.maxUv, "")}</dd></div></dl><ul className="relative mt-4 flex flex-wrap gap-1.5">{result.reasonCodes.slice(0, 4).map((reason) => <li key={reason} className="rounded-full border border-border px-2.5 py-1 text-[11px] font-semibold text-muted">{REASON_COPY[locale][reason]}</li>)}</ul><button type="button" className={`relative mt-5 min-h-11 w-full rounded-xl border px-4 text-sm font-bold focus-ring ${selected ? "border-foreground bg-foreground text-white" : "border-border bg-white text-foreground"}`} aria-pressed={selected} onClick={() => toggle(result.city.cityId)}>{selected ? copy.shortlisted : copy.shortlist}</button></article></li>;
-          })}</ul>}
-        </section>
+      {state === "ready" ? (
+        <>
+          <section className="mt-10" aria-labelledby="discovery-results">
+            <div className="flex flex-wrap items-end justify-between gap-3">
+              <div>
+                <p className="eyebrow">{INTENT_COPY[locale][applied.intent]}</p>
+                <h2 id="discovery-results" className="section-title mt-2">
+                  {copy.results}
+                </h2>
+              </div>
+              <p className="text-xs text-muted">
+                {results.length} {copy.checked}
+                {updatedAt ? ` · ${copy.refreshed} ${new Date(updatedAt).toLocaleString()}` : ""}
+                {stale ? ` · ${copy.stale}` : ""}
+              </p>
+            </div>
+            {results.length === 0 ? (
+              <p className="mt-5 rounded-2xl border border-border bg-surface p-5 text-sm text-muted">
+                {copy.noMatches}
+              </p>
+            ) : (
+              <ul className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                {results.map((result, index) => {
+                  const selected = shortlist.includes(result.city.cityId);
+                  return (
+                    <li key={result.city.cityId}>
+                      <article className="destination-card h-full">
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <p className="text-xs font-bold uppercase tracking-[0.12em] text-muted">
+                              #{index + 1} · {result.city.countryName}
+                            </p>
+                            <h3 className="mt-1 text-xl font-bold text-foreground">
+                              <a
+                                href={cityPath(locale, result.city)}
+                                className="focus-ring hover:text-primary"
+                              >
+                                {result.city.cityName}
+                              </a>
+                            </h3>
+                          </div>
+                          <div className="score-orbit">
+                            <div>
+                              <p className="text-lg font-bold leading-none text-foreground">
+                                {result.score}
+                              </p>
+                              <span className="text-[8px] font-bold uppercase tracking-[0.08em] text-muted">
+                                {copy.score}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                        <dl className="relative mt-4 grid grid-cols-2 gap-2 text-sm">
+                          <div className="metric-block">
+                            <dt className="text-xs text-muted">{copy.rainMetric}</dt>
+                            <dd className="mt-1 font-bold">
+                              {format(result.metrics.maxRainProbability, "%")}
+                            </dd>
+                          </div>
+                          <div className="metric-block">
+                            <dt className="text-xs text-muted">{copy.tempMetric}</dt>
+                            <dd className="mt-1 font-bold">{temperature(result)}</dd>
+                          </div>
+                          <div className="metric-block">
+                            <dt className="text-xs text-muted">{copy.windMetric}</dt>
+                            <dd className="mt-1 font-bold">
+                              {format(result.metrics.maxWindKph, " km/h")}
+                            </dd>
+                          </div>
+                          <div className="metric-block">
+                            <dt className="text-xs text-muted">{copy.uvMetric}</dt>
+                            <dd className="mt-1 font-bold">{format(result.metrics.maxUv, "")}</dd>
+                          </div>
+                        </dl>
+                        <ul className="relative mt-4 flex flex-wrap gap-1.5">
+                          {result.reasonCodes.slice(0, 4).map((reason) => (
+                            <li
+                              key={reason}
+                              className="rounded-full border border-border px-2.5 py-1 text-[11px] font-semibold text-muted"
+                            >
+                              {REASON_COPY[locale][reason]}
+                            </li>
+                          ))}
+                        </ul>
+                        <button
+                          type="button"
+                          className={`relative mt-5 min-h-11 w-full rounded-xl border px-4 text-sm font-bold focus-ring ${selected ? "border-foreground bg-foreground text-white" : "border-border bg-white text-foreground"}`}
+                          aria-pressed={selected}
+                          onClick={() => toggle(result.city.cityId)}
+                        >
+                          {selected ? copy.shortlisted : copy.shortlist}
+                        </button>
+                      </article>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </section>
 
-        {markers.length > 0 ? <ExplorerMap markers={markers} theme={applied.theme ?? applied.intent} windowLabel={`${applied.from} – ${applied.to}`} /> : null}
+          {markers.length > 0 ? (
+            <ExplorerMap
+              markers={markers}
+              theme={applied.theme ?? applied.intent}
+              windowLabel={`${applied.from} – ${applied.to}`}
+            />
+          ) : null}
 
-        <section className="info-panel mt-10" aria-labelledby="discovery-compare"><p className="eyebrow">{copy.compare}</p><h2 id="discovery-compare" className="section-title mt-2">{copy.compare}</h2><p className="mt-2 text-sm text-muted">{copy.compareIntro}</p>{selectedResults.length < 2 ? <p className="mt-5 text-sm text-muted">{copy.emptyShortlist}</p> : <div className="mt-5 overflow-x-auto pb-2"><div className="grid min-w-[760px] gap-3" style={{ gridTemplateColumns: `repeat(${selectedResults.length}, minmax(180px, 1fr))` }}>{selectedResults.map((result) => <article key={result.city.cityId} className="rounded-2xl border border-border bg-white p-4"><div className="flex items-start justify-between gap-2"><div><p className="text-xs text-muted">{result.city.countryName}</p><h3 className="text-lg font-bold">{result.city.cityName}</h3></div><button type="button" className="text-xs font-bold text-primary" onClick={() => toggle(result.city.cityId)}>{copy.remove}</button></div><p className="mt-3 text-3xl font-bold">{result.score}</p><p className="text-xs text-muted">{copy.score}</p><dl className="mt-4 grid gap-2 text-xs"><div className="flex justify-between"><dt>{copy.rainMetric}</dt><dd className="font-bold">{format(result.metrics.maxRainProbability, "%")}</dd></div><div className="flex justify-between"><dt>{copy.tempMetric}</dt><dd className="font-bold">{temperature(result)}</dd></div><div className="flex justify-between"><dt>{copy.windMetric}</dt><dd className="font-bold">{format(result.metrics.maxWindKph, " km/h")}</dd></div><div className="flex justify-between"><dt>{copy.uvMetric}</dt><dd className="font-bold">{format(result.metrics.maxUv, "")}</dd></div></dl><p className="mt-4 text-xs font-bold uppercase tracking-[0.08em] text-muted">{copy.forecast}</p><ul className="mt-2 grid gap-2">{result.forecastDays.map((day) => <li key={`${day.cityId}-${day.date}`} className="rounded-xl bg-surface-elevated p-2 text-xs"><div className="flex justify-between gap-2"><strong>{day.date.slice(5)}</strong><span>{day.condition}</span></div><div className="mt-1 flex justify-between gap-2 text-muted"><span>{day.temperatureMinC ?? "—"}°–{day.temperatureMaxC ?? "—"}°</span><span>{day.rainProbability ?? "—"}%</span></div></li>)}</ul></article>)}</div></div>}</section>
+          <section className="info-panel mt-10" aria-labelledby="discovery-compare">
+            <p className="eyebrow">{copy.compare}</p>
+            <h2 id="discovery-compare" className="section-title mt-2">
+              {copy.compare}
+            </h2>
+            <p className="mt-2 text-sm text-muted">{copy.compareIntro}</p>
+            {selectedResults.length < 2 ? (
+              <p className="mt-5 text-sm text-muted">{copy.emptyShortlist}</p>
+            ) : (
+              <div className="mt-5 overflow-x-auto pb-2">
+                <div
+                  className="grid min-w-[760px] gap-3"
+                  style={{
+                    gridTemplateColumns: `repeat(${selectedResults.length}, minmax(180px, 1fr))`,
+                  }}
+                >
+                  {selectedResults.map((result) => (
+                    <article
+                      key={result.city.cityId}
+                      className="rounded-2xl border border-border bg-white p-4"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <p className="text-xs text-muted">{result.city.countryName}</p>
+                          <h3 className="text-lg font-bold">{result.city.cityName}</h3>
+                        </div>
+                        <button
+                          type="button"
+                          className="text-xs font-bold text-primary"
+                          onClick={() => toggle(result.city.cityId)}
+                        >
+                          {copy.remove}
+                        </button>
+                      </div>
+                      <p className="mt-3 text-3xl font-bold">{result.score}</p>
+                      <p className="text-xs text-muted">{copy.score}</p>
+                      <dl className="mt-4 grid gap-2 text-xs">
+                        <div className="flex justify-between">
+                          <dt>{copy.rainMetric}</dt>
+                          <dd className="font-bold">
+                            {format(result.metrics.maxRainProbability, "%")}
+                          </dd>
+                        </div>
+                        <div className="flex justify-between">
+                          <dt>{copy.tempMetric}</dt>
+                          <dd className="font-bold">{temperature(result)}</dd>
+                        </div>
+                        <div className="flex justify-between">
+                          <dt>{copy.windMetric}</dt>
+                          <dd className="font-bold">
+                            {format(result.metrics.maxWindKph, " km/h")}
+                          </dd>
+                        </div>
+                        <div className="flex justify-between">
+                          <dt>{copy.uvMetric}</dt>
+                          <dd className="font-bold">{format(result.metrics.maxUv, "")}</dd>
+                        </div>
+                      </dl>
+                      <p className="mt-4 text-xs font-bold uppercase tracking-[0.08em] text-muted">
+                        {copy.forecast}
+                      </p>
+                      <ul className="mt-2 grid gap-2">
+                        {result.forecastDays.map((day) => (
+                          <li
+                            key={`${day.cityId}-${day.date}`}
+                            className="rounded-xl bg-surface-elevated p-2 text-xs"
+                          >
+                            <div className="flex justify-between gap-2">
+                              <strong>{day.date.slice(5)}</strong>
+                              <span>{day.condition}</span>
+                            </div>
+                            <div className="mt-1 flex justify-between gap-2 text-muted">
+                              <span>
+                                {day.temperatureMinC ?? "—"}°–{day.temperatureMaxC ?? "—"}°
+                              </span>
+                              <span>{day.rainProbability ?? "—"}%</span>
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    </article>
+                  ))}
+                </div>
+              </div>
+            )}
+          </section>
 
-        <section className="info-panel mt-6" aria-labelledby="discovery-trip"><p className="eyebrow">{copy.trip}</p><h2 id="discovery-trip" className="section-title mt-2">{copy.trip}</h2><p className="mt-2 max-w-3xl text-sm leading-6 text-muted">{copy.tripIntro}</p><div className="mt-5 flex flex-wrap gap-3"><button type="button" className="trip-primary-button" disabled={selectedResults.length === 0} onClick={() => createTrip(false)}>{copy.create}</button><button type="button" className="trip-secondary-button" disabled={selectedResults.length === 0} onClick={() => createTrip(true)}>{copy.append}</button>{tripReady ? <a className="trip-secondary-button" href={workspacePath(locale)}>{copy.openTrip} →</a> : null}</div></section>
-      </> : null}
+          <section className="info-panel mt-6" aria-labelledby="discovery-trip">
+            <p className="eyebrow">{copy.trip}</p>
+            <h2 id="discovery-trip" className="section-title mt-2">
+              {copy.trip}
+            </h2>
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-muted">{copy.tripIntro}</p>
+            <div className="mt-5 flex flex-wrap gap-3">
+              <button
+                type="button"
+                className="trip-primary-button"
+                disabled={selectedResults.length === 0}
+                onClick={() => createTrip(false)}
+              >
+                {copy.create}
+              </button>
+              <button
+                type="button"
+                className="trip-secondary-button"
+                disabled={selectedResults.length === 0}
+                onClick={() => createTrip(true)}
+              >
+                {copy.append}
+              </button>
+              {tripReady ? (
+                <a className="trip-secondary-button" href={workspacePath(locale)}>
+                  {copy.openTrip} →
+                </a>
+              ) : null}
+            </div>
+          </section>
+        </>
+      ) : null}
     </main>
   );
 }

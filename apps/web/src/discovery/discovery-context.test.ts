@@ -1,9 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { TripCityOption } from "../trips/workspace";
-import {
-  contextualizeDiscoveryResult,
-  contextualizeDiscoveryResults,
-} from "./discovery-context";
+import { contextualizeDiscoveryResult, contextualizeDiscoveryResults } from "./discovery-context";
 import type { DiscoveryCityResult, DiscoveryPreferences } from "./weather-discovery";
 
 const city: TripCityOption = {

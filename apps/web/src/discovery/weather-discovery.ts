@@ -1,13 +1,7 @@
 import type { TripCityOption, TripForecastDay, TripPartyProfile } from "../trips/workspace";
 
 export type WeatherDiscoveryIntent =
-  | "dry"
-  | "outdoor"
-  | "beach"
-  | "cool_escape"
-  | "warm_escape"
-  | "family_comfort"
-  | "senior_comfort";
+  "dry" | "outdoor" | "beach" | "cool_escape" | "warm_escape" | "family_comfort" | "senior_comfort";
 
 export type DiscoveryTheme = "city" | "beach" | "outdoor" | "indoor";
 
@@ -100,12 +94,12 @@ function numbers(
   days: ReadonlyArray<TripForecastDay>,
   pick: (day: TripForecastDay) => number | null,
 ): number[] {
-  return days.map(pick).filter((value): value is number => value !== null && Number.isFinite(value));
+  return days
+    .map(pick)
+    .filter((value): value is number => value !== null && Number.isFinite(value));
 }
 
-export function summarizeDiscoveryWeather(
-  days: ReadonlyArray<TripForecastDay>,
-): DiscoveryMetrics {
+export function summarizeDiscoveryWeather(days: ReadonlyArray<TripForecastDay>): DiscoveryMetrics {
   return {
     days: days.length,
     maxRainProbability: maximum(numbers(days, (day) => day.rainProbability)),
@@ -137,7 +131,12 @@ function missingMetricCount(metrics: DiscoveryMetrics): number {
   ].filter((value) => value === null).length;
 }
 
-function temperaturePenalty(value: number | null, low: number, high: number, scale: number): number {
+function temperaturePenalty(
+  value: number | null,
+  low: number,
+  high: number,
+  scale: number,
+): number {
   if (value === null) return 0;
   if (value < low) return Math.min((low - value) * scale, 30);
   if (value > high) return Math.min((value - high) * scale, 30);
@@ -245,7 +244,8 @@ function scoreIntent(
 function passesConstraints(metrics: DiscoveryMetrics, preferences: DiscoveryPreferences): boolean {
   if (
     preferences.rainProbabilityMax !== null &&
-    (metrics.maxRainProbability === null || metrics.maxRainProbability > preferences.rainProbabilityMax)
+    (metrics.maxRainProbability === null ||
+      metrics.maxRainProbability > preferences.rainProbabilityMax)
   ) {
     return false;
   }

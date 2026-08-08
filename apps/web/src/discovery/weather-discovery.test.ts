@@ -167,9 +167,7 @@ describe("Weather Discovery 2.0 intent engine", () => {
     const search = new URLSearchParams(
       "intent=unsafe&from=not-a-date&to=bad&rainMax=999&party=robot&theme=storm",
     );
-    expect(
-      parseDiscoveryPreferences(search, { from: "2026-08-08", to: "2026-08-10" }),
-    ).toEqual({
+    expect(parseDiscoveryPreferences(search, { from: "2026-08-08", to: "2026-08-10" })).toEqual({
       ...DEFAULT_PREFERENCES,
       from: "2026-08-08",
       to: "2026-08-10",

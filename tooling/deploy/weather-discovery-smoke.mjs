@@ -20,7 +20,9 @@ async function fetchText(url, expected = 200) {
   const response = await fetch(url, { redirect: "follow" });
   const text = await response.text();
   if (response.status !== expected) {
-    throw new Error(`${url} returned ${response.status}, expected ${expected}: ${text.slice(0, 300)}`);
+    throw new Error(
+      `${url} returned ${response.status}, expected ${expected}: ${text.slice(0, 300)}`,
+    );
   }
   return text;
 }
@@ -55,7 +57,9 @@ try {
   const citiesPayload = await fetchJson(`${readUrl}/api/v1/trip-cities?locale=en`);
   const cities = citiesPayload?.data?.items;
   if (!Array.isArray(cities) || cities.length < 13) {
-    throw new Error(`Expected at least 13 discovery cities, received ${Array.isArray(cities) ? cities.length : "invalid"}`);
+    throw new Error(
+      `Expected at least 13 discovery cities, received ${Array.isArray(cities) ? cities.length : "invalid"}`,
+    );
   }
 
   const today = new Date().toISOString().slice(0, 10);

@@ -6,8 +6,14 @@ const engine = readFileSync(new URL("../discovery/weather-discovery.ts", import.
 const context = readFileSync(new URL("../discovery/discovery-context.ts", import.meta.url), "utf8");
 const trip = readFileSync(new URL("../discovery/discovery-trip.ts", import.meta.url), "utf8");
 const englishRoute = readFileSync(new URL("../app/discover/page.tsx", import.meta.url), "utf8");
-const simplifiedRoute = readFileSync(new URL("../app/zh-cn/discover/page.tsx", import.meta.url), "utf8");
-const traditionalRoute = readFileSync(new URL("../app/zh-hant/discover/page.tsx", import.meta.url), "utf8");
+const simplifiedRoute = readFileSync(
+  new URL("../app/zh-cn/discover/page.tsx", import.meta.url),
+  "utf8",
+);
+const traditionalRoute = readFileSync(
+  new URL("../app/zh-hant/discover/page.tsx", import.meta.url),
+  "utf8",
+);
 
 describe("Weather Discovery Phase 6 contract", () => {
   it("ships seven deterministic weather intents and context scoring", () => {

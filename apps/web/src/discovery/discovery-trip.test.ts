@@ -32,7 +32,11 @@ describe("Weather Discovery multi-city trip", () => {
   });
 
   it("allocates contiguous dates evenly across shortlisted cities", () => {
-    const cities = [city("jp-tokyo", "Tokyo"), city("jp-kyoto", "Kyoto"), city("jp-osaka", "Osaka")];
+    const cities = [
+      city("jp-tokyo", "Tokyo"),
+      city("jp-kyoto", "Kyoto"),
+      city("jp-osaka", "Osaka"),
+    ];
     const dates = discoveryDateRange("2026-08-10", "2026-08-16");
     const allocations = allocateDiscoveryDates(cities, dates);
     expect(allocations.map((item) => item.dates)).toEqual([
@@ -43,7 +47,11 @@ describe("Weather Discovery multi-city trip", () => {
   });
 
   it("requires at least one date per selected city", () => {
-    const cities = [city("jp-tokyo", "Tokyo"), city("jp-kyoto", "Kyoto"), city("jp-osaka", "Osaka")];
+    const cities = [
+      city("jp-tokyo", "Tokyo"),
+      city("jp-kyoto", "Kyoto"),
+      city("jp-osaka", "Osaka"),
+    ];
     expect(allocateDiscoveryDates(cities, ["2026-08-10", "2026-08-11"])).toEqual([]);
   });
 
