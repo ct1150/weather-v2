@@ -133,7 +133,11 @@ describe("Phase 8 trip hourly weather read", () => {
       new Date("2026-08-08T00:10:00.000Z"),
     );
     const payload = (await response.json()) as {
-      readonly data?: { readonly startHour?: number; readonly endHour?: number; readonly items?: unknown[] };
+      readonly data?: {
+        readonly startHour?: number;
+        readonly endHour?: number;
+        readonly items?: unknown[];
+      };
     };
 
     expect(response.status).toBe(200);
@@ -169,7 +173,9 @@ describe("Phase 8 trip hourly weather read", () => {
 
   it("returns unknown coverage rather than optimistic synthetic weather when hourly rows are missing", async () => {
     const response = await handleRequest(
-      new Request("https://read.example/api/v1/trip-hourly?cityIds=kyoto&date=2026-08-08&locale=en"),
+      new Request(
+        "https://read.example/api/v1/trip-hourly?cityIds=kyoto&date=2026-08-08&locale=en",
+      ),
       { DB: db },
       new Date("2026-08-08T00:10:00.000Z"),
     );
