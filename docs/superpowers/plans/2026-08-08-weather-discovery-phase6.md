@@ -21,7 +21,7 @@ Phase 6 reuses the already delivered direct single-city Discovery -> Trip action
 - Custom threshold parsing/serialization.
 - Unit tests.
 
-Status: implemented on branch, awaiting CI.
+Status: implemented on branch, awaiting final CI.
 
 ### Slice B — Interactive discovery query
 
@@ -32,7 +32,7 @@ Status: implemented on branch, awaiting CI.
 - Rain / temperature / wind limits.
 - URL-persisted preferences.
 
-Status: implemented on branch, awaiting CI.
+Status: implemented on branch, awaiting final CI.
 
 ### Slice C — Shortlist + comparison
 
@@ -41,7 +41,7 @@ Status: implemented on branch, awaiting CI.
 - Intent score, rain, temperature, wind, UV and daily forecast comparison.
 - Ranked list and MapLibre use the same result model.
 
-Status: implemented on branch, awaiting CI.
+Status: implemented on branch, awaiting final CI.
 
 ### Slice D — Multi-city Trip creation
 
@@ -50,17 +50,18 @@ Status: implemented on branch, awaiting CI.
 - Preserve existing single-city direct Add-to-Trip behavior.
 - No POI generation in Phase 6.
 
-Status: implemented on branch, awaiting CI.
+Status: implemented on branch, awaiting final CI.
 
 ### Slice E — hardening + release
 
-- Complete party/theme context controls.
+- Party/theme context controls and deterministic contextual scoring.
 - EN / zh-CN / zh-Hant UX contract coverage.
+- English Explorer plus Simplified/Traditional homepage discovery entry points.
 - Accessibility/source contracts.
 - Dedicated Preview/Production smoke.
 - Production status record.
 
-Status: pending.
+Status: implementation complete; CI / Preview / Production acceptance in progress.
 
 ## Definition of Done
 
