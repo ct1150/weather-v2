@@ -47,7 +47,9 @@ describe("Phase 7 concrete Plan B", () => {
     expect(result?.affectedActivity.title).toBe("Arashiyama Bamboo Grove");
     expect(result?.fixed).toBe(false);
     expect(result?.candidates.length).toBeGreaterThanOrEqual(2);
-    expect(result?.candidates.every((candidate) => candidate.poi.environment === "indoor")).toBe(true);
+    expect(result?.candidates.every((candidate) => candidate.poi.environment === "indoor")).toBe(
+      true,
+    );
   });
 
   it("preserves a fixed affected activity instead of pretending it can move", () => {
@@ -67,7 +69,8 @@ describe("Phase 7 concrete Plan B", () => {
         "en",
       ),
     ).toBeNull();
-    expect(resolveConcretePlanB(day(), forecast({ rainProbability: 20, precipitationMm: 0.2 }), "en"))
-      .toBeNull();
+    expect(
+      resolveConcretePlanB(day(), forecast({ rainProbability: 20, precipitationMm: 0.2 }), "en"),
+    ).toBeNull();
   });
 });

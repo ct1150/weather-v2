@@ -524,12 +524,7 @@ function DayEditor({
         </div>
       </details>
 
-      <StructuredActivityEditor
-        locale={locale}
-        day={day}
-        forecast={forecast}
-        onChange={onChange}
-      />
+      <StructuredActivityEditor locale={locale} day={day} forecast={forecast} onChange={onChange} />
     </article>
   );
 }

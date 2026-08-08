@@ -32,7 +32,8 @@ function activityItems(day: TripWorkspaceDay): ReadonlyArray<TripActivity> {
 }
 
 function riskReason(activity: TripActivity, forecast: TripForecastDay): ConcretePlanBReason | null {
-  if (activity.weatherSensitivity.includes("rain") && (forecast.rainProbability ?? 0) >= 60) return "rain";
+  if (activity.weatherSensitivity.includes("rain") && (forecast.rainProbability ?? 0) >= 60)
+    return "rain";
   if (
     activity.weatherSensitivity.includes("wind") &&
     ((forecast.windSpeedKph ?? 0) >= 30 || (forecast.windGustKph ?? 0) >= 45)

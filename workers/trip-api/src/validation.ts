@@ -35,7 +35,10 @@ function nullableString(value: unknown, max: number): boolean {
 }
 
 function nullableNumber(value: unknown, min: number, max: number): boolean {
-  return value === null || (typeof value === "number" && Number.isFinite(value) && value >= min && value <= max);
+  return (
+    value === null ||
+    (typeof value === "number" && Number.isFinite(value) && value >= min && value <= max)
+  );
 }
 
 function validActivity(value: unknown): boolean {
@@ -45,11 +48,22 @@ function validActivity(value: unknown): boolean {
   if (!boundedString(value.cityId, 96, true)) return false;
   if (!nullableString(value.startTime, 5) || !nullableString(value.endTime, 5)) return false;
   if (!nullableNumber(value.durationMinutes, 10, 1440)) return false;
-  if (!nullableNumber(value.latitude, -90, 90) || !nullableNumber(value.longitude, -180, 180)) return false;
-  if (!["attraction", "food", "transport", "hotel", "shopping", "leisure"].includes(String(value.category))) return false;
+  if (!nullableNumber(value.latitude, -90, 90) || !nullableNumber(value.longitude, -180, 180))
+    return false;
+  if (
+    !["attraction", "food", "transport", "hotel", "shopping", "leisure"].includes(
+      String(value.category),
+    )
+  )
+    return false;
   if (!["indoor", "outdoor", "mixed"].includes(String(value.environment))) return false;
   if (!Array.isArray(value.weatherSensitivity) || value.weatherSensitivity.length > 5) return false;
-  if (!value.weatherSensitivity.every((item) => ["rain", "heat", "cold", "wind", "uv"].includes(String(item)))) return false;
+  if (
+    !value.weatherSensitivity.every((item) =>
+      ["rain", "heat", "cold", "wind", "uv"].includes(String(item)),
+    )
+  )
+    return false;
   if (!["fixed", "movable", "flexible"].includes(String(value.flexibility))) return false;
   if (!["none", "recommended", "required"].includes(String(value.reservation))) return false;
   if (!["must", "preferred", "optional"].includes(String(value.priority))) return false;
@@ -73,7 +87,8 @@ function validDay(value: unknown): value is Record<string, unknown> {
   if (!Array.isArray(value.activities) || value.activities.length > MAX_ACTIVITIES) return false;
   if (!value.activities.every((item) => boundedString(item, 300))) return false;
   if (value.activityItems !== undefined) {
-    if (!Array.isArray(value.activityItems) || value.activityItems.length > MAX_ACTIVITIES) return false;
+    if (!Array.isArray(value.activityItems) || value.activityItems.length > MAX_ACTIVITIES)
+      return false;
     if (!value.activityItems.every(validActivity)) return false;
   }
   if (!boundedString(value.notes, 500, true)) return false;

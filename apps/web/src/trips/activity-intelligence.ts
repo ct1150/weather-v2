@@ -1,10 +1,5 @@
 export type TripActivityCategory =
-  | "attraction"
-  | "food"
-  | "transport"
-  | "hotel"
-  | "shopping"
-  | "leisure";
+  "attraction" | "food" | "transport" | "hotel" | "shopping" | "leisure";
 
 export type TripActivityEnvironment = "indoor" | "outdoor" | "mixed";
 export type TripWeatherSensitivity = "rain" | "heat" | "cold" | "wind" | "uv";
@@ -99,16 +94,26 @@ function inferEnvironment(
   title: string,
   theme: LegacyActivityContext["dayTheme"],
 ): TripActivityEnvironment {
-  if (/museum|aquarium|mall|market|teamlab|gallery|indoor|博物馆|博物館|水族馆|水族館|商场|商場|室内|室內/iu.test(title))
+  if (
+    /museum|aquarium|mall|market|teamlab|gallery|indoor|博物馆|博物館|水族馆|水族館|商场|商場|室内|室內/iu.test(
+      title,
+    )
+  )
     return "indoor";
-  if (/beach|park|shrine|temple|garden|forest|tower|view|walk|海滩|海灘|公园|公園|神社|寺|花园|花園|森林|观景|觀景|散步/iu.test(title))
+  if (
+    /beach|park|shrine|temple|garden|forest|tower|view|walk|海滩|海灘|公园|公園|神社|寺|花园|花園|森林|观景|觀景|散步/iu.test(
+      title,
+    )
+  )
     return "outdoor";
   if (theme === "indoor") return "indoor";
   if (theme === "outdoor" || theme === "beach") return "outdoor";
   return "mixed";
 }
 
-function sensitivities(environment: TripActivityEnvironment): ReadonlyArray<TripWeatherSensitivity> {
+function sensitivities(
+  environment: TripActivityEnvironment,
+): ReadonlyArray<TripWeatherSensitivity> {
   if (environment === "indoor") return [];
   if (environment === "mixed") return ["rain", "heat", "wind"];
   return ["rain", "heat", "cold", "wind", "uv"];
@@ -165,15 +170,23 @@ export function normalizeTripActivity(
   const row = value as Record<string, unknown>;
   const title = text(row.title, 180);
   if (title.length === 0) return null;
-  const environment = enumValue(row.environment, ENVIRONMENTS, inferEnvironment(title, context.dayTheme));
+  const environment = enumValue(
+    row.environment,
+    ENVIRONMENTS,
+    inferEnvironment(title, context.dayTheme),
+  );
   const rawSensitivity = Array.isArray(row.weatherSensitivity) ? row.weatherSensitivity : [];
   const weatherSensitivity = rawSensitivity
-    .filter((item): item is TripWeatherSensitivity =>
-      typeof item === "string" && SENSITIVITIES.includes(item as TripWeatherSensitivity),
+    .filter(
+      (item): item is TripWeatherSensitivity =>
+        typeof item === "string" && SENSITIVITIES.includes(item as TripWeatherSensitivity),
     )
     .slice(0, SENSITIVITIES.length);
   const alternatives = Array.isArray(row.alternatives)
-    ? row.alternatives.map((item) => text(item, 120)).filter(Boolean).slice(0, 8)
+    ? row.alternatives
+        .map((item) => text(item, 120))
+        .filter(Boolean)
+        .slice(0, 8)
     : [];
   return {
     id: text(row.id, 128) || stableActivityId(context.dayId, index, title),
@@ -186,8 +199,13 @@ export function normalizeTripActivity(
     longitude: numberOrNull(row.longitude, -180, 180),
     category: enumValue(row.category, CATEGORIES, inferCategory(title)),
     environment,
-    weatherSensitivity: weatherSensitivity.length > 0 ? weatherSensitivity : sensitivities(environment),
-    flexibility: enumValue(row.flexibility, FLEXIBILITIES, context.dayFlexible ? "movable" : "fixed"),
+    weatherSensitivity:
+      weatherSensitivity.length > 0 ? weatherSensitivity : sensitivities(environment),
+    flexibility: enumValue(
+      row.flexibility,
+      FLEXIBILITIES,
+      context.dayFlexible ? "movable" : "fixed",
+    ),
     reservation: enumValue(row.reservation, RESERVATIONS, "none"),
     priority: enumValue(row.priority, PRIORITIES, "preferred"),
     poiId: text(row.poiId, 128) || null,
