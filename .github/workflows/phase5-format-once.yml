@@ -1,0 +1,39 @@
+name: Phase 5 format once
+
+on:
+  push:
+    branches:
+      - feat/cloud-trip-phase5-weather-intelligence
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/cloud-trip-phase5-weather-intelligence
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.11.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Format verification files
+        run: |
+          pnpm exec prettier --write \
+            tooling/deploy/trip-weather-intelligence-smoke.mjs \
+            .github/workflows/verify-trip-weather-intelligence.yml
+      - name: Commit formatted files and remove helper
+        run: |
+          rm .github/workflows/phase5-format-once.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "chore(phase5): format verification files"
+          git push origin HEAD:feat/cloud-trip-phase5-weather-intelligence
