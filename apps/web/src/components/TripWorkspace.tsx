@@ -29,6 +29,7 @@ import {
   type WorkspaceRiskLevel,
 } from "../trips/workspace";
 import { CloudTripControls } from "./CloudTripControls";
+import { StructuredActivityEditor } from "./StructuredActivityEditor";
 
 const API_BASE = (process.env.NEXT_PUBLIC_WEATHER_READ_URL ?? "").replace(/\/$/u, "");
 const WEATHER_STORAGE_PREFIX = "wnr:trip-weather:v1:";
@@ -293,6 +294,7 @@ function DayEditor({
                       .map((item) => item.trim())
                       .filter(Boolean)
                       .slice(0, 12),
+                    activityItems: [],
                   })
                 }
               />
@@ -308,6 +310,13 @@ function DayEditor({
           </div>
         </div>
       </details>
+
+      <StructuredActivityEditor
+        locale="zh-cn"
+        day={day}
+        forecast={forecast}
+        onChange={onChange}
+      />
     </article>
   );
 }

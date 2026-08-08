@@ -251,7 +251,6 @@ export function StructuredActivityEditor({
       <div>
         <p className="eyebrow">{copy.title}</p>
         <p className="mt-2 text-xs leading-5 text-muted">{copy.intro}</p>
-        {day.version === undefined ? null : null}
         <p className="mt-1 text-[11px] text-muted">{copy.migrated}</p>
       </div>
 

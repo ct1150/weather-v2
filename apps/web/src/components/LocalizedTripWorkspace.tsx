@@ -40,6 +40,7 @@ import {
   toTraditionalWorkspace,
 } from "../trips/traditional";
 import { CloudTripControls } from "./CloudTripControls";
+import { StructuredActivityEditor } from "./StructuredActivityEditor";
 
 export type TripProductLocale = "en" | "zh-hant";
 
@@ -506,6 +507,7 @@ function DayEditor({
                       .map((item) => item.trim())
                       .filter(Boolean)
                       .slice(0, 12),
+                    activityItems: [],
                   })
                 }
               />
@@ -521,6 +523,13 @@ function DayEditor({
           </div>
         </div>
       </details>
+
+      <StructuredActivityEditor
+        locale={locale}
+        day={day}
+        forecast={forecast}
+        onChange={onChange}
+      />
     </article>
   );
 }
