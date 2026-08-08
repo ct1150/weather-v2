@@ -47,21 +47,13 @@ Delivered:
 
 ## Slice C — Pilot POI catalogue
 
-Delivered for:
-
-- Tokyo
-- Kyoto
-- Osaka
-- Seoul
-- Jeju
-- Bangkok
-- Phuket
+Delivered for Tokyo, Kyoto, Osaka, Seoul, Jeju, Bangkok and Phuket.
 
 The catalogue combines a manually curated high-confidence base with an attributed OpenStreetMap-derived snapshot. Every surfaced POI has a stable ID, city ID, coordinates, category, environment, weather sensitivities, typical duration, reservation level, broad recommended time window and explicit provenance. OpenStreetMap-derived records retain their source reference and ODbL attribution.
 
-Automated catalogue tests require **at least 50 POIs for every pilot city**, valid coordinates, unique IDs, supported provenance and localized names. This satisfies the approved 50–150/city Phase 7 scale gate without inventing coordinates or unlabeled source data.
+Automated catalogue tests require **at least 50 POIs for every pilot city**, valid coordinates, unique IDs, supported provenance and localized names. The Structured Activity editor presents a visible `© OpenStreetMap contributors · ODbL` attribution link next to the POI experience, with contract coverage preventing accidental removal.
 
-The Structured Activity editor also presents a visible `© OpenStreetMap contributors · ODbL` attribution link next to the POI experience, with a contract test preventing accidental removal.
+The committed generated catalogue is an immutable reviewed snapshot. The Overpass generator is maintenance-only for future reviewed refreshes and is never part of build/deploy runtime.
 
 ## Slice D — Structured activity editor
 
@@ -85,27 +77,13 @@ Delivered:
 - user explicitly adds a fallback; no silent replacement;
 - missing POI data falls back to the existing generic Plan B.
 
-## Slice F — hardening + release
+## Acceptance evidence
 
-Completed before Preview gate:
-
-- Phase 7 component/contract tests;
-- v1/v2 Cloud validation tests;
-- structured revision-diff tests;
-- seven-city >=50 POI quality gate;
-- focused Workspace v2 creation + migration tests;
-- visible OpenStreetMap attribution + contract coverage;
-- dedicated Phase 7 Preview/Production smoke workflow and Cloud smoke runner;
-- prior Phase 5 Weather Intelligence regression remains independently exercised.
-
-Remaining release gates:
-
-- final full repository CI/static export on the acceptance head;
-- Preview D1/Workers/Pages deployment;
-- existing Preview regression smoke;
-- dedicated Phase 7 Preview smoke;
-- squash merge and production deployment;
-- dedicated Phase 7 Production smoke and auditable status record.
+- Focused Workspace v2 creation/migration, Activity Intelligence and seven-city POI quality tests passed after the final compatibility repair.
+- Phase 5 Weather Intelligence Preview regression: passed on the acceptance series.
+- Phase 6 Weather Discovery Preview regression: passed on the acceptance series.
+- Dedicated Phase 7 Preview smoke: passed, including v2 Cloud Trip persistence/update, structured revision diff and malformed-v2 rejection.
+- Final full repository Deploy/CI on the latest acceptance head is the remaining Preview gate before merge.
 
 ## Definition of Done
 
@@ -122,7 +100,8 @@ Remaining release gates:
 - [x] Weather-sensitive activities can receive concrete indoor Plan B candidates.
 - [x] Fixed/reservation activities are never presented as silently movable.
 - [x] Missing POI data gracefully falls back to the existing generic recommendation.
-- [ ] Final format, lint, typecheck, unit/integration, docs and static export pass on the acceptance head.
-- [ ] Existing Preview regression smoke remains green on the acceptance head.
-- [ ] Dedicated Phase 7 Preview smoke passes.
+- [ ] Final format, lint, typecheck, unit/integration, docs and static export pass on the latest acceptance head.
+- [x] Existing Phase 5 Preview regression smoke remains green.
+- [x] Existing Phase 6 Preview regression smoke remains green.
+- [x] Dedicated Phase 7 Preview smoke passes.
 - [ ] Production Deploy and dedicated Phase 7 Production smoke pass with auditable evidence.
