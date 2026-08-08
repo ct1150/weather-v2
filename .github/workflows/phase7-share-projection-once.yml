@@ -25,54 +25,15 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - name: Keep URL shares portable
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-          path = Path('apps/web/src/trips/workspace.ts')
-          text = path.read_text()
-          old = '''export function encodeWorkspaceShare(workspace: TripWorkspace): string {
-  const payload = JSON.stringify(normalizeWorkspace(workspace, workspace.updatedAt));
-  if (payload.length > MAX_SHARE_PAYLOAD) throw new Error("TRIP_SHARE_PAYLOAD_TOO_LARGE");
-  return bytesToBase64Url(new TextEncoder().encode(payload));
-}
-'''
-          new = '''function portableShareWorkspace(workspace: TripWorkspace): TripWorkspace {
-  const normalized = normalizeWorkspace(workspace, workspace.updatedAt);
-  return {
-    ...normalized,
-    version: 1,
-    days: normalized.days.map((day) => ({
-      id: day.id,
-      dayNumber: day.dayNumber,
-      date: day.date,
-      cityId: day.cityId,
-      cityName: day.cityName,
-      countryName: day.countryName,
-      theme: day.theme,
-      flexible: day.flexible,
-      activities: day.activities,
-      notes: day.notes,
-    })),
-  };
-}
-
-export function encodeWorkspaceShare(workspace: TripWorkspace): string {
-  const payload = JSON.stringify(portableShareWorkspace(workspace));
-  if (payload.length > MAX_SHARE_PAYLOAD) throw new Error("TRIP_SHARE_PAYLOAD_TOO_LARGE");
-  return bytesToBase64Url(new TextEncoder().encode(payload));
-}
-'''
-          if old not in text:
-              raise SystemExit('encodeWorkspaceShare contract changed unexpectedly')
-          path.write_text(text.replace(old, new, 1))
-          PY
+        run: python tooling/phase7-portable-share-patch.py
       - name: Format and verify workspace share
         run: |
           pnpm exec prettier --write apps/web/src/trips/workspace.ts
           pnpm --filter @wnr/web exec vitest run src/trips/workspace.test.ts
-      - name: Commit fix and remove helper
+      - name: Commit fix and remove helpers
         run: |
           rm .github/workflows/phase7-share-projection-once.yml
+          rm tooling/phase7-portable-share-patch.py
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
