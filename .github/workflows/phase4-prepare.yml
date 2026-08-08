@@ -2,7 +2,7 @@ name: Phase 4 prepare once
 
 on:
   issues:
-    types: [opened]
+    types: [opened, edited]
 
 permissions:
   contents: write
