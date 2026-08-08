@@ -84,7 +84,12 @@ const COLD_THRESHOLDS: Record<ActivityRiskPartyProfile, ThresholdPair> = {
 
 const WIND_THRESHOLDS: Record<
   ActivityRiskPartyProfile,
-  { readonly watch: number; readonly high: number; readonly gustWatch: number; readonly gustHigh: number }
+  {
+    readonly watch: number;
+    readonly high: number;
+    readonly gustWatch: number;
+    readonly gustHigh: number;
+  }
 > = {
   adults: { watch: 25, high: 35, gustWatch: 40, gustHigh: 50 },
   family: { watch: 22, high: 30, gustWatch: 36, gustHigh: 44 },
@@ -105,7 +110,9 @@ function formatClock(minutes: number): string {
   return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
 }
 
-function resolveWindow(activity: TripActivity): { readonly start: number; readonly end: number } | null {
+function resolveWindow(
+  activity: TripActivity,
+): { readonly start: number; readonly end: number } | null {
   const start = parseClock(activity.startTime);
   if (start === null) return null;
   const explicitEnd = parseClock(activity.endTime);
