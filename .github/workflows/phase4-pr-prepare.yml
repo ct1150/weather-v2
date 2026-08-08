@@ -29,7 +29,6 @@ jobs:
           find workers/trip-api/src -name '*.test.ts' -print0 | xargs -0 sed -i 's/"0003_collaboration.sql"\]/"0003_collaboration.sql", "0004_collaboration_intelligence.sql"\]/g'
           pnpm exec prettier --write \
             docs/superpowers/plans/2026-08-08-cloud-trip-phase4-collaboration-intelligence.md \
-            workers/trip-api/migrations/0004_collaboration_intelligence.sql \
             workers/trip-api/src/collaboration-intelligence.ts \
             workers/trip-api/src/collaboration-intelligence-routes.ts \
             workers/trip-api/src/collaboration-intelligence-migration.test.ts \
