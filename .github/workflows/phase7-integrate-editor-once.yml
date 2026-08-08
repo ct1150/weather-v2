@@ -1,0 +1,68 @@
+name: Phase 7 integrate editor once
+
+on:
+  push:
+    branches: [feature/activity-intelligence-phase7]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/activity-intelligence-phase7
+          fetch-depth: 0
+      - name: Integrate structured activity editor
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          editor = Path('apps/web/src/components/StructuredActivityEditor.tsx')
+          text = editor.read_text()
+          text = text.replace('        {day.version === undefined ? null : null}\n', '')
+          editor.write_text(text)
+
+          path = Path('apps/web/src/components/TripWorkspace.tsx')
+          text = path.read_text()
+          old = 'import { CloudTripControls } from "./CloudTripControls";\n'
+          new = old + 'import { StructuredActivityEditor } from "./StructuredActivityEditor";\n'
+          assert old in text
+          text = text.replace(old, new, 1)
+          old = '''                    activities: event.target.value\n                      .split("\\n")\n                      .map((item) => item.trim())\n                      .filter(Boolean)\n                      .slice(0, 12),\n'''
+          new = old + '                    activityItems: [],\n'
+          assert old in text
+          text = text.replace(old, new, 1)
+          old = '''      </details>\n    </article>\n'''
+          new = '''      </details>\n\n      <StructuredActivityEditor\n        locale="zh-cn"\n        day={day}\n        forecast={forecast}\n        onChange={onChange}\n      />\n    </article>\n'''
+          assert old in text
+          text = text.replace(old, new, 1)
+          path.write_text(text)
+
+          path = Path('apps/web/src/components/LocalizedTripWorkspace.tsx')
+          text = path.read_text()
+          old = 'import { CloudTripControls } from "./CloudTripControls";\n'
+          new = old + 'import { StructuredActivityEditor } from "./StructuredActivityEditor";\n'
+          assert old in text
+          text = text.replace(old, new, 1)
+          old = '''                    activities: event.target.value\n                      .split("\\n")\n                      .map((item) => item.trim())\n                      .filter(Boolean)\n                      .slice(0, 12),\n'''
+          new = old + '                    activityItems: [],\n'
+          assert old in text
+          text = text.replace(old, new, 1)
+          old = '''      </details>\n    </article>\n'''
+          new = '''      </details>\n\n      <StructuredActivityEditor\n        locale={locale}\n        day={day}\n        forecast={forecast}\n        onChange={onChange}\n      />\n    </article>\n'''
+          assert old in text
+          text = text.replace(old, new, 1)
+          path.write_text(text)
+          PY
+      - name: Commit integration and remove helper
+        run: |
+          rm .github/workflows/phase7-integrate-editor-once.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "feat(activity): integrate structured activity editor"
+          git push origin HEAD:feature/activity-intelligence-phase7
