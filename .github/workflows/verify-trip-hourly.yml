@@ -25,31 +25,21 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Wait for Preview hourly route and persisted coverage
-        env:
-          READ_URL: https://where-not-rain-read-preview.ct1150.workers.dev
+      - name: Verify Phase 8 hourly Preview contract against one live worker generation
         run: |
           set -euo pipefail
           DATE="$(date -u +%F)"
           for attempt in $(seq 1 90); do
-            STATUS="$(curl --silent --show-error --output /tmp/phase8-hourly.json --write-out '%{http_code}' \
-              "${READ_URL}/api/v1/trip-hourly?cityIds=jp-tokyo&date=${DATE}&startHour=8&endHour=12&locale=en" || true)"
-            if [ "$STATUS" = "200" ] && node -e "const x=require('/tmp/phase8-hourly.json'); process.exit(Array.isArray(x.data?.coverage?.availableCityIds)&&x.data.coverage.availableCityIds.includes('jp-tokyo')?0:1)"; then
+            if node tooling/deploy/trip-hourly-smoke.mjs \
+              --read-url "https://where-not-rain-read-preview.ct1150.workers.dev" \
+              --city jp-tokyo \
+              --date "$DATE"; then
               exit 0
             fi
             sleep 5
           done
-          echo "::error::Phase 8 Preview hourly route or persisted Tokyo coverage did not become ready"
-          cat /tmp/phase8-hourly.json || true
+          echo "::error::Phase 8 Preview hourly contract did not become ready on a stable worker generation"
           exit 1
-      - name: Verify Phase 8 hourly Preview contract
-        env:
-          DATE: ${{ env.DATE }}
-        run: |
-          node tooling/deploy/trip-hourly-smoke.mjs \
-            --read-url "https://where-not-rain-read-preview.ct1150.workers.dev" \
-            --city jp-tokyo \
-            --date "$(date -u +%F)"
 
   production:
     if: >-
