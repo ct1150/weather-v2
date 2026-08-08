@@ -162,13 +162,18 @@ describe("Phase 8 replan apply boundary", () => {
     );
 
     expect(response.status).toBe(200);
-    expect(await body(response)).toMatchObject({
+    const applied = await body<{
       data: {
-        version: 2,
+        version: number;
         document: {
-          days: [{ activityItems: [{ id: "garden", startTime: "11:00" }] }],
-        },
-      },
+          days: Array<{ activityItems: Array<{ id: string; startTime: string | null }> }>;
+        };
+      };
+    }>(response);
+    expect(applied.data.version).toBe(2);
+    expect(applied.data.document.days[0]?.activityItems[0]).toMatchObject({
+      id: "garden",
+      startTime: "11:00",
     });
 
     const revisions = await handleRequest(request(`/api/v1/trips/${tripId}/revisions?limit=10`), env);
