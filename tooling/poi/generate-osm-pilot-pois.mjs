@@ -1,5 +1,12 @@
 #!/usr/bin/env node
 
+// Maintenance-only enrichment helper for future POI snapshot refreshes.
+// The committed `poi-catalog-osm.generated.ts` is an immutable reviewed snapshot and may
+// contain node/way/relation source refs produced by an earlier broader query revision.
+// Do not regenerate the committed snapshot during normal builds or deploys. Any refresh
+// must be reviewed as new source data, preserve OSM provenance/attribution and pass the
+// >=50-per-pilot-city catalogue quality gate before replacement.
+
 import { writeFile } from "node:fs/promises";
 
 const cities = [
@@ -228,31 +235,7 @@ for (let cityIndex = 0; cityIndex < cities.length; cityIndex += 1) {
   if (cityIndex < cities.length - 1) await sleep(2_500);
 }
 
-const lines = [
-  "// Generated from OpenStreetMap via tooling/poi/generate-osm-pilot-pois.mjs.",
-  "// Source data © OpenStreetMap contributors, ODbL 1.0.",
-  'import type { CuratedPoi } from "./poi-catalog";',
-  "",
-  "export const OSM_PILOT_POIS: ReadonlyArray<CuratedPoi> = [",
-];
-for (const item of output) {
-  lines.push("  {");
-  lines.push(`    id: ${quote(item.id)},`);
-  lines.push(`    cityId: ${quote(item.cityId)},`);
-  lines.push(`    name: ${quote(item.name)},`);
-  lines.push(`    latitude: ${item.latitude},`);
-  lines.push(`    longitude: ${item.longitude},`);
-  lines.push(`    category: ${quote(item.category)},`);
-  lines.push(`    environment: ${quote(item.environment)},`);
-  lines.push(`    weatherSensitivity: ${quote(item.weatherSensitivity)},`);
-  lines.push(`    typicalDurationMinutes: ${item.typicalDurationMinutes},`);
-  lines.push(`    reservation: ${quote(item.reservation)},`);
-  lines.push(`    recommendedWindow: ${quote(item.recommendedWindow)},`);
-  lines.push(`    provenance: ${quote(item.provenance)},`);
-  lines.push(`    sourceRef: ${quote(item.sourceRef)},`);
-  lines.push("  },");
-}
-lines.push("];", "");
-
-await writeFile("apps/web/src/trips/poi-catalog-osm.generated.ts", `${lines.join("\n")}\n`, "utf8");
-console.log(`Generated ${output.length} OSM POIs.`);
+const header = `// Generated from OpenStreetMap Overpass data.\n// Attribution: © OpenStreetMap contributors, ODbL 1.0.\n// Generated at ${new Date().toISOString()}. Do not hand-edit; regenerate via tooling/poi/generate-osm-pilot-pois.mjs.\n\n`;
+const serialized = `${header}export const OSM_PILOT_POIS = ${quote(output)} as const;\n`;
+await writeFile("apps/web/src/trips/poi-catalog-osm.generated.ts", serialized);
+console.log(`Generated ${output.length} OSM POIs across ${cities.length} pilot cities.`);
