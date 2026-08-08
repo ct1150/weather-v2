@@ -1,4 +1,4 @@
-const MAX_DOCUMENT_BYTES = 96_000;
+const MAX_DOCUMENT_BYTES = 192_000;
 const MAX_DAYS = 16;
 const MAX_ACTIVITIES = 12;
 const MAX_CALENDAR_SPAN_DAYS = 16;
@@ -30,6 +30,50 @@ function boundedString(value: unknown, max: number, allowEmpty = false): value i
   );
 }
 
+function nullableString(value: unknown, max: number): boolean {
+  return value === null || boundedString(value, max, true);
+}
+
+function nullableNumber(value: unknown, min: number, max: number): boolean {
+  return (
+    value === null ||
+    (typeof value === "number" && Number.isFinite(value) && value >= min && value <= max)
+  );
+}
+
+function validActivity(value: unknown): boolean {
+  if (!isObject(value)) return false;
+  if (!boundedString(value.id, 160)) return false;
+  if (!boundedString(value.title, 180)) return false;
+  if (!boundedString(value.cityId, 96, true)) return false;
+  if (!nullableString(value.startTime, 5) || !nullableString(value.endTime, 5)) return false;
+  if (!nullableNumber(value.durationMinutes, 10, 1440)) return false;
+  if (!nullableNumber(value.latitude, -90, 90) || !nullableNumber(value.longitude, -180, 180))
+    return false;
+  if (
+    !["attraction", "food", "transport", "hotel", "shopping", "leisure"].includes(
+      String(value.category),
+    )
+  )
+    return false;
+  if (!["indoor", "outdoor", "mixed"].includes(String(value.environment))) return false;
+  if (!Array.isArray(value.weatherSensitivity) || value.weatherSensitivity.length > 5) return false;
+  if (
+    !value.weatherSensitivity.every((item) =>
+      ["rain", "heat", "cold", "wind", "uv"].includes(String(item)),
+    )
+  )
+    return false;
+  if (!["fixed", "movable", "flexible"].includes(String(value.flexibility))) return false;
+  if (!["none", "recommended", "required"].includes(String(value.reservation))) return false;
+  if (!["must", "preferred", "optional"].includes(String(value.priority))) return false;
+  if (!nullableString(value.poiId, 160)) return false;
+  if (!Array.isArray(value.alternatives) || value.alternatives.length > 8) return false;
+  if (!value.alternatives.every((item) => boundedString(item, 160))) return false;
+  if (!boundedString(value.notes, 500, true)) return false;
+  return true;
+}
+
 function validDay(value: unknown): value is Record<string, unknown> {
   if (!isObject(value)) return false;
   if (!boundedString(value.id, 128)) return false;
@@ -42,6 +86,11 @@ function validDay(value: unknown): value is Record<string, unknown> {
   if (typeof value.flexible !== "boolean") return false;
   if (!Array.isArray(value.activities) || value.activities.length > MAX_ACTIVITIES) return false;
   if (!value.activities.every((item) => boundedString(item, 300))) return false;
+  if (value.activityItems !== undefined) {
+    if (!Array.isArray(value.activityItems) || value.activityItems.length > MAX_ACTIVITIES)
+      return false;
+    if (!value.activityItems.every(validActivity)) return false;
+  }
   if (!boundedString(value.notes, 500, true)) return false;
   return true;
 }
@@ -60,7 +109,7 @@ export function validateTripDocument(value: unknown): ValidTripDocument | null {
   if (!isObject(value)) return null;
   const encoded = JSON.stringify(value);
   if (new TextEncoder().encode(encoded).byteLength > MAX_DOCUMENT_BYTES) return null;
-  if (value.version !== 1) return null;
+  if (value.version !== 1 && value.version !== 2) return null;
   if (!boundedString(value.id, 128)) return null;
   if (!boundedString(value.title, 120)) return null;
   if (!["adults", "family", "senior"].includes(String(value.partyProfile))) return null;

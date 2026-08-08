@@ -13,6 +13,7 @@ export interface RevisionChange {
     | "day.theme"
     | "day.flexible"
     | "day.activities"
+    | "day.activityItems"
     | "day.notes";
   readonly dayId: string | null;
   readonly dayNumber: number | null;
@@ -41,6 +42,7 @@ interface TripDay {
   readonly theme: string;
   readonly flexible: boolean;
   readonly activities: ReadonlyArray<string>;
+  readonly activityItems: ReadonlyArray<unknown>;
   readonly notes: string;
 }
 
@@ -66,6 +68,7 @@ function asDay(value: unknown): TripDay | null {
     activities: Array.isArray(row.activities)
       ? row.activities.filter((item): item is string => typeof item === "string")
       : [],
+    activityItems: Array.isArray(row.activityItems) ? row.activityItems : [],
     notes: typeof row.notes === "string" ? row.notes : "",
   };
 }
@@ -170,6 +173,7 @@ export function diffRevisionDocuments(
     pushChanged(changes, "day.theme", previous.theme, day.theme, day);
     pushChanged(changes, "day.flexible", previous.flexible, day.flexible, day);
     pushChanged(changes, "day.activities", previous.activities, day.activities, day);
+    pushChanged(changes, "day.activityItems", previous.activityItems, day.activityItems, day);
     pushChanged(changes, "day.notes", previous.notes, day.notes, day);
   }
 
