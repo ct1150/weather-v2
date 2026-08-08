@@ -14,6 +14,7 @@ CREATE TABLE IF NOT EXISTS trip_activity (
     'decision_reopened',
     'decision_deleted'
   )),
+  revision_version INTEGER,
   payload_json TEXT NOT NULL,
   created_at TEXT NOT NULL,
   FOREIGN KEY (trip_id) REFERENCES trips(id) ON DELETE CASCADE
@@ -21,6 +22,10 @@ CREATE TABLE IF NOT EXISTS trip_activity (
 
 CREATE INDEX IF NOT EXISTS idx_trip_activity_trip_created
   ON trip_activity(trip_id, created_at DESC);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_trip_activity_revision
+  ON trip_activity(trip_id, revision_version)
+  WHERE kind = 'revision' AND revision_version IS NOT NULL;
 
 CREATE TABLE IF NOT EXISTS trip_comments (
   id TEXT PRIMARY KEY,
@@ -65,6 +70,7 @@ INSERT OR IGNORE INTO trip_activity (
   actor_user_id,
   actor_email_normalized,
   kind,
+  revision_version,
   payload_json,
   created_at
 )
@@ -74,6 +80,7 @@ SELECT
   actor_user_id,
   NULL,
   'revision',
+  version,
   json_object('version', version, 'operation', operation),
   created_at
 FROM trip_revisions;
