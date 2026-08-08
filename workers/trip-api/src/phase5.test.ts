@@ -41,7 +41,8 @@ function request(
   headers.set("authorization", `Bearer ${smokeToken}`);
   headers.set("x-wnr-smoke-user", user);
   headers.set("x-wnr-smoke-email", email);
-  if (init.body !== undefined && !headers.has("content-type")) headers.set("content-type", "application/json");
+  if (init.body !== undefined && !headers.has("content-type"))
+    headers.set("content-type", "application/json");
   return new Request(`https://trip.example.test${path}`, { ...init, headers });
 }
 
@@ -49,7 +50,12 @@ async function body<T>(response: Response): Promise<T> {
   return (await response.json()) as T;
 }
 
-function weatherResponse(snapshotId: string, dataUpdatedAt: string, rainProbability: number, precipitationMm: number): Response {
+function weatherResponse(
+  snapshotId: string,
+  dataUpdatedAt: string,
+  rainProbability: number,
+  precipitationMm: number,
+): Response {
   return Response.json({
     data: {
       snapshotId,
@@ -146,7 +152,10 @@ describe("Trip API phase 5 weather intelligence", () => {
   it("creates a silent baseline, emits one actionable deterioration insight and stays idempotent", async () => {
     const tripId = await createTrip(env);
 
-    const baseline = await handleRequest(request(`/api/v1/trips/${tripId}/weather-refresh`, { method: "POST" }), env);
+    const baseline = await handleRequest(
+      request(`/api/v1/trips/${tripId}/weather-refresh`, { method: "POST" }),
+      env,
+    );
     expect(baseline.status).toBe(200);
     expect(await body(baseline)).toMatchObject({
       data: { baselinesCreated: 1, observationsCreated: 1, insightsCreated: 0 },
@@ -164,7 +173,14 @@ describe("Trip API phase 5 weather intelligence", () => {
     const insights = await handleRequest(request(`/api/v1/trips/${tripId}/weather-insights`), env);
     expect(insights.status).toBe(200);
     const payload = await body<{
-      data: { items: Array<{ id: string; severity: string; recommendation: string; reasonCodes: string[] }> };
+      data: {
+        items: Array<{
+          id: string;
+          severity: string;
+          recommendation: string;
+          reasonCodes: string[];
+        }>;
+      };
     }>(insights);
     expect(payload.data.items).toHaveLength(1);
     expect(payload.data.items[0]).toMatchObject({
@@ -175,28 +191,48 @@ describe("Trip API phase 5 weather intelligence", () => {
       expect.arrayContaining(["RAIN_PROBABILITY_JUMP", "HEAVY_RAIN_THRESHOLD"]),
     );
 
-    const retry = await handleRequest(request(`/api/v1/trips/${tripId}/weather-refresh`, { method: "POST" }), env);
-    expect(await body(retry)).toMatchObject({ data: { observationsCreated: 0, insightsCreated: 0 } });
+    const retry = await handleRequest(
+      request(`/api/v1/trips/${tripId}/weather-refresh`, { method: "POST" }),
+      env,
+    );
+    expect(await body(retry)).toMatchObject({
+      data: { observationsCreated: 0, insightsCreated: 0 },
+    });
 
-    const afterRetry = await handleRequest(request(`/api/v1/trips/${tripId}/weather-insights`), env);
+    const afterRetry = await handleRequest(
+      request(`/api/v1/trips/${tripId}/weather-insights`),
+      env,
+    );
     expect((await body<{ data: { items: unknown[] } }>(afterRetry)).data.items).toHaveLength(1);
   });
 
   it("keeps viewers read-only and converts an insight to exactly one Phase 4 decision", async () => {
     const tripId = await createTrip(env);
     await addViewer(env, tripId);
-    await handleRequest(request(`/api/v1/trips/${tripId}/weather-refresh`, { method: "POST" }), env);
-    await handleRequest(request(`/api/v1/trips/${tripId}/weather-refresh`, { method: "POST" }), env);
+    await handleRequest(
+      request(`/api/v1/trips/${tripId}/weather-refresh`, { method: "POST" }),
+      env,
+    );
+    await handleRequest(
+      request(`/api/v1/trips/${tripId}/weather-refresh`, { method: "POST" }),
+      env,
+    );
 
     const viewerList = await handleRequest(
       request(`/api/v1/trips/${tripId}/weather-insights`, {}, "viewer-a", "viewer@example.com"),
       env,
     );
     expect(viewerList.status).toBe(200);
-    const insightId = (await body<{ data: { items: Array<{ id: string }> } }>(viewerList)).data.items[0]!.id;
+    const insightId = (await body<{ data: { items: Array<{ id: string }> } }>(viewerList)).data
+      .items[0]!.id;
 
     const viewerRefresh = await handleRequest(
-      request(`/api/v1/trips/${tripId}/weather-refresh`, { method: "POST" }, "viewer-a", "viewer@example.com"),
+      request(
+        `/api/v1/trips/${tripId}/weather-refresh`,
+        { method: "POST" },
+        "viewer-a",
+        "viewer@example.com",
+      ),
       env,
     );
     expect(viewerRefresh.status).toBe(403);
@@ -227,9 +263,13 @@ describe("Trip API phase 5 weather intelligence", () => {
     expect(await body(convertedAgain)).toMatchObject({ data: { decisionId, existing: true } });
 
     const decisions = await handleRequest(request(`/api/v1/trips/${tripId}/decisions`), env);
-    const decisionPayload = await body<{ data: { items: Array<{ id: string; dayId: string }> } }>(decisions);
+    const decisionPayload = await body<{ data: { items: Array<{ id: string; dayId: string }> } }>(
+      decisions,
+    );
     expect(decisionPayload.data.items.filter((item) => item.id === decisionId)).toHaveLength(1);
-    expect(decisionPayload.data.items.find((item) => item.id === decisionId)).toMatchObject({ dayId: "day-1" });
+    expect(decisionPayload.data.items.find((item) => item.id === decisionId)).toMatchObject({
+      dayId: "day-1",
+    });
   });
 
   it("hides private weather intelligence from non-members and advertises phase 5 capabilities", async () => {

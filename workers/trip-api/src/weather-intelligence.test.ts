@@ -96,8 +96,18 @@ describe("Phase 5 weather intelligence", () => {
       windSpeedKph: 30,
     });
 
-    const outdoor = assessWeatherChange({ previous, current, theme: "outdoor", partyProfile: "adults" });
-    const indoor = assessWeatherChange({ previous, current, theme: "indoor", partyProfile: "adults" });
+    const outdoor = assessWeatherChange({
+      previous,
+      current,
+      theme: "outdoor",
+      partyProfile: "adults",
+    });
+    const indoor = assessWeatherChange({
+      previous,
+      current,
+      theme: "indoor",
+      partyProfile: "adults",
+    });
 
     expect(outdoor.impactScore).toBeGreaterThan(indoor.impactScore);
     expect(outdoor.severity).toBe("action");

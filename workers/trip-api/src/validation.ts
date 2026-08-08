@@ -47,7 +47,9 @@ function validDay(value: unknown): value is Record<string, unknown> {
 }
 
 function calendarSpanDays(from: string, to: string): number {
-  return Math.floor((Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / 86_400_000) + 1;
+  return (
+    Math.floor((Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / 86_400_000) + 1
+  );
 }
 
 export function parseLocale(value: unknown): TripLocale | null {

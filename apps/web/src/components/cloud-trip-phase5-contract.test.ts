@@ -3,7 +3,10 @@ import { describe, expect, it } from "vitest";
 
 const controls = readFileSync(new URL("./CloudTripControls.tsx", import.meta.url), "utf8");
 const panel = readFileSync(new URL("./TripWeatherIntelligencePanel.tsx", import.meta.url), "utf8");
-const client = readFileSync(new URL("../trips/weather-intelligence-client.ts", import.meta.url), "utf8");
+const client = readFileSync(
+  new URL("../trips/weather-intelligence-client.ts", import.meta.url),
+  "utf8",
+);
 
 describe("Cloud Trip phase 5 UX contract", () => {
   it("integrates weather intelligence into signed-in cloud trips", () => {

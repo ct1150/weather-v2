@@ -668,10 +668,22 @@ export default {
 
   async scheduled(controller: ScheduledController, env: WorkerEnv): Promise<void> {
     if (env.WEATHER_READ === undefined) {
-      console.warn(JSON.stringify({ service: "trip-api", event: "weather_monitor_skipped", reason: "binding_missing" }));
+      console.warn(
+        JSON.stringify({
+          service: "trip-api",
+          event: "weather_monitor_skipped",
+          reason: "binding_missing",
+        }),
+      );
       return;
     }
-    const report = await runScheduledWeatherMonitor(env.DB, env.WEATHER_READ, new Date(controller.scheduledTime));
-    console.log(JSON.stringify({ service: "trip-api", event: "weather_monitor_completed", ...report }));
+    const report = await runScheduledWeatherMonitor(
+      env.DB,
+      env.WEATHER_READ,
+      new Date(controller.scheduledTime),
+    );
+    console.log(
+      JSON.stringify({ service: "trip-api", event: "weather_monitor_completed", ...report }),
+    );
   },
 } satisfies ExportedHandler<WorkerEnv>;

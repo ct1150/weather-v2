@@ -83,9 +83,7 @@ export async function listCloudWeatherInsights(
   return result.items;
 }
 
-export async function refreshCloudTripWeather(
-  tripId: string,
-): Promise<CloudWeatherRefreshReport> {
+export async function refreshCloudTripWeather(tripId: string): Promise<CloudWeatherRefreshReport> {
   return api<CloudWeatherRefreshReport>(
     `/api/v1/trips/${encodeURIComponent(tripId)}/weather-refresh`,
     { method: "POST" },

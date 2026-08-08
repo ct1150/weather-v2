@@ -239,18 +239,33 @@ export function TripWeatherIntelligencePanel({
   const openCount = useMemo(() => items.filter((item) => item.status === "open").length, [items]);
 
   return (
-    <section className="mt-4 rounded-xl border border-border/80 bg-surface-elevated p-4" data-weather-intelligence="phase-5">
+    <section
+      className="mt-4 rounded-xl border border-border/80 bg-surface-elevated p-4"
+      data-weather-intelligence="phase-5"
+    >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <button type="button" className="text-left text-sm font-bold text-foreground" onClick={toggle}>
-            {open ? copy.close : copy.open}{openCount > 0 ? ` · ${openCount}` : ""}
+          <button
+            type="button"
+            className="text-left text-sm font-bold text-foreground"
+            onClick={toggle}
+          >
+            {open ? copy.close : copy.open}
+            {openCount > 0 ? ` · ${openCount}` : ""}
           </button>
           <p className="mt-1 max-w-2xl text-xs leading-5 text-muted">{copy.intro}</p>
         </div>
         <div className="flex items-center gap-2">
-          {!writable ? <span className="text-xs font-semibold text-muted">{copy.viewer}</span> : null}
+          {!writable ? (
+            <span className="text-xs font-semibold text-muted">{copy.viewer}</span>
+          ) : null}
           {open && writable ? (
-            <button type="button" className="trip-secondary-button" disabled={loading} onClick={() => void refresh()}>
+            <button
+              type="button"
+              className="trip-secondary-button"
+              disabled={loading}
+              onClick={() => void refresh()}
+            >
               {loading ? copy.checking : copy.refresh}
             </button>
           ) : null}
@@ -260,8 +275,12 @@ export function TripWeatherIntelligencePanel({
       {open ? (
         <div className="mt-4 grid gap-3">
           {message.length > 0 ? <p className="text-xs leading-5 text-muted">{message}</p> : null}
-          {loading && items.length === 0 ? <p className="text-xs text-muted">{copy.checking}</p> : null}
-          {!loading && items.length === 0 ? <p className="text-sm text-muted">{copy.empty}</p> : null}
+          {loading && items.length === 0 ? (
+            <p className="text-xs text-muted">{copy.checking}</p>
+          ) : null}
+          {!loading && items.length === 0 ? (
+            <p className="text-sm text-muted">{copy.empty}</p>
+          ) : null}
           {items.map((insight) => {
             const changed = changes(insight.previous, insight.current, copy);
             return (
@@ -276,37 +295,57 @@ export function TripWeatherIntelligencePanel({
                       <span className="rounded-full bg-surface-elevated px-2.5 py-1 text-[11px] font-bold text-foreground">
                         {insight.severity === "action" ? copy.action : copy.watch}
                       </span>
-                      <strong className="text-sm text-foreground">D{insight.dayNumber} · {insight.cityName}</strong>
+                      <strong className="text-sm text-foreground">
+                        D{insight.dayNumber} · {insight.cityName}
+                      </strong>
                       <span className="text-xs text-muted">{insight.date}</span>
                     </div>
-                    <p className="mt-2 text-xs font-semibold text-muted">{copy.impact}: {insight.impactScore}/100</p>
+                    <p className="mt-2 text-xs font-semibold text-muted">
+                      {copy.impact}: {insight.impactScore}/100
+                    </p>
                   </div>
-                  <div className="text-right text-xs text-muted">{new Date(insight.createdAt).toLocaleString()}</div>
+                  <div className="text-right text-xs text-muted">
+                    {new Date(insight.createdAt).toLocaleString()}
+                  </div>
                 </div>
 
                 <div className="mt-4 grid gap-4 md:grid-cols-2">
                   <div>
-                    <h4 className="text-xs font-bold uppercase tracking-[0.08em] text-muted">{copy.whatChanged}</h4>
+                    <h4 className="text-xs font-bold uppercase tracking-[0.08em] text-muted">
+                      {copy.whatChanged}
+                    </h4>
                     <ul className="mt-2 grid gap-1 text-sm text-foreground">
-                      {changed.map((item) => <li key={item}>{item}</li>)}
+                      {changed.map((item) => (
+                        <li key={item}>{item}</li>
+                      ))}
                     </ul>
                   </div>
                   <div>
-                    <h4 className="text-xs font-bold uppercase tracking-[0.08em] text-muted">{copy.reasons}</h4>
+                    <h4 className="text-xs font-bold uppercase tracking-[0.08em] text-muted">
+                      {copy.reasons}
+                    </h4>
                     <ul className="mt-2 grid gap-1 text-sm text-foreground">
-                      {insight.reasonCodes.map((reason) => <li key={reason}>• {REASONS[locale][reason]}</li>)}
+                      {insight.reasonCodes.map((reason) => (
+                        <li key={reason}>• {REASONS[locale][reason]}</li>
+                      ))}
                     </ul>
                   </div>
                 </div>
 
                 <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl bg-surface-elevated p-3">
                   <p className="text-sm font-semibold text-foreground">
-                    {copy.recommendation}: {insight.recommendation === "activate_plan_b" ? copy.planB : copy.adjust}
+                    {copy.recommendation}:{" "}
+                    {insight.recommendation === "activate_plan_b" ? copy.planB : copy.adjust}
                   </p>
                   {insight.status === "converted" ? (
                     <span className="text-xs font-bold text-muted">✓ {copy.converted}</span>
                   ) : writable ? (
-                    <button type="button" className="trip-primary-button" disabled={loading} onClick={() => void createDecision(insight)}>
+                    <button
+                      type="button"
+                      className="trip-primary-button"
+                      disabled={loading}
+                      onClick={() => void createDecision(insight)}
+                    >
                       {copy.createDecision}
                     </button>
                   ) : null}

@@ -233,7 +233,8 @@ function mapInsight(row: InsightRow): TripWeatherInsight | null {
 
 function chunk<T>(values: ReadonlyArray<T>, size: number): ReadonlyArray<ReadonlyArray<T>> {
   const chunks: T[][] = [];
-  for (let index = 0; index < values.length; index += size) chunks.push(values.slice(index, index + size));
+  for (let index = 0; index < values.length; index += size)
+    chunks.push(values.slice(index, index + size));
   return chunks;
 }
 
@@ -320,7 +321,8 @@ async function fetchForecasts(
     ) {
       throw new Error("WEATHER_READ_INVALID_RESPONSE");
     }
-    if (snapshotId !== null && snapshotId !== nextSnapshot) throw new Error("WEATHER_SNAPSHOT_CHANGED");
+    if (snapshotId !== null && snapshotId !== nextSnapshot)
+      throw new Error("WEATHER_SNAPSHOT_CHANGED");
     snapshotId = nextSnapshot;
     observedAt = nextObservedAt;
     for (const item of nextItems) items.set(forecastKey(item.cityId, item.date), item);
@@ -344,7 +346,9 @@ async function latestObservation(
     .first<ObservationRow>();
   if (row === null) return null;
   const parsed = parseObservation(row.forecast_json);
-  return parsed === null ? null : { ...parsed, snapshotId: row.weather_snapshot_id, observedAt: row.observed_at };
+  return parsed === null
+    ? null
+    : { ...parsed, snapshotId: row.weather_snapshot_id, observedAt: row.observed_at };
 }
 
 async function persistObservation(
@@ -566,7 +570,17 @@ export async function convertWeatherInsightToDecision(
           "(id, trip_id, created_by_user_id, created_by_email_normalized, title, detail, day_id, status, created_at, updated_at) " +
           "VALUES (?, ?, ?, ?, ?, ?, ?, 'open', ?, ?)",
       )
-      .bind(decisionId, tripId, userId, normalizedEmail, copy.title, copy.detail, row.day_id, now, now),
+      .bind(
+        decisionId,
+        tripId,
+        userId,
+        normalizedEmail,
+        copy.title,
+        copy.detail,
+        row.day_id,
+        now,
+        now,
+      ),
     db
       .prepare(
         "UPDATE trip_weather_insights SET status = 'converted', decision_id = ?, converted_at = ? " +
@@ -584,7 +598,13 @@ export async function convertWeatherInsightToDecision(
         tripId,
         userId,
         normalizedEmail,
-        JSON.stringify({ decisionId, title: copy.title, dayId: row.day_id, source: "weather_insight", insightId }),
+        JSON.stringify({
+          decisionId,
+          title: copy.title,
+          dayId: row.day_id,
+          source: "weather_insight",
+          insightId,
+        }),
         now,
       ),
   ]);

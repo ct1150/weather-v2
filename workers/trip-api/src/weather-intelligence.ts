@@ -151,10 +151,7 @@ export function assessWeatherChange(input: {
     rawImpact += theme === "indoor" ? 6 : 14;
   }
 
-  if (
-    (theme === "beach" || theme === "outdoor") &&
-    crossed(previous.uvIndex, current.uvIndex, 9)
-  ) {
+  if ((theme === "beach" || theme === "outdoor") && crossed(previous.uvIndex, current.uvIndex, 9)) {
     reasons.push("UV_THRESHOLD");
     rawImpact += 12;
   }
