@@ -6,6 +6,10 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: phase7-poi-enrichment
+  cancel-in-progress: true
+
 jobs:
   enrich:
     if: github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'feature/activity-intelligence-phase7'
