@@ -1,0 +1,103 @@
+name: Verify weather discovery
+
+on:
+  pull_request:
+  workflow_run:
+    workflows:
+      - Deploy
+    types:
+      - completed
+
+permissions:
+  contents: write
+
+concurrency:
+  group: phase6-discovery-${{ github.event.pull_request.number || github.event.workflow_run.head_sha || github.sha }}
+  cancel-in-progress: true
+
+jobs:
+  preview:
+    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Wait for Phase 6 preview page
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 90); do
+            if curl --fail --silent --show-error --location \
+              "https://${PR_NUMBER}.where-not-rain.pages.dev/discover" \
+              | grep -Fq "Weather Discovery"; then
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "::error::Phase 6 preview page did not become ready"
+          exit 1
+      - name: Verify Phase 6 preview
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          node tooling/deploy/weather-discovery-smoke.mjs \
+            --site-url "https://${PR_NUMBER}.where-not-rain.pages.dev" \
+            --read-url "https://where-not-rain-read-preview.ct1150.workers.dev"
+
+  production:
+    if: >-
+      github.event_name == 'workflow_run' &&
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_branch == 'main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Verify Phase 6 production
+        run: |
+          node tooling/deploy/weather-discovery-smoke.mjs \
+            --site-url "https://868656.xyz" \
+            --read-url "https://where-not-rain-read-production.ct1150.workers.dev"
+      - name: Record Phase 6 production verification
+        env:
+          DEPLOY_HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          DEPLOY_RUN_URL: ${{ github.event.workflow_run.html_url }}
+        run: |
+          cat > PHASE6_DISCOVERY_SMOKE_STATUS.md <<EOF
+          # Phase 6 Weather Discovery smoke status
+
+          - Conclusion: success
+          - Deploy head SHA: ${DEPLOY_HEAD_SHA}
+          - Deploy run: ${DEPLOY_RUN_URL}
+          - Verified at: $(date -u +%Y-%m-%dT%H:%M:%SZ)
+
+          ## Checks
+
+          - English `/discover` route: success
+          - Simplified Chinese `/zh-cn/discover` route: success
+          - Traditional Chinese `/zh-hant/discover` route: success
+          - Weather city catalogue: success
+          - Batched 12-city forecast reads: success
+          - Cross-batch snapshot consistency: success
+          - 16-day API bound enforcement: success
+          EOF
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add PHASE6_DISCOVERY_SMOKE_STATUS.md
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git commit -m "chore(smoke): record phase 6 discovery verification [skip ci]"
+          git pull --rebase origin main
+          git push origin HEAD:main

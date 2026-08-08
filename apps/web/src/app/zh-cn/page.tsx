@@ -62,6 +62,14 @@ export default async function SimplifiedChineseHome(): Promise<ReactElement> {
           <p className="mt-4 max-w-2xl text-base leading-7 text-muted sm:text-lg">
             选择一个国家和旅行日期，在地图上直接比较全部旅游城市的预计降雨、气温和旅行评分，不用逐个打开详情页。
           </p>
+          <div className="mt-6 flex flex-wrap gap-3">
+            <a
+              href="/zh-cn/discover"
+              className="rounded-full bg-foreground px-5 py-3 text-sm font-bold text-white shadow-lg shadow-foreground/15 transition hover:-translate-y-0.5 hover:bg-primary focus-ring"
+            >
+              按天气条件选城市 →
+            </a>
+          </div>
         </div>
       </section>
 

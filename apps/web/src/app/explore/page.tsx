@@ -56,6 +56,14 @@ export function ExplorerPage({ viewModel }: ExplorerPageProps) {
             <p className="mt-3 max-w-2xl text-base text-muted">
               Browse every destination, then use the map to see where your best options cluster.
             </p>
+            <div className="mt-5 flex flex-wrap gap-3">
+              <a
+                href="/discover"
+                className="rounded-full bg-foreground px-5 py-3 text-sm font-bold text-white shadow-lg shadow-foreground/15 transition hover:-translate-y-0.5 hover:bg-primary focus-ring"
+              >
+                Use exact dates &amp; weather intent →
+              </a>
+            </div>
           </div>
           <div className="shrink-0 rounded-2xl border border-border/80 bg-surface-elevated px-5 py-4">
             <p className="text-[10px] font-bold uppercase tracking-[0.13em] text-muted">
