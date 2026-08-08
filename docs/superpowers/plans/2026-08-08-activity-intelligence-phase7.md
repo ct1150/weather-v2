@@ -61,6 +61,8 @@ The catalogue combines a manually curated high-confidence base with an attribute
 
 Automated catalogue tests require **at least 50 POIs for every pilot city**, valid coordinates, unique IDs, supported provenance and localized names. This satisfies the approved 50–150/city Phase 7 scale gate without inventing coordinates or unlabeled source data.
 
+The Structured Activity editor also presents a visible `© OpenStreetMap contributors · ODbL` attribution link next to the POI experience, with a contract test preventing accidental removal.
+
 ## Slice D — Structured activity editor
 
 Delivered:
@@ -92,6 +94,7 @@ Completed before Preview gate:
 - structured revision-diff tests;
 - seven-city >=50 POI quality gate;
 - focused Workspace v2 creation + migration tests;
+- visible OpenStreetMap attribution + contract coverage;
 - dedicated Phase 7 Preview/Production smoke workflow and Cloud smoke runner;
 - prior Phase 5 Weather Intelligence regression remains independently exercised.
 
@@ -114,6 +117,7 @@ Remaining release gates:
 - [x] Structured activity editor works in EN / zh-CN / zh-Hant.
 - [x] Seven pilot cities have POI catalogues with required weather attributes and provenance.
 - [x] POI catalogue reaches at least 50 records per pilot city under an automated quality gate.
+- [x] OpenStreetMap-derived POI data is visibly attributed in the product UI.
 - [x] Fixed/movable/flexible and reservation constraints persist.
 - [x] Weather-sensitive activities can receive concrete indoor Plan B candidates.
 - [x] Fixed/reservation activities are never presented as silently movable.
