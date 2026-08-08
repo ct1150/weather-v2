@@ -28,6 +28,11 @@ describe("Cloud Trip phase 4 UX contract", () => {
     expect(client).toContain("/diff");
   });
 
+  it("anchors contextual comments to the current cloud version", () => {
+    expect(panel).toContain("currentVersion");
+    expect(panel).toContain("revisionVersion");
+  });
+
   it("keeps Viewer read only and destructive moderation owner-only", () => {
     expect(panel).toContain('const writable = accessRole !== "viewer"');
     expect(panel).toContain('const owner = accessRole === "owner"');
