@@ -192,12 +192,16 @@ export function toTraditionalWorkspace(workspace: TripWorkspace): TripWorkspace 
       cityName: toTraditionalText(day.cityName),
       countryName: toTraditionalText(day.countryName),
       activities: day.activities.map(toTraditionalText),
-      activityItems: day.activityItems?.map((activity) => ({
-        ...activity,
-        title: toTraditionalText(activity.title),
-        alternatives: activity.alternatives.map(toTraditionalText),
-        notes: toTraditionalText(activity.notes),
-      })),
+      ...(day.activityItems === undefined
+        ? {}
+        : {
+            activityItems: day.activityItems.map((activity) => ({
+              ...activity,
+              title: toTraditionalText(activity.title),
+              alternatives: activity.alternatives.map(toTraditionalText),
+              notes: toTraditionalText(activity.notes),
+            })),
+          }),
       notes: toTraditionalText(day.notes),
     })),
   };
