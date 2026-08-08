@@ -226,10 +226,7 @@ function fieldLabel(
   return copy.fieldNotes;
 }
 
-function activityText(
-  item: CloudTripActivity,
-  copy: (typeof COPY)[CloudTripLocale],
-): string {
+function activityText(item: CloudTripActivity, copy: (typeof COPY)[CloudTripLocale]): string {
   if (item.kind === "comment_created") return copy.addedComment;
   if (item.kind === "comment_deleted") return copy.deletedComment;
   if (item.kind === "decision_created") return copy.createdDecision;
@@ -306,12 +303,7 @@ export function TripCollaborationPanel({
     if (!writable || commentBody.trim().length === 0) return;
     setLoading(true);
     try {
-      await createCloudTripComment(
-        tripId,
-        commentBody.trim(),
-        commentDay || null,
-        currentVersion,
-      );
+      await createCloudTripComment(tripId, commentBody.trim(), commentDay || null, currentVersion);
       setCommentBody("");
       await refresh();
       setTab("comments");
@@ -425,7 +417,11 @@ export function TripCollaborationPanel({
                   {copy.viewer}
                 </span>
               ) : null}
-              <button type="button" className="trip-secondary-button" onClick={() => void refresh()}>
+              <button
+                type="button"
+                className="trip-secondary-button"
+                onClick={() => void refresh()}
+              >
                 {copy.refresh}
               </button>
             </div>
@@ -495,7 +491,10 @@ export function TripCollaborationPanel({
                             <p className="text-xs text-muted">{copy.noChanges}</p>
                           ) : (
                             diff.changes.map((change, index) => (
-                              <div key={`${change.field}-${change.dayId ?? "trip"}-${index}`} className="rounded-lg bg-white p-2 text-xs">
+                              <div
+                                key={`${change.field}-${change.dayId ?? "trip"}-${index}`}
+                                className="rounded-lg bg-white p-2 text-xs"
+                              >
                                 <strong className="text-foreground">
                                   {change.dayNumber === null ? "" : `D${change.dayNumber} · `}
                                   {fieldLabel(change.field, copy)}
@@ -545,7 +544,11 @@ export function TripCollaborationPanel({
                     <span className="text-xs text-muted">
                       {copy.revisionContext}: v{currentVersion}
                     </span>
-                    <button type="button" className="trip-primary-button" onClick={() => void addComment()}>
+                    <button
+                      type="button"
+                      className="trip-primary-button"
+                      onClick={() => void addComment()}
+                    >
                       {copy.addComment}
                     </button>
                   </div>
@@ -558,16 +561,28 @@ export function TripCollaborationPanel({
                   <article key={comment.id} className="rounded-xl border border-border/80 p-3">
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <p className="text-xs font-semibold text-foreground">{comment.authorEmail}</p>
-                        <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-foreground">{comment.body}</p>
+                        <p className="text-xs font-semibold text-foreground">
+                          {comment.authorEmail}
+                        </p>
+                        <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-foreground">
+                          {comment.body}
+                        </p>
                         <p className="mt-2 text-xs text-muted">
-                          {[dayLabel(workspace, comment.dayId), `v${comment.revisionVersion ?? currentVersion}`, new Date(comment.createdAt).toLocaleString()]
+                          {[
+                            dayLabel(workspace, comment.dayId),
+                            `v${comment.revisionVersion ?? currentVersion}`,
+                            new Date(comment.createdAt).toLocaleString(),
+                          ]
                             .filter(Boolean)
                             .join(" · ")}
                         </p>
                       </div>
                       {owner ? (
-                        <button type="button" className="trip-secondary-button" onClick={() => void removeComment(comment.id)}>
+                        <button
+                          type="button"
+                          className="trip-secondary-button"
+                          onClick={() => void removeComment(comment.id)}
+                        >
                           {copy.delete}
                         </button>
                       ) : null}
@@ -612,7 +627,11 @@ export function TripCollaborationPanel({
                         ))}
                       </select>
                     </label>
-                    <button type="button" className="trip-primary-button" onClick={() => void addDecision()}>
+                    <button
+                      type="button"
+                      className="trip-primary-button"
+                      onClick={() => void addDecision()}
+                    >
                       {copy.addDecision}
                     </button>
                   </div>
@@ -630,26 +649,39 @@ export function TripCollaborationPanel({
                             {decision.status === "open" ? copy.openDecision : copy.resolvedDecision}
                           </span>
                           {dayLabel(workspace, decision.dayId) ? (
-                            <span className="text-xs text-muted">{dayLabel(workspace, decision.dayId)}</span>
+                            <span className="text-xs text-muted">
+                              {dayLabel(workspace, decision.dayId)}
+                            </span>
                           ) : null}
                         </div>
                         <h4 className="mt-2 text-sm font-bold text-foreground">{decision.title}</h4>
                         {decision.detail ? (
-                          <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-muted">{decision.detail}</p>
+                          <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-muted">
+                            {decision.detail}
+                          </p>
                         ) : null}
                         <p className="mt-2 text-xs text-muted">
-                          {decision.createdByEmail} · {new Date(decision.createdAt).toLocaleString()}
+                          {decision.createdByEmail} ·{" "}
+                          {new Date(decision.createdAt).toLocaleString()}
                           {decision.resolvedByEmail ? ` · ${decision.resolvedByEmail}` : ""}
                         </p>
                       </div>
                       <div className="flex flex-wrap gap-2">
                         {writable ? (
-                          <button type="button" className="trip-secondary-button" onClick={() => void setDecisionStatus(decision)}>
+                          <button
+                            type="button"
+                            className="trip-secondary-button"
+                            onClick={() => void setDecisionStatus(decision)}
+                          >
                             {decision.status === "open" ? copy.resolve : copy.reopen}
                           </button>
                         ) : null}
                         {owner ? (
-                          <button type="button" className="trip-secondary-button" onClick={() => void removeDecision(decision.id)}>
+                          <button
+                            type="button"
+                            className="trip-secondary-button"
+                            onClick={() => void removeDecision(decision.id)}
+                          >
                             {copy.delete}
                           </button>
                         ) : null}

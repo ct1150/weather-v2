@@ -5,7 +5,12 @@ import { describe, expect, it } from "vitest";
 describe("phase 4 collaboration intelligence migration", () => {
   it("backfills revision activity and is safe to re-run", async () => {
     const db = createInMemoryD1() as D1Database;
-    for (const name of ["0001_trips.sql", "0002_trip_shares.sql", "0003_collaboration.sql"]) {
+    for (const name of [
+      "0001_trips.sql",
+      "0002_trip_shares.sql",
+      "0003_collaboration.sql",
+      "0004_collaboration_intelligence.sql",
+    ]) {
       await db.exec(readFileSync(new URL(`../migrations/${name}`, import.meta.url), "utf8"));
     }
 
@@ -48,10 +53,17 @@ describe("phase 4 collaboration intelligence migration", () => {
         "SELECT kind, revision_version, payload_json FROM trip_activity WHERE trip_id = ? ORDER BY revision_version",
       )
       .bind("trip_phase4_existing")
-      .all<{ readonly kind: string; readonly revision_version: number; readonly payload_json: string }>();
+      .all<{
+        readonly kind: string;
+        readonly revision_version: number;
+        readonly payload_json: string;
+      }>();
     expect(activity.results).toHaveLength(1);
     expect(activity.results[0]).toMatchObject({ kind: "revision", revision_version: 2 });
-    expect(JSON.parse(activity.results[0]!.payload_json)).toEqual({ version: 2, operation: "update" });
+    expect(JSON.parse(activity.results[0]!.payload_json)).toEqual({
+      version: 2,
+      operation: "update",
+    });
 
     const tables = await db
       .prepare(

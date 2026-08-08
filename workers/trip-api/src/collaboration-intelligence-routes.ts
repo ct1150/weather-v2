@@ -44,10 +44,7 @@ function tripCollection(
   pathname: string,
   resource: "activity" | "comments" | "decisions",
 ): string | null {
-  const match = new RegExp(
-    `^/api/v1/trips/([a-zA-Z0-9_-]{8,96})/${resource}$`,
-    "u",
-  ).exec(pathname);
+  const match = new RegExp(`^/api/v1/trips/([a-zA-Z0-9_-]{8,96})/${resource}$`, "u").exec(pathname);
   return match?.[1] ?? null;
 }
 
@@ -66,9 +63,7 @@ function tripItem(
 function revisionDiffPath(
   pathname: string,
 ): { readonly tripId: string; readonly version: number } | null {
-  const match = /^\/api\/v1\/trips\/([a-zA-Z0-9_-]{8,96})\/revisions\/(\d+)\/diff$/u.exec(
-    pathname,
-  );
+  const match = /^\/api\/v1\/trips\/([a-zA-Z0-9_-]{8,96})\/revisions\/(\d+)\/diff$/u.exec(pathname);
   if (!match?.[1] || !match[2]) return null;
   const version = Number(match[2]);
   return Number.isInteger(version) && version > 0 ? { tripId: match[1], version } : null;
@@ -223,7 +218,12 @@ export async function handleCollaborationIntelligenceRoute(
   const diffRoute = revisionDiffPath(url.pathname);
   if (diffRoute !== null) {
     if (request.method !== "GET") return error("METHOD_NOT_ALLOWED", 405);
-    const diff = await readTripRevisionDiff(db, identity.userId, diffRoute.tripId, diffRoute.version);
+    const diff = await readTripRevisionDiff(
+      db,
+      identity.userId,
+      diffRoute.tripId,
+      diffRoute.version,
+    );
     return diff === null ? error("NOT_FOUND", 404) : ok(diff);
   }
 

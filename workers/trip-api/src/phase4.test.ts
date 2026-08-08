@@ -170,7 +170,11 @@ describe("Trip API phase 4 collaboration intelligence", () => {
         `/api/v1/trips/${tripId}/comments`,
         {
           method: "POST",
-          body: JSON.stringify({ body: "Move outdoor time earlier?", dayId: "day-1", revisionVersion: 1 }),
+          body: JSON.stringify({
+            body: "Move outdoor time earlier?",
+            dayId: "day-1",
+            revisionVersion: 1,
+          }),
         },
         "editor-a",
         "editor@example.com",

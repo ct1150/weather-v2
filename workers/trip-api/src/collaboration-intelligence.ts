@@ -315,7 +315,14 @@ export async function createTripDecision(
         "INSERT INTO trip_activity (id, trip_id, actor_user_id, actor_email_normalized, kind, payload_json, created_at) " +
           "VALUES (?, ?, ?, ?, 'decision_created', ?, ?)",
       )
-      .bind(activityId, tripId, userId, normalizedEmail, JSON.stringify({ decisionId: id, title, dayId }), now),
+      .bind(
+        activityId,
+        tripId,
+        userId,
+        normalizedEmail,
+        JSON.stringify({ decisionId: id, title, dayId }),
+        now,
+      ),
   ]);
   return {
     kind: "ok",

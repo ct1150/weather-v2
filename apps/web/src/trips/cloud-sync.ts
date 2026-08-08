@@ -427,18 +427,14 @@ export async function readCloudTripRevisionDiff(
   );
 }
 
-export async function listCloudTripActivity(
-  id: string,
-): Promise<ReadonlyArray<CloudTripActivity>> {
+export async function listCloudTripActivity(id: string): Promise<ReadonlyArray<CloudTripActivity>> {
   const result = await api<{ readonly items: ReadonlyArray<CloudTripActivity> }>(
     `/api/v1/trips/${encodeURIComponent(id)}/activity?limit=50`,
   );
   return result.items;
 }
 
-export async function listCloudTripComments(
-  id: string,
-): Promise<ReadonlyArray<CloudTripComment>> {
+export async function listCloudTripComments(id: string): Promise<ReadonlyArray<CloudTripComment>> {
   const result = await api<{ readonly items: ReadonlyArray<CloudTripComment> }>(
     `/api/v1/trips/${encodeURIComponent(id)}/comments`,
   );

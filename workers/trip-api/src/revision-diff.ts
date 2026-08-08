@@ -184,7 +184,9 @@ export async function readTripRevisionDiff(
 ): Promise<TripRevisionDiff | null> {
   if ((await resolveTripAccess(db, userId, tripId)) === null) return null;
   const to = await db
-    .prepare("SELECT version, document_json FROM trip_revisions WHERE trip_id = ? AND version = ? LIMIT 1")
+    .prepare(
+      "SELECT version, document_json FROM trip_revisions WHERE trip_id = ? AND version = ? LIMIT 1",
+    )
     .bind(tripId, toVersion)
     .first<RevisionRow>();
   if (to === null) return null;
