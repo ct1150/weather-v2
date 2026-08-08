@@ -1,6 +1,7 @@
 const MAX_DOCUMENT_BYTES = 96_000;
 const MAX_DAYS = 16;
 const MAX_ACTIVITIES = 12;
+const MAX_CALENDAR_SPAN_DAYS = 16;
 
 export type TripLocale = "en" | "zh-cn" | "zh-hant";
 
@@ -45,6 +46,10 @@ function validDay(value: unknown): value is Record<string, unknown> {
   return true;
 }
 
+function calendarSpanDays(from: string, to: string): number {
+  return Math.floor((Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / 86_400_000) + 1;
+}
+
 export function parseLocale(value: unknown): TripLocale | null {
   return value === "en" || value === "zh-cn" || value === "zh-hant" ? value : null;
 }
@@ -66,11 +71,20 @@ export function validateTripDocument(value: unknown): ValidTripDocument | null {
     .map((day) => (day as Record<string, unknown>).date)
     .filter(isIsoDate)
     .sort();
+  const startDate = dates[0] ?? null;
+  const endDate = dates.at(-1) ?? null;
+  if (
+    startDate !== null &&
+    endDate !== null &&
+    calendarSpanDays(startDate, endDate) > MAX_CALENDAR_SPAN_DAYS
+  ) {
+    return null;
+  }
   return {
     document: value,
     title: value.title,
-    startDate: dates[0] ?? null,
-    endDate: dates.at(-1) ?? null,
+    startDate,
+    endDate,
   };
 }
 
