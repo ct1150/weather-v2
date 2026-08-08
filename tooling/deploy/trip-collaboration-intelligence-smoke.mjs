@@ -10,7 +10,8 @@ function arg(name, fallback = "") {
 const tripUrl = arg("--trip-url").replace(/\/$/u, "");
 const suffix = arg("--suffix", "phase4").replace(/[^a-zA-Z0-9_-]+/gu, "-");
 const smokeToken = process.env.TRIP_SMOKE_TOKEN ?? "";
-if (!tripUrl || !smokeToken) throw new Error("Phase 4 smoke requires --trip-url and TRIP_SMOKE_TOKEN");
+if (!tripUrl || !smokeToken)
+  throw new Error("Phase 4 smoke requires --trip-url and TRIP_SMOKE_TOKEN");
 
 const runId = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 const ownerUser = `p4-owner-${suffix}-${runId}`;
@@ -141,7 +142,10 @@ try {
     headers: authHeaders(viewerUser, viewerEmail),
   });
   const fields = (diff.data?.changes ?? []).map((item) => item.field);
-  requireValue(diff.data?.fromVersion === 1 && diff.data?.toVersion === 2, "Revision diff versions are invalid");
+  requireValue(
+    diff.data?.fromVersion === 1 && diff.data?.toVersion === 2,
+    "Revision diff versions are invalid",
+  );
   requireValue(fields.includes("trip.title"), "Revision diff missed title change");
   requireValue(fields.includes("day.destination"), "Revision diff missed destination change");
   requireValue(fields.includes("day.activities"), "Revision diff missed activities change");
@@ -202,7 +206,10 @@ try {
     body: { status: "resolved" },
   });
   requireValue(resolved.data?.status === "resolved", "Editor could not resolve decision");
-  requireValue(resolved.data?.resolvedByEmail === editorEmail, "Decision resolver identity is missing");
+  requireValue(
+    resolved.data?.resolvedByEmail === editorEmail,
+    "Decision resolver identity is missing",
+  );
 
   await request(`/api/v1/trips/${tripId}/comments/${commentId}`, {
     method: "DELETE",
