@@ -7,6 +7,7 @@ import {
   createWorkspaceFromTemplate,
   decodeWorkspaceShare,
   encodeWorkspaceShare,
+  normalizeWorkspace,
   workspaceToMarkdown,
   type TripForecastDay,
   type TripWorkspaceDay,
@@ -51,19 +52,41 @@ function forecast(rainProbability: number): TripForecastDay {
 }
 
 describe("trip workspace", () => {
-  it("turns parsed Markdown into a dated editable workspace", () => {
+  it("turns parsed Markdown into a v2 editable workspace with structured activity compatibility", () => {
     const parsed = parseTripMarkdown(
       `# 2026 日本家庭旅行\n\n# D1（8月8日 周六）\n| 时间 | 行程 |\n|---|---|\n|09:00|浅草寺|\n\n# D2（8月9日 周日）\n| 时间 | 行程 |\n|---|---|\n|10:00|东京国立博物馆|`,
     );
     const workspace = createWorkspaceFromParsed(parsed, { now: NOW, id: "trip-1" });
 
+    expect(workspace.version).toBe(2);
     expect(workspace.id).toBe("trip-1");
     expect(workspace.title).toBe("2026 日本家庭旅行");
     expect(workspace.days).toHaveLength(2);
     expect(workspace.days[0]).toMatchObject({ date: "2026-08-08", activities: ["09:00 浅草寺"] });
+    expect(workspace.days[0]?.activityItems?.[0]).toMatchObject({
+      title: "浅草寺",
+      startTime: "09:00",
+      cityId: "",
+    });
   });
 
-  it("round-trips a normalized workspace through a share payload", () => {
+  it("upgrades a legacy v1 workspace deterministically and preserves portable activity text", () => {
+    const workspace = normalizeWorkspace({
+      version: 1,
+      id: "legacy-trip",
+      title: "Legacy",
+      partyProfile: "family",
+      createdAt: NOW,
+      updatedAt: NOW,
+      days: [day("outdoor")],
+    });
+    expect(workspace.version).toBe(2);
+    expect(workspace.days[0]?.activities).toEqual(["09:00 浅草寺", "15:00 东京塔"]);
+    expect(workspace.days[0]?.activityItems).toHaveLength(2);
+    expect(workspace.days[0]?.activityItems?.[0]?.environment).toBe("outdoor");
+  });
+
+  it("round-trips a normalized v2 workspace through a share payload", () => {
     const parsed = parseTripMarkdown(
       "# 2026 东京旅行\n\n# D1（8月8日）\n| 时间 | 行程 |\n|---|---|\n|09:00|浅草寺|",
     );
@@ -72,7 +95,8 @@ describe("trip workspace", () => {
     const decoded = decodeWorkspaceShare(encoded);
 
     expect(decoded).not.toBeNull();
-    expect(decoded).toMatchObject({ id: "trip-share", title: "2026 东京旅行" });
+    expect(decoded).toMatchObject({ version: 2, id: "trip-share", title: "2026 东京旅行" });
+    expect(decoded?.days[0]?.activityItems?.[0]?.title).toBe("浅草寺");
     expect(decodeWorkspaceShare("not-valid-base64")).toBeNull();
   });
 
@@ -87,20 +111,22 @@ describe("trip workspace", () => {
     expect(beach.planB).toContain("水族馆");
   });
 
-  it("creates editable international templates with destination weather cities", () => {
+  it("creates editable international templates with structured destination activities", () => {
     const workspace = createWorkspaceFromTemplate("japan-family", "en", {
       now: NOW,
       id: "trip-template",
     });
 
+    expect(workspace.version).toBe(2);
     expect(workspace.id).toBe("trip-template");
     expect(workspace.title).toBe("Japan family city loop");
     expect(workspace.days).toHaveLength(7);
     expect(workspace.days[0]).toMatchObject({ cityId: "jp-tokyo", cityName: "Tokyo" });
+    expect(workspace.days[0]?.activityItems?.length).toBeGreaterThan(0);
     expect(workspace.days.at(-1)).toMatchObject({ cityId: "jp-osaka", cityName: "Osaka" });
   });
 
-  it("exports the editable plan as portable bilingual Markdown", () => {
+  it("exports the v2 plan as portable bilingual Markdown", () => {
     const parsed = parseTripMarkdown(
       "# 2026 东京旅行\n\n# D1（8月8日）\n| 时间 | 行程 |\n|---|---|\n|09:00|浅草寺|",
     );
