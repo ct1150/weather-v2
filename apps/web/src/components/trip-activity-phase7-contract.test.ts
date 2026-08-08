@@ -52,6 +52,9 @@ describe("Trip Activity Intelligence Phase 7 contract", () => {
     expect(poi).toContain('provenance: "curated-v1"');
     expect(poi).toContain("weatherSensitivity");
     expect(poi).toContain("findWeatherFallbacks");
+    expect(editor).toContain('data-poi-attribution="openstreetmap"');
+    expect(editor).toContain("https://www.openstreetmap.org/copyright");
+    expect(editor).toContain("© OpenStreetMap contributors · ODbL");
   });
 
   it("creates concrete Plan B candidates without silent replacement", () => {

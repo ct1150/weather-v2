@@ -276,6 +276,16 @@ export function StructuredActivityEditor({
         <p className="eyebrow">{copy.title}</p>
         <p className="mt-2 text-xs leading-5 text-muted">{copy.intro}</p>
         <p className="mt-1 text-[11px] text-muted">{copy.migrated}</p>
+        <p className="mt-2 text-[10px] text-muted" data-poi-attribution="openstreetmap">
+          <a
+            href="https://www.openstreetmap.org/copyright"
+            target="_blank"
+            rel="noreferrer"
+            className="underline underline-offset-2"
+          >
+            © OpenStreetMap contributors · ODbL
+          </a>
+        </p>
       </div>
 
       <div className="mt-4 grid gap-3 md:grid-cols-2">
