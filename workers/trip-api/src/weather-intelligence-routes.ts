@@ -1,4 +1,3 @@
-import type { D1Database } from "@cloudflare/workers-types";
 import {
   convertWeatherInsightToDecision,
   listTripWeatherInsights,
@@ -29,7 +28,9 @@ function error(code: string, status: number): WeatherIntelligenceRouteResult {
   return { status, body: { error: { code } } };
 }
 
-function collectionPath(pathname: string): { readonly tripId: string; readonly action: "list" | "refresh" } | null {
+function collectionPath(
+  pathname: string,
+): { readonly tripId: string; readonly action: "list" | "refresh" } | null {
   const list = /^\/api\/v1\/trips\/([a-zA-Z0-9_-]{8,96})\/weather-insights$/u.exec(pathname);
   if (list?.[1]) return { tripId: list[1], action: "list" };
   const refresh = /^\/api\/v1\/trips\/([a-zA-Z0-9_-]{8,96})\/weather-refresh$/u.exec(pathname);
@@ -91,7 +92,10 @@ export async function handleWeatherIntelligenceRoute(
     );
     if (result.kind === "missing") return error("NOT_FOUND", 404);
     if (result.kind === "forbidden") return error("FORBIDDEN", 403);
-    return ok({ decisionId: result.decisionId, existing: result.existing }, result.existing ? 200 : 201);
+    return ok(
+      { decisionId: result.decisionId, existing: result.existing },
+      result.existing ? 200 : 201,
+    );
   }
 
   return null;
