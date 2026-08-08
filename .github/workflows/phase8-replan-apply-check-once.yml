@@ -1,0 +1,57 @@
+name: Phase 8 replan apply check once
+
+on:
+  pull_request:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: phase8-replan-apply-check
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    if: github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'feature/adaptive-replanning-phase8'
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/adaptive-replanning-phase8
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.11.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Build library packages
+        run: pnpm -r --filter '!@wnr/web' --filter '!@wnr/weather-sync' --filter '!@wnr/maintenance' build
+      - name: Apply secure replan boundary
+        run: python tooling/phase8-replan-apply-patch.py
+      - name: Format Slice D
+        run: |
+          pnpm exec prettier --write \
+            workers/trip-api/src/index.ts \
+            workers/trip-api/src/store.ts \
+            workers/trip-api/src/replan-apply.ts \
+            workers/trip-api/src/replan-apply.test.ts \
+            workers/trip-api/src/phase8-replan-apply.test.ts
+      - name: Verify Slice D contracts
+        run: |
+          pnpm --filter @wnr/trip-api exec vitest run \
+            src/replan-apply.test.ts \
+            src/phase8-replan-apply.test.ts \
+            src/phase4.test.ts
+      - name: Commit implementation and remove helpers
+        run: |
+          rm .github/workflows/phase8-replan-apply-check-once.yml
+          rm tooling/phase8-replan-apply-patch.py
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "feat(replan): add secure proposal apply boundary"
+          git push origin HEAD:feature/adaptive-replanning-phase8
