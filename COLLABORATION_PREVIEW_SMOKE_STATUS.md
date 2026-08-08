@@ -1,9 +1,9 @@
 # Cloud Trip preview collaboration smoke status
 
 - Conclusion: success
-- Deploy head SHA: 3b649f0a163578bec8aae011f9f37a8b786332bc
-- Deploy run: https://github.com/ct1150/weather-v2/actions/runs/31266915833
-- Verified at: 2026-08-08T16:30:14Z
+- Deploy head SHA: fed699c00655157af4566fe897d4be22ee1823e1
+- Deploy run: https://github.com/ct1150/weather-v2/actions/runs/31276108621
+- Verified at: 2026-08-08T20:12:24Z
 
 ## Checks
 
