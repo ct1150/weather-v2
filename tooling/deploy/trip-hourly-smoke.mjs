@@ -30,7 +30,9 @@ try {
     `/api/v1/trip-hourly?cityIds=${encodeURIComponent(city)}&date=${encodeURIComponent(date)}&startHour=8&endHour=12&locale=en`,
   );
   if (!hourly.response.ok) {
-    throw new Error(`hourly read returned ${hourly.response.status}: ${JSON.stringify(hourly.payload)}`);
+    throw new Error(
+      `hourly read returned ${hourly.response.status}: ${JSON.stringify(hourly.payload)}`,
+    );
   }
   if (typeof hourly.payload.data?.snapshotId !== "string") {
     throw new Error("hourly read did not return an active snapshot id");
