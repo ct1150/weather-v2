@@ -612,12 +612,24 @@ export function createWorkspaceFromTemplate(
     partyProfile: definition.partyProfile,
     createdAt: now,
     updatedAt: now,
-    days: copy.days.map((day, index) => ({
-      ...day,
-      id: `day-${index + 1}`,
-      dayNumber: index + 1,
-      date: addDays(startDate, index),
-    })),
+    days: copy.days.map((day, index) => {
+      const id = `day-${index + 1}`;
+      const activityItems = normalizeActivityItems(undefined, day.activities, {
+        dayId: id,
+        cityId: day.cityId,
+        dayTheme: day.theme,
+        dayFlexible: day.flexible,
+        dayNotes: day.notes,
+      });
+      return {
+        ...day,
+        id,
+        dayNumber: index + 1,
+        date: addDays(startDate, index),
+        activities: activityItemsToLegacy(activityItems),
+        activityItems,
+      };
+    }),
   };
 }
 
@@ -628,20 +640,32 @@ export function createWorkspaceFromParsed(
   const now = options.now ?? new Date().toISOString();
   const fallbackDate = todayIso(now);
   const year = parseYear(parsed.title, fallbackDate);
-  const days = parsed.days.slice(0, MAX_DAYS).map((day, index) => ({
-    id: `day-${day.dayNumber}`,
-    dayNumber: index + 1,
-    date: parseHeadingDate(day.heading, year) ?? addDays(fallbackDate, index),
-    cityId: "",
-    cityName: "",
-    countryName: "",
-    theme: "city" as const,
-    flexible: true,
-    activities: day.scheduleRows
+  const days = parsed.days.slice(0, MAX_DAYS).map((day, index) => {
+    const id = `day-${day.dayNumber}`;
+    const activities = day.scheduleRows
       .slice(0, MAX_ACTIVITIES_PER_DAY)
-      .map((row) => `${row.time} ${row.activity}`.trim()),
-    notes: "",
-  }));
+      .map((row) => `${row.time} ${row.activity}`.trim());
+    const activityItems = normalizeActivityItems(undefined, activities, {
+      dayId: id,
+      cityId: "",
+      dayTheme: "city",
+      dayFlexible: true,
+      dayNotes: "",
+    });
+    return {
+      id,
+      dayNumber: index + 1,
+      date: parseHeadingDate(day.heading, year) ?? addDays(fallbackDate, index),
+      cityId: "",
+      cityName: "",
+      countryName: "",
+      theme: "city" as const,
+      flexible: true,
+      activities: activityItemsToLegacy(activityItems),
+      activityItems,
+      notes: "",
+    };
+  });
 
   return {
     version: 2,
@@ -727,8 +751,28 @@ function base64UrlToBytes(value: string): Uint8Array {
   return Uint8Array.from(binary, (character) => character.charCodeAt(0));
 }
 
+function portableShareWorkspace(workspace: TripWorkspace): TripWorkspace {
+  const normalized = normalizeWorkspace(workspace, workspace.updatedAt);
+  return {
+    ...normalized,
+    version: 1,
+    days: normalized.days.map((day) => ({
+      id: day.id,
+      dayNumber: day.dayNumber,
+      date: day.date,
+      cityId: day.cityId,
+      cityName: day.cityName,
+      countryName: day.countryName,
+      theme: day.theme,
+      flexible: day.flexible,
+      activities: day.activities,
+      notes: day.notes,
+    })),
+  };
+}
+
 export function encodeWorkspaceShare(workspace: TripWorkspace): string {
-  const payload = JSON.stringify(normalizeWorkspace(workspace, workspace.updatedAt));
+  const payload = JSON.stringify(portableShareWorkspace(workspace));
   if (payload.length > MAX_SHARE_PAYLOAD) throw new Error("TRIP_SHARE_PAYLOAD_TOO_LARGE");
   return bytesToBase64Url(new TextEncoder().encode(payload));
 }
