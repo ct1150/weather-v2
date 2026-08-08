@@ -30,6 +30,16 @@ jobs:
             --trip-url "https://where-not-rain-trip-preview.ct1150.workers.dev" \
             --suffix preview
 
+      - name: Verify preview collaboration intelligence
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          SMOKE_TOKEN="$(printf 'wnr-trip-smoke:%s' "$CLOUDFLARE_API_TOKEN" | sha256sum | cut -d' ' -f1)"
+          TRIP_SMOKE_TOKEN="$SMOKE_TOKEN" node tooling/deploy/trip-collaboration-intelligence-smoke.mjs \
+            --trip-url "https://where-not-rain-trip-preview.ct1150.workers.dev" \
+            --suffix preview
+
       - name: Record preview collaboration smoke status
         env:
           DEPLOY_HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
@@ -56,6 +66,12 @@ jobs:
           - Revision list and restore: success
           - Stale restore rejected: success
           - Pending invite revoke: success
+          - Phase 4 activity feed: success
+          - Phase 4 structured revision diff: success
+          - Phase 4 contextual comments: success
+          - Phase 4 decision create and resolve: success
+          - Phase 4 Viewer collaboration mutations rejected: success
+          - Phase 4 owner moderation: success
           EOF
 
           git config user.name "github-actions[bot]"
@@ -85,6 +101,16 @@ jobs:
           set -euo pipefail
           SMOKE_TOKEN="$(printf 'wnr-trip-smoke:%s' "$CLOUDFLARE_API_TOKEN" | sha256sum | cut -d' ' -f1)"
           TRIP_SMOKE_TOKEN="$SMOKE_TOKEN" node tooling/deploy/trip-collaboration-smoke.mjs \
+            --trip-url "https://trip.868656.xyz" \
+            --suffix production
+
+      - name: Verify production collaboration intelligence
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          SMOKE_TOKEN="$(printf 'wnr-trip-smoke:%s' "$CLOUDFLARE_API_TOKEN" | sha256sum | cut -d' ' -f1)"
+          TRIP_SMOKE_TOKEN="$SMOKE_TOKEN" node tooling/deploy/trip-collaboration-intelligence-smoke.mjs \
             --trip-url "https://trip.868656.xyz" \
             --suffix production
 
@@ -132,6 +158,12 @@ jobs:
           - Revision list and restore: success
           - Stale restore rejected: success
           - Pending invite revoke: success
+          - Phase 4 activity feed: success
+          - Phase 4 structured revision diff: success
+          - Phase 4 contextual comments: success
+          - Phase 4 decision create and resolve: success
+          - Phase 4 Viewer collaboration mutations rejected: success
+          - Phase 4 owner moderation: success
           - English invite route: success
           - Simplified invite route: success
           - Traditional invite route: success
