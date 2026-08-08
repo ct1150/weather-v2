@@ -1,10 +1,10 @@
 # Phase 5 weather intelligence smoke status
 
 - Conclusion: success
-- Head SHA: 234971e70ae7d323c060463c42fd61c16e5a2e0e
-- Run number: 29
-- Workflow: https://github.com/ct1150/weather-v2/actions/runs/31267547312
-- Verified at: 2026-08-08T16:41:32Z
+- Head SHA: 3345aac2bf2bc97be8ff2697636c97669b190bf1
+- Run number: 63
+- Workflow: https://github.com/ct1150/weather-v2/actions/runs/31276417455
+- Verified at: 2026-08-08T20:14:51Z
 
 ## Production checks
 
