@@ -38,7 +38,9 @@ async function jsonRequest(path, init = {}, expected = 200) {
   const response = await fetch(`${tripUrl}${path}`, init);
   const payload = await response.json().catch(() => ({}));
   if (response.status !== expected) {
-    throw new Error(`${path} returned ${response.status}, expected ${expected}: ${JSON.stringify(payload)}`);
+    throw new Error(
+      `${path} returned ${response.status}, expected ${expected}: ${JSON.stringify(payload)}`,
+    );
   }
   return payload;
 }
