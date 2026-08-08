@@ -26,6 +26,7 @@ import {
 } from "../trips/cloud-sync";
 import { normalizeWorkspace, type TripWorkspace } from "../trips/workspace";
 import { TripCollaborationPanel } from "./TripCollaborationPanel";
+import { TripWeatherIntelligencePanel } from "./TripWeatherIntelligencePanel";
 
 export type CloudTripLocale = "en" | "zh-cn" | "zh-hant";
 
@@ -504,6 +505,14 @@ export function CloudTripControls({
             )}
           </div>
         </div>
+      ) : null}
+
+      {metadata !== null && signedInEmail !== null && accessRole !== null ? (
+        <TripWeatherIntelligencePanel
+          locale={locale}
+          tripId={metadata.cloudTripId}
+          accessRole={accessRole}
+        />
       ) : null}
 
       {metadata !== null && signedInEmail !== null && accessRole !== null ? (

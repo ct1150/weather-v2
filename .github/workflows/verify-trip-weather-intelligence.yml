@@ -1,0 +1,90 @@
+name: Cloud Trip Weather Intelligence Smoke
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: phase5-weather-smoke-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: true
+
+jobs:
+  preview:
+    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Wait for Phase 5 preview deployment
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 60); do
+            if curl --fail --silent --show-error \
+              "https://where-not-rain-trip-preview.ct1150.workers.dev/health" \
+              | grep -Fq '"weatherIntelligence":true'; then
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "::error::Phase 5 preview deployment did not become ready"
+          exit 1
+      - name: Refresh preview weather snapshot
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          SYNC_TOKEN="$(printf '%s' "$CLOUDFLARE_API_TOKEN" | sha256sum | cut -d' ' -f1)"
+          curl --fail --silent --show-error --retry 3 --retry-all-errors \
+            --request POST \
+            --header "authorization: Bearer $SYNC_TOKEN" \
+            "https://where-not-rain-sync-preview.ct1150.workers.dev/internal/sync" \
+            -o /tmp/phase5-weather-sync-preview.json
+          node -e "const x=require('/tmp/phase5-weather-sync-preview.json'); if(x.status!=='success'||x.activated!==true||x.citiesFailed!==0){console.error(x);process.exit(1)}"
+      - name: Verify preview weather intelligence
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          SMOKE_TOKEN="$(printf 'wnr-trip-smoke:%s' "$CLOUDFLARE_API_TOKEN" | sha256sum | cut -d' ' -f1)"
+          TRIP_SMOKE_TOKEN="$SMOKE_TOKEN" node tooling/deploy/trip-weather-intelligence-smoke.mjs \
+            --trip-url "https://where-not-rain-trip-preview.ct1150.workers.dev" \
+            --suffix preview
+
+  production:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Wait for Phase 5 production deployment
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 60); do
+            if curl --fail --silent --show-error \
+              "https://trip.868656.xyz/health" \
+              | grep -Fq '"weatherIntelligence":true'; then
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "::error::Phase 5 production deployment did not become ready"
+          exit 1
+      - name: Verify production weather intelligence
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          SMOKE_TOKEN="$(printf 'wnr-trip-smoke:%s' "$CLOUDFLARE_API_TOKEN" | sha256sum | cut -d' ' -f1)"
+          TRIP_SMOKE_TOKEN="$SMOKE_TOKEN" node tooling/deploy/trip-weather-intelligence-smoke.mjs \
+            --trip-url "https://trip.868656.xyz" \
+            --suffix production

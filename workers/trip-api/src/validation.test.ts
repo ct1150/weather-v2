@@ -46,6 +46,24 @@ describe("validateTripDocument", () => {
     expect(validateTripDocument({ ...base, days })).toBeNull();
   });
 
+  it("rejects trips spanning more than 16 calendar days", () => {
+    const base = validDocument();
+    expect(
+      validateTripDocument({
+        ...base,
+        days: [
+          base.days[0],
+          {
+            ...base.days[0],
+            id: "day-2",
+            dayNumber: 2,
+            date: "2026-08-24",
+          },
+        ],
+      }),
+    ).toBeNull();
+  });
+
   it("rejects oversized notes and unsupported themes", () => {
     const base = validDocument();
     expect(

@@ -24,10 +24,16 @@ import { createShareLink, readSharedTripByToken, revokeShareLink } from "./shari
 import { updateTripStatus, type TripStatus } from "./status";
 import { createTrip, deleteTrip, listTrips, readTrip, updateTrip } from "./store";
 import { parseLocale, readJsonBody, validateTripDocument, type TripLocale } from "./validation";
+import { handleWeatherIntelligenceRoute } from "./weather-intelligence-routes";
+import {
+  runScheduledWeatherMonitor,
+  type WeatherReadBinding,
+} from "./weather-intelligence-service";
 
 export interface WorkerEnv extends AuthEnv {
   readonly INTERNAL_MIGRATION_TOKEN?: string;
   readonly INTERNAL_SMOKE_TOKEN?: string;
+  readonly WEATHER_READ?: WeatherReadBinding;
 }
 
 const DEFAULT_ORIGIN = "https://868656.xyz";
@@ -237,6 +243,9 @@ async function handleTrips(request: Request, env: WorkerEnv): Promise<Response> 
   if (identity === null) return json(request, env, { error: { code: "UNAUTHORIZED" } }, 401);
   const userId = identity.userId;
   const url = new URL(request.url);
+
+  const phase5 = await handleWeatherIntelligenceRoute(request, env, identity);
+  if (phase5 !== null) return json(request, env, phase5.body, phase5.status);
 
   const phase4 = await handleCollaborationIntelligenceRoute(request, env.DB, identity);
   if (phase4 !== null) return json(request, env, phase4.body, phase4.status);
@@ -606,6 +615,10 @@ export async function handleRequest(request: Request, env: WorkerEnv): Promise<R
       tripComments: true,
       tripDecisions: true,
       revisionDiff: true,
+      weatherIntelligence: true,
+      weatherChangeDetection: true,
+      weatherInsightDecisions: true,
+      weatherMonitorBound: env.WEATHER_READ !== undefined,
     });
   }
 
@@ -651,5 +664,26 @@ export default {
       );
       return json(request, env, { error: { code: "INTERNAL_ERROR" } }, 500);
     }
+  },
+
+  async scheduled(controller: ScheduledController, env: WorkerEnv): Promise<void> {
+    if (env.WEATHER_READ === undefined) {
+      console.warn(
+        JSON.stringify({
+          service: "trip-api",
+          event: "weather_monitor_skipped",
+          reason: "binding_missing",
+        }),
+      );
+      return;
+    }
+    const report = await runScheduledWeatherMonitor(
+      env.DB,
+      env.WEATHER_READ,
+      new Date(controller.scheduledTime),
+    );
+    console.log(
+      JSON.stringify({ service: "trip-api", event: "weather_monitor_completed", ...report }),
+    );
   },
 } satisfies ExportedHandler<WorkerEnv>;

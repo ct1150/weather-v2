@@ -20,6 +20,12 @@
       "database_id": "d8ffa28b-87dc-414e-b35c-068b1c70c39a",
     },
   ],
+  "services": [
+    {
+      "binding": "WEATHER_READ",
+      "service": "where-not-rain-read",
+    },
+  ],
   "env": {
     "preview": {
       "name": "where-not-rain-trip-preview",
@@ -36,6 +42,12 @@
           "database_id": "e0fcd786-4a32-43fe-bff6-e05d6c1a922f",
         },
       ],
+      "services": [
+        {
+          "binding": "WEATHER_READ",
+          "service": "where-not-rain-read-preview",
+        },
+      ],
     },
     "production": {
       "name": "where-not-rain-trip-production",
@@ -46,6 +58,9 @@
           "custom_domain": true,
         },
       ],
+      "triggers": {
+        "crons": ["37 */6 * * *"],
+      },
       "vars": {
         "WEB_ORIGIN": "https://868656.xyz",
         "AUTH_BASE_URL": "https://trip.868656.xyz",
@@ -56,6 +71,12 @@
           "binding": "DB",
           "database_name": "wnr-trip-production",
           "database_id": "d8ffa28b-87dc-414e-b35c-068b1c70c39a",
+        },
+      ],
+      "services": [
+        {
+          "binding": "WEATHER_READ",
+          "service": "where-not-rain-read-production",
         },
       ],
     },
