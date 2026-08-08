@@ -13,18 +13,26 @@ const cities = [
 ];
 
 const endpoints = [
+  "https://overpass.private.coffee/api/interpreter",
+  "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
+  "https://lz4.overpass-api.de/api/interpreter",
   "https://overpass-api.de/api/interpreter",
-  "https://overpass.kumi.systems/api/interpreter",
 ];
+const USER_AGENT = "WhereNotRain-POI-Enrichment/1.0 (+https://868656.xyz)";
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 function query([south, west, north, east]) {
   const box = `${south},${west},${north},${east}`;
   return `[out:json][timeout:90];
 (
-  nwr["tourism"~"^(attraction|museum|gallery|zoo|theme_park|aquarium|viewpoint)$"](${box});
+  nwr["tourism"~"^(attraction|museum|gallery|zoo|theme_park|aquarium|viewpoint|artwork)$"](${box});
   nwr["historic"](${box});
-  nwr["leisure"~"^(park|garden)$"](${box});
-  nwr["amenity"~"^(place_of_worship|marketplace|arts_centre)$"](${box});
+  nwr["natural"~"^(beach|peak|waterfall|cave_entrance|cliff)$"](${box});
+  nwr["leisure"~"^(park|garden|nature_reserve|marina)$"](${box});
+  nwr["amenity"~"^(place_of_worship|marketplace|arts_centre|theatre|library)$"](${box});
   nwr["shop"="mall"](${box});
 );
 out center tags;`;
@@ -37,14 +45,37 @@ async function fetchOverpass(statement) {
       try {
         const response = await fetch(endpoint, {
           method: "POST",
-          headers: { "content-type": "application/x-www-form-urlencoded" },
+          headers: {
+            "content-type": "application/x-www-form-urlencoded",
+            "user-agent": USER_AGENT,
+            accept: "application/json",
+          },
           body: new URLSearchParams({ data: statement }),
         });
-        if (!response.ok) throw new Error(`${endpoint} ${response.status}`);
-        return await response.json();
+        if (!response.ok) {
+          const retryAfterSeconds = Number(response.headers.get("retry-after") ?? "0");
+          const retryAfterMs = Number.isFinite(retryAfterSeconds) ? retryAfterSeconds * 1000 : 0;
+          throw Object.assign(new Error(`${endpoint} ${response.status}`), {
+            retryAfterMs,
+            status: response.status,
+          });
+        }
+        const payload = await response.json();
+        console.log(`Overpass success: ${endpoint}`);
+        return payload;
       } catch (error) {
         lastError = error;
-        await new Promise((resolve) => setTimeout(resolve, attempt * 1500));
+        const retryAfterMs =
+          typeof error === "object" && error !== null && "retryAfterMs" in error
+            ? Number(error.retryAfterMs)
+            : 0;
+        const delay = Math.max(retryAfterMs, 2_500 * 2 ** (attempt - 1));
+        console.warn(
+          `Overpass attempt failed: endpoint=${endpoint} attempt=${attempt} error=${
+            error instanceof Error ? error.message : String(error)
+          }; retrying in ${delay}ms`,
+        );
+        await sleep(delay);
       }
     }
   }
@@ -58,6 +89,7 @@ function score(element) {
   if (tags.wikidata) value += 8;
   if (tags.tourism) value += 6;
   if (tags.historic) value += 5;
+  if (tags.natural) value += 4;
   if (tags.leisure) value += 3;
   if (tags.amenity) value += 2;
   if (tags.website) value += 1;
@@ -65,13 +97,31 @@ function score(element) {
 }
 
 function canonicalName(tags) {
-  return tags["name:en"] ?? tags.name ?? tags["name:zh"] ?? tags["name:ko"] ?? tags["name:ja"] ?? tags["name:th"] ?? null;
+  return (
+    tags["name:en"] ??
+    tags.name ??
+    tags["name:zh"] ??
+    tags["name:ko"] ??
+    tags["name:ja"] ??
+    tags["name:th"] ??
+    null
+  );
 }
 
 function environment(tags) {
   const tourism = tags.tourism ?? "";
-  if (["museum", "gallery", "aquarium"].includes(tourism) || tags.amenity === "arts_centre" || tags.shop === "mall") return "indoor";
-  if (tourism === "viewpoint" || tags.leisure === "park" || tags.leisure === "garden") return "outdoor";
+  if (
+    ["museum", "gallery", "aquarium"].includes(tourism) ||
+    ["arts_centre", "theatre", "library"].includes(tags.amenity) ||
+    tags.shop === "mall"
+  )
+    return "indoor";
+  if (
+    tourism === "viewpoint" ||
+    ["park", "garden", "nature_reserve", "marina"].includes(tags.leisure) ||
+    tags.natural
+  )
+    return "outdoor";
   if (tags.historic || tags.amenity === "place_of_worship") return "mixed";
   return tourism === "zoo" || tourism === "theme_park" ? "mixed" : "outdoor";
 }
@@ -79,25 +129,44 @@ function environment(tags) {
 function category(tags) {
   if (tags.shop === "mall") return "shopping";
   if (tags.amenity === "marketplace") return "food";
-  if (tags.leisure === "park" || tags.leisure === "garden" || tags.tourism === "viewpoint") return "leisure";
+  if (
+    ["park", "garden", "nature_reserve", "marina"].includes(tags.leisure) ||
+    tags.tourism === "viewpoint" ||
+    tags.natural
+  )
+    return "leisure";
   return "attraction";
 }
 
 function duration(tags) {
   if (tags.tourism === "theme_park" || tags.tourism === "zoo") return 240;
-  if (["museum", "gallery", "aquarium"].includes(tags.tourism)) return 150;
-  if (tags.leisure === "park" || tags.leisure === "garden") return 120;
+  if (
+    ["museum", "gallery", "aquarium"].includes(tags.tourism) ||
+    ["arts_centre", "theatre", "library"].includes(tags.amenity)
+  )
+    return 150;
+  if (["park", "garden", "nature_reserve"].includes(tags.leisure)) return 120;
   return 90;
 }
 
 function reservation(tags) {
-  return tags.tourism === "theme_park" ? "recommended" : "none";
+  return tags.tourism === "theme_park" || tags.amenity === "theatre" ? "recommended" : "none";
 }
 
 function recommendedWindow(tags) {
   if (tags.tourism === "viewpoint") return "evening";
-  if (tags.leisure === "park" || tags.leisure === "garden" || tags.historic) return "morning";
-  if (["museum", "gallery", "aquarium"].includes(tags.tourism) || tags.shop === "mall") return "afternoon";
+  if (
+    ["park", "garden", "nature_reserve"].includes(tags.leisure) ||
+    tags.historic ||
+    tags.natural
+  )
+    return "morning";
+  if (
+    ["museum", "gallery", "aquarium"].includes(tags.tourism) ||
+    ["arts_centre", "theatre", "library"].includes(tags.amenity) ||
+    tags.shop === "mall"
+  )
+    return "afternoon";
   return "any";
 }
 
@@ -112,7 +181,8 @@ function quote(value) {
 }
 
 const output = [];
-for (const city of cities) {
+for (let cityIndex = 0; cityIndex < cities.length; cityIndex += 1) {
+  const city = cities[cityIndex];
   console.log(`Fetching ${city.id}...`);
   const payload = await fetchOverpass(query(city.bbox));
   const seen = new Set();
@@ -131,6 +201,7 @@ for (const city of cities) {
     .filter(Boolean)
     .sort((left, right) => right.score - left.score || left.name.localeCompare(right.name));
 
+  console.log(`${city.id}: ${candidates.length} usable named POIs`);
   if (candidates.length < 40) {
     throw new Error(`${city.id} returned only ${candidates.length} usable OSM POIs`);
   }
@@ -139,7 +210,8 @@ for (const city of cities) {
     const env = environment(tags);
     const nameEn = tags["name:en"] ?? name;
     const nameZh = tags["name:zh"] ?? tags["name:zh-Hans"] ?? nameEn;
-    const nameHant = tags["name:zh-Hant"] ?? tags["name:zh-TW"] ?? tags["name:zh"] ?? nameEn;
+    const nameHant =
+      tags["name:zh-Hant"] ?? tags["name:zh-TW"] ?? tags["name:zh"] ?? nameEn;
     output.push({
       id: `osm-${city.id}-${element.type}-${element.id}`,
       cityId: city.id,
@@ -156,17 +228,18 @@ for (const city of cities) {
       sourceRef: `${element.type}/${element.id}`,
     });
   }
+  if (cityIndex < cities.length - 1) await sleep(2_500);
 }
 
 const lines = [
-  '// Generated from OpenStreetMap via tooling/poi/generate-osm-pilot-pois.mjs.',
-  '// Source data © OpenStreetMap contributors, ODbL 1.0.',
+  "// Generated from OpenStreetMap via tooling/poi/generate-osm-pilot-pois.mjs.",
+  "// Source data © OpenStreetMap contributors, ODbL 1.0.",
   'import type { CuratedPoi } from "./poi-catalog";',
-  '',
-  'export const OSM_PILOT_POIS: ReadonlyArray<CuratedPoi> = [',
+  "",
+  "export const OSM_PILOT_POIS: ReadonlyArray<CuratedPoi> = [",
 ];
 for (const item of output) {
-  lines.push('  {');
+  lines.push("  {");
   lines.push(`    id: ${quote(item.id)},`);
   lines.push(`    cityId: ${quote(item.cityId)},`);
   lines.push(`    name: ${quote(item.name)},`);
@@ -180,9 +253,13 @@ for (const item of output) {
   lines.push(`    recommendedWindow: ${quote(item.recommendedWindow)},`);
   lines.push(`    provenance: ${quote(item.provenance)},`);
   lines.push(`    sourceRef: ${quote(item.sourceRef)},`);
-  lines.push('  },');
+  lines.push("  },");
 }
-lines.push('];', '');
+lines.push("];", "");
 
-await writeFile('apps/web/src/trips/poi-catalog-osm.generated.ts', `${lines.join('\n')}\n`, 'utf8');
+await writeFile(
+  "apps/web/src/trips/poi-catalog-osm.generated.ts",
+  `${lines.join("\n")}\n`,
+  "utf8",
+);
 console.log(`Generated ${output.length} OSM POIs.`);
