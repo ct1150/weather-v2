@@ -171,6 +171,7 @@ export interface TripApiHealth {
   readonly tripComments?: boolean;
   readonly tripDecisions?: boolean;
   readonly revisionDiff?: boolean;
+  readonly adaptiveReplanningApply?: boolean;
   readonly providers: {
     readonly auth: boolean;
     readonly google: boolean;
@@ -291,6 +292,26 @@ export async function updateCloudTrip(
       baseVersion,
       locale: localLocale(locale),
       document: workspace,
+    }),
+  });
+}
+
+export async function applyCloudTripReplan(
+  id: string,
+  baseVersion: number,
+  workspace: TripWorkspace,
+  locale: string,
+  weatherSnapshotId: string,
+  selectedChangeIds: ReadonlyArray<string>,
+): Promise<CloudTripRecord> {
+  return api<CloudTripRecord>(`/api/v1/trips/${encodeURIComponent(id)}/replan/apply`, {
+    method: "POST",
+    body: JSON.stringify({
+      baseVersion,
+      locale: localLocale(locale),
+      document: workspace,
+      weatherSnapshotId,
+      selectedChangeIds,
     }),
   });
 }

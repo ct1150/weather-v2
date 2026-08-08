@@ -2,10 +2,7 @@
 
 import { useMemo, useState, type ReactElement } from "react";
 
-import {
-  activityItemsToLegacy,
-  type TripActivity,
-} from "../trips/activity-intelligence";
+import { activityItemsToLegacy, type TripActivity } from "../trips/activity-intelligence";
 import type { ActivityHourlyWeather } from "../trips/activity-risk";
 import { findWeatherFallbacks, poiName } from "../trips/poi-catalog";
 import {
@@ -51,7 +48,8 @@ const COPY = {
     analyze: "Analyze hourly weather",
     analyzing: "Analyzing…",
     noStructured: "This day has no structured activities to analyze.",
-    unavailable: "Hourly coverage is unavailable for this city/date. No optimistic proposal was created.",
+    unavailable:
+      "Hourly coverage is unavailable for this city/date. No optimistic proposal was created.",
     noChanges: "No safe weather-driven change improves this day enough to recommend.",
     proposal: "Proposed changes",
     before: "Before",
@@ -65,7 +63,8 @@ const COPY = {
     fixed: "Protected / unchanged",
     apply: "Apply selected changes",
     applying: "Applying…",
-    cloudRequired: "Save/sign in to an editable Cloud Trip to apply. Preview remains available locally.",
+    cloudRequired:
+      "Save/sign in to an editable Cloud Trip to apply. Preview remains available locally.",
     viewer: "This shared trip is read-only. You can inspect proposals but cannot apply them.",
     applied: "Selected changes were applied as a new Cloud Trip revision.",
     failed: "The proposal could not be applied. Reload the latest Cloud version and try again.",
@@ -200,7 +199,8 @@ export function TripReplanPanel({
 }: TripReplanPanelProps): ReactElement {
   const copy = COPY[locale];
   const eligibleDays = useMemo(
-    () => workspace.days.filter((day) => (day.activityItems?.length ?? 0) > 0 && day.cityId.length > 0),
+    () =>
+      workspace.days.filter((day) => (day.activityItems?.length ?? 0) > 0 && day.cityId.length > 0),
     [workspace.days],
   );
   const [dayId, setDayId] = useState(eligibleDays[0]?.id ?? "");
@@ -234,7 +234,8 @@ export function TripReplanPanel({
       const payload = (await response.json()) as HourlyResponse;
       const hourly = payload.data?.items ?? [];
       const snapshotId = payload.data?.snapshotId;
-      const available = payload.data?.coverage?.availableCityIds?.includes(selectedDay.cityId) === true;
+      const available =
+        payload.data?.coverage?.availableCityIds?.includes(selectedDay.cityId) === true;
       if (!available || hourly.length === 0 || typeof snapshotId !== "string") {
         setMessage(copy.unavailable);
         return;
@@ -271,7 +272,12 @@ export function TripReplanPanel({
     const selectedChangeIds = proposal.changes
       .map((change) => change.activityId)
       .filter((activityId) => selectedIds.has(activityId));
-    const proposedWorkspace = applySelectedProposal(workspace, selectedDay.id, proposal, selectedIds);
+    const proposedWorkspace = applySelectedProposal(
+      workspace,
+      selectedDay.id,
+      proposal,
+      selectedIds,
+    );
     setState("applying");
     setMessage("");
     try {
@@ -287,7 +293,10 @@ export function TripReplanPanel({
   };
 
   return (
-    <section className="mt-4 rounded-2xl border border-border/80 bg-white p-4 sm:p-5" data-trip-replan-review="phase8">
+    <section
+      className="mt-4 rounded-2xl border border-border/80 bg-white p-4 sm:p-5"
+      data-trip-replan-review="phase8"
+    >
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <p className="eyebrow">Phase 8</p>
@@ -326,7 +335,10 @@ export function TripReplanPanel({
       </label>
 
       {proposal !== null && proposal.unchangedFixedActivityIds.length > 0 ? (
-        <p className="mt-4 rounded-xl bg-surface-elevated p-3 text-xs text-muted" data-replan-fixed="unchanged">
+        <p
+          className="mt-4 rounded-xl bg-surface-elevated p-3 text-xs text-muted"
+          data-replan-fixed="unchanged"
+        >
           <strong>{copy.fixed}:</strong> {proposal.unchangedFixedActivityIds.join(", ")}
         </p>
       ) : null}
@@ -360,7 +372,8 @@ export function TripReplanPanel({
                       <strong>{copy.after}:</strong> {activitySummary(change.after)}
                       <br />
                       <span className="text-xs text-muted">
-                        {copy.risk}: {change.riskAfter.score ?? "—"} · {copy.reduction} +{change.riskReduction}
+                        {copy.risk}: {change.riskAfter.score ?? "—"} · {copy.reduction} +
+                        {change.riskReduction}
                       </span>
                     </span>
                   </span>
@@ -384,7 +397,9 @@ export function TripReplanPanel({
               {state === "applying" ? copy.applying : copy.apply}
             </button>
             {!cloudReady ? <span className="text-xs text-muted">{copy.cloudRequired}</span> : null}
-            {cloudReady && !canApply ? <span className="text-xs text-muted">{copy.viewer}</span> : null}
+            {cloudReady && !canApply ? (
+              <span className="text-xs text-muted">{copy.viewer}</span>
+            ) : null}
           </div>
         </div>
       ) : null}
