@@ -176,9 +176,17 @@ describe("Phase 8 replan apply boundary", () => {
       startTime: "11:00",
     });
 
-    const revisions = await handleRequest(request(`/api/v1/trips/${tripId}/revisions?limit=10`), env);
+    const revisions = await handleRequest(
+      request(`/api/v1/trips/${tripId}/revisions?limit=10`),
+      env,
+    );
     expect(await body(revisions)).toMatchObject({
-      data: { items: [{ version: 2, operation: "replan" }, { version: 1, operation: "create" }] },
+      data: {
+        items: [
+          { version: 2, operation: "replan" },
+          { version: 1, operation: "create" },
+        ],
+      },
     });
 
     const activityFeed = await handleRequest(request(`/api/v1/trips/${tripId}/activity`), env);

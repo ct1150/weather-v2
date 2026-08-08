@@ -127,7 +127,9 @@ describe("Phase 8 replan apply document guard", () => {
       ok: false,
       code: "no_changes",
     });
-    expect(validateReplanDocumentChange({ ...current, version: 1 }, current, ["garden"])).toMatchObject({
+    expect(
+      validateReplanDocumentChange({ ...current, version: 1 }, current, ["garden"]),
+    ).toMatchObject({
       ok: false,
       code: "workspace_v2_required",
     });
