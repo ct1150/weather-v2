@@ -26,7 +26,7 @@ describe("Weather Discovery Phase 6 contract", () => {
       "family_comfort",
       "senior_comfort",
     ]) {
-      expect(engine).toContain(`\"${intent}\"`);
+      expect(engine).toContain(`"${intent}"`);
     }
     expect(context).toContain("partyProfile");
     expect(context).toContain("preferences.theme");
