@@ -28,6 +28,8 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - name: Build library packages
+        run: pnpm -r --filter '!@wnr/web' --filter '!@wnr/weather-sync' --filter '!@wnr/maintenance' build
       - name: Apply bounded trip-hourly API
         run: python tooling/phase8-hourly-read-patch.py
       - name: Format and run weather-read tests
