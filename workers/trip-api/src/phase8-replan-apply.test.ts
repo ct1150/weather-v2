@@ -182,19 +182,21 @@ describe("Phase 8 replan apply boundary", () => {
     });
 
     const activityFeed = await handleRequest(request(`/api/v1/trips/${tripId}/activity`), env);
-    expect(await body(activityFeed)).toMatchObject({
+    const feed = await body<{
       data: {
-        items: [
-          {
-            kind: "revision",
-            payload: {
-              version: 2,
-              operation: "replan",
-              weatherSnapshotId: "snapshot-phase8-001",
-              selectedChangeIds: ["garden"],
-            },
-          },
-        ],
+        items: Array<{
+          kind: string;
+          payload: Record<string, unknown>;
+        }>;
+      };
+    }>(activityFeed);
+    expect(feed.data.items[0]).toMatchObject({
+      kind: "revision",
+      payload: {
+        version: 2,
+        operation: "replan",
+        weatherSnapshotId: "snapshot-phase8-001",
+        selectedChangeIds: ["garden"],
       },
     });
   });
