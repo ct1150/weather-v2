@@ -1,18 +1,16 @@
 # Phase 6 Weather Discovery smoke status
 
 - Conclusion: success
-- Product release SHA: a33caf1a7366e0c01fb2695703fbeff1b8c991ed
-- Production Deploy run: https://github.com/ct1150/weather-v2/actions/runs/31267024337
-- Verification: dedicated production acceptance workflow
+- Deploy head SHA: 234971e70ae7d323c060463c42fd61c16e5a2e0e
+- Deploy run: https://github.com/ct1150/weather-v2/actions/runs/31267547264
+- Verified at: 2026-08-08T16:45:55Z
 
 ## Checks
 
-- English `/discover` route: success
-- Simplified Chinese `/zh-cn/discover` route: success
-- Traditional Chinese `/zh-hant/discover` route: success
+- English  route: success
+- Simplified Chinese  route: success
+- Traditional Chinese  route: success
 - Weather city catalogue: success
 - Batched 12-city forecast reads: success
 - Cross-batch snapshot consistency: success
 - 16-day API bound enforcement: success
-
-- Verified at: 2026-08-08T16:41:20Z
