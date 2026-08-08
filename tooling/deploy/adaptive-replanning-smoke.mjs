@@ -169,9 +169,12 @@ try {
     }))
     .filter((row) => row.startTime !== null)
     .sort((left, right) => left.localTime.localeCompare(right.localTime));
-  if (ordered.length < 2) throw new Error("not enough bounded hourly rows for deterministic smoke proposal");
+  if (ordered.length < 2)
+    throw new Error("not enough bounded hourly rows for deterministic smoke proposal");
   const originalStart = ordered[0].startTime;
-  const later = ordered.slice(1).sort((left, right) => left.rain - right.rain || left.localTime.localeCompare(right.localTime));
+  const later = ordered
+    .slice(1)
+    .sort((left, right) => left.rain - right.rain || left.localTime.localeCompare(right.localTime));
   const ownerTarget = later[0]?.startTime;
   if (typeof originalStart !== "string" || typeof ownerTarget !== "string") {
     throw new Error("could not derive deterministic same-day later proposal from real hourly rows");
@@ -218,7 +221,8 @@ try {
   const ownerTargetMinutes = Number(ownerTarget.slice(0, 2)) * 60;
   const editorTargetMinutes = Math.min(17 * 60, ownerTargetMinutes + 60);
   const editorTarget = `${String(Math.floor(editorTargetMinutes / 60)).padStart(2, "0")}:00`;
-  if (editorTarget === ownerTarget) throw new Error("could not derive a second later editor target");
+  if (editorTarget === ownerTarget)
+    throw new Error("could not derive a second later editor target");
 
   const editorApplied = await jsonRequest(
     tripUrl,
@@ -278,11 +282,9 @@ try {
     throw new Error(`stale replan did not report current version 3: ${JSON.stringify(stale)}`);
   }
 
-  const revisions = await jsonRequest(
-    tripUrl,
-    `/api/v1/trips/${tripId}/revisions?limit=10`,
-    { headers: headers() },
-  );
+  const revisions = await jsonRequest(tripUrl, `/api/v1/trips/${tripId}/revisions?limit=10`, {
+    headers: headers(),
+  });
   const revisionItems = revisions.data?.items;
   if (
     !Array.isArray(revisionItems) ||
@@ -294,11 +296,9 @@ try {
     throw new Error(`normal replan revision history is missing: ${JSON.stringify(revisions)}`);
   }
 
-  const activityFeed = await jsonRequest(
-    tripUrl,
-    `/api/v1/trips/${tripId}/activity?limit=20`,
-    { headers: headers() },
-  );
+  const activityFeed = await jsonRequest(tripUrl, `/api/v1/trips/${tripId}/activity?limit=20`, {
+    headers: headers(),
+  });
   const latestReplan = activityFeed.data?.items?.find(
     (item) => item.kind === "revision" && item.payload?.operation === "replan",
   );
@@ -307,7 +307,9 @@ try {
     !Array.isArray(latestReplan?.payload?.selectedChangeIds) ||
     latestReplan.payload.selectedChangeIds[0] !== "garden"
   ) {
-    throw new Error(`replan audit is missing real weather snapshot context: ${JSON.stringify(activityFeed)}`);
+    throw new Error(
+      `replan audit is missing real weather snapshot context: ${JSON.stringify(activityFeed)}`,
+    );
   }
 
   await jsonRequest(
