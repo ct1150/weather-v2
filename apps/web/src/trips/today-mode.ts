@@ -89,13 +89,14 @@ export function nextExecutableActivity(
     .filter(
       (item): item is { readonly activity: TripActivity; readonly start: number } => item !== null,
     )
-    .sort((left, right) => left.start - right.start || left.activity.id.localeCompare(right.activity.id));
+    .sort(
+      (left, right) =>
+        left.start - right.start || left.activity.id.localeCompare(right.activity.id),
+    );
   return candidates[0]?.activity ?? null;
 }
 
-export function fixedExecutionActivities(
-  day: TripWorkspaceDay,
-): ReadonlyArray<TripActivity> {
+export function fixedExecutionActivities(day: TripWorkspaceDay): ReadonlyArray<TripActivity> {
   return (day.activityItems ?? []).filter(
     (activity) =>
       activity.flexibility === "fixed" ||

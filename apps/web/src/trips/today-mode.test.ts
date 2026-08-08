@@ -1,14 +1,14 @@
 import { describe, expect, it } from "vitest";
 
 import type { TripActivity } from "./activity-intelligence";
-import {
-  destinationLocalClock,
-  nextExecutableActivity,
-  resolveActiveTripDay,
-} from "./today-mode";
+import { destinationLocalClock, nextExecutableActivity, resolveActiveTripDay } from "./today-mode";
 import type { TripCityOption, TripWorkspace } from "./workspace";
 
-function activity(id: string, startTime: string, overrides: Partial<TripActivity> = {}): TripActivity {
+function activity(
+  id: string,
+  startTime: string,
+  overrides: Partial<TripActivity> = {},
+): TripActivity {
   return {
     id,
     title: id,

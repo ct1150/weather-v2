@@ -3,10 +3,7 @@
 import { useCallback, useEffect, useMemo, useState, type ReactElement } from "react";
 
 import { assessActivityHourlyRisk, type ActivityHourlyWeather } from "../trips/activity-risk";
-import {
-  listCloudTripActivity,
-  type CloudTripActivity,
-} from "../trips/cloud-sync";
+import { listCloudTripActivity, type CloudTripActivity } from "../trips/cloud-sync";
 import { findWeatherFallbacks, poiName } from "../trips/poi-catalog";
 import {
   fixedExecutionActivities,
@@ -44,7 +41,8 @@ interface TripTodayPanelProps {
 const COPY = {
   en: {
     title: "Today / execution mode",
-    intro: "Uses the destination timezone, not your device timezone, to decide what is happening now.",
+    intro:
+      "Uses the destination timezone, not your device timezone, to decide what is happening now.",
     refresh: "Refresh today",
     noActive: "No itinerary day is active at the destination right now.",
     localTime: "Destination local time",
@@ -113,10 +111,16 @@ function apiLocale(locale: TripTodayLocale): "en" | "zh-cn" {
 
 function selectedChangeIds(item: CloudTripActivity | null): ReadonlyArray<string> {
   const value = item?.payload.selectedChangeIds;
-  return Array.isArray(value) && value.every((id): id is string => typeof id === "string") ? value : [];
+  return Array.isArray(value) && value.every((id): id is string => typeof id === "string")
+    ? value
+    : [];
 }
 
-export function TripTodayPanel({ locale, workspace, cloudTripId }: TripTodayPanelProps): ReactElement {
+export function TripTodayPanel({
+  locale,
+  workspace,
+  cloudTripId,
+}: TripTodayPanelProps): ReactElement {
   const copy = COPY[locale];
   const [cities, setCities] = useState<ReadonlyArray<TripCityOption>>([]);
   const [now, setNow] = useState(() => new Date());
@@ -126,7 +130,10 @@ export function TripTodayPanel({ locale, workspace, cloudTripId }: TripTodayPane
   const [activityFeed, setActivityFeed] = useState<ReadonlyArray<CloudTripActivity>>([]);
   const [loading, setLoading] = useState(false);
 
-  const active = useMemo(() => resolveActiveTripDay(workspace, cities, now), [cities, now, workspace]);
+  const active = useMemo(
+    () => resolveActiveTripDay(workspace, cities, now),
+    [cities, now, workspace],
+  );
   const nextActivity = useMemo(
     () =>
       active === null
@@ -150,16 +157,16 @@ export function TripTodayPanel({ locale, workspace, cloudTripId }: TripTodayPane
   const currentWeather =
     active === null
       ? null
-      : (hourly.find((row) => row.localTime.startsWith(`${active.day.date}T${currentHour}:`)) ?? null);
+      : (hourly.find((row) => row.localTime.startsWith(`${active.day.date}T${currentHour}:`)) ??
+        null);
   const fixed = active === null ? [] : fixedExecutionActivities(active.day);
   const openInsights =
     active === null
       ? []
       : insights.filter((item) => item.date === active.day.date && item.status === "open");
   const latestReplan =
-    activityFeed.find(
-      (item) => item.kind === "revision" && item.payload.operation === "replan",
-    ) ?? null;
+    activityFeed.find((item) => item.kind === "revision" && item.payload.operation === "replan") ??
+    null;
   const replanIds = selectedChangeIds(latestReplan);
   const indoorFallback =
     active !== null &&
@@ -242,14 +249,22 @@ export function TripTodayPanel({ locale, workspace, cloudTripId }: TripTodayPane
   }, [active, locale]);
 
   return (
-    <section className="mt-4 rounded-2xl border border-border/80 bg-white p-4 sm:p-5" data-trip-today="phase8">
+    <section
+      className="mt-4 rounded-2xl border border-border/80 bg-white p-4 sm:p-5"
+      data-trip-today="phase8"
+    >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="eyebrow">Phase 8</p>
           <h3 className="mt-2 text-base font-bold text-foreground">{copy.title}</h3>
           <p className="mt-1 max-w-2xl text-xs leading-5 text-muted">{copy.intro}</p>
         </div>
-        <button type="button" className="trip-secondary-button" disabled={loading} onClick={() => void refresh()}>
+        <button
+          type="button"
+          className="trip-secondary-button"
+          disabled={loading}
+          onClick={() => void refresh()}
+        >
           {copy.refresh}
         </button>
       </div>
@@ -267,10 +282,14 @@ export function TripTodayPanel({ locale, workspace, cloudTripId }: TripTodayPane
 
           <div className="grid gap-3 md:grid-cols-2">
             <div className="rounded-xl border border-border/80 p-3">
-              <h4 className="text-xs font-bold uppercase tracking-wide text-muted">{copy.nowWeather}</h4>
+              <h4 className="text-xs font-bold uppercase tracking-wide text-muted">
+                {copy.nowWeather}
+              </h4>
               {currentWeather !== null ? (
                 <p className="mt-2 text-sm text-foreground">
-                  {currentWeather.condition} · {currentWeather.temperatureC ?? "—"}°C · {copy.rain} {currentWeather.rainProbability ?? "—"}% · {copy.wind} {currentWeather.windSpeedKph ?? "—"} km/h
+                  {currentWeather.condition} · {currentWeather.temperatureC ?? "—"}°C · {copy.rain}{" "}
+                  {currentWeather.rainProbability ?? "—"}% · {copy.wind}{" "}
+                  {currentWeather.windSpeedKph ?? "—"} km/h
                 </p>
               ) : (
                 <p className="mt-2 text-sm text-muted">{copy.unavailable}</p>
@@ -296,8 +315,13 @@ export function TripTodayPanel({ locale, workspace, cloudTripId }: TripTodayPane
           </div>
 
           {indoorFallback !== undefined ? (
-            <div className="rounded-xl border border-border/80 bg-surface-elevated p-3" data-today-guidance="weather-supported">
-              <h4 className="text-xs font-bold uppercase tracking-wide text-muted">{copy.guidance}</h4>
+            <div
+              className="rounded-xl border border-border/80 bg-surface-elevated p-3"
+              data-today-guidance="weather-supported"
+            >
+              <h4 className="text-xs font-bold uppercase tracking-wide text-muted">
+                {copy.guidance}
+              </h4>
               <p className="mt-2 text-sm font-semibold text-foreground">
                 {copy.indoors}: {poiName(indoorFallback, locale)}
               </p>
@@ -312,17 +336,23 @@ export function TripTodayPanel({ locale, workspace, cloudTripId }: TripTodayPane
               ) : (
                 <ul className="mt-2 grid gap-1 text-sm text-foreground">
                   {fixed.map((activity) => (
-                    <li key={activity.id}>{activity.startTime ?? "—"} · {activity.title}</li>
+                    <li key={activity.id}>
+                      {activity.startTime ?? "—"} · {activity.title}
+                    </li>
                   ))}
                 </ul>
               )}
             </div>
             <div className="rounded-xl border border-border/80 p-3">
-              <h4 className="text-xs font-bold uppercase tracking-wide text-muted">{copy.insights}</h4>
+              <h4 className="text-xs font-bold uppercase tracking-wide text-muted">
+                {copy.insights}
+              </h4>
               <p className="mt-2 text-2xl font-bold text-foreground">{openInsights.length}</p>
             </div>
             <div className="rounded-xl border border-border/80 p-3">
-              <h4 className="text-xs font-bold uppercase tracking-wide text-muted">{copy.replan}</h4>
+              <h4 className="text-xs font-bold uppercase tracking-wide text-muted">
+                {copy.replan}
+              </h4>
               {latestReplan === null ? (
                 <p className="mt-2 text-xs text-muted">{copy.noReplan}</p>
               ) : (

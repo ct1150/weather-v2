@@ -28,6 +28,7 @@ import {
 import { normalizeWorkspace, type TripWorkspace } from "../trips/workspace";
 import { TripCollaborationPanel } from "./TripCollaborationPanel";
 import { TripReplanPanel } from "./TripReplanPanel";
+import { TripTodayPanel } from "./TripTodayPanel";
 import { TripWeatherIntelligencePanel } from "./TripWeatherIntelligencePanel";
 
 export type CloudTripLocale = "en" | "zh-cn" | "zh-hant";
@@ -549,6 +550,12 @@ export function CloudTripControls({
           </div>
         </div>
       ) : null}
+
+      <TripTodayPanel
+        locale={locale}
+        workspace={workspace}
+        cloudTripId={metadata?.cloudTripId ?? null}
+      />
 
       <TripReplanPanel
         locale={locale}
