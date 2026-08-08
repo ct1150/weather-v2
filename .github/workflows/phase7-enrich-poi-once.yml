@@ -1,15 +1,14 @@
 name: Phase 7 enrich POI once
 
 on:
-  push:
-    branches: [feature/activity-intelligence-phase7]
+  pull_request:
 
 permissions:
   contents: write
 
 jobs:
   enrich:
-    if: github.actor != 'github-actions[bot]'
+    if: github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'feature/activity-intelligence-phase7'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
