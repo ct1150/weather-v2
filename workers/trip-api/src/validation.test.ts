@@ -53,7 +53,12 @@ describe("validateTripDocument", () => {
         ...base,
         days: [
           base.days[0],
-          { ...base.days[0], id: "day-2", dayNumber: 2, date: "2026-08-24" },
+          {
+            ...base.days[0],
+            id: "day-2",
+            dayNumber: 2,
+            date: "2026-08-24",
+          },
         ],
       }),
     ).toBeNull();
