@@ -1,0 +1,38 @@
+name: Phase 7 switch OSM node once
+
+on:
+  push:
+    branches: [feature/activity-intelligence-phase7]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/activity-intelligence-phase7
+          fetch-depth: 0
+      - name: Restrict candidate scan to OSM nodes
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('tooling/poi/generate-osm-pilot-pois.mjs')
+          text = path.read_text()
+          start = text.index('function query(')
+          end = text.index('\n}\n\nasync function fetchOverpass', start)
+          block = text[start:end]
+          block = block.replace('  nwr[', '  node[')
+          path.write_text(text[:start] + block + text[end:])
+          PY
+      - name: Commit and remove helper
+        run: |
+          rm .github/workflows/phase7-switch-osm-node-once.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "fix(activity): query node POIs for enrichment"
+          git push origin HEAD:feature/activity-intelligence-phase7
