@@ -1,0 +1,42 @@
+name: Phase 8 activity risk check once
+
+on:
+  pull_request:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: phase8-activity-risk-check
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    if: github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'feature/adaptive-replanning-phase8'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/adaptive-replanning-phase8
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.11.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Format Slice B
+        run: pnpm exec prettier --write apps/web/src/trips/activity-risk.ts apps/web/src/trips/activity-risk.test.ts
+      - name: Verify deterministic activity risk
+        run: pnpm --filter @wnr/web exec vitest run src/trips/activity-risk.test.ts
+      - name: Commit formatting and remove helper
+        run: |
+          rm .github/workflows/phase8-risk-check-once.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "chore(replan): verify activity risk slice B"
+          git push origin HEAD:feature/adaptive-replanning-phase8
