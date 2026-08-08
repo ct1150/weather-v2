@@ -19,6 +19,7 @@ const endpoints = [
   "https://overpass-api.de/api/interpreter",
 ];
 const USER_AGENT = "WhereNotRain-POI-Enrichment/1.0 (+https://868656.xyz)";
+const REQUEST_TIMEOUT_MS = 95_000;
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -51,6 +52,7 @@ async function fetchOverpass(statement) {
             accept: "application/json",
           },
           body: new URLSearchParams({ data: statement }),
+          signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
         });
         if (!response.ok) {
           const retryAfterSeconds = Number(response.headers.get("retry-after") ?? "0");
