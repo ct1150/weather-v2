@@ -29,12 +29,12 @@ function query([south, west, north, east]) {
   const box = `${south},${west},${north},${east}`;
   return `[out:json][timeout:90];
 (
-  nwr["tourism"~"^(attraction|museum|gallery|zoo|theme_park|aquarium|viewpoint|artwork)$"](${box});
-  nwr["historic"](${box});
-  nwr["natural"~"^(beach|peak|waterfall|cave_entrance|cliff)$"](${box});
-  nwr["leisure"~"^(park|garden|nature_reserve|marina)$"](${box});
-  nwr["amenity"~"^(place_of_worship|marketplace|arts_centre|theatre|library)$"](${box});
-  nwr["shop"="mall"](${box});
+  node["tourism"~"^(attraction|museum|gallery|zoo|theme_park|aquarium|viewpoint|artwork)$"](${box});
+  node["historic"](${box});
+  node["natural"~"^(beach|peak|waterfall|cave_entrance|cliff)$"](${box});
+  node["leisure"~"^(park|garden|nature_reserve|marina)$"](${box});
+  node["amenity"~"^(place_of_worship|marketplace|arts_centre|theatre|library)$"](${box});
+  node["shop"="mall"](${box});
 );
 out center tags;`;
 }
