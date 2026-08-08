@@ -4,7 +4,11 @@ import type { TripActivity } from "./activity-intelligence";
 import type { ActivityHourlyWeather } from "./activity-risk";
 import { buildDeterministicReplan } from "./replan-solver";
 
-function activity(id: string, startTime: string, overrides: Partial<TripActivity> = {}): TripActivity {
+function activity(
+  id: string,
+  startTime: string,
+  overrides: Partial<TripActivity> = {},
+): TripActivity {
   return {
     id,
     title: id,
@@ -144,7 +148,9 @@ describe("Phase 8 deterministic replan solver", () => {
       latitude: 35.66,
       longitude: 139.78,
     });
-    const proposal = solve([outdoor], weatherDay(Array.from({ length: 16 }, (_, i) => i + 7)), [fallback]);
+    const proposal = solve([outdoor], weatherDay(Array.from({ length: 16 }, (_, i) => i + 7)), [
+      fallback,
+    ]);
 
     expect(proposal.changes).toHaveLength(1);
     expect(proposal.changes[0]).toMatchObject({
@@ -163,11 +169,9 @@ describe("Phase 8 deterministic replan solver", () => {
       weatherSensitivity: [],
       category: "attraction",
     });
-    const proposal = solve(
-      [mustDo],
-      weatherDay(Array.from({ length: 16 }, (_, i) => i + 7)),
-      [fallback],
-    );
+    const proposal = solve([mustDo], weatherDay(Array.from({ length: 16 }, (_, i) => i + 7)), [
+      fallback,
+    ]);
 
     expect(proposal.changes).toEqual([]);
   });
@@ -181,11 +185,14 @@ describe("Phase 8 deterministic replan solver", () => {
   });
 
   it("returns byte-for-byte equivalent proposal values for identical inputs", () => {
-    const activities = [activity("garden", "09:00"), activity("cafe", "16:00", {
-      environment: "indoor",
-      weatherSensitivity: [],
-      durationMinutes: 60,
-    })];
+    const activities = [
+      activity("garden", "09:00"),
+      activity("cafe", "16:00", {
+        environment: "indoor",
+        weatherSensitivity: [],
+        durationMinutes: 60,
+      }),
+    ];
     const hourly = weatherDay([9, 10]);
 
     expect(solve(activities, hourly)).toEqual(solve(activities, hourly));

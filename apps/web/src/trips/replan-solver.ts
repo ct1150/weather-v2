@@ -101,10 +101,7 @@ function isHardLocked(activity: TripActivity): boolean {
   );
 }
 
-function assess(
-  activity: TripActivity,
-  input: BuildDeterministicReplanInput,
-): ActivityHourlyRisk {
+function assess(activity: TripActivity, input: BuildDeterministicReplanInput): ActivityHourlyRisk {
   return assessActivityHourlyRisk({
     activity,
     date: input.date,
@@ -291,9 +288,7 @@ function findFallbackReplacement(
 
 function aggregateRisk(risks: ReadonlyArray<ActivityHourlyRisk>): number | null {
   if (risks.length === 0 || risks.some((risk) => risk.score === null)) return null;
-  return Math.round(
-    risks.reduce((total, risk) => total + (risk.score ?? 0), 0) / risks.length,
-  );
+  return Math.round(risks.reduce((total, risk) => total + (risk.score ?? 0), 0) / risks.length);
 }
 
 function totalTravelDelta(changes: ReadonlyArray<ReplanChange>): number | null {
@@ -325,7 +320,9 @@ export function buildDeterministicReplan(
     afterById.set(activity.id, selected.change.after);
   });
 
-  const afterRisks = input.activities.map((activity) => assess(afterById.get(activity.id) ?? activity, input));
+  const afterRisks = input.activities.map((activity) =>
+    assess(afterById.get(activity.id) ?? activity, input),
+  );
   const reasonCodes = [
     ...new Set(changes.flatMap((change) => change.reasonCodes)),
   ] as ReadonlyArray<ReplanReasonCode>;
