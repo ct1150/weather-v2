@@ -60,7 +60,10 @@ export function buildDiscoveryWorkspace(
         countryName: allocation.city.countryName,
       },
       allocation.dates,
-      { blankTitle: options.title, now: options.now },
+      {
+        blankTitle: options.title,
+        ...(options.now === undefined ? {} : { now: options.now }),
+      },
     );
   }
   return workspace === null ? null : normalizeWorkspace(workspace, options.now);
