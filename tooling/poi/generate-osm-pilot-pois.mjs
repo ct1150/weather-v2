@@ -157,11 +157,7 @@ function reservation(tags) {
 
 function recommendedWindow(tags) {
   if (tags.tourism === "viewpoint") return "evening";
-  if (
-    ["park", "garden", "nature_reserve"].includes(tags.leisure) ||
-    tags.historic ||
-    tags.natural
-  )
+  if (["park", "garden", "nature_reserve"].includes(tags.leisure) || tags.historic || tags.natural)
     return "morning";
   if (
     ["museum", "gallery", "aquarium"].includes(tags.tourism) ||
@@ -212,8 +208,7 @@ for (let cityIndex = 0; cityIndex < cities.length; cityIndex += 1) {
     const env = environment(tags);
     const nameEn = tags["name:en"] ?? name;
     const nameZh = tags["name:zh"] ?? tags["name:zh-Hans"] ?? nameEn;
-    const nameHant =
-      tags["name:zh-Hant"] ?? tags["name:zh-TW"] ?? tags["name:zh"] ?? nameEn;
+    const nameHant = tags["name:zh-Hant"] ?? tags["name:zh-TW"] ?? tags["name:zh"] ?? nameEn;
     output.push({
       id: `osm-${city.id}-${element.type}-${element.id}`,
       cityId: city.id,
@@ -259,9 +254,5 @@ for (const item of output) {
 }
 lines.push("];", "");
 
-await writeFile(
-  "apps/web/src/trips/poi-catalog-osm.generated.ts",
-  `${lines.join("\n")}\n`,
-  "utf8",
-);
+await writeFile("apps/web/src/trips/poi-catalog-osm.generated.ts", `${lines.join("\n")}\n`, "utf8");
 console.log(`Generated ${output.length} OSM POIs.`);

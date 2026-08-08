@@ -1,3 +1,4 @@
+import { OSM_PILOT_POIS } from "./poi-catalog-osm.generated";
 import type {
   TripActivityCategory,
   TripActivityEnvironment,
@@ -19,7 +20,8 @@ export interface CuratedPoi {
   readonly typicalDurationMinutes: number;
   readonly reservation: TripActivityReservation;
   readonly recommendedWindow: "morning" | "afternoon" | "evening" | "any";
-  readonly provenance: "curated-v1";
+  readonly provenance: "curated-v1" | "openstreetmap-v1";
+  readonly sourceRef?: string;
 }
 
 type PoiSeed = Omit<CuratedPoi, "provenance" | "weatherSensitivity"> & {
@@ -40,7 +42,7 @@ function poi(seed: PoiSeed): CuratedPoi {
   };
 }
 
-const POIS: ReadonlyArray<CuratedPoi> = [
+const CURATED_POIS: ReadonlyArray<CuratedPoi> = [
   // Tokyo
   poi({
     id: "jp-tokyo-sensoji",
@@ -1355,6 +1357,21 @@ const POIS: ReadonlyArray<CuratedPoi> = [
     recommendedWindow: "evening",
   }),
 ];
+
+const curatedNames = new Set(
+  CURATED_POIS.map((item) => `${item.cityId}|${item.name.en.trim().toLocaleLowerCase("en-US")}`),
+);
+const POIS: ReadonlyArray<CuratedPoi> = [
+  ...CURATED_POIS,
+  ...OSM_PILOT_POIS.filter(
+    (item) => !curatedNames.has(`${item.cityId}|${item.name.en.trim().toLocaleLowerCase("en-US")}`),
+  ),
+];
+
+export const POI_DATA_ATTRIBUTIONS = Object.freeze([
+  "Curated travel metadata: Where Not Rain curated-v1",
+  "OpenStreetMap-derived candidates: © OpenStreetMap contributors, ODbL 1.0",
+]);
 
 const BY_CITY = new Map<string, ReadonlyArray<CuratedPoi>>();
 for (const item of POIS) {

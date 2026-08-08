@@ -12,7 +12,7 @@ describe("Phase 7 curated POI catalogue", () => {
     expect(PILOT_POI_CITY_IDS).toHaveLength(7);
     for (const cityId of PILOT_POI_CITY_IDS) {
       const items = listCuratedPois(cityId);
-      expect(items.length, cityId).toBeGreaterThanOrEqual(15);
+      expect(items.length, cityId).toBeGreaterThanOrEqual(50);
       expect(new Set(items.map((item) => item.id)).size).toBe(items.length);
       expect(items.every((item) => item.cityId === cityId)).toBe(true);
     }
@@ -26,7 +26,7 @@ describe("Phase 7 curated POI catalogue", () => {
         expect(item.longitude).toBeGreaterThanOrEqual(-180);
         expect(item.longitude).toBeLessThanOrEqual(180);
         expect(item.typicalDurationMinutes).toBeGreaterThan(0);
-        expect(item.provenance).toBe("curated-v1");
+        expect(["curated-v1", "openstreetmap-v1"]).toContain(item.provenance);
         expect(item.name.en.length).toBeGreaterThan(0);
         expect(item.name["zh-cn"].length).toBeGreaterThan(0);
         expect(item.name["zh-hant"].length).toBeGreaterThan(0);
