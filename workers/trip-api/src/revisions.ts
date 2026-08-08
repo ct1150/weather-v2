@@ -48,6 +48,7 @@ export async function restoreTripRevision(
   targetVersion: number,
   baseVersion: number,
   now = new Date().toISOString(),
+  actorEmail: string | null = null,
 ): Promise<RestoreRevisionResult> {
   const access = await resolveTripAccess(db, userId, tripId);
   if (access === null) return { kind: "missing" };
@@ -73,5 +74,6 @@ export async function restoreTripRevision(
     document,
     now,
     `restore:${targetVersion}`,
+    actorEmail,
   );
 }
