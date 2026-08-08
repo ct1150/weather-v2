@@ -1,0 +1,67 @@
+name: Phase 6 production acceptance once
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: phase6-production-acceptance-once
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Verify deployed Phase 6 product
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent --show-error --location \
+              "https://868656.xyz/discover" | grep -Fq "Weather Discovery"; then
+              break
+            fi
+            sleep 5
+          done
+          node tooling/deploy/weather-discovery-smoke.mjs \
+            --site-url "https://868656.xyz" \
+            --read-url "https://where-not-rain-read-production.ct1150.workers.dev"
+      - name: Persist acceptance and remove helper
+        run: |
+          cat > PHASE6_DISCOVERY_SMOKE_STATUS.md <<'EOF'
+          # Phase 6 Weather Discovery smoke status
+
+          - Conclusion: success
+          - Product release SHA: a33caf1a7366e0c01fb2695703fbeff1b8c991ed
+          - Production Deploy run: https://github.com/ct1150/weather-v2/actions/runs/31267024337
+          - Verification: dedicated production acceptance workflow
+
+          ## Checks
+
+          - English `/discover` route: success
+          - Simplified Chinese `/zh-cn/discover` route: success
+          - Traditional Chinese `/zh-hant/discover` route: success
+          - Weather city catalogue: success
+          - Batched 12-city forecast reads: success
+          - Cross-batch snapshot consistency: success
+          - 16-day API bound enforcement: success
+          EOF
+          printf '\n- Verified at: %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> PHASE6_DISCOVERY_SMOKE_STATUS.md
+          rm .github/workflows/phase6-production-acceptance-once.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add PHASE6_DISCOVERY_SMOKE_STATUS.md .github/workflows/phase6-production-acceptance-once.yml
+          git commit -m "chore(smoke): record phase 6 discovery verification [skip ci]"
+          git pull --rebase origin main
+          git push origin HEAD:main
