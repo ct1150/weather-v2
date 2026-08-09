@@ -125,10 +125,7 @@ describe("notification readiness", () => {
       reason: "daily_limit_reached",
     });
     expect(
-      evaluate(
-        { ...actionCandidate, sentCountToday: 1 },
-        { ...enabled, maxPerLocalDay: 2 },
-      ),
+      evaluate({ ...actionCandidate, sentCountToday: 1 }, { ...enabled, maxPerLocalDay: 2 }),
     ).toEqual({ eligible: true, reason: "eligible" });
   });
 

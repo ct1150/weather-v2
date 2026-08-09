@@ -76,7 +76,11 @@ function validImpact(value: number): boolean {
 }
 
 function validPreference(preference: NotificationPreference): boolean {
-  if (!Number.isInteger(preference.maxPerLocalDay) || preference.maxPerLocalDay < 1 || preference.maxPerLocalDay > 10) {
+  if (
+    !Number.isInteger(preference.maxPerLocalDay) ||
+    preference.maxPerLocalDay < 1 ||
+    preference.maxPerLocalDay > 10
+  ) {
     return false;
   }
   const quiet = preference.quietHours;
