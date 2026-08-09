@@ -1,59 +1,64 @@
 # Phase 8 execution status
 
 Date: 2026-08-09
+Status: Complete
 
 - Slice A — bounded hourly weather read: Complete
 - Slice B — deterministic activity risk: Complete
 - Slice C — deterministic replan solver: Complete
 - Slice D — secure proposal apply boundary: Complete
 - Slice E — review / apply UX: Complete
-- Slice F — Today / Execution Mode + release: Implementation and Preview end-to-end acceptance complete; final repository/production gate pending
+- Slice F — Today / Execution Mode + release: Complete
 
-## Slice D acceptance
+## Delivered
 
-- OWNER/EDITOR apply creates the normal next Cloud Trip version and immutable revision.
-- VIEWER apply is rejected server-side.
-- Stale `baseVersion` is rejected with the current version.
-- Unrelated trip/day metadata edits are rejected.
-- Actual structured activity changes must exactly match user-approved activity IDs.
-- No-op apply is rejected.
-- Successful revision operation is `replan`.
-- Audit payload records `weatherSnapshotId` and approved activity IDs.
-- Full repository Deploy 295 and Phase 5/6/7/Hourly Preview regressions passed.
+- Provider-isolated bounded hourly weather reads from the active immutable Weather D1 snapshot.
+- Deterministic activity risk for rain, heat, cold, wind and UV with fail-closed unknown states.
+- Deterministic same-day replanning that preserves fixed, required-reservation and transport constraints.
+- Explicit proposal review with before/after risk, selected-change approval and no silent mutation.
+- Secure `/api/v1/trips/:tripId/replan/apply` boundary using the existing Cloud Trip optimistic-lock/revision path.
+- OWNER / EDITOR apply support, VIEWER read-only enforcement and stale `baseVersion` rejection.
+- Normal immutable `replan` revisions plus audit payload containing the weather snapshot and approved activity IDs.
+- English, Simplified Chinese and Traditional Chinese Review/Apply UI.
+- Today / Execution Mode using destination timezone, current/next structured activity, current hourly weather, risk, fixed constraints, Weather Insights and accepted replan audit context.
 
-## Slice E acceptance
+## Final Preview acceptance
 
-- Review/Apply panel reads hourly weather and builds the deterministic solver proposal without mutating the workspace.
-- Before/after activity and risk scores are visible before apply.
-- Protected fixed activities are explicitly shown as unchanged.
-- Users can select only the changes they approve.
-- Local-only and Viewer states can inspect proposals but cannot apply Cloud changes.
-- Cloud apply calls only the dedicated `/replan/apply` boundary.
-- Local workspace state is updated only after the server returns the accepted Cloud Trip revision.
-- English, Simplified Chinese and Traditional Chinese review copy is present.
-- Focused Activity Risk + Solver + proposal UI contract tests and Web typecheck passed.
-- Full repository Deploy 301 and Phase 5/6/7/Hourly Preview regressions passed.
+Acceptance head: `af7d69b3fe0b1dc353cacbd741a6d7ea1abf5e00`
 
-## Slice F acceptance so far
+- Deploy Run 313: success.
+- Phase 5 Weather Intelligence Preview regression: success.
+- Phase 6 Discovery Preview regression: success.
+- Phase 7 Activity Intelligence Preview regression: success.
+- Phase 8 Hourly Weather Preview regression: success.
+- Phase 8 Adaptive Replanning Preview end-to-end smoke: success.
 
-- Today Mode resolves the active trip day using the destination timezone rather than the device timezone.
-- Current/next structured activity, current hourly weather, activity risk and fixed constraints are surfaced in execution view.
-- Cloud-backed Today Mode can surface relevant Weather Insights and the latest accepted replan audit.
-- English, Simplified Chinese and Traditional Chinese Today Mode copy is present.
-- Focused Today Mode resolver/UI contracts and Web typecheck passed.
-- Dedicated Phase 8 Preview end-to-end smoke passed against real persisted hourly weather.
-- The end-to-end smoke verifies deterministic same-day replanning, OWNER and EDITOR apply, fixed transport preservation, VIEWER rejection, stale-version rejection, normal `replan` revisions and weather-snapshot audit context.
-- Final smoke/workflow formatting has been normalized and the temporary formatter workflow removed.
+## Merge and production acceptance
 
-## Final Phase 8 gate
+PR #37 was squash merged to `main` as release SHA:
 
-Run the final normal-user acceptance head through:
+`c26a444e1a2ebf51664276da7dfbf4a737a5a607`
 
-1. full Deploy repository gate and Preview deployment;
-2. Phase 5 Weather Intelligence regression;
-3. Phase 6 Discovery regression;
-4. Phase 7 Activity Intelligence regression;
-5. Phase 8 Hourly Weather regression;
-6. Phase 8 Adaptive Replanning Preview smoke.
+Production Deploy Run `31320097163`: success.
 
-If all six are green, mark PR #37 ready, squash merge to `main`, then require the production Deploy plus Phase 8 Production smoke on the resulting release SHA before marking Phase 8 Complete.
+The production run completed the full repository gate and production chain, including format, lint, typecheck, unit/integration tests, docs, static export, all Worker builds, production Weather D1, weather-sync Cron, protected weather refresh, weather-read, Trip D1, Trip API, Better Auth migration, Trip API production smoke, Pages production deployment, IndexNow and final freshness/Cron smoke.
+
+Phase 8 Production Adaptive Replanning smoke: success.
+
+Verified production checks:
+
+- real persisted hourly weather snapshot read;
+- deterministic same-day later replanning;
+- OWNER apply;
+- EDITOR apply;
+- fixed transport constraint preserved;
+- VIEWER apply rejected;
+- stale `baseVersion` rejected with current version;
+- immutable `replan` revisions created;
+- replan audit retained weather snapshot and selected activity IDs.
+
+Production verification source: `PHASE8_REPLAN_SMOKE_STATUS.md` for release SHA `c26a444e1a2ebf51664276da7dfbf4a737a5a607`.
+
+## Conclusion
+
+Phase 8 is complete and production accepted. No known Phase 8 product, CI, Preview or Production acceptance debt remains. Further work should proceed from the existing Phase 9 plan rather than expanding Phase 8 scope.
