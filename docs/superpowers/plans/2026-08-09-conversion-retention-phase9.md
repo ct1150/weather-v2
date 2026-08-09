@@ -1,172 +1,77 @@
 # Where Not Rain — Phase 9: Conversion & Retention
 
 Date: 2026-08-09
-Status: In Progress
+Status: Complete
 
 ## Outcome
 
-Convert an already-completed travel decision into **contextual, disclosed and privacy-safe commercial opportunities and retention hooks** without allowing commercial logic to influence weather discovery, weather risk, adaptive replanning or fixed constraints.
+Phase 9 converts an already-completed travel decision into **contextual, disclosed and privacy-safe commercial opportunities and retention readiness** without allowing commercial logic to influence weather discovery, weather risk, adaptive replanning or fixed constraints.
 
-Target product loop:
+Delivered product loop:
 
-**weather decision -> trip/replan context -> eligible commercial opportunity -> secure affiliate adapter -> measurable impression/click -> opt-in retention readiness**
+**weather decision -> trip/replan context -> eligible commercial opportunity -> secure Affiliate adapter -> measurable impression/click -> opt-in retention readiness**
 
-The product must remain useful when every commercial flag is disabled or every provider has no fill.
+The product remains useful when all commercial flags are disabled or providers have no fill.
 
-## Non-negotiable trust boundaries
+## Trust boundaries preserved
 
-1. Commercial logic never changes weather scores, weather reason codes, discovery ordering, activity risk or replan ordering.
+1. Commercial logic does not change weather scores, reason codes, discovery ordering, activity risk or replan ordering.
 2. Commercial opportunities are derived only after a user-relevant decision context exists.
-3. The contextual resolver never fabricates provider URLs and never selects an arbitrary redirect target.
-4. Final outbound links continue to pass through the existing provider-neutral Affiliate adapter with HTTPS host/path allowlists, disclosure, `sponsored nofollow`, kill switches and no-fill suppression.
-5. Disabled/no-fill/weak-context states render nothing rather than a dead or misleading block.
-6. Analytics payloads remain allowlisted and may not contain itinerary text, activity names, notes, precise coordinates, email, account/session/device identifiers or raw query strings.
-7. Notifications remain opt-in and rate-limited before any delivery channel integration.
-8. Billing remains deferred. Phase 9 may define entitlements only; it does not integrate a billing provider unless separately approved.
+3. No provider URLs were fabricated or hardcoded as product defaults.
+4. Outbound links continue to pass through the existing provider-neutral Affiliate adapter with HTTPS host/path allowlists, disclosure, `sponsored nofollow`, kill switches and no-fill suppression.
+5. Disabled/no-fill/weak-context states render no misleading commercial shell.
+6. Analytics are allowlisted and reject itinerary text, activity names, notes, precise coordinates, email, user/session/device identifiers and related sensitive content.
+7. Notification readiness is default-off, confidence/severity gated, destination-local quiet-hour aware and rate-limited before any delivery integration.
+8. Billing remains deferred; Phase 9 defines candidate entitlements only and integrates no billing provider.
 
 ---
 
-## Existing baseline to reuse
+## Slice A — Contextual conversion resolver
 
-### Affiliate safety layer
+Status: **Complete**
 
-`packages/analytics/src/affiliate-adapter.ts` already provides:
+Delivered pure deterministic mapping from completed decision context to bounded commercial categories:
 
-- provider-neutral categories (`hotel`, `activities`, `flights`, `sim`, `insurance`, `car_rental`);
-- provider host/path allowlists;
-- HTTPS-only outbound validation;
-- per-slot runtime kill switches;
-- stale/empty/unauthorized suppression;
-- sponsored disclosure / rel attributes;
-- zero-shift no-fill behavior;
-- bounded `affiliate_impression` / `affiliate_click` descriptors.
+- destination decision -> hotel / flight opportunities;
+- structured Trip activity context -> activity opportunity;
+- explicit car dependency -> car rental;
+- weather replan -> activity only when a concrete indoor fallback exists;
+- bad weather alone never produces insurance;
+- near-term trip preparation -> SIM/eSIM;
+- weak/missing context -> no opportunity.
 
-Phase 9 does **not** replace these controls.
+The resolver has no provider URL, provider ranking, commission/bid, weather score or risk score inputs and returns at most two stably ordered opportunities.
 
-### Analytics privacy layer
-
-`packages/analytics/src/events.ts` already provides:
-
-- strict event allowlists;
-- versioned schemas;
-- route-template allowlists;
-- privacy-field rejection;
-- unknown-field stripping;
-- non-blocking sink behavior.
-
-Phase 9 extends this system rather than creating a parallel analytics stack.
-
-### Runtime controls
-
-`packages/config/src/runtime-config.ts` is safe-by-default: optional affiliate slots are disabled unless explicitly enabled.
+Acceptance: focused tests/build + full repository Deploy 322 + Phase 5–8 Preview regressions passed.
 
 ---
 
-# Slice A — Contextual conversion resolver
+## Slice B — Contextual Discovery / Weather surfaces
 
-Status: In Progress
+Status: **Complete**
 
-## Goal
+Delivered secure product surfaces with zero-fill defaults:
 
-Create a **pure deterministic resolver** that answers only:
+- deployment offer catalog defaults empty;
+- affiliate slot enablement defaults off;
+- malformed candidate data fails closed;
+- every outbound target remains subject to the existing Affiliate HTTPS host/path allowlist and data-state checks;
+- English / zh-CN / zh-Hant CTA/disclosure copy is code-owned;
+- Discovery commerce appears only after a single destination is actually turned into a Trip;
+- Weather Replan commerce appears only for a deterministic `replace_activity` indoor fallback;
+- bad weather/time shift alone does not surface commerce;
+- injected insurance cannot override contextual eligibility;
+- weather discovery, activity risk and replan solver remain free of commercial dependencies.
 
-> Given the product decision context, which commercial category/surface is contextually eligible, if any?
-
-It must not know provider URLs, commission rates, commercial bids, weather rankings or affiliate provider internals.
-
-## Contract
-
-```text
-ConversionContext
-- stage:
-    discovery_decided
-    trip_planning
-    trip_transport
-    weather_replan
-    trip_preparation
-- destinationId?
-- hasDestinationDecision
-- hasTrip
-- hasStructuredActivities
-- carDependent
-- weatherAction?
-- indoorFallbackAvailable
-- tripStartsWithinDays?
-
-ContextualCommercialOpportunity
-- category
-- surface
-- slot
-- destinationId
-- reasonCode
-- priority
-```
-
-Initial deterministic mapping:
-
-- `discovery_decided` + real destination decision -> `hotel`, optionally `flights` as a lower-priority second opportunity;
-- `trip_planning` + structured activity context -> `activities`;
-- `trip_transport` + explicitly car-dependent trip -> `car_rental`;
-- `weather_replan` + explicit indoor fallback context -> `activities` only;
-- insurance is **not** emitted merely because weather worsened;
-- `trip_preparation` + near-term trip -> `sim`;
-- weak/missing decision context -> no opportunity.
-
-The resolver may return a bounded ordered list, maximum two opportunities, with stable deterministic ordering.
-
-## Slice A acceptance
-
-- [ ] resolver is pure and deterministic;
-- [ ] weak/missing context returns no opportunity;
-- [ ] discovery opportunity requires an actual destination decision;
-- [ ] activity tickets require trip/activity context;
-- [ ] car rental requires explicit car dependency;
-- [ ] bad weather alone never emits insurance;
-- [ ] weather replan emits an activity opportunity only when a concrete indoor fallback exists;
-- [ ] SIM opportunity requires preparation/near-term context;
-- [ ] output contains no provider URL, commission/bid or weather score fields;
-- [ ] output ordering is stable and bounded to at most two opportunities;
-- [ ] focused unit tests pass;
-- [ ] existing Affiliate adapter tests remain green;
-- [ ] full repository Preview gate passes before Slice B.
+Acceptance: focused surface/separation tests + Web typecheck + full repository Deploy 330 + Phase 5–8 Preview regressions passed.
 
 ---
 
-# Slice B — Discovery / Trip / Weather surfaces
+## Slice C — Funnel analytics + privacy gates
 
-Status: Planned
+Status: **Complete**
 
-## Goal
-
-Render contextual opportunities only where the decision context exists, then resolve a real outbound action through the existing secure Affiliate adapter.
-
-Candidate surfaces:
-
-- Discovery shortlist/compare result after destination decision: hotel / flight;
-- Trip Workspace structured-day planning: activities;
-- car-dependent Trip context: car rental;
-- weather-driven replan review / Today Mode with concrete indoor fallback: activity ticket;
-- trip preparation context: SIM/eSIM.
-
-Requirements:
-
-- EN / zh-CN / zh-Hant disclosure copy;
-- zero misleading UI when slot disabled, provider data missing or no-fill;
-- commercial cards never reorder weather/discovery/replan content;
-- accessibility and mobile layout;
-- outbound target always resolved through the Affiliate adapter.
-
----
-
-# Slice C — Funnel analytics + privacy gates
-
-Status: Planned
-
-## Goal
-
-Measure the product-to-conversion funnel with bounded privacy-safe events.
-
-Target funnel:
+Delivered bounded aggregate funnel:
 
 ```text
 weather_discovery_view
@@ -179,108 +84,128 @@ weather_discovery_view
 -> affiliate_click
 ```
 
-Requirements:
-
-- extend the existing allowlisted analytics union/version validator;
-- use destination IDs / bounded enums, never itinerary text;
-- reject activity titles, notes, precise coordinates, email, user/session/device IDs and raw query strings;
-- unknown extra fields continue to be discarded;
-- analytics remain non-blocking;
-- explicit privacy regression tests.
-
----
-
-# Slice D — Notification preference / readiness model
-
-Status: Planned
-
-## Goal
-
-Make future Weather Insight notifications safe to add later without enabling delivery yet.
-
-Preference contract should cover:
-
-- opt-in enabled state;
-- eligible severity threshold;
-- quiet hours;
-- maximum daily cadence;
-- per-trip monitoring preference where supported;
-- explicit unsubscribe/disable state.
-
 Rules:
 
-- default off;
-- low-confidence / minor weather noise never eligible;
-- quiet periods and rate limits are deterministic;
-- no email/PWA delivery provider integration is required in this slice.
+- existing versioned analytics allowlist/validator extended rather than replaced;
+- dimensions limited to normalized destination IDs, bounded counts, creation source and fallback presence;
+- itinerary/activity/trip text, POI/hotel names, notes, reservation codes, precise coordinates, email, user/session/device IDs and existing privacy-forbidden fields fail closed;
+- unknown non-sensitive fields are discarded;
+- browser bridge validates before emitting best-effort `wnr:analytics` events;
+- no analytics listener/backend is required for core functionality;
+- analytics failure never blocks Trip creation, weather insight use, replanning or outbound navigation.
+
+Acceptance: `@wnr/analytics` and focused Web tests/typecheck + full repository Deploy 340 + Phase 5–8 Preview regressions passed.
 
 ---
 
-# Slice E — Premium entitlement boundary
+## Slice D — Notification preference / readiness model
 
-Status: Planned
+Status: **Complete**
 
-## Goal
+Delivered provider-neutral pure readiness rules only; no delivery channel was introduced.
 
-Define testable product entitlement boundaries without billing integration.
+Conservative defaults:
 
-Candidate entitlements:
+- global state disabled;
+- per-trip monitoring disabled;
+- action-level severity threshold;
+- destination-local quiet hours 22:00–08:00;
+- maximum one eligible notification per local day.
 
-- number of actively monitored trips;
-- proactive notification eligibility;
-- revision-history horizon;
-- advanced multi-city comparison limits;
-- adaptive replan proposal limits/features;
-- collaboration limits/features.
+Rules cover explicit unsubscribe, low-confidence rejection, minor-weather-noise rejection, threshold gating, cross-midnight quiet hours, local-day rate limits and invalid-input fail-closed behavior.
 
-Requirements:
+No email, push token, endpoint, provider, phone or address fields exist in this domain model.
 
-- free baseline remains useful;
-- entitlement checks are deterministic and provider-neutral;
-- no payment/billing SDK;
-- billing remains deferred until analytics demonstrate repeated monitoring/replanning value.
+Acceptance: focused domain tests/build + full repository Deploy 347 + Phase 5–8 Preview regressions passed.
 
 ---
 
-# Slice F — Release review / smoke
+## Slice E — Premium entitlement boundary
 
-Status: Planned
+Status: **Complete; billing deferred**
 
-Preview and Production release review must verify:
+Delivered a candidate, deterministic `free` / `premium` policy contract without billing integration and without automatically enforcing limits in Phase 9.
+
+Candidate free baseline remains useful:
+
+- one active monitored trip candidate;
+- ten revision-history versions;
+- two-city comparison;
+- two collaboration members beyond owner;
+- Adaptive Replanning enabled.
+
+Candidate premium increases monitoring/revision/comparison/collaboration scale and marks proactive notifications eligible while retaining Adaptive Replanning.
+
+No Stripe/billing/payment/price/customer/subscription/checkout fields or SDKs were introduced.
+
+Acceptance: focused domain tests/build + full repository Deploy 353 + Phase 5–8 Preview regressions passed.
+
+---
+
+## Slice F — Release review / smoke
+
+Status: **Complete**
+
+Dedicated `Verify conversion and retention` workflow verifies:
 
 1. weak commercial context produces no surface;
-2. valid context resolves the intended category only;
-3. kill-switch off produces zero commercial UI;
-4. invalid/non-allowlisted outbound target is suppressed;
-5. commercial surfaces do not alter weather/discovery/replan ordering;
-6. affiliate impression/click events validate through the privacy allowlist;
+2. valid context resolves only intended categories;
+3. kill-switch/no-fill produces zero commercial UI;
+4. invalid/non-allowlisted outbound targets are suppressed;
+5. commercial dependencies stay out of weather/discovery/risk/replan algorithms;
+6. Affiliate impression/click descriptors pass the privacy allowlist;
 7. forbidden itinerary/privacy fields are rejected;
-8. notification preference defaults off and enforces cadence/quiet hours;
-9. premium entitlement checks are deterministic and billing-free.
+8. notification defaults/quiet hours/rate limits remain fail-closed;
+9. candidate entitlements remain deterministic and billing-free;
+10. English/zh-CN/zh-Hant Discovery and Workspace routes deploy successfully;
+11. unconfigured deployment renders zero commercial UI.
+
+### Final Preview acceptance
+
+Final acceptance head:
+
+`258fdf888006ba8cf2bbe21e29ea2dbb769a86df`
+
+All seven final gates passed:
+
+- Deploy Run 358;
+- Phase 5 Weather Intelligence regression;
+- Phase 6 Discovery regression;
+- Phase 7 Activity Intelligence regression;
+- Phase 8 Hourly Weather regression;
+- Phase 8 Adaptive Replanning regression;
+- Phase 9 Conversion & Retention Preview smoke.
+
+### Merge and Production acceptance
+
+PR #38 squash merged to `main` as release SHA:
+
+`5c61ccbb7968de62d7a9669d7e6d29f5b1e6c174`
+
+Production Deploy Run 359 / `31323517519`: **success**.
+
+The run passed format, lint, typecheck, unit/integration, docs, static export, all Worker builds, production Weather D1, weather-sync Cron, protected weather refresh, weather-read, Trip D1, Trip API, Better Auth migration, Trip API production smoke, Pages production deployment, IndexNow and final freshness/Cron smoke.
+
+Dedicated Phase 9 Production Conversion & Retention smoke: **success**, bound to the same release SHA and Deploy run.
+
+Authoritative evidence: `PHASE9_CONVERSION_RETENTION_SMOKE_STATUS.md`.
 
 ---
 
 ## Phase 9 Definition of Done
 
-- [ ] contextual commercial resolver is deterministic and decision-first;
-- [ ] contextual affiliate surfaces use the existing secure adapter;
-- [ ] commercial surfaces never influence weather/risk/replan scoring;
-- [ ] disabled/no-fill states produce zero misleading UI;
-- [ ] affiliate impression/click funnel is measurable;
-- [ ] privacy tests reject itinerary/sensitive content;
-- [ ] notification readiness is opt-in and rate-limited before delivery integration;
-- [ ] premium entitlements are documented and testable without billing integration;
-- [ ] EN / zh-CN / zh-Hant commercial disclosure surfaces complete;
-- [ ] full format/lint/typecheck/unit/integration/docs/static-export gates pass;
-- [ ] dedicated Preview and Production Phase 9 smoke pass.
+- [x] contextual commercial resolver is deterministic and decision-first;
+- [x] contextual affiliate surfaces use the existing secure adapter;
+- [x] commercial surfaces never influence weather/risk/replan scoring;
+- [x] disabled/no-fill states produce zero misleading UI;
+- [x] affiliate impression/click funnel is measurable;
+- [x] privacy tests reject itinerary/sensitive content;
+- [x] notification readiness is opt-in/default-off and rate-limited before delivery integration;
+- [x] premium entitlements are documented and testable without billing integration;
+- [x] EN / zh-CN / zh-Hant commercial disclosure surfaces complete;
+- [x] full format/lint/typecheck/unit/integration/docs/static-export gates pass;
+- [x] dedicated Preview and Production Phase 9 smoke pass.
 
-## Execution order
+## Conclusion
 
-1. Slice A — contextual conversion resolver.
-2. Slice B — contextual product surfaces using secure Affiliate adapter.
-3. Slice C — funnel analytics + privacy gates.
-4. Slice D — notification preference/readiness model.
-5. Slice E — premium entitlement contract, billing deferred.
-6. Slice F — release review / Preview + Production smoke.
-
-No slice advances past its acceptance gate with a known safety, privacy, trust or CI failure.
+Phase 9 is complete and production accepted. Billing and real notification delivery remain intentionally deferred and are not Phase 9 acceptance debt.
