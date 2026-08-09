@@ -8,7 +8,9 @@ function source(relative: string): string {
 describe("Phase 9 commercial surface separation contract", () => {
   it("places Discovery commerce only after a single-destination trip decision", () => {
     const discovery = source("components/WeatherDiscoveryPlannerV2.tsx");
-    expect(discovery).toContain('import { ContextualAffiliateSurface } from "./ContextualAffiliateSurface";');
+    expect(discovery).toContain(
+      'import { ContextualAffiliateSurface } from "./ContextualAffiliateSurface";',
+    );
     expect(discovery).toContain(
       "tripReady && selectedResults.length === 1 && selectedResults[0] !== undefined",
     );

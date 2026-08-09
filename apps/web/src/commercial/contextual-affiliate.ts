@@ -90,7 +90,11 @@ function boundedString(value: unknown, re: RegExp, max: number): string | null {
   return value;
 }
 
-function stringArray(value: unknown, maxItems: number, maxLength: number): ReadonlyArray<string> | null {
+function stringArray(
+  value: unknown,
+  maxItems: number,
+  maxLength: number,
+): ReadonlyArray<string> | null {
   if (!Array.isArray(value) || value.length > maxItems) return null;
   const output: string[] = [];
   for (const item of value) {
@@ -129,9 +133,8 @@ export function parseCommercialOffers(raw: string): ReadonlyArray<RawCommercialO
     const providerId = boundedString(row.providerId, ID_RE, 128);
     const slot = boundedString(row.slot, SLOT_RE, 96);
     const destinationId = boundedString(row.destinationId, DESTINATION_RE, 96);
-    const category = typeof row.category === "string" && isCommercialCategory(row.category)
-      ? row.category
-      : null;
+    const category =
+      typeof row.category === "string" && isCommercialCategory(row.category) ? row.category : null;
     const state = dataState(row.dataState);
     const hosts = stringArray(row.normalizedHostAllowlist, 8, 120);
     const paths = stringArray(row.allowedPathPrefixes, 16, 160);

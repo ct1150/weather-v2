@@ -126,9 +126,9 @@ describe("contextual Affiliate product surface", () => {
 
   it("fails closed on malformed catalog rows", () => {
     expect(parseCommercialOffers("not-json")).toEqual([]);
-    expect(parseCommercialOffers(JSON.stringify([{ ...validOffer, destinationId: "Tokyo / raw" }]))).toEqual(
-      [],
-    );
+    expect(
+      parseCommercialOffers(JSON.stringify([{ ...validOffer, destinationId: "Tokyo / raw" }])),
+    ).toEqual([]);
     expect(
       parseCommercialOffers(
         JSON.stringify([{ ...validOffer, normalizedHostAllowlist: ["https://travel.example"] }]),
