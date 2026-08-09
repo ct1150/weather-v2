@@ -35,6 +35,8 @@ jobs:
             packages/analytics/src/contextual-conversion.test.ts \
             packages/analytics/src/index.ts \
             docs/superpowers/plans/2026-08-09-conversion-retention-phase9.md
+      - name: Build analytics dependency
+        run: pnpm --filter @wnr/config build
       - name: Verify contextual conversion and Affiliate safety
         run: |
           pnpm --filter @wnr/analytics test
