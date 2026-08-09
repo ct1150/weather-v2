@@ -7,8 +7,8 @@ Status: In Progress
 - Slice B — contextual Discovery / Weather surfaces: Complete
 - Slice C — funnel analytics + privacy gates: Complete
 - Slice D — notification preference/readiness model: Complete
-- Slice E — premium entitlement contract: Focused acceptance passed; full repository Preview gate pending; billing deferred
-- Slice F — release review / smoke: Not started
+- Slice E — premium entitlement contract: Complete; billing deferred
+- Slice F — release review / smoke: Preview dedicated smoke passed; final repository acceptance head pending
 
 ## Completed acceptance
 
@@ -40,8 +40,7 @@ Status: In Progress
 - Focused domain tests/build: success.
 - Full repository Deploy 347 + Phase 5–8 Preview regressions: success.
 
-## Slice E focused acceptance
-
+### Slice E
 - Added a pure candidate `free` / `premium` entitlement contract in `@wnr/domain`.
 - The free baseline remains useful: one active monitored trip candidate, ten revision-history versions, two-city comparison, two collaborators and core Adaptive Replanning enabled.
 - Premium increases monitoring/revision/comparison/collaboration scale and marks proactive notifications eligible, while Adaptive Replanning remains enabled on both plans.
@@ -49,8 +48,27 @@ Status: In Progress
 - Pure usage assessment is deterministic and rejects invalid usage counts.
 - Contract contains no Stripe/billing/payment/price/customer/subscription/checkout fields and imports no billing SDK.
 - Focused `@wnr/domain` tests/build: success.
-- Temporary Slice E helper removed after verification.
+- Full repository Deploy 353: success.
+- Phase 5 Weather Intelligence, Phase 6 Discovery, Phase 7 Activity Intelligence, Phase 8 Hourly Weather and Phase 8 Adaptive Replanning Preview regressions: success.
 
-## Next gate
+## Slice F acceptance so far
 
-Run this normal-user acceptance head through the full repository Deploy + Preview chain and Phase 5–8 regressions. Slice F starts only after that gate is green.
+- Added dedicated `Verify conversion and retention` Preview/Production workflow.
+- Preview trust-contract suite verifies decision-first conversion, Affiliate HTTPS allowlist/kill-switch/no-fill, commercial-to-weather/replan separation, funnel privacy, impression/click descriptors, notification readiness and billing-free candidate entitlements.
+- Live Preview smoke verifies English, Simplified Chinese and Traditional Chinese Discovery/Workspace routes and confirms unconfigured commercial deployment renders zero commercial UI.
+- Dedicated Phase 9 Preview Run `31323095628`: success.
+- The first full Deploy attempt was blocked only by Prettier on `tooling/deploy/conversion-retention-live-smoke.mjs`; the release smoke has since been normalized and the temporary formatter workflow removed.
+
+## Final Phase 9 gate
+
+Run this normal-user acceptance head through all seven gates on the same commit:
+
+1. full repository Deploy + Preview deployment;
+2. Phase 5 Weather Intelligence regression;
+3. Phase 6 Discovery regression;
+4. Phase 7 Activity Intelligence regression;
+5. Phase 8 Hourly Weather regression;
+6. Phase 8 Adaptive Replanning regression;
+7. Phase 9 Conversion & Retention Preview smoke.
+
+If all seven are green, mark PR #38 ready and squash merge to `main`. Phase 9 is not Complete until the resulting release SHA passes production Deploy and the dedicated Phase 9 Production smoke records the exact same Deploy head SHA.
