@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useMemo, useState, type ReactElement } from "react";
+import { emitProductAnalytics } from "../analytics/browser-events";
 import type { TripAccessRole } from "../trips/cloud-sync";
 import {
   convertCloudWeatherInsightToDecision,
@@ -195,7 +196,14 @@ export function TripWeatherIntelligencePanel({
   const toggle = useCallback((): void => {
     setOpen((current) => {
       const next = !current;
-      if (next) void load();
+      if (next) {
+        emitProductAnalytics({
+          locale,
+          routeTemplate: "/trips/workspace",
+          fields: { event: "weather_insight_opened" },
+        });
+        void load();
+      }
       return next;
     });
   }, [load]);

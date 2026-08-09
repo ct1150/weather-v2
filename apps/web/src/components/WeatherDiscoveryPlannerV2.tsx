@@ -4,10 +4,12 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ChangeEvent,
   type ReactElement,
 } from "react";
+import { emitProductAnalytics } from "../analytics/browser-events";
 import { clearCloudMetadata } from "../trips/cloud-sync";
 import {
   TRIP_WORKSPACE_STORAGE_KEY,
@@ -35,6 +37,7 @@ import {
   type DiscoveryTheme,
   type WeatherDiscoveryIntent,
 } from "../discovery/weather-discovery";
+import { ContextualAffiliateSurface } from "./ContextualAffiliateSurface";
 import { ExplorerMap } from "./ExplorerMap";
 
 export type WeatherDiscoveryLocale = "en" | "zh-cn" | "zh-hant";
@@ -387,6 +390,17 @@ export function WeatherDiscoveryPlannerV2({
   const [updatedAt, setUpdatedAt] = useState("");
   const [stale, setStale] = useState(false);
   const [tripReady, setTripReady] = useState(false);
+  const discoveryViewTracked = useRef(false);
+
+  useEffect(() => {
+    if (discoveryViewTracked.current) return;
+    discoveryViewTracked.current = true;
+    emitProductAnalytics({
+      locale,
+      routeTemplate: "/discover",
+      fields: { event: "weather_discovery_view" },
+    });
+  }, [locale]);
 
   useEffect(() => {
     const fallback = initialPreferences();
@@ -532,6 +546,13 @@ export function WeatherDiscoveryPlannerV2({
             : current;
         if (next === current) setMessage(copy.shortlistFull);
         else setMessage("");
+        if (!current.includes(cityId) && next !== current) {
+          emitProductAnalytics({
+            locale,
+            routeTemplate: "/discover",
+            fields: { event: "destination_shortlisted", destination_id: cityId },
+          });
+        }
         updateUrl(applied, next);
         return next;
       });
@@ -560,6 +581,17 @@ export function WeatherDiscoveryPlannerV2({
       if (next === null) return;
       if (!append) clearCloudMetadata();
       window.localStorage.setItem(TRIP_WORKSPACE_STORAGE_KEY, JSON.stringify(next));
+      if (!append) {
+        emitProductAnalytics({
+          locale,
+          routeTemplate: "/discover",
+          fields: {
+            event: "trip_created",
+            destination_count: selectedResults.length,
+            source: "weather_discovery",
+          },
+        });
+      }
       setTripReady(true);
       setMessage(append ? copy.appended : copy.created);
     },
@@ -959,6 +991,25 @@ export function WeatherDiscoveryPlannerV2({
               ) : null}
             </div>
           </section>
+
+          {tripReady && selectedResults.length === 1 && selectedResults[0] !== undefined ? (
+            <div className="mt-4" data-commerce-after-decision="discovery-trip-created">
+              <ContextualAffiliateSurface
+                locale={locale}
+                context={{
+                  stage: "discovery_decided",
+                  destinationId: selectedResults[0].city.cityId,
+                  hasDestinationDecision: true,
+                  hasTrip: true,
+                  hasStructuredActivities: false,
+                  carDependent: false,
+                  weatherAction: "none",
+                  indoorFallbackAvailable: false,
+                  tripStartsWithinDays: null,
+                }}
+              />
+            </div>
+          ) : null}
         </>
       ) : null}
     </main>

@@ -2,6 +2,7 @@
 
 import { useMemo, useState, type ReactElement } from "react";
 
+import { emitProductAnalytics } from "../analytics/browser-events";
 import { activityItemsToLegacy, type TripActivity } from "../trips/activity-intelligence";
 import type { ActivityHourlyWeather } from "../trips/activity-risk";
 import { findWeatherFallbacks, poiName } from "../trips/poi-catalog";
@@ -11,6 +12,7 @@ import {
   type ReplanProposalDraft,
 } from "../trips/replan-solver";
 import { normalizeWorkspace, type TripWorkspace } from "../trips/workspace";
+import { ContextualAffiliateSurface } from "./ContextualAffiliateSurface";
 
 const WEATHER_READ_BASE = (process.env.NEXT_PUBLIC_WEATHER_READ_URL ?? "").replace(/\/$/u, "");
 
@@ -210,6 +212,8 @@ export function TripReplanPanel({
   const [message, setMessage] = useState("");
 
   const selectedDay = eligibleDays.find((day) => day.id === dayId) ?? eligibleDays[0] ?? null;
+  const hasIndoorFallbackProposal =
+    proposal?.changes.some((change) => change.kind === "replace_activity") ?? false;
 
   const analyze = async (): Promise<void> => {
     if (selectedDay === null || selectedDay.activityItems === undefined) {
@@ -250,6 +254,17 @@ export function TripReplanPanel({
       });
       setProposal(next);
       setSelectedIds(new Set(next.changes.map((change) => change.activityId)));
+      if (next.changes.length > 0) {
+        emitProductAnalytics({
+          locale,
+          routeTemplate: "/trips/workspace",
+          fields: {
+            event: "replan_proposed",
+            change_count: next.changes.length,
+            fallback_included: next.changes.some((change) => change.kind === "replace_activity"),
+          },
+        });
+      }
       setMessage(next.changes.length === 0 ? copy.noChanges : "");
     } catch {
       setMessage(copy.unavailable);
@@ -282,6 +297,11 @@ export function TripReplanPanel({
     setMessage("");
     try {
       await onApply(proposedWorkspace, proposal.weatherSnapshotId, selectedChangeIds);
+      emitProductAnalytics({
+        locale,
+        routeTemplate: "/trips/workspace",
+        fields: { event: "replan_accepted", change_count: selectedChangeIds.length },
+      });
       setProposal(null);
       setSelectedIds(new Set());
       setMessage(copy.applied);
@@ -401,6 +421,25 @@ export function TripReplanPanel({
               <span className="text-xs text-muted">{copy.viewer}</span>
             ) : null}
           </div>
+        </div>
+      ) : null}
+
+      {proposal !== null && selectedDay !== null && hasIndoorFallbackProposal ? (
+        <div className="mt-4" data-commerce-after-decision="weather-indoor-fallback">
+          <ContextualAffiliateSurface
+            locale={locale}
+            context={{
+              stage: "weather_replan",
+              destinationId: selectedDay.cityId,
+              hasDestinationDecision: true,
+              hasTrip: true,
+              hasStructuredActivities: true,
+              carDependent: false,
+              weatherAction: "indoor_fallback",
+              indoorFallbackAvailable: true,
+              tripStartsWithinDays: null,
+            }}
+          />
         </div>
       ) : null}
 
