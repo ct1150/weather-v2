@@ -3,14 +3,14 @@
 Date: 2026-08-09
 Status: In Progress
 
-- Slice A — contextual conversion resolver: Focused acceptance passed; full repository Preview gate pending
-- Slice B — contextual Discovery / Trip / Weather surfaces: Not started
+- Slice A — contextual conversion resolver: Complete
+- Slice B — contextual Discovery / Weather surfaces: Focused acceptance passed; full repository Preview gate pending
 - Slice C — funnel analytics + privacy gates: Not started
 - Slice D — notification preference/readiness model: Not started
 - Slice E — premium entitlement contract: Not started; billing deferred
 - Slice F — release review / smoke: Not started
 
-## Slice A focused acceptance
+## Slice A acceptance
 
 - Pure deterministic contextual resolver implemented in `@wnr/analytics`.
 - Missing/weak decision context produces no commercial opportunity.
@@ -27,8 +27,26 @@ Status: In Progress
 - Existing analytics event/privacy tests: success.
 - Existing Affiliate adapter safety tests: success.
 - `@wnr/analytics` build: success.
-- Formatting normalized and temporary Slice A helper removed.
+- Full repository Deploy 322: success.
+- Phase 5 Weather Intelligence, Phase 6 Discovery, Phase 7 Activity Intelligence, Phase 8 Hourly Weather and Phase 8 Adaptive Replanning Preview regressions: success.
+
+## Slice B focused acceptance
+
+- No real provider URLs are hardcoded. Deployment commercial catalog defaults empty.
+- `NEXT_PUBLIC_AFFILIATE_OFFERS_JSON` supplies bounded candidate data only; malformed rows fail closed.
+- `NEXT_PUBLIC_AFFILIATE_SLOTS` is the explicit slot enablement list; absent slots are disabled.
+- Every outbound target still passes through the existing Affiliate adapter HTTPS host/path allowlist and data-state checks.
+- Disabled slot, absent catalog, stale/empty/unauthorized data or invalid outbound host render no commercial surface.
+- CTA and disclosure copy are code-owned in English, Simplified Chinese and Traditional Chinese.
+- Discovery commerce appears only after a single-destination selection has actually been turned into a Trip, and is rendered after the Trip decision section rather than inside ranking cards.
+- Weather Replan commerce appears only when the deterministic proposal contains a concrete `replace_activity` indoor fallback; bad weather or a time shift alone does not surface commerce.
+- An injected insurance offer cannot override the contextual resolver and force itself into weather replan.
+- `weather-discovery.ts`, `activity-risk.ts` and `replan-solver.ts` remain free of commercial component/adapter dependencies.
+- Focused commercial parser/resolver tests: success.
+- Source separation contract tests: success.
+- Web typecheck: success.
+- Temporary Slice B helper/patch files removed after verification.
 
 ## Next gate
 
-Run this normal-user acceptance head through the full repository Deploy + Preview chain and Phase 5–8 regression workflows. Slice B starts only after that gate is green.
+Run this normal-user acceptance head through the full repository Deploy + Preview chain and Phase 5–8 regression workflows. Slice C starts only after that gate is green.
