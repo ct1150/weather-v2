@@ -4,8 +4,8 @@ Date: 2026-08-09
 Status: In Progress
 
 - Slice A — contextual conversion resolver: Complete
-- Slice B — contextual Discovery / Weather surfaces: Focused acceptance passed; full repository Preview gate pending
-- Slice C — funnel analytics + privacy gates: Not started
+- Slice B — contextual Discovery / Weather surfaces: Complete
+- Slice C — funnel analytics + privacy gates: In Progress
 - Slice D — notification preference/readiness model: Not started
 - Slice E — premium entitlement contract: Not started; billing deferred
 - Slice F — release review / smoke: Not started
@@ -30,7 +30,7 @@ Status: In Progress
 - Full repository Deploy 322: success.
 - Phase 5 Weather Intelligence, Phase 6 Discovery, Phase 7 Activity Intelligence, Phase 8 Hourly Weather and Phase 8 Adaptive Replanning Preview regressions: success.
 
-## Slice B focused acceptance
+## Slice B acceptance
 
 - No real provider URLs are hardcoded. Deployment commercial catalog defaults empty.
 - `NEXT_PUBLIC_AFFILIATE_OFFERS_JSON` supplies bounded candidate data only; malformed rows fail closed.
@@ -45,8 +45,9 @@ Status: In Progress
 - Focused commercial parser/resolver tests: success.
 - Source separation contract tests: success.
 - Web typecheck: success.
-- Temporary Slice B helper/patch files removed after verification.
+- Full repository Deploy 330: success.
+- Phase 5 Weather Intelligence, Phase 6 Discovery, Phase 7 Activity Intelligence, Phase 8 Hourly Weather and Phase 8 Adaptive Replanning Preview regressions: success.
 
-## Next gate
+## Slice C scope
 
-Run this normal-user acceptance head through the full repository Deploy + Preview chain and Phase 5–8 regression workflows. Slice C starts only after that gate is green.
+Extend the existing allowlisted analytics contract for the aggregate conversion funnel only. No user/session/device identifier, itinerary text, activity title, notes, precise coordinates, raw query strings or other sensitive payloads are permitted. The existing non-blocking sink/validator remains authoritative; no new analytics backend will be invented in this slice.
