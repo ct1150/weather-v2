@@ -31,7 +31,9 @@ try {
       throw new Error(`${route} returned ${response.status}`);
     }
     if (html.includes('data-contextual-commerce="phase-9"')) {
-      throw new Error(`${route} rendered a commercial surface without deployment offer configuration`);
+      throw new Error(
+        `${route} rendered a commercial surface without deployment offer configuration`,
+      );
     }
     if (html.includes("travel.example") || html.includes("tokyo-hotel-offer")) {
       throw new Error(`${route} leaked test-only affiliate data into a deployed artifact`);
