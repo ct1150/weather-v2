@@ -15,7 +15,7 @@ export function analyticsLocale(locale: BrowserAnalyticsLocale): AnalyticsLocale
 export function emitProductAnalytics(input: {
   readonly locale: BrowserAnalyticsLocale;
   readonly routeTemplate: "/discover" | "/trips/workspace";
-  readonly fields: Readonly<Record<string, unknown>>;
+  readonly fields: object;
   readonly now?: Date;
 }): boolean {
   const raw = {
