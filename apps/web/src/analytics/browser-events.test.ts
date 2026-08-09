@@ -1,3 +1,5 @@
+// @vitest-environment jsdom
+
 import { describe, expect, it, vi } from "vitest";
 import { emitProductAnalytics, WNR_ANALYTICS_BROWSER_EVENT } from "./browser-events";
 
