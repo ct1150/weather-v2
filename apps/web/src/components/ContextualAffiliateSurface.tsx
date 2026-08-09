@@ -1,13 +1,24 @@
-import type { ConversionContext } from "@wnr/analytics";
-import type { ReactElement } from "react";
+"use client";
+
+import {
+  buildAffiliateClick,
+  buildAffiliateImpression,
+  type ConversionContext,
+} from "@wnr/analytics";
+import { useEffect, useRef, type ReactElement } from "react";
 
 import {
   resolveContextualAffiliateSurface,
   type CommercialSurfaceLocale,
 } from "../commercial/contextual-affiliate";
+import { emitProductAnalytics } from "../analytics/browser-events";
 
 const RAW_OFFERS = process.env.NEXT_PUBLIC_AFFILIATE_OFFERS_JSON ?? "";
 const ENABLED_SLOTS = process.env.NEXT_PUBLIC_AFFILIATE_SLOTS ?? "";
+
+function analyticsRoute(surface: string): "/discover" | "/trips/workspace" {
+  return surface === "discovery_decision" ? "/discover" : "/trips/workspace";
+}
 
 const COPY: Record<CommercialSurfaceLocale, { readonly title: string }> = {
   en: { title: "Useful next step" },
@@ -33,6 +44,24 @@ export function ContextualAffiliateSurface({
     rawOffers: RAW_OFFERS,
     enabledSlots: ENABLED_SLOTS,
   });
+  const impressed = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    for (const item of items) {
+      const key = `${item.id}:${item.href}`;
+      if (impressed.current.has(key)) continue;
+      impressed.current.add(key);
+      emitProductAnalytics({
+        locale,
+        routeTemplate: analyticsRoute(item.surface),
+        fields: buildAffiliateImpression({
+          providerId: item.providerId,
+          category: item.category,
+          placement: item.placement,
+          destinationId: item.destinationId,
+        }),
+      });
+    }
+  }, [items, locale]);
   if (items.length === 0) return null;
 
   return (
@@ -54,6 +83,18 @@ export function ContextualAffiliateSurface({
             className="rounded-xl border border-border bg-white p-3 focus-ring"
             data-commercial-category={item.category}
             data-commercial-reason={item.reasonCode}
+            onClick={() => {
+              emitProductAnalytics({
+                locale,
+                routeTemplate: analyticsRoute(item.surface),
+                fields: buildAffiliateClick({
+                  providerId: item.providerId,
+                  category: item.category,
+                  placement: item.placement,
+                  destinationId: item.destinationId,
+                }),
+              });
+            }}
           >
             <strong className="text-sm text-foreground">{item.cta}</strong>
             <span className="mt-1 block text-[11px] leading-4 text-muted">{item.disclosure}</span>

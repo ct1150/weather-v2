@@ -32,6 +32,7 @@ export interface ContextualAffiliateViewModel {
   readonly providerId: string;
   readonly category: CommercialCategory;
   readonly surface: ConversionSurface;
+  readonly placement: Placement;
   readonly destinationId: string;
   readonly reasonCode: ConversionReasonCode;
   readonly href: string;
@@ -237,6 +238,7 @@ export function resolveContextualAffiliateSurface(input: {
         providerId: offer.providerId,
         category: offer.category,
         surface: opportunity.surface,
+        placement: placement(opportunity.surface),
         destinationId: opportunity.destinationId,
         reasonCode: opportunity.reasonCode,
         href: resolved.href,

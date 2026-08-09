@@ -56,6 +56,8 @@ export type AnalyticsWindow = "today" | "tomorrow" | "weekend" | "next_week";
 
 export type SearchResultType = "city" | "country" | "article";
 
+export type TripCreationSource = "weather_discovery" | "workspace";
+
 export interface SearchSubmittedEvent {
   readonly event: "search_submitted";
   readonly event_version: 1;
@@ -118,6 +120,60 @@ export interface RankingCityClickedEvent {
   readonly rank: number;
 }
 
+export interface WeatherDiscoveryViewEvent {
+  readonly event: "weather_discovery_view";
+  readonly event_version: 1;
+  readonly occurred_at: string;
+  readonly route_template: string;
+  readonly locale: AnalyticsLocale;
+}
+
+export interface DestinationShortlistedEvent {
+  readonly event: "destination_shortlisted";
+  readonly event_version: 1;
+  readonly occurred_at: string;
+  readonly route_template: string;
+  readonly locale: AnalyticsLocale;
+  readonly destination_id: string;
+}
+
+export interface TripCreatedEvent {
+  readonly event: "trip_created";
+  readonly event_version: 1;
+  readonly occurred_at: string;
+  readonly route_template: string;
+  readonly locale: AnalyticsLocale;
+  readonly destination_count: number;
+  readonly source: TripCreationSource;
+}
+
+export interface WeatherInsightOpenedEvent {
+  readonly event: "weather_insight_opened";
+  readonly event_version: 1;
+  readonly occurred_at: string;
+  readonly route_template: string;
+  readonly locale: AnalyticsLocale;
+}
+
+export interface ReplanProposedEvent {
+  readonly event: "replan_proposed";
+  readonly event_version: 1;
+  readonly occurred_at: string;
+  readonly route_template: string;
+  readonly locale: AnalyticsLocale;
+  readonly change_count: number;
+  readonly fallback_included: boolean;
+}
+
+export interface ReplanAcceptedEvent {
+  readonly event: "replan_accepted";
+  readonly event_version: 1;
+  readonly occurred_at: string;
+  readonly route_template: string;
+  readonly locale: AnalyticsLocale;
+  readonly change_count: number;
+}
+
 // The commercial descriptor shapes `AffiliateImpressionEvent` /
 // `AffiliateClickEvent` (and `AnalyticsLocale`) are owned by the affiliate
 // adapter; the telemetry union composes them with the analytics envelope
@@ -141,6 +197,12 @@ export type AnalyticsEvent =
   | CountryViewedEvent
   | RankingViewedEvent
   | RankingCityClickedEvent
+  | WeatherDiscoveryViewEvent
+  | DestinationShortlistedEvent
+  | TripCreatedEvent
+  | WeatherInsightOpenedEvent
+  | ReplanProposedEvent
+  | ReplanAcceptedEvent
   | (AffiliateImpressionTelemetry & AffiliateTelemetryCommon)
   | (AffiliateClickedTelemetry & AffiliateTelemetryCommon)
   | AdImpressionEvent;
@@ -202,6 +264,8 @@ export const KNOWN_ROUTE_TEMPLATES: ReadonlyArray<string> = Object.freeze([
   "/compare/[cityA]-vs-[cityB]",
   "/[country]/[city]/forecast",
   "/article/[slug]",
+  "/discover",
+  "/trips/workspace",
 ]);
 
 const EVENT_NAMES: ReadonlyArray<AnalyticsEvent["event"]> = Object.freeze([
@@ -211,6 +275,12 @@ const EVENT_NAMES: ReadonlyArray<AnalyticsEvent["event"]> = Object.freeze([
   "country_viewed",
   "ranking_viewed",
   "ranking_city_clicked",
+  "weather_discovery_view",
+  "destination_shortlisted",
+  "trip_created",
+  "weather_insight_opened",
+  "replan_proposed",
+  "replan_accepted",
   "affiliate_impression",
   "affiliate_click",
   "ad_impression",
@@ -223,6 +293,8 @@ const DESTINATION_KEY_RE = /^[a-z0-9][a-z0-9_-]*$/u;
 /** Forbidden privacy fields: IP, location, email, UA, cookie, credential, id. */
 const PRIVACY_RE =
   /(^|_)(ip|ip_address|location|lat|lng|latitude|longitude|email|user_agent|cookie|authorization|api_key|secret|password|credential|user_id|session_id|device_id|phone|name|address)(_|$)/iu;
+const ITINERARY_CONTENT_RE =
+  /(activity_title|activity_name|trip_title|itinerary|notes?|poi_name|hotel_name|reservation_code)/iu;
 
 // ---------------------------------------------------------------------------
 // Validation
@@ -254,6 +326,14 @@ function asNonNegativeInt(v: unknown): v is number {
 
 function asPositiveInt(v: unknown): v is number {
   return typeof v === "number" && Number.isInteger(v) && v > 0;
+}
+
+function asBoundedPositiveInt(v: unknown, max: number): v is number {
+  return asPositiveInt(v) && v <= max;
+}
+
+function isTripCreationSource(v: unknown): v is TripCreationSource {
+  return v === "weather_discovery" || v === "workspace";
 }
 
 function asUppercaseIso2(v: unknown): v is string {
@@ -306,7 +386,9 @@ export function validateAnalyticsEvent(raw: unknown): ValidationResult<Analytics
   const obj = raw as Record<string, unknown>;
 
   for (const key of Object.keys(obj)) {
-    if (PRIVACY_RE.test(key)) return failV("privacy_field_present");
+    if (PRIVACY_RE.test(key) || ITINERARY_CONTENT_RE.test(key)) {
+      return failV("privacy_field_present");
+    }
   }
 
   const event = obj.event;
@@ -440,6 +522,58 @@ function buildPayload(
       });
     }
 
+    case "weather_discovery_view":
+      return okV<AnalyticsEvent>({ ...common, event: "weather_discovery_view" });
+
+    case "destination_shortlisted": {
+      const id = obj.destination_id;
+      if (!asString(id) || !DESTINATION_KEY_RE.test(id)) return failV("invalid_destination_id");
+      return okV<AnalyticsEvent>({
+        ...common,
+        event: "destination_shortlisted",
+        destination_id: id,
+      });
+    }
+
+    case "trip_created": {
+      const count = obj.destination_count;
+      if (!asBoundedPositiveInt(count, 16)) return failV("invalid_destination_count");
+      const source = obj.source;
+      if (!isTripCreationSource(source)) return failV("invalid_trip_creation_source");
+      return okV<AnalyticsEvent>({
+        ...common,
+        event: "trip_created",
+        destination_count: count,
+        source,
+      });
+    }
+
+    case "weather_insight_opened":
+      return okV<AnalyticsEvent>({ ...common, event: "weather_insight_opened" });
+
+    case "replan_proposed": {
+      const count = obj.change_count;
+      if (!asBoundedPositiveInt(count, 12)) return failV("invalid_change_count");
+      const fallback = obj.fallback_included;
+      if (typeof fallback !== "boolean") return failV("invalid_fallback_included");
+      return okV<AnalyticsEvent>({
+        ...common,
+        event: "replan_proposed",
+        change_count: count,
+        fallback_included: fallback,
+      });
+    }
+
+    case "replan_accepted": {
+      const count = obj.change_count;
+      if (!asBoundedPositiveInt(count, 12)) return failV("invalid_change_count");
+      return okV<AnalyticsEvent>({
+        ...common,
+        event: "replan_accepted",
+        change_count: count,
+      });
+    }
+
     case "affiliate_impression":
     case "affiliate_click": {
       const pid = obj.provider_id;
@@ -553,6 +687,17 @@ function boundedFields(e: AnalyticsEvent): Record<string, unknown> {
       return { theme: e.theme, window: e.window };
     case "ranking_city_clicked":
       return { theme: e.theme, window: e.window, city_id: e.city_id, rank: e.rank };
+    case "weather_discovery_view":
+    case "weather_insight_opened":
+      return {};
+    case "destination_shortlisted":
+      return { destination_id: e.destination_id };
+    case "trip_created":
+      return { destination_count: e.destination_count, source: e.source };
+    case "replan_proposed":
+      return { change_count: e.change_count, fallback_included: e.fallback_included };
+    case "replan_accepted":
+      return { change_count: e.change_count };
     case "affiliate_impression":
     case "affiliate_click":
       return {
