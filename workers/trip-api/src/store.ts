@@ -173,6 +173,7 @@ export async function updateTrip(
   now = new Date().toISOString(),
   operation = "update",
   actorEmail: string | null = null,
+  activityPayload: Readonly<Record<string, unknown>> = {},
 ): Promise<UpdateTripResult> {
   const nextVersion = baseVersion + 1;
   const revisionId = `rev_${crypto.randomUUID().replaceAll("-", "")}`;
@@ -217,7 +218,7 @@ export async function updateTrip(
         activityId,
         userId,
         normalizedActorEmail(actorEmail),
-        JSON.stringify({ version: nextVersion, operation }),
+        JSON.stringify({ ...activityPayload, version: nextVersion, operation }),
         now,
         id,
         nextVersion,

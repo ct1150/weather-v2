@@ -1,0 +1,95 @@
+name: Verify trip hourly weather
+
+on:
+  pull_request:
+  workflow_run:
+    workflows:
+      - Deploy
+    types:
+      - completed
+
+permissions:
+  contents: write
+
+concurrency:
+  group: phase8-hourly-${{ github.event.pull_request.number || github.event.workflow_run.head_sha || github.sha }}
+  cancel-in-progress: true
+
+jobs:
+  preview:
+    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Verify Phase 8 hourly Preview contract against one live worker generation
+        run: |
+          set -euo pipefail
+          DATE="$(date -u +%F)"
+          for attempt in $(seq 1 90); do
+            if node tooling/deploy/trip-hourly-smoke.mjs \
+              --read-url "https://where-not-rain-read-preview.ct1150.workers.dev" \
+              --city jp-tokyo \
+              --date "$DATE"; then
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "::error::Phase 8 Preview hourly contract did not become ready on a stable worker generation"
+          exit 1
+
+  production:
+    if: >-
+      github.event_name == 'workflow_run' &&
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_branch == 'main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Verify Phase 8 hourly Production contract
+        run: |
+          node tooling/deploy/trip-hourly-smoke.mjs \
+            --read-url "https://where-not-rain-read-production.ct1150.workers.dev" \
+            --city jp-tokyo \
+            --date "$(date -u +%F)"
+      - name: Record Phase 8 hourly verification
+        env:
+          DEPLOY_HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          DEPLOY_RUN_URL: ${{ github.event.workflow_run.html_url }}
+        run: |
+          cat > PHASE8_HOURLY_SMOKE_STATUS.md <<EOF
+          # Phase 8 Hourly Weather smoke status
+
+          - Conclusion: success
+          - Deploy head SHA: ${DEPLOY_HEAD_SHA}
+          - Deploy run: ${DEPLOY_RUN_URL}
+          - Verified at: $(date -u +%Y-%m-%dT%H:%M:%SZ)
+
+          ## Checks
+
+          - active immutable weather snapshot read: success
+          - bounded local-hour window: success
+          - explicit hourly coverage: success
+          - invalid hour window rejected: success
+          - more than four hourly cities rejected: success
+          EOF
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add PHASE8_HOURLY_SMOKE_STATUS.md
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git commit -m "chore(smoke): record phase 8 hourly verification [skip ci]"
+          git pull --rebase origin main
+          git push origin HEAD:main

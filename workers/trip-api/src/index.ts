@@ -19,6 +19,7 @@ import {
   type CollaborationRole,
 } from "./collaboration";
 import { handleCollaborationIntelligenceRoute } from "./collaboration-intelligence-routes";
+import { validateReplanDocumentChange } from "./replan-apply";
 import { listTripRevisions, restoreTripRevision } from "./revisions";
 import { createShareLink, readSharedTripByToken, revokeShareLink } from "./sharing";
 import { updateTripStatus, type TripStatus } from "./status";
@@ -114,6 +115,11 @@ async function resolveIdentity(request: Request, env: WorkerEnv): Promise<AuthId
 
 function tripIdFromPath(pathname: string): string | null {
   const match = /^\/api\/v1\/trips\/([a-zA-Z0-9_-]{8,96})$/u.exec(pathname);
+  return match?.[1] ?? null;
+}
+
+function tripReplanApplyIdFromPath(pathname: string): string | null {
+  const match = /^\/api\/v1\/trips\/([a-zA-Z0-9_-]{8,96})\/replan\/apply$/u.exec(pathname);
   return match?.[1] ?? null;
 }
 
@@ -436,6 +442,103 @@ async function handleTrips(request: Request, env: WorkerEnv): Promise<Response> 
     return json(request, env, { data: result.trip });
   }
 
+  const replanTripId = tripReplanApplyIdFromPath(url.pathname);
+  if (replanTripId !== null) {
+    if (request.method !== "POST") {
+      return json(request, env, { error: { code: "METHOD_NOT_ALLOWED" } }, 405);
+    }
+    const body = await readJsonBody(request);
+    if (typeof body !== "object" || body === null || Array.isArray(body)) {
+      return json(request, env, { error: { code: "INVALID_BODY" } }, 400);
+    }
+    const object = body as Record<string, unknown>;
+    const baseVersion = object.baseVersion;
+    const locale = parseLocale(object.locale ?? "en");
+    const trip = validateTripDocument(object.document);
+    const weatherSnapshotId = object.weatherSnapshotId;
+    const selectedChangeIds = object.selectedChangeIds;
+    const selectedValid =
+      Array.isArray(selectedChangeIds) &&
+      selectedChangeIds.length <= 32 &&
+      selectedChangeIds.every(
+        (item): item is string => typeof item === "string" && /^[a-zA-Z0-9:_-]{1,160}$/u.test(item),
+      ) &&
+      new Set(selectedChangeIds).size === selectedChangeIds.length;
+    if (
+      !Number.isInteger(baseVersion) ||
+      Number(baseVersion) < 1 ||
+      locale === null ||
+      trip === null ||
+      trip.document.version !== 2 ||
+      typeof weatherSnapshotId !== "string" ||
+      !/^[a-zA-Z0-9._:-]{4,160}$/u.test(weatherSnapshotId) ||
+      !selectedValid
+    ) {
+      return json(request, env, { error: { code: "INVALID_REPLAN" } }, 400);
+    }
+
+    const current = await readTrip(env.DB, userId, replanTripId);
+    if (current === null) {
+      return json(request, env, { error: { code: "NOT_FOUND" } }, 404);
+    }
+    if (current.accessRole === "viewer") {
+      return json(request, env, { error: { code: "FORBIDDEN" } }, 403);
+    }
+    if (current.version !== Number(baseVersion)) {
+      return json(
+        request,
+        env,
+        { error: { code: "VERSION_CONFLICT", currentVersion: current.version } },
+        409,
+      );
+    }
+
+    const validation = validateReplanDocumentChange(
+      current.document,
+      trip.document,
+      selectedChangeIds as ReadonlyArray<string>,
+    );
+    if (!validation.ok) {
+      return json(
+        request,
+        env,
+        { error: { code: "INVALID_REPLAN", reason: validation.code } },
+        400,
+      );
+    }
+
+    const result = await updateTrip(
+      env.DB,
+      userId,
+      replanTripId,
+      Number(baseVersion),
+      locale,
+      trip,
+      new Date().toISOString(),
+      "replan",
+      identity.email,
+      {
+        weatherSnapshotId,
+        selectedChangeIds: validation.changedActivityIds,
+      },
+    );
+    if (result.kind === "missing") {
+      return json(request, env, { error: { code: "NOT_FOUND" } }, 404);
+    }
+    if (result.kind === "forbidden") {
+      return json(request, env, { error: { code: "FORBIDDEN" } }, 403);
+    }
+    if (result.kind === "conflict") {
+      return json(
+        request,
+        env,
+        { error: { code: "VERSION_CONFLICT", currentVersion: result.currentVersion } },
+        409,
+      );
+    }
+    return json(request, env, { data: result.trip });
+  }
+
   const statusTripId = tripStatusIdFromPath(url.pathname);
   if (statusTripId !== null) {
     if (request.method !== "PATCH") {
@@ -618,6 +721,7 @@ export async function handleRequest(request: Request, env: WorkerEnv): Promise<R
       workspaceV2: true,
       activityIntelligence: true,
       structuredActivityRevisionDiff: true,
+      adaptiveReplanningApply: true,
       weatherIntelligence: true,
       weatherChangeDetection: true,
       weatherInsightDecisions: true,

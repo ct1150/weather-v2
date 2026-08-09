@@ -9,6 +9,7 @@ import {
 } from "../trips/auth-client";
 import {
   CloudTripError,
+  applyCloudTripReplan,
   createCloudTrip,
   listCloudTripRevisions,
   listCloudTrips,
@@ -26,6 +27,8 @@ import {
 } from "../trips/cloud-sync";
 import { normalizeWorkspace, type TripWorkspace } from "../trips/workspace";
 import { TripCollaborationPanel } from "./TripCollaborationPanel";
+import { TripReplanPanel } from "./TripReplanPanel";
+import { TripTodayPanel } from "./TripTodayPanel";
 import { TripWeatherIntelligencePanel } from "./TripWeatherIntelligencePanel";
 
 export type CloudTripLocale = "en" | "zh-cn" | "zh-hant";
@@ -327,6 +330,47 @@ export function CloudTripControls({
     }
   }, [metadata, persistRemote]);
 
+  const applyReplan = useCallback(
+    async (
+      proposedWorkspace: TripWorkspace,
+      weatherSnapshotId: string,
+      selectedChangeIds: ReadonlyArray<string>,
+    ): Promise<void> => {
+      if (
+        metadata === null ||
+        signedInEmail === null ||
+        accessRole === null ||
+        accessRole === "viewer"
+      ) {
+        throw new Error("REPLAN_APPLY_UNAVAILABLE");
+      }
+      setSyncState("saving");
+      try {
+        const remote = await applyCloudTripReplan(
+          metadata.cloudTripId,
+          metadata.lastSyncedVersion,
+          proposedWorkspace,
+          locale,
+          weatherSnapshotId,
+          selectedChangeIds,
+        );
+        persistRemote(remote);
+        setSyncState("saved");
+      } catch (error: unknown) {
+        if (error instanceof CloudTripError && error.status === 409) {
+          setSyncState("conflict");
+        } else if (error instanceof CloudTripError && error.status === 403) {
+          applyAccessRole("viewer");
+          setSyncState("saved");
+        } else {
+          setSyncState("offline");
+        }
+        throw error;
+      }
+    },
+    [accessRole, applyAccessRole, locale, metadata, persistRemote, signedInEmail],
+  );
+
   const loadHistory = useCallback(async (): Promise<void> => {
     if (metadata === null) return;
     const nextShow = !showHistory;
@@ -506,6 +550,25 @@ export function CloudTripControls({
           </div>
         </div>
       ) : null}
+
+      <TripTodayPanel
+        locale={locale}
+        workspace={workspace}
+        cloudTripId={metadata?.cloudTripId ?? null}
+      />
+
+      <TripReplanPanel
+        locale={locale}
+        workspace={workspace}
+        cloudReady={metadata !== null && signedInEmail !== null}
+        canApply={
+          metadata !== null &&
+          signedInEmail !== null &&
+          accessRole !== null &&
+          accessRole !== "viewer"
+        }
+        onApply={applyReplan}
+      />
 
       {metadata !== null && signedInEmail !== null && accessRole !== null ? (
         <TripWeatherIntelligencePanel
