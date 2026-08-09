@@ -1,20 +1,12 @@
 import type { CommercialCategory } from "./affiliate-adapter";
 
 export type ConversionStage =
-  | "discovery_decided"
-  | "trip_planning"
-  | "trip_transport"
-  | "weather_replan"
-  | "trip_preparation";
+  "discovery_decided" | "trip_planning" | "trip_transport" | "weather_replan" | "trip_preparation";
 
 export type WeatherCommercialAction = "none" | "move_time" | "indoor_fallback";
 
 export type ConversionSurface =
-  | "discovery_decision"
-  | "trip_day"
-  | "trip_transport"
-  | "weather_replan"
-  | "trip_preparation";
+  "discovery_decision" | "trip_day" | "trip_transport" | "weather_replan" | "trip_preparation";
 
 export type ConversionReasonCode =
   | "DESTINATION_STAY_DECIDED"
