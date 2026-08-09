@@ -1,9 +1,9 @@
 # Phase 7 Activity Intelligence smoke status
 
 - Conclusion: success
-- Deploy head SHA: 3345aac2bf2bc97be8ff2697636c97669b190bf1
-- Deploy run: https://github.com/ct1150/weather-v2/actions/runs/31276417457
-- Verified at: 2026-08-08T20:19:26Z
+- Deploy head SHA: c26a444e1a2ebf51664276da7dfbf4a737a5a607
+- Deploy run: https://github.com/ct1150/weather-v2/actions/runs/31320097163
+- Verified at: 2026-08-09T15:08:09Z
 
 ## Checks
 
