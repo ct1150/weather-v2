@@ -1,0 +1,58 @@
+name: Phase 9 contextual surfaces check once
+
+on:
+  pull_request:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: phase9-contextual-surfaces-check
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    if: github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'feature/conversion-retention-phase9'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/conversion-retention-phase9
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.11.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Build web library dependencies
+        run: pnpm -r --filter '!@wnr/web' --filter '!@wnr/weather-sync' --filter '!@wnr/maintenance' build
+      - name: Apply decision-only commercial surfaces
+        run: python tooling/phase9-slice-b-surface-patch.py
+      - name: Format Slice B
+        run: |
+          pnpm exec prettier --write \
+            apps/web/src/commercial/contextual-affiliate.ts \
+            apps/web/src/commercial/contextual-affiliate.test.ts \
+            apps/web/src/components/ContextualAffiliateSurface.tsx \
+            apps/web/src/components/WeatherDiscoveryPlannerV2.tsx \
+            apps/web/src/components/TripReplanPanel.tsx \
+            apps/web/src/components/phase9-commercial-surface-contract.test.ts
+      - name: Verify contextual surfaces and separation
+        run: |
+          pnpm --filter @wnr/web exec vitest run \
+            src/commercial/contextual-affiliate.test.ts \
+            src/components/phase9-commercial-surface-contract.test.ts
+          pnpm --filter @wnr/web typecheck
+      - name: Commit implementation and remove helpers
+        run: |
+          rm .github/workflows/phase9-slice-b-check-once.yml
+          rm tooling/phase9-slice-b-surface-patch.py
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "feat(growth): add decision-only contextual surfaces"
+          git push origin HEAD:feature/conversion-retention-phase9
