@@ -1,4 +1,5 @@
-// @wnr/analytics — event contracts + adapters (Cloudflare/GA4/Plausible)
-// and the Affiliate adapter. Populated in tasks 18.x / 19.x.
+// @wnr/analytics — event contracts + adapters (Cloudflare/GA4/Plausible),
+// Affiliate safety, and decision-first contextual conversion contracts.
 export * from "./affiliate-adapter.js";
+export * from "./contextual-conversion.js";
 export * from "./events.js";
