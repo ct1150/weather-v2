@@ -35,7 +35,9 @@ export interface DiscoveryPreferences {
 export interface DiscoveryMetrics {
   readonly days: number;
   readonly maxRainProbability: number | null;
+  readonly averageRainProbability: number | null;
   readonly totalPrecipitationMm: number | null;
+  readonly averagePrecipitationMm: number | null;
   readonly averageMinC: number | null;
   readonly averageMaxC: number | null;
   readonly maxWindKph: number | null;
@@ -100,10 +102,14 @@ function numbers(
 }
 
 export function summarizeDiscoveryWeather(days: ReadonlyArray<TripForecastDay>): DiscoveryMetrics {
+  const rainProbabilities = numbers(days, (day) => day.rainProbability);
+  const precipitation = numbers(days, (day) => day.precipitationMm);
   return {
     days: days.length,
-    maxRainProbability: maximum(numbers(days, (day) => day.rainProbability)),
-    totalPrecipitationMm: sum(numbers(days, (day) => day.precipitationMm)),
+    maxRainProbability: maximum(rainProbabilities),
+    averageRainProbability: average(rainProbabilities),
+    totalPrecipitationMm: sum(precipitation),
+    averagePrecipitationMm: average(precipitation),
     averageMinC: average(numbers(days, (day) => day.temperatureMinC)),
     averageMaxC: average(numbers(days, (day) => day.temperatureMaxC)),
     maxWindKph: maximum(numbers(days, (day) => day.windSpeedKph)),
@@ -122,8 +128,8 @@ function addReason(
 
 function missingMetricCount(metrics: DiscoveryMetrics): number {
   return [
-    metrics.maxRainProbability,
-    metrics.totalPrecipitationMm,
+    metrics.averageRainProbability,
+    metrics.averagePrecipitationMm,
     metrics.averageMinC,
     metrics.averageMaxC,
     metrics.maxWindKph,
@@ -162,56 +168,75 @@ function scoreIntent(
   metrics: DiscoveryMetrics,
   reasons: DiscoveryReasonCode[],
 ): number {
-  const rain = metrics.maxRainProbability;
+  const peakRain = metrics.maxRainProbability;
+  const averageRain = metrics.averageRainProbability;
   const high = metrics.averageMaxC;
   const low = metrics.averageMinC;
   const wind = metrics.maxWindKph;
   const uv = metrics.maxUv;
-  const precipitation = metrics.totalPrecipitationMm;
+  const averagePrecipitation = metrics.averagePrecipitationMm;
   let penalty = 0;
 
   if (intent === "dry") {
-    penalty += rainPenalty(rain, 0.62);
-    penalty += precipitation === null ? 0 : Math.min(precipitation * 1.4, 25);
-    penalty += abovePenalty(wind, 35, 0.5, 10);
+    // A multi-day trip should be scored by its overall wetness, not be flattened by
+    // one high-probability hour/day. Keep peak rain as a bounded severe-day surcharge.
+    penalty += rainPenalty(averageRain, 0.55);
+    penalty += averagePrecipitation === null ? 0 : Math.min(averagePrecipitation * 3, 25);
+    penalty += abovePenalty(peakRain, 75, 0.35, 9);
+    penalty += abovePenalty(wind, 35, 0.4, 8);
   } else if (intent === "outdoor") {
-    penalty += rainPenalty(rain, 0.43);
+    penalty += rainPenalty(peakRain, 0.43);
     penalty += abovePenalty(wind, 22, 1.2, 25);
     penalty += temperaturePenalty(high, 18, 30, 2.2);
     penalty += belowPenalty(low, 10, 1.5, 15);
     penalty += abovePenalty(uv, 9, 3, 12);
   } else if (intent === "beach") {
-    penalty += rainPenalty(rain, 0.48);
+    penalty += rainPenalty(peakRain, 0.48);
     penalty += abovePenalty(wind, 25, 1.4, 30);
     penalty += temperaturePenalty(high, 24, 32, 2.5);
     penalty += belowPenalty(low, 18, 1.5, 15);
     penalty += abovePenalty(uv, 10, 2.5, 10);
   } else if (intent === "cool_escape") {
-    penalty += rainPenalty(rain, 0.25);
+    penalty += rainPenalty(peakRain, 0.25);
     penalty += temperaturePenalty(high, 18, 27, 3.2);
     penalty += belowPenalty(low, 12, 2, 18);
     penalty += abovePenalty(wind, 30, 0.8, 12);
   } else if (intent === "warm_escape") {
-    penalty += rainPenalty(rain, 0.28);
+    penalty += rainPenalty(peakRain, 0.28);
     penalty += temperaturePenalty(high, 22, 30, 3);
     penalty += belowPenalty(low, 15, 2.2, 20);
     penalty += abovePenalty(wind, 30, 0.8, 12);
   } else if (intent === "family_comfort") {
-    penalty += rainPenalty(rain, 0.42);
+    penalty += rainPenalty(peakRain, 0.42);
     penalty += temperaturePenalty(high, 18, 30, 2.7);
     penalty += belowPenalty(low, 14, 2, 18);
     penalty += abovePenalty(wind, 24, 1.3, 24);
     penalty += abovePenalty(uv, 8, 2.5, 15);
   } else {
-    penalty += rainPenalty(rain, 0.46);
+    penalty += rainPenalty(peakRain, 0.46);
     penalty += temperaturePenalty(high, 18, 28, 3.2);
     penalty += belowPenalty(low, 15, 2.4, 20);
     penalty += abovePenalty(wind, 20, 1.7, 28);
     penalty += abovePenalty(uv, 7, 2.8, 16);
   }
 
-  addReason(reasons, "DRY_WINDOW", rain !== null && rain <= 25);
-  addReason(reasons, "RAIN_RISK", rain !== null && rain >= 60);
+  addReason(
+    reasons,
+    "DRY_WINDOW",
+    averageRain !== null &&
+      averageRain <= 25 &&
+      averagePrecipitation !== null &&
+      averagePrecipitation <= 2,
+  );
+  addReason(
+    reasons,
+    "RAIN_RISK",
+    (averageRain !== null && averageRain >= 60) ||
+      (peakRain !== null &&
+        peakRain >= 85 &&
+        averagePrecipitation !== null &&
+        averagePrecipitation >= 5),
+  );
   addReason(
     reasons,
     "COMFORTABLE_TEMPERATURE",
@@ -225,17 +250,30 @@ function scoreIntent(
   addReason(
     reasons,
     "BEACH_READY",
-    intent === "beach" && rain !== null && rain <= 35 && high !== null && high >= 24 && high <= 32,
+    intent === "beach" &&
+      peakRain !== null &&
+      peakRain <= 35 &&
+      high !== null &&
+      high >= 24 &&
+      high <= 32,
   );
   addReason(
     reasons,
     "FAMILY_COMFORT",
-    intent === "family_comfort" && rain !== null && rain <= 35 && high !== null && high <= 30,
+    intent === "family_comfort" &&
+      peakRain !== null &&
+      peakRain <= 35 &&
+      high !== null &&
+      high <= 30,
   );
   addReason(
     reasons,
     "SENIOR_COMFORT",
-    intent === "senior_comfort" && rain !== null && rain <= 30 && high !== null && high <= 28,
+    intent === "senior_comfort" &&
+      peakRain !== null &&
+      peakRain <= 30 &&
+      high !== null &&
+      high <= 28,
   );
 
   return clamp(Math.round(100 - penalty), 0, 100);

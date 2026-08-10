@@ -84,6 +84,43 @@ describe("Weather Discovery 2.0 intent engine", () => {
     expect(rainy.reasonCodes).toContain("RAIN_RISK");
   });
 
+  it("does not collapse multi-day dry scores when cities share one peak-rain day", () => {
+    const cities = [city("jp-tokyo", "Tokyo"), city("jp-osaka", "Osaka")];
+    const forecast = [
+      day({ cityId: "jp-tokyo", date: "2026-08-10", rainProbability: 100, precipitationMm: 18 }),
+      day({ cityId: "jp-tokyo", date: "2026-08-11", rainProbability: 15, precipitationMm: 0.2 }),
+      day({ cityId: "jp-tokyo", date: "2026-08-12", rainProbability: 10, precipitationMm: 0.1 }),
+      day({ cityId: "jp-osaka", date: "2026-08-10", rainProbability: 100, precipitationMm: 8 }),
+      day({ cityId: "jp-osaka", date: "2026-08-11", rainProbability: 85, precipitationMm: 7 }),
+      day({ cityId: "jp-osaka", date: "2026-08-12", rainProbability: 80, precipitationMm: 6 }),
+    ];
+
+    const results = rankDiscoveryCities(cities, forecast, DEFAULT_PREFERENCES);
+
+    expect(results.map((result) => result.city.cityId)).toEqual(["jp-tokyo", "jp-osaka"]);
+    expect(results[0]?.score).not.toBe(results[1]?.score);
+    expect(results[0]?.score).toBeGreaterThan(results[1]?.score ?? -1);
+    expect(results.map((result) => result.score)).not.toEqual([25, 25]);
+  });
+
+  it("keeps dry scoring comparable when the same daily weather is repeated", () => {
+    const oneDay = assessDiscoveryWeather(
+      [day({ rainProbability: 40, precipitationMm: 2 })],
+      DEFAULT_PREFERENCES,
+    );
+    const fourDays = assessDiscoveryWeather(
+      [
+        day({ date: "2026-08-10", rainProbability: 40, precipitationMm: 2 }),
+        day({ date: "2026-08-11", rainProbability: 40, precipitationMm: 2 }),
+        day({ date: "2026-08-12", rainProbability: 40, precipitationMm: 2 }),
+        day({ date: "2026-08-13", rainProbability: 40, precipitationMm: 2 }),
+      ],
+      { ...DEFAULT_PREFERENCES, to: "2026-08-13" },
+    );
+
+    expect(oneDay.score).toBe(fourDays.score);
+  });
+
   it("uses stricter comfort scoring for senior travel", () => {
     const warmWindy = [
       day({ temperatureMinC: 22, temperatureMaxC: 32, windSpeedKph: 28, uvIndex: 9 }),
