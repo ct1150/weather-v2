@@ -6,12 +6,16 @@ on:
       - fix/weather-sync-provider-binding
     paths:
       - .github/workflows/fix-weather-provider-deploy-once.yml
+  pull_request:
+    paths:
+      - .github/workflows/fix-weather-provider-deploy-once.yml
 
 permissions:
   contents: write
 
 jobs:
   fix-and-test:
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
