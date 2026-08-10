@@ -6,6 +6,9 @@ on:
       - fix/weather-sync-provider-binding
     paths:
       - .github/workflows/verify-delayed-production-weather-refresh-once.yml
+  pull_request:
+    paths:
+      - .github/workflows/verify-delayed-production-weather-refresh-once.yml
 
 permissions:
   contents: read
