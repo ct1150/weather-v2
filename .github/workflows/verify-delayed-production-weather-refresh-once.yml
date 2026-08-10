@@ -1,0 +1,165 @@
+name: Verify delayed production weather refresh once
+
+on:
+  push:
+    branches:
+      - fix/weather-sync-provider-binding
+    paths:
+      - .github/workflows/verify-delayed-production-weather-refresh-once.yml
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      SYNC_URL: https://where-not-rain-sync-production.ct1150.workers.dev
+      READ_URL: https://where-not-rain-read-production.ct1150.workers.dev
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/weather-sync-provider-binding
+      - name: Verify current production sync Worker provider
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --location "${SYNC_URL}/health" -o /tmp/sync-health.json
+          cat /tmp/sync-health.json
+          grep -Fq '"ok":true' /tmp/sync-health.json
+          grep -Fq '"provider":"open-meteo"' /tmp/sync-health.json
+      - name: Run delayed protected production refresh
+        run: |
+          set -euo pipefail
+          test -n "${CLOUDFLARE_API_TOKEN:-}"
+          SYNC_TRIGGER_TOKEN="$(printf '%s' "$CLOUDFLARE_API_TOKEN" | sha256sum | cut -d' ' -f1)"
+          curl --fail --silent --show-error --location --retry 3 --retry-all-errors \
+            --request POST \
+            --header "authorization: Bearer ${SYNC_TRIGGER_TOKEN}" \
+            --connect-timeout 15 --max-time 240 \
+            "${SYNC_URL}/internal/sync" \
+            -o /tmp/delayed-production-sync.json
+          node - <<'NODE'
+          const fs = require('node:fs');
+          const report = JSON.parse(fs.readFileSync('/tmp/delayed-production-sync.json', 'utf8'));
+          console.log('delayed sync report', JSON.stringify({
+            status: report.status,
+            snapshotId: report.snapshotId,
+            activated: report.activated,
+            citiesProcessed: report.citiesProcessed,
+            cityFailures: report.cityFailures,
+          }));
+          if (report.activated !== true) process.exit(1);
+          NODE
+      - name: Compare refreshed production snapshot with Open-Meteo
+        run: |
+          set -euo pipefail
+          node - <<'NODE'
+          const READ = process.env.READ_URL;
+
+          function isoDay(offset) {
+            const value = new Date();
+            value.setUTCDate(value.getUTCDate() + offset);
+            return value.toISOString().slice(0, 10);
+          }
+          function mean(values) {
+            return values.length === 0 ? null : values.reduce((sum, value) => sum + value, 0) / values.length;
+          }
+          function dryScore(days) {
+            const rain = days.map((d) => d.rainProbability).filter(Number.isFinite);
+            const precip = days.map((d) => d.precipitationMm).filter(Number.isFinite);
+            const wind = days.map((d) => d.windSpeedKph).filter(Number.isFinite);
+            if (!rain.length || !precip.length) return null;
+            const avgRain = mean(rain);
+            const avgPrecip = mean(precip);
+            const peakRain = Math.max(...rain);
+            const peakWind = wind.length ? Math.max(...wind) : null;
+            let penalty = Math.min(avgRain * 0.55, 50);
+            penalty += Math.min(avgPrecip * 3, 25);
+            penalty += Math.min(Math.max(0, peakRain - 75) * 0.35, 9);
+            if (peakWind !== null) penalty += Math.min(Math.max(0, peakWind - 35) * 0.4, 8);
+            return Math.max(0, Math.min(100, Math.round(100 - penalty)));
+          }
+
+          const from = isoDay(0);
+          const to = isoDay(2);
+          const cityResponse = await fetch(`${READ}/api/v1/trip-cities?locale=en`);
+          if (!cityResponse.ok) throw new Error(`cities ${cityResponse.status}`);
+          const cityPayload = await cityResponse.json();
+          const allCities = cityPayload.data?.items ?? [];
+          const cities = allCities.slice(0, 24);
+          if (cities.length < 5) throw new Error('too few cities');
+
+          const forecast = [];
+          let snapshotId = null;
+          for (let start = 0; start < cities.length; start += 12) {
+            const batch = cities.slice(start, start + 12);
+            const params = new URLSearchParams({
+              cityIds: batch.map((city) => city.cityId).join(','),
+              from,
+              to,
+              locale: 'en',
+            });
+            const response = await fetch(`${READ}/api/v1/trip-forecast?${params}`);
+            if (!response.ok) throw new Error(`forecast ${response.status}`);
+            const payload = await response.json();
+            if (snapshotId !== null && payload.data?.snapshotId !== snapshotId) {
+              throw new Error('cross-batch snapshot mismatch');
+            }
+            snapshotId = payload.data?.snapshotId ?? null;
+            forecast.push(...(payload.data?.items ?? []));
+          }
+
+          console.log('refreshed production snapshot', snapshotId);
+
+          for (const cityId of ['jp-tokyo', 'kr-seoul', 'id-bali']) {
+            const city = allCities.find((item) => item.cityId === cityId);
+            if (!city) throw new Error(`missing city ${cityId}`);
+            const stored = forecast.filter((day) => day.cityId === cityId);
+            const params = new URLSearchParams({
+              latitude: String(city.latitude),
+              longitude: String(city.longitude),
+              timezone: city.timezone,
+              start_date: from,
+              end_date: to,
+              daily: 'precipitation_sum,precipitation_probability_max',
+            });
+            const directResponse = await fetch(`https://api.open-meteo.com/v1/forecast?${params}`);
+            if (!directResponse.ok) throw new Error(`open-meteo ${cityId} ${directResponse.status}`);
+            const direct = await directResponse.json();
+            const directPrecip = direct.daily?.precipitation_sum ?? [];
+            const directRain = direct.daily?.precipitation_probability_max ?? [];
+            if (stored.length !== directPrecip.length || stored.length !== directRain.length) {
+              throw new Error(`length mismatch ${cityId}`);
+            }
+            const precipDiff = mean(stored.map((day, index) => Math.abs(day.precipitationMm - directPrecip[index])));
+            const rainDiff = mean(stored.map((day, index) => Math.abs(day.rainProbability - directRain[index])));
+            console.log(`provider comparison ${cityId}`, JSON.stringify({
+              production: stored.map((day) => ({ date: day.date, precipitationMm: day.precipitationMm, rainProbability: day.rainProbability })),
+              openMeteo: direct.daily,
+              meanAbsPrecipDiff: precipDiff,
+              meanAbsRainProbabilityDiff: rainDiff,
+            }));
+            if (precipDiff === null || precipDiff > 3) throw new Error(`precipitation mismatch ${cityId}: ${precipDiff}`);
+            if (rainDiff === null || rainDiff > 15) throw new Error(`rain probability mismatch ${cityId}: ${rainDiff}`);
+          }
+
+          const grouped = new Map();
+          for (const day of forecast) {
+            const current = grouped.get(day.cityId) ?? [];
+            current.push(day);
+            grouped.set(day.cityId, current);
+          }
+          const scores = cities
+            .map((city) => ({ cityId: city.cityId, score: dryScore(grouped.get(city.cityId) ?? []) }))
+            .filter((item) => item.score !== null)
+            .sort((a, b) => b.score - a.score);
+          const uniqueScores = new Set(scores.map((item) => item.score));
+          const min = Math.min(...scores.map((item) => item.score));
+          const max = Math.max(...scores.map((item) => item.score));
+          console.log('refreshed production dry scores', scores.map((item) => `${item.cityId}:${item.score}`).join(', '));
+          if (scores.every((item) => item.score === 25)) throw new Error('all scores still 25');
+          if (uniqueScores.size < 3) throw new Error(`score distribution too narrow: ${uniqueScores.size}`);
+          if (max - min < 10) throw new Error(`score range too narrow: ${min}-${max}`);
+          NODE
