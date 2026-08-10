@@ -8,16 +8,18 @@
 # KV (wnr-weather-sync prod+preview) namespaces created; IDs pasted below. No further action needed
 # here. CI applies 0001_weather.sql and deploys via .github/workflows/deploy.yml.
 #
-# IMPORTANT: wrangler does NOT inherit top-level bindings into `[env.*]` blocks. Each
-# environment MUST re-declare its own `d1_databases` / `kv_namespaces`. Production and
-# preview each carry their full binding set below (this was the original deploy failure:
-# `[env.production]` had only `crons`, so `wrangler d1 migrations apply --env production`
-# could not find the `wnr-weather` binding).
+# IMPORTANT: Wrangler bindings such as vars / D1 / KV are not inherited into `[env.*]`.
+# Each named environment MUST re-declare its full binding set. In particular,
+# WEATHER_PRIMARY_PROVIDER must exist as a Worker var; a shell environment variable in CI
+# is not a Worker runtime binding.
 
 name = "where-not-rain-sync"
 compatibility_date = "2025-07-01"
 # Built by `pnpm --filter @wnr/weather-sync build` (tsc -> dist) before `wrangler deploy`.
 main = "./dist/index.js"
+
+[vars]
+WEATHER_PRIMARY_PROVIDER = "open-meteo"
 
 # ===========================================================================
 # SHARED BINDINGS (used by the DEFAULT `wrangler deploy`, i.e. invoked with no --env)
@@ -44,6 +46,10 @@ preview_id = "0e6b63643dc44a9eb0ccc809f6a82043"
 # MUST re-declare bindings (wrangler does not inherit from top level).
 # ===========================================================================
 [env.preview]
+
+[env.preview.vars]
+WEATHER_PRIMARY_PROVIDER = "open-meteo"
+
 [[env.preview.d1_databases]]
 binding = "DB"
 # Keep the logical migration target aligned with the existing CI command. The isolated
@@ -64,6 +70,9 @@ preview_id = "0e6b63643dc44a9eb0ccc809f6a82043"
 # ===========================================================================
 [env.production]
 crons = ["17 */6 * * *"]
+
+[env.production.vars]
+WEATHER_PRIMARY_PROVIDER = "open-meteo"
 
 [[env.production.d1_databases]]
 binding = "DB"
