@@ -35,20 +35,35 @@ jobs:
         run: |
           python - <<'PY'
           from pathlib import Path
+
           path = Path('.github/workflows/deploy.yml')
-          text = path.read_text()
-          preview = '''        run: |\n          pnpm --filter @wnr/weather-sync exec wrangler deploy --env preview \\\n            --var WEATHER_PRIMARY_PROVIDER=${{ env.WEATHER_PRIMARY_PROVIDER }}\n'''
-          production = '''        run: |\n          pnpm --filter @wnr/weather-sync exec wrangler deploy --env production \\\n            --var WEATHER_PRIMARY_PROVIDER=${{ env.WEATHER_PRIMARY_PROVIDER }}\n'''
-          if preview not in text or production not in text:
-              raise SystemExit('expected weather-sync deploy blocks not found')
-          text = text.replace(
-              preview,
-              '        run: pnpm --filter @wnr/weather-sync exec wrangler deploy --env preview\n',
-          ).replace(
-              production,
-              '        run: pnpm --filter @wnr/weather-sync exec wrangler deploy --env production\n',
-          )
-          path.write_text(text)
+          lines = path.read_text().splitlines(keepends=True)
+          output = []
+          replaced = {"preview": 0, "production": 0}
+          index = 0
+
+          while index < len(lines):
+              if (
+                  index + 2 < len(lines)
+                  and lines[index].strip() == "run: |"
+                  and "pnpm --filter @wnr/weather-sync exec wrangler deploy --env " in lines[index + 1]
+                  and "--var WEATHER_PRIMARY_PROVIDER=" in lines[index + 2]
+              ):
+                  command = lines[index + 1].strip().rstrip("\\").rstrip()
+                  env_name = "preview" if "--env preview" in command else "production" if "--env production" in command else None
+                  if env_name is not None:
+                      indent = lines[index][: len(lines[index]) - len(lines[index].lstrip())]
+                      output.append(f"{indent}run: {command}\n")
+                      replaced[env_name] += 1
+                      index += 3
+                      continue
+              output.append(lines[index])
+              index += 1
+
+          if replaced != {"preview": 1, "production": 1}:
+              raise SystemExit(f"unexpected replacement counts: {replaced}")
+
+          path.write_text("".join(output))
           PY
       - name: Format provider binding fix
         run: |
