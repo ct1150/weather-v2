@@ -1,0 +1,76 @@
+name: Fix weather provider deploy binding once
+
+on:
+  push:
+    branches:
+      - fix/weather-sync-provider-binding
+    paths:
+      - .github/workflows/fix-weather-provider-deploy-once.yml
+
+permissions:
+  contents: write
+
+jobs:
+  fix-and-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/weather-sync-provider-binding
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.11.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Remove invalid Wrangler provider overrides
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('.github/workflows/deploy.yml')
+          text = path.read_text()
+          preview = '''        run: |\n          pnpm --filter @wnr/weather-sync exec wrangler deploy --env preview \\\n            --var WEATHER_PRIMARY_PROVIDER=${{ env.WEATHER_PRIMARY_PROVIDER }}\n'''
+          production = '''        run: |\n          pnpm --filter @wnr/weather-sync exec wrangler deploy --env production \\\n            --var WEATHER_PRIMARY_PROVIDER=${{ env.WEATHER_PRIMARY_PROVIDER }}\n'''
+          if preview not in text or production not in text:
+              raise SystemExit('expected weather-sync deploy blocks not found')
+          text = text.replace(
+              preview,
+              '        run: pnpm --filter @wnr/weather-sync exec wrangler deploy --env preview\n',
+          ).replace(
+              production,
+              '        run: pnpm --filter @wnr/weather-sync exec wrangler deploy --env production\n',
+          )
+          path.write_text(text)
+          PY
+      - name: Format provider binding fix
+        run: |
+          pnpm exec prettier --write \
+            .github/workflows/deploy.yml \
+            workers/weather-sync/src/index.ts \
+            workers/weather-sync/src/index.test.ts \
+            workers/weather-sync/src/provider-binding-contract.test.ts \
+            workers/weather-sync/wrangler.toml
+      - name: Verify provider binding fix
+        run: |
+          pnpm --filter @wnr/config build
+          pnpm --filter @wnr/weather build
+          pnpm --filter @wnr/weather-sync test
+          pnpm --filter @wnr/weather-sync build
+      - name: Commit implementation and remove helper
+        run: |
+          rm .github/workflows/fix-weather-provider-deploy-once.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            .github/workflows/deploy.yml \
+            .github/workflows/fix-weather-provider-deploy-once.yml \
+            workers/weather-sync/src/index.ts \
+            workers/weather-sync/src/index.test.ts \
+            workers/weather-sync/src/provider-binding-contract.test.ts \
+            workers/weather-sync/wrangler.toml
+          git commit -m "fix(weather): bind production sync to Open-Meteo"
+          git push origin HEAD:fix/weather-sync-provider-binding
