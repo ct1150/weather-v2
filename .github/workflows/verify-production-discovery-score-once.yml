@@ -1,0 +1,104 @@
+name: Verify production discovery score once
+
+on:
+  push:
+    branches:
+      - fix/weather-discovery-score-saturation
+    paths:
+      - .github/workflows/verify-production-discovery-score-once.yml
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/weather-discovery-score-saturation
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.11.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Verify existing production Discovery smoke
+        run: |
+          node tooling/deploy/weather-discovery-smoke.mjs \
+            --site-url "https://868656.xyz" \
+            --read-url "https://where-not-rain-read-production.ct1150.workers.dev"
+      - name: Create live score-distribution regression
+        run: |
+          cat > apps/web/src/discovery/production-score-check.test.ts <<'EOF'
+          import { describe, expect, it } from "vitest";
+          import type { TripCityOption, TripForecastDay } from "../trips/workspace";
+          import { rankDiscoveryCities, type DiscoveryPreferences } from "./weather-discovery";
+
+          const READ = "https://where-not-rain-read-production.ct1150.workers.dev";
+
+          function isoDay(offset: number): string {
+            const value = new Date();
+            value.setUTCDate(value.getUTCDate() + offset);
+            return value.toISOString().slice(0, 10);
+          }
+
+          describe("production Weather Discovery dry score distribution", () => {
+            it("does not collapse real multi-city production weather to a uniform 25", async () => {
+              const citiesResponse = await fetch(`${READ}/api/v1/trip-cities?locale=en`);
+              expect(citiesResponse.ok).toBe(true);
+              const citiesPayload = (await citiesResponse.json()) as {
+                data?: { items?: TripCityOption[] };
+              };
+              const cities = (citiesPayload.data?.items ?? []).slice(0, 24);
+              expect(cities.length).toBeGreaterThanOrEqual(5);
+
+              const from = isoDay(0);
+              const to = isoDay(2);
+              const forecast: TripForecastDay[] = [];
+              let snapshotId: string | null = null;
+              for (let start = 0; start < cities.length; start += 12) {
+                const batch = cities.slice(start, start + 12);
+                const params = new URLSearchParams({
+                  cityIds: batch.map((city) => city.cityId).join(","),
+                  from,
+                  to,
+                  locale: "en",
+                });
+                const response = await fetch(`${READ}/api/v1/trip-forecast?${params.toString()}`);
+                expect(response.ok).toBe(true);
+                const payload = (await response.json()) as {
+                  data?: { snapshotId?: string; items?: TripForecastDay[] };
+                };
+                expect(typeof payload.data?.snapshotId).toBe("string");
+                if (snapshotId !== null) expect(payload.data?.snapshotId).toBe(snapshotId);
+                snapshotId = payload.data?.snapshotId ?? null;
+                forecast.push(...(payload.data?.items ?? []));
+              }
+
+              const preferences: DiscoveryPreferences = {
+                intent: "dry",
+                from,
+                to,
+                rainProbabilityMax: null,
+                temperatureMinC: null,
+                temperatureMaxC: null,
+                windSpeedMaxKph: null,
+                partyProfile: null,
+                theme: null,
+              };
+              const results = rankDiscoveryCities(cities, forecast, preferences);
+              expect(results.length).toBeGreaterThanOrEqual(5);
+              const scores = results.map((result) => result.score).filter((score): score is number => score !== null);
+              const uniqueScores = new Set(scores);
+              console.log("production dry scores", results.slice(0, 24).map((result) => `${result.city.cityId}:${result.score}`).join(", "));
+              expect(scores.every((score) => score === 25)).toBe(false);
+              expect(uniqueScores.size).toBeGreaterThan(1);
+            });
+          });
+          EOF
+      - name: Verify production score distribution with current scoring model
+        run: pnpm --filter @wnr/web exec vitest run src/discovery/production-score-check.test.ts
