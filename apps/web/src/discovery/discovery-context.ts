@@ -4,6 +4,8 @@ import type {
   DiscoveryReasonCode,
 } from "./weather-discovery";
 
+export const DISCOVERY_MATCH_SCORE_MIN = 60;
+
 function above(value: number | null, threshold: number, scale: number, cap: number): number {
   if (value === null || value <= threshold) return 0;
   return Math.min((value - threshold) * scale, cap);
@@ -30,6 +32,7 @@ export function contextualizeDiscoveryResult(
   const metrics = result.metrics;
   const reasons = [...result.reasonCodes];
   let penalty = 0;
+  let score = result.score;
 
   if (preferences.partyProfile === "family") {
     penalty += above(metrics.maxRainProbability, 40, 0.25, 12);
@@ -81,15 +84,25 @@ export function contextualizeDiscoveryResult(
     penalty += above(metrics.maxRainProbability, 45, 0.2, 10);
     penalty += above(metrics.maxWindKph, 28, 0.8, 12);
     penalty += above(metrics.maxUv, 9, 1.5, 8);
+  } else if (preferences.theme === "city") {
+    penalty += above(metrics.maxRainProbability, 65, 0.12, 6);
+    penalty += above(metrics.averageMaxC, 34, 1.4, 8);
+    penalty += above(metrics.maxWindKph, 38, 0.6, 6);
   } else if (preferences.theme === "indoor") {
+    const recoverableWeatherPenalty = Math.max(0, 100 - score);
+    score += recoverableWeatherPenalty * 0.35;
     penalty *= 0.35;
   }
 
   return {
     ...result,
-    score: Math.max(0, Math.min(100, Math.round(result.score - penalty))),
+    score: Math.max(0, Math.min(100, Math.round(score - penalty))),
     reasonCodes: reasons,
   };
+}
+
+export function isDiscoveryPreferenceMatch(result: DiscoveryCityResult): boolean {
+  return result.score !== null && result.score >= DISCOVERY_MATCH_SCORE_MIN;
 }
 
 export function contextualizeDiscoveryResults(
@@ -98,6 +111,7 @@ export function contextualizeDiscoveryResults(
 ): ReadonlyArray<DiscoveryCityResult> {
   return results
     .map((result) => contextualizeDiscoveryResult(result, preferences))
+    .filter(isDiscoveryPreferenceMatch)
     .sort((left, right) => {
       const scoreDifference = (right.score ?? -1) - (left.score ?? -1);
       if (scoreDifference !== 0) return scoreDifference;
