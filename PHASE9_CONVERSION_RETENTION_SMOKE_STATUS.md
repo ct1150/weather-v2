@@ -1,9 +1,9 @@
 # Phase 9 Conversion & Retention smoke status
 
 - Conclusion: success
-- Deploy head SHA: 4edf0903eeae313c45db3f4254468445d18394d9
-- Deploy run: https://github.com/ct1150/weather-v2/actions/runs/31350153615
-- Verified at: 2026-08-10T02:39:53Z
+- Deploy head SHA: c4678de250bdc6f281aaa3200a4453eb4ec4580b
+- Deploy run: https://github.com/ct1150/weather-v2/actions/runs/31351331889
+- Verified at: 2026-08-10T03:05:42Z
 
 ## Checks
 
