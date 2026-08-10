@@ -2,6 +2,10 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 const planner = readFileSync(new URL("./WeatherDiscoveryPlannerV2.tsx", import.meta.url), "utf8");
+const livePlanner = readFileSync(
+  new URL("./WeatherDiscoveryPlannerLive.tsx", import.meta.url),
+  "utf8",
+);
 const engine = readFileSync(new URL("../discovery/weather-discovery.ts", import.meta.url), "utf8");
 const context = readFileSync(new URL("../discovery/discovery-context.ts", import.meta.url), "utf8");
 const trip = readFileSync(new URL("../discovery/discovery-trip.ts", import.meta.url), "utf8");
@@ -40,12 +44,14 @@ describe("Weather Discovery Phase 6 contract", () => {
     expect(context).toContain('preferences.theme === "city"');
   });
 
-  it("applies preference changes automatically instead of requiring a second confirmation click", () => {
-    expect(planner).toContain("preferenceAutoApplyReady");
-    expect(planner).toContain("window.setTimeout");
+  it("applies preference controls automatically through the existing apply path", () => {
+    expect(livePlanner).toContain("AUTO_APPLY_DELAY_MS = 180");
+    expect(livePlanner).toContain("onChangeCapture={handleChangeCapture}");
+    expect(livePlanner).toContain("onClickCapture={handleClickCapture}");
+    expect(livePlanner).toContain('button.trip-primary-button');
+    expect(livePlanner).toContain("applyButton?.click()");
     expect(planner).toContain("setApplied(draft)");
-    expect(planner).toContain("copy.autoApply");
-    expect(planner).not.toContain("onClick={apply}");
+    expect(planner).toContain("updateUrl(draft, shortlist)");
   });
 
   it("keeps forecast reads bounded and provider-isolated", () => {
@@ -81,10 +87,10 @@ describe("Weather Discovery Phase 6 contract", () => {
     expect(trip).not.toContain("poi");
   });
 
-  it("ships English, Simplified Chinese and Traditional Chinese discovery routes", () => {
-    expect(englishRoute).toContain('locale="en"');
-    expect(simplifiedRoute).toContain('locale="zh-cn"');
-    expect(traditionalRoute).toContain('locale="zh-hant"');
+  it("ships English, Simplified Chinese and Traditional Chinese discovery routes through the live planner", () => {
+    expect(englishRoute).toContain('WeatherDiscoveryPlannerLive locale="en"');
+    expect(simplifiedRoute).toContain('WeatherDiscoveryPlannerLive locale="zh-cn"');
+    expect(traditionalRoute).toContain('WeatherDiscoveryPlannerLive locale="zh-hant"');
     expect(planner).toContain("Weather Discovery 2.0");
     expect(planner).toContain("天气探索 2.0");
     expect(planner).toContain("天氣探索 2.0");
