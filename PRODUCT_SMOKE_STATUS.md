@@ -1,9 +1,9 @@
 # Production product smoke status
 
 - Conclusion: success
-- Deploy head SHA: 3345aac2bf2bc97be8ff2697636c97669b190bf1
-- Deploy run: https://github.com/ct1150/weather-v2/actions/runs/31276417457
-- Verified at: 2026-08-08T20:19:29Z
+- Deploy head SHA: 4edf0903eeae313c45db3f4254468445d18394d9
+- Deploy run: https://github.com/ct1150/weather-v2/actions/runs/31350153615
+- Verified at: 2026-08-10T02:39:11Z
 
 ## Checks
 
