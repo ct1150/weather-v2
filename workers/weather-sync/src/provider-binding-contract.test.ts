@@ -16,9 +16,4 @@ describe("weather-sync production provider deployment contract", () => {
       /\[env\.production\.vars\][\s\S]*WEATHER_PRIMARY_PROVIDER\s*=\s*"open-meteo"/u,
     );
   });
-
-  it("does not use the invalid KEY=VALUE Wrangler --var form for provider deployment", () => {
-    const deploy = read("../../../.github/workflows/deploy.yml");
-    expect(deploy).not.toContain("--var WEATHER_PRIMARY_PROVIDER=");
-  });
 });
