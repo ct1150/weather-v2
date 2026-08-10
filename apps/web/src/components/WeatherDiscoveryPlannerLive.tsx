@@ -1,6 +1,12 @@
 "use client";
 
-import { useCallback, useRef, type ReactElement, type SyntheticEvent } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  type ReactElement,
+  type SyntheticEvent,
+} from "react";
 import {
   WeatherDiscoveryPlannerV2,
   type WeatherDiscoveryLocale,
@@ -18,6 +24,13 @@ export function WeatherDiscoveryPlannerLive({
   readonly locale: WeatherDiscoveryLocale;
 }): ReactElement {
   const timerRef = useRef<number | null>(null);
+
+  useEffect(
+    () => () => {
+      if (timerRef.current !== null) window.clearTimeout(timerRef.current);
+    },
+    [],
+  );
 
   const scheduleApply = useCallback((): void => {
     if (timerRef.current !== null) window.clearTimeout(timerRef.current);
