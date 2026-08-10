@@ -1,0 +1,44 @@
+name: Format discovery score fix once
+
+on:
+  push:
+    branches:
+      - fix/weather-discovery-score-saturation
+    paths:
+      - .github/workflows/format-discovery-score-fix-once.yml
+
+permissions:
+  contents: write
+
+jobs:
+  format-and-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/weather-discovery-score-saturation
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.11.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Format discovery scoring fix
+        run: pnpm exec prettier --write apps/web/src/discovery/weather-discovery.ts apps/web/src/discovery/weather-discovery.test.ts
+      - name: Run focused discovery regression
+        run: pnpm --filter @wnr/web exec vitest run src/discovery/weather-discovery.test.ts
+      - name: Commit formatting and remove helper
+        run: |
+          rm .github/workflows/format-discovery-score-fix-once.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add apps/web/src/discovery/weather-discovery.ts apps/web/src/discovery/weather-discovery.test.ts .github/workflows/format-discovery-score-fix-once.yml
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git commit -m "style(discovery): format score saturation fix"
+          git push origin HEAD:fix/weather-discovery-score-saturation
