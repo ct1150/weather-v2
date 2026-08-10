@@ -1,13 +1,7 @@
 import type { TripCityOption, TripForecastDay, TripPartyProfile } from "../trips/workspace";
 
 export type WeatherDiscoveryIntent =
-  | "dry"
-  | "outdoor"
-  | "beach"
-  | "cool_escape"
-  | "warm_escape"
-  | "family_comfort"
-  | "senior_comfort";
+  "dry" | "outdoor" | "beach" | "cool_escape" | "warm_escape" | "family_comfort" | "senior_comfort";
 
 export type DiscoveryTheme = "city" | "beach" | "outdoor" | "indoor";
 
@@ -187,8 +181,7 @@ function scoreIntent(
     // A multi-day trip should be scored by its overall wetness, not be flattened by
     // one high-probability hour/day. Keep peak rain as a bounded severe-day surcharge.
     penalty += rainPenalty(averageRain, 0.55);
-    penalty +=
-      averagePrecipitation === null ? 0 : Math.min(averagePrecipitation * 3, 25);
+    penalty += averagePrecipitation === null ? 0 : Math.min(averagePrecipitation * 3, 25);
     penalty += abovePenalty(peakRain, 75, 0.35, 9);
     penalty += abovePenalty(wind, 35, 0.4, 8);
   } else if (intent === "outdoor") {
@@ -239,7 +232,10 @@ function scoreIntent(
     reasons,
     "RAIN_RISK",
     (averageRain !== null && averageRain >= 60) ||
-      (peakRain !== null && peakRain >= 85 && averagePrecipitation !== null && averagePrecipitation >= 5),
+      (peakRain !== null &&
+        peakRain >= 85 &&
+        averagePrecipitation !== null &&
+        averagePrecipitation >= 5),
   );
   addReason(
     reasons,
@@ -264,12 +260,20 @@ function scoreIntent(
   addReason(
     reasons,
     "FAMILY_COMFORT",
-    intent === "family_comfort" && peakRain !== null && peakRain <= 35 && high !== null && high <= 30,
+    intent === "family_comfort" &&
+      peakRain !== null &&
+      peakRain <= 35 &&
+      high !== null &&
+      high <= 30,
   );
   addReason(
     reasons,
     "SENIOR_COMFORT",
-    intent === "senior_comfort" && peakRain !== null && peakRain <= 30 && high !== null && high <= 28,
+    intent === "senior_comfort" &&
+      peakRain !== null &&
+      peakRain <= 30 &&
+      high !== null &&
+      high <= 28,
   );
 
   return clamp(Math.round(100 - penalty), 0, 100);
