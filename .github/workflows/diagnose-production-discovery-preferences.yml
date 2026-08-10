@@ -6,14 +6,17 @@ on:
       - .github/workflows/diagnose-production-discovery-preferences.yml
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
-  diagnose:
+  apply:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 12
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: fix/discovery-preference-effect
+          fetch-depth: 0
       - uses: pnpm/action-setup@v4
         with:
           version: 10.11.0
@@ -22,83 +25,99 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - name: Build workspace deps
-        run: pnpm -r --filter '!@wnr/web' --filter '!@wnr/weather-sync' --filter '!@wnr/maintenance' build
-      - name: Create production preference diagnostic
+      - name: Patch planner for live preferences
         run: |
-          cat > apps/web/src/discovery/production-preference-diagnostic.test.ts <<'EOF'
-          import { describe, expect, it } from "vitest";
-          import type { TripCityOption, TripForecastDay } from "../trips/workspace";
-          import { contextualizeDiscoveryResults } from "./discovery-context";
-          import { listDiscoveryIntents, rankDiscoveryCities, type DiscoveryPreferences } from "./weather-discovery";
+          python - <<'PY'
+          from pathlib import Path
 
-          const READ = "https://where-not-rain-read-production.ct1150.workers.dev";
+          path = Path('apps/web/src/components/WeatherDiscoveryPlannerV2.tsx')
+          text = path.read_text()
 
-          function isoDay(offset: number): string {
-            const value = new Date();
-            value.setUTCDate(value.getUTCDate() + offset);
-            return value.toISOString().slice(0, 10);
-          }
+          replacements = [
+              ('    apply: "Update results",\n', '    apply: "Update results",\n    autoApply: "Results update automatically as conditions change.",\n'),
+              ('    noMatches: "No destinations match every selected limit. Relax one constraint and try again.",\n', '    noMatches: "No destinations currently match the selected weather conditions. Relax one preference or limit and try again.",\n'),
+              ('    apply: "更新推荐",\n', '    apply: "更新推荐",\n    autoApply: "条件变化后会自动重新筛选，无需再次确认。",\n'),
+              ('    noMatches: "没有城市同时满足全部限制条件，可以放宽一个条件后再试。",\n', '    noMatches: "当前没有城市满足所选天气条件，可以放宽一个偏好或限制后再试。",\n'),
+              ('    apply: "更新推薦",\n', '    apply: "更新推薦",\n    autoApply: "條件變化後會自動重新篩選，無需再次確認。",\n'),
+              ('    noMatches: "沒有城市同時符合全部限制條件，可以放寬一個條件後再試。",\n', '    noMatches: "目前沒有城市符合所選天氣條件，可以放寬一個偏好或限制後再試。",\n'),
+              ('  const discoveryViewTracked = useRef(false);\n', '  const discoveryViewTracked = useRef(false);\n  const preferenceAutoApplyReady = useRef(false);\n'),
+          ]
+          for old, new in replacements:
+              if old not in text:
+                  raise SystemExit(f'missing expected planner fragment: {old!r}')
+              text = text.replace(old, new, 1)
 
-          async function productionData() {
-            const citiesResponse = await fetch(`${READ}/api/v1/trip-cities?locale=en`);
-            expect(citiesResponse.ok).toBe(true);
-            const citiesPayload = (await citiesResponse.json()) as { data?: { items?: TripCityOption[] } };
-            const cities = citiesPayload.data?.items ?? [];
-            expect(cities.length).toBeGreaterThan(20);
+          old_apply = '''  const apply = useCallback((): void => {
+    if (discoveryDateRange(draft.from, draft.to).length === 0) {
+      setMessage(copy.invalidRange);
+      return;
+    }
+    setTripReady(false);
+    setApplied(draft);
+    updateUrl(draft, shortlist);
+  }, [copy.invalidRange, draft, shortlist, updateUrl]);
+'''
+          new_apply = '''  useEffect(() => {
+    if (!preferenceAutoApplyReady.current) {
+      preferenceAutoApplyReady.current = true;
+      return;
+    }
+    if (discoveryDateRange(draft.from, draft.to).length === 0) {
+      setMessage(copy.invalidRange);
+      return;
+    }
+    const timer = window.setTimeout(() => {
+      setTripReady(false);
+      setMessage("");
+      setApplied(draft);
+      updateUrl(draft, shortlist);
+    }, 120);
+    return () => window.clearTimeout(timer);
+  }, [copy.invalidRange, draft, shortlist, updateUrl]);
+'''
+          if old_apply not in text:
+              raise SystemExit('missing apply callback block')
+          text = text.replace(old_apply, new_apply, 1)
 
-            const from = isoDay(0);
-            const to = isoDay(2);
-            const forecast: TripForecastDay[] = [];
-            let snapshotId: string | null = null;
-            for (let start = 0; start < cities.length; start += 12) {
-              const batch = cities.slice(start, start + 12);
-              const params = new URLSearchParams({ cityIds: batch.map((city) => city.cityId).join(","), from, to, locale: "en" });
-              const response = await fetch(`${READ}/api/v1/trip-forecast?${params}`);
-              expect(response.ok).toBe(true);
-              const payload = (await response.json()) as { data?: { snapshotId?: string; items?: TripForecastDay[] } };
-              if (snapshotId !== null) expect(payload.data?.snapshotId).toBe(snapshotId);
-              snapshotId = payload.data?.snapshotId ?? null;
-              forecast.push(...(payload.data?.items ?? []));
-            }
-            return { cities, forecast, from, to, snapshotId };
-          }
-
-          function rank(cities: ReadonlyArray<TripCityOption>, forecast: ReadonlyArray<TripForecastDay>, preferences: DiscoveryPreferences) {
-            return contextualizeDiscoveryResults(rankDiscoveryCities(cities, forecast, preferences), preferences);
-          }
-
-          describe("production discovery preference effects", () => {
-            it("prints candidate counts and top results for every preference dimension", async () => {
-              const { cities, forecast, from, to, snapshotId } = await productionData();
-              const base: DiscoveryPreferences = {
-                intent: "dry", from, to,
-                rainProbabilityMax: null, temperatureMinC: null, temperatureMaxC: null,
-                windSpeedMaxKph: null, partyProfile: null, theme: null,
-              };
-              console.log("snapshot", snapshotId, "cities", cities.length);
-
-              for (const intent of listDiscoveryIntents()) {
-                const results = rank(cities, forecast, { ...base, intent });
-                console.log(`intent=${intent} count=${results.length} top=${results.slice(0, 8).map((r) => `${r.city.cityId}:${r.score}`).join(",")}`);
-              }
-
-              const scenarios: Array<[string, DiscoveryPreferences]> = [
-                ["rain30", { ...base, rainProbabilityMax: 30 }],
-                ["tempMax26", { ...base, temperatureMaxC: 26 }],
-                ["tempMin20", { ...base, temperatureMinC: 20 }],
-                ["wind20", { ...base, windSpeedMaxKph: 20 }],
-                ["family", { ...base, partyProfile: "family" }],
-                ["senior", { ...base, partyProfile: "senior" }],
-                ["beachTheme", { ...base, theme: "beach" }],
-                ["outdoorTheme", { ...base, theme: "outdoor" }],
-              ];
-              for (const [name, preferences] of scenarios) {
-                const results = rank(cities, forecast, preferences);
-                console.log(`${name} count=${results.length} top=${results.slice(0, 8).map((r) => `${r.city.cityId}:${r.score}`).join(",")}`);
-              }
-            });
-          });
-          EOF
-      - name: Run production preference diagnostic
-        run: pnpm --filter @wnr/web exec vitest run src/discovery/production-preference-diagnostic.test.ts
+          old_button = '''            <button type="button" className="trip-primary-button mt-4 w-full" onClick={apply}>
+              {copy.apply}
+            </button>
+            <p className="mt-2 text-xs leading-5 text-muted">{copy.filtersShare}</p>
+'''
+          new_button = '''            <p className="mt-4 rounded-xl bg-surface-elevated px-3 py-2 text-xs font-semibold text-muted">
+              {copy.autoApply}
+            </p>
+            <p className="mt-2 text-xs leading-5 text-muted">{copy.filtersShare}</p>
+'''
+          if old_button not in text:
+              raise SystemExit('missing manual apply button block')
+          text = text.replace(old_button, new_button, 1)
+          path.write_text(text)
+          PY
+      - name: Format and verify focused behavior
+        run: |
+          pnpm exec prettier --write \
+            apps/web/src/components/WeatherDiscoveryPlannerV2.tsx \
+            apps/web/src/discovery/discovery-context.ts \
+            apps/web/src/discovery/discovery-context.test.ts \
+            apps/web/src/components/weather-discovery-phase6-contract.test.ts
+          pnpm -r --filter '!@wnr/web' --filter '!@wnr/weather-sync' --filter '!@wnr/maintenance' build
+          pnpm --filter @wnr/web exec vitest run \
+            src/discovery/discovery-context.test.ts \
+            src/discovery/weather-discovery.test.ts \
+            src/components/weather-discovery-phase6-contract.test.ts
+      - name: Commit source patch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            apps/web/src/components/WeatherDiscoveryPlannerV2.tsx \
+            apps/web/src/discovery/discovery-context.ts \
+            apps/web/src/discovery/discovery-context.test.ts \
+            apps/web/src/components/weather-discovery-phase6-contract.test.ts
+          if git diff --cached --quiet; then
+            echo "No source changes to commit"
+            exit 0
+          fi
+          git commit -m "fix(discovery): apply weather preferences live"
+          git push origin HEAD:fix/discovery-preference-effect
