@@ -18,13 +18,9 @@ describe("weather-sync provider configuration", () => {
   it("accepts only explicitly supported ingestion providers", () => {
     expect(resolveSyncProviderName("open-meteo")).toBe("open-meteo");
     expect(resolveSyncProviderName("fake")).toBe("fake");
-    expect(() => resolveSyncProviderName(undefined)).toThrow(
-      WeatherProviderConfigurationError,
-    );
+    expect(() => resolveSyncProviderName(undefined)).toThrow(WeatherProviderConfigurationError);
     expect(() => resolveSyncProviderName("unknown")).toThrow(WeatherProviderConfigurationError);
-    expect(() => resolveSyncProviderName("weatherapi")).toThrow(
-      WeatherProviderConfigurationError,
-    );
+    expect(() => resolveSyncProviderName("weatherapi")).toThrow(WeatherProviderConfigurationError);
   });
 });
 
@@ -45,10 +41,7 @@ describe("weather-sync operational HTTP boundary", () => {
       ...env,
       WEATHER_PRIMARY_PROVIDER: undefined,
     } as unknown as WorkerEnv;
-    const response = await handleRequest(
-      new Request("https://sync.example/health"),
-      misconfigured,
-    );
+    const response = await handleRequest(new Request("https://sync.example/health"), misconfigured);
     expect(response.status).toBe(503);
     await expect(response.json()).resolves.toMatchObject({
       ok: false,
