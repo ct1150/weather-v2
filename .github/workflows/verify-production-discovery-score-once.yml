@@ -98,11 +98,14 @@ jobs:
                 .filter((score): score is number => score !== null);
               const uniqueScores = new Set(scores);
               console.log(
-                "production dry scores",
+                "production dry diagnostics",
                 results
                   .slice(0, 24)
-                  .map((result) => `${result.city.cityId}:${result.score}`)
-                  .join(", "),
+                  .map(
+                    (result) =>
+                      `${result.city.cityId}:score=${result.score},avgRain=${result.metrics.averageRainProbability},avgPrecip=${result.metrics.averagePrecipitationMm},peakRain=${result.metrics.maxRainProbability}`,
+                  )
+                  .join(" | "),
               );
               expect(scores.every((score) => score === 25)).toBe(false);
               expect(uniqueScores.size).toBeGreaterThan(1);
