@@ -18,9 +18,13 @@ describe("weather-sync provider configuration", () => {
   it("accepts only explicitly supported ingestion providers", () => {
     expect(resolveSyncProviderName("open-meteo")).toBe("open-meteo");
     expect(resolveSyncProviderName("fake")).toBe("fake");
-    expect(() => resolveSyncProviderName(undefined)).toThrow(WeatherProviderConfigurationError);
+    expect(() => resolveSyncProviderName(undefined)).toThrow(
+      WeatherProviderConfigurationError,
+    );
     expect(() => resolveSyncProviderName("unknown")).toThrow(WeatherProviderConfigurationError);
-    expect(() => resolveSyncProviderName("weatherapi")).toThrow(WeatherProviderConfigurationError);
+    expect(() => resolveSyncProviderName("weatherapi")).toThrow(
+      WeatherProviderConfigurationError,
+    );
   });
 });
 
