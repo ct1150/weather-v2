@@ -1,0 +1,104 @@
+name: Diagnose production discovery preferences
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/diagnose-production-discovery-preferences.yml
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.11.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Build workspace deps
+        run: pnpm -r --filter '!@wnr/web' --filter '!@wnr/weather-sync' --filter '!@wnr/maintenance' build
+      - name: Create production preference diagnostic
+        run: |
+          cat > apps/web/src/discovery/production-preference-diagnostic.test.ts <<'EOF'
+          import { describe, expect, it } from "vitest";
+          import type { TripCityOption, TripForecastDay } from "../trips/workspace";
+          import { contextualizeDiscoveryResults } from "./discovery-context";
+          import { listDiscoveryIntents, rankDiscoveryCities, type DiscoveryPreferences } from "./weather-discovery";
+
+          const READ = "https://where-not-rain-read-production.ct1150.workers.dev";
+
+          function isoDay(offset: number): string {
+            const value = new Date();
+            value.setUTCDate(value.getUTCDate() + offset);
+            return value.toISOString().slice(0, 10);
+          }
+
+          async function productionData() {
+            const citiesResponse = await fetch(`${READ}/api/v1/trip-cities?locale=en`);
+            expect(citiesResponse.ok).toBe(true);
+            const citiesPayload = (await citiesResponse.json()) as { data?: { items?: TripCityOption[] } };
+            const cities = citiesPayload.data?.items ?? [];
+            expect(cities.length).toBeGreaterThan(20);
+
+            const from = isoDay(0);
+            const to = isoDay(2);
+            const forecast: TripForecastDay[] = [];
+            let snapshotId: string | null = null;
+            for (let start = 0; start < cities.length; start += 12) {
+              const batch = cities.slice(start, start + 12);
+              const params = new URLSearchParams({ cityIds: batch.map((city) => city.cityId).join(","), from, to, locale: "en" });
+              const response = await fetch(`${READ}/api/v1/trip-forecast?${params}`);
+              expect(response.ok).toBe(true);
+              const payload = (await response.json()) as { data?: { snapshotId?: string; items?: TripForecastDay[] } };
+              if (snapshotId !== null) expect(payload.data?.snapshotId).toBe(snapshotId);
+              snapshotId = payload.data?.snapshotId ?? null;
+              forecast.push(...(payload.data?.items ?? []));
+            }
+            return { cities, forecast, from, to, snapshotId };
+          }
+
+          function rank(cities: ReadonlyArray<TripCityOption>, forecast: ReadonlyArray<TripForecastDay>, preferences: DiscoveryPreferences) {
+            return contextualizeDiscoveryResults(rankDiscoveryCities(cities, forecast, preferences), preferences);
+          }
+
+          describe("production discovery preference effects", () => {
+            it("prints candidate counts and top results for every preference dimension", async () => {
+              const { cities, forecast, from, to, snapshotId } = await productionData();
+              const base: DiscoveryPreferences = {
+                intent: "dry", from, to,
+                rainProbabilityMax: null, temperatureMinC: null, temperatureMaxC: null,
+                windSpeedMaxKph: null, partyProfile: null, theme: null,
+              };
+              console.log("snapshot", snapshotId, "cities", cities.length);
+
+              for (const intent of listDiscoveryIntents()) {
+                const results = rank(cities, forecast, { ...base, intent });
+                console.log(`intent=${intent} count=${results.length} top=${results.slice(0, 8).map((r) => `${r.city.cityId}:${r.score}`).join(",")}`);
+              }
+
+              const scenarios: Array<[string, DiscoveryPreferences]> = [
+                ["rain30", { ...base, rainProbabilityMax: 30 }],
+                ["tempMax26", { ...base, temperatureMaxC: 26 }],
+                ["tempMin20", { ...base, temperatureMinC: 20 }],
+                ["wind20", { ...base, windSpeedMaxKph: 20 }],
+                ["family", { ...base, partyProfile: "family" }],
+                ["senior", { ...base, partyProfile: "senior" }],
+                ["beachTheme", { ...base, theme: "beach" }],
+                ["outdoorTheme", { ...base, theme: "outdoor" }],
+              ];
+              for (const [name, preferences] of scenarios) {
+                const results = rank(cities, forecast, preferences);
+                console.log(`${name} count=${results.length} top=${results.slice(0, 8).map((r) => `${r.city.cityId}:${r.score}`).join(",")}`);
+              }
+            });
+          });
+          EOF
+      - name: Run production preference diagnostic
+        run: pnpm --filter @wnr/web exec vitest run src/discovery/production-preference-diagnostic.test.ts
