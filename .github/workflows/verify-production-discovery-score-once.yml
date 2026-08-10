@@ -54,7 +54,8 @@ jobs:
               const citiesPayload = (await citiesResponse.json()) as {
                 data?: { items?: TripCityOption[] };
               };
-              const cities = (citiesPayload.data?.items ?? []).slice(0, 24);
+              const allCities = citiesPayload.data?.items ?? [];
+              const cities = allCities.slice(0, 24);
               expect(cities.length).toBeGreaterThanOrEqual(5);
 
               const from = isoDay(0);
@@ -109,6 +110,41 @@ jobs:
               );
               expect(scores.every((score) => score === 25)).toBe(false);
               expect(uniqueScores.size).toBeGreaterThan(1);
+
+              for (const cityId of ["jp-tokyo", "kr-seoul", "id-bali"]) {
+                const city = allCities.find((item) => item.cityId === cityId);
+                expect(city).toBeDefined();
+                if (city === undefined) continue;
+                const params = new URLSearchParams({
+                  latitude: String(city.latitude),
+                  longitude: String(city.longitude),
+                  timezone: city.timezone,
+                  start_date: from,
+                  end_date: to,
+                  daily: "precipitation_sum,precipitation_probability_max",
+                });
+                const response = await fetch(`https://api.open-meteo.com/v1/forecast?${params.toString()}`);
+                expect(response.ok).toBe(true);
+                const direct = (await response.json()) as {
+                  daily?: {
+                    time?: string[];
+                    precipitation_sum?: number[];
+                    precipitation_probability_max?: number[];
+                  };
+                };
+                const stored = forecast.filter((day) => day.cityId === cityId);
+                console.log(
+                  `provider comparison ${cityId}`,
+                  JSON.stringify({
+                    production: stored.map((day) => ({
+                      date: day.date,
+                      precipitationMm: day.precipitationMm,
+                      rainProbability: day.rainProbability,
+                    })),
+                    openMeteoNow: direct.daily,
+                  }),
+                );
+              }
             });
           });
           EOF
