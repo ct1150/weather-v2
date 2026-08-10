@@ -27,9 +27,27 @@ interface ScheduledEventLike {
   readonly scheduledTime: number;
 }
 
+export class WeatherProviderConfigurationError extends Error {
+  constructor() {
+    super("WEATHER_PRIMARY_PROVIDER must be configured as open-meteo or fake");
+    this.name = "WeatherProviderConfigurationError";
+  }
+}
+
+/**
+ * Resolve the ingestion provider without ever silently substituting synthetic weather.
+ * `fake` remains available only when it is explicitly selected for tests/local tooling.
+ */
+export function resolveSyncProviderName(raw: unknown): WeatherProviderName {
+  const requested = resolveProviderName(raw);
+  if (requested === null || requested === "weatherapi") {
+    throw new WeatherProviderConfigurationError();
+  }
+  return requested;
+}
+
 function buildDeps(env: WorkerEnv): SyncDeps {
-  let requested: WeatherProviderName = resolveProviderName(env.WEATHER_PRIMARY_PROVIDER) ?? "fake";
-  if (requested === "weatherapi") requested = "fake";
+  const requested = resolveSyncProviderName(env.WEATHER_PRIMARY_PROVIDER);
   const provider = createWeatherProvider(requested);
   const config: RuntimeConfig = parseRuntimeConfig({ weatherProvider: true });
   return {
@@ -78,15 +96,30 @@ export async function handleRequest(request: Request, env: WorkerEnv): Promise<R
   const url = new URL(request.url);
 
   if (request.method === "GET" && url.pathname === "/health") {
-    return json(
-      {
-        ok: true,
-        service: "weather-sync",
-        scheduled: true,
-        manualTriggerProtected: true,
-      },
-      200,
-    );
+    try {
+      const provider = resolveSyncProviderName(env.WEATHER_PRIMARY_PROVIDER);
+      return json(
+        {
+          ok: true,
+          service: "weather-sync",
+          scheduled: true,
+          manualTriggerProtected: true,
+          provider,
+        },
+        200,
+      );
+    } catch {
+      return json(
+        {
+          ok: false,
+          service: "weather-sync",
+          scheduled: true,
+          manualTriggerProtected: true,
+          error: "WEATHER_PROVIDER_MISCONFIGURED",
+        },
+        503,
+      );
+    }
   }
 
   if (url.pathname !== "/internal/sync") {
