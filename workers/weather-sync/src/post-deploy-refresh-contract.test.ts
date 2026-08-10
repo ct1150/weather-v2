@@ -20,7 +20,7 @@ describe("production weather post-deploy refresh guard", () => {
 
   it("waits for the propagated Open-Meteo Worker before refreshing", () => {
     expect(workflow).toContain("/health");
-    expect(workflow).toContain('\"provider\":\"open-meteo\"');
+    expect(workflow).toContain(`"provider":"open-meteo"`);
     expect(workflow).toContain("/internal/sync");
     expect(workflow).toContain("report.activated !== true");
   });
