@@ -1,6 +1,9 @@
 name: Diagnose production discovery preferences
 
 on:
+  push:
+    branches:
+      - fix/discovery-preference-effect
   pull_request:
     paths:
       - .github/workflows/diagnose-production-discovery-preferences.yml
