@@ -6,6 +6,9 @@ on:
       - fix/weather-discovery-score-saturation
     paths:
       - .github/workflows/verify-production-discovery-score-once.yml
+  pull_request:
+    paths:
+      - .github/workflows/verify-production-discovery-score-once.yml
 
 permissions:
   contents: read
@@ -16,8 +19,6 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: fix/weather-discovery-score-saturation
       - uses: pnpm/action-setup@v4
         with:
           version: 10.11.0
@@ -92,9 +93,17 @@ jobs:
               };
               const results = rankDiscoveryCities(cities, forecast, preferences);
               expect(results.length).toBeGreaterThanOrEqual(5);
-              const scores = results.map((result) => result.score).filter((score): score is number => score !== null);
+              const scores = results
+                .map((result) => result.score)
+                .filter((score): score is number => score !== null);
               const uniqueScores = new Set(scores);
-              console.log("production dry scores", results.slice(0, 24).map((result) => `${result.city.cityId}:${result.score}`).join(", "));
+              console.log(
+                "production dry scores",
+                results
+                  .slice(0, 24)
+                  .map((result) => `${result.city.cityId}:${result.score}`)
+                  .join(", "),
+              );
               expect(scores.every((score) => score === 25)).toBe(false);
               expect(uniqueScores.size).toBeGreaterThan(1);
             });
