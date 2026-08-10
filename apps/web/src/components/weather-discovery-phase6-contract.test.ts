@@ -33,6 +33,21 @@ describe("Weather Discovery Phase 6 contract", () => {
     expect(planner).toContain("contextualizeDiscoveryResults");
   });
 
+  it("requires a meaningful score match instead of returning every city for every intent", () => {
+    expect(context).toContain("DISCOVERY_MATCH_SCORE_MIN = 60");
+    expect(context).toContain("filter(isDiscoveryPreferenceMatch)");
+    expect(context).toContain('preferences.theme === "indoor"');
+    expect(context).toContain('preferences.theme === "city"');
+  });
+
+  it("applies preference changes automatically instead of requiring a second confirmation click", () => {
+    expect(planner).toContain("preferenceAutoApplyReady");
+    expect(planner).toContain("window.setTimeout");
+    expect(planner).toContain("setApplied(draft)");
+    expect(planner).toContain("copy.autoApply");
+    expect(planner).not.toContain("onClick={apply}");
+  });
+
   it("keeps forecast reads bounded and provider-isolated", () => {
     expect(planner).toContain("MAX_CITIES_PER_REQUEST = 12");
     expect(planner).toContain("/api/v1/trip-cities");
