@@ -1,9 +1,9 @@
 # Phase 8 Adaptive Replanning smoke status
 
 - Conclusion: success
-- Deploy head SHA: a15c1fce7cdaf8b5a5b463e8b56969145474400c
-- Deploy run: https://github.com/ct1150/weather-v2/actions/runs/31347823196
-- Verified at: 2026-08-10T01:47:48Z
+- Deploy head SHA: 4edf0903eeae313c45db3f4254468445d18394d9
+- Deploy run: https://github.com/ct1150/weather-v2/actions/runs/31350153615
+- Verified at: 2026-08-10T02:39:16Z
 
 ## Checks
 
