@@ -22,6 +22,91 @@ jobs:
     timeout-minutes: 12
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0
+      - name: Apply live preference UX patch once
+        if: github.event.pull_request.head.ref == 'fix/discovery-preference-effect'
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('apps/web/src/components/WeatherDiscoveryPlannerV2.tsx')
+          text = path.read_text()
+          if 'preferenceAutoApplyReady' in text:
+              print('planner patch already applied')
+              raise SystemExit(0)
+
+          replacements = [
+              ('    apply: "Update results",\n', '    apply: "Update results",\n    autoApply: "Results update automatically as conditions change.",\n'),
+              ('    noMatches: "No destinations match every selected limit. Relax one constraint and try again.",\n', '    noMatches: "No destinations currently match the selected weather conditions. Relax one preference or limit and try again.",\n'),
+              ('    apply: "更新推荐",\n', '    apply: "更新推荐",\n    autoApply: "条件变化后会自动重新筛选，无需再次确认。",\n'),
+              ('    noMatches: "没有城市同时满足全部限制条件，可以放宽一个条件后再试。",\n', '    noMatches: "当前没有城市满足所选天气条件，可以放宽一个偏好或限制后再试。",\n'),
+              ('    apply: "更新推薦",\n', '    apply: "更新推薦",\n    autoApply: "條件變化後會自動重新篩選，無需再次確認。",\n'),
+              ('    noMatches: "沒有城市同時符合全部限制條件，可以放寬一個條件後再試。",\n', '    noMatches: "目前沒有城市符合所選天氣條件，可以放寬一個偏好或限制後再試。",\n'),
+              ('  const discoveryViewTracked = useRef(false);\n', '  const discoveryViewTracked = useRef(false);\n  const preferenceAutoApplyReady = useRef(false);\n'),
+          ]
+          for old, new in replacements:
+              if old not in text:
+                  raise SystemExit(f'missing expected planner fragment: {old!r}')
+              text = text.replace(old, new, 1)
+
+          old_apply = '''  const apply = useCallback((): void => {
+    if (discoveryDateRange(draft.from, draft.to).length === 0) {
+      setMessage(copy.invalidRange);
+      return;
+    }
+    setTripReady(false);
+    setApplied(draft);
+    updateUrl(draft, shortlist);
+  }, [copy.invalidRange, draft, shortlist, updateUrl]);
+'''
+          new_apply = '''  useEffect(() => {
+    if (!preferenceAutoApplyReady.current) {
+      preferenceAutoApplyReady.current = true;
+      return;
+    }
+    if (discoveryDateRange(draft.from, draft.to).length === 0) {
+      setMessage(copy.invalidRange);
+      return;
+    }
+    const timer = window.setTimeout(() => {
+      setTripReady(false);
+      setMessage("");
+      setApplied(draft);
+      updateUrl(draft, shortlist);
+    }, 120);
+    return () => window.clearTimeout(timer);
+  }, [copy.invalidRange, draft, shortlist, updateUrl]);
+'''
+          if old_apply not in text:
+              raise SystemExit('missing apply callback block')
+          text = text.replace(old_apply, new_apply, 1)
+
+          old_button = '''            <button type="button" className="trip-primary-button mt-4 w-full" onClick={apply}>
+              {copy.apply}
+            </button>
+            <p className="mt-2 text-xs leading-5 text-muted">{copy.filtersShare}</p>
+'''
+          new_button = '''            <p className="mt-4 rounded-xl bg-surface-elevated px-3 py-2 text-xs font-semibold text-muted">
+              {copy.autoApply}
+            </p>
+            <p className="mt-2 text-xs leading-5 text-muted">{copy.filtersShare}</p>
+'''
+          if old_button not in text:
+              raise SystemExit('missing manual apply button block')
+          path.write_text(text)
+          PY
+          npx prettier --write apps/web/src/components/WeatherDiscoveryPlannerV2.tsx
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add apps/web/src/components/WeatherDiscoveryPlannerV2.tsx
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git commit -m "fix(discovery): apply weather preferences live"
+          git push origin HEAD:${{ github.event.pull_request.head.ref }}
       - uses: actions/setup-node@v4
         with:
           node-version: 22
