@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { WeatherDiscoveryPlannerV2 } from "../../../components/WeatherDiscoveryPlannerV2";
+import { WeatherDiscoveryPlannerLive } from "../../../components/WeatherDiscoveryPlannerLive";
 
 export const metadata: Metadata = {
   title: "天氣探索 | Where Not Rain",
@@ -7,5 +7,5 @@ export const metadata: Metadata = {
 };
 
 export default function DiscoverPage() {
-  return <WeatherDiscoveryPlannerV2 locale="zh-hant" />;
+  return <WeatherDiscoveryPlannerLive locale="zh-hant" />;
 }
