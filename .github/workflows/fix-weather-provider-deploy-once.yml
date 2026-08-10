@@ -71,8 +71,7 @@ jobs:
             .github/workflows/deploy.yml \
             workers/weather-sync/src/index.ts \
             workers/weather-sync/src/index.test.ts \
-            workers/weather-sync/src/provider-binding-contract.test.ts \
-            workers/weather-sync/wrangler.toml
+            workers/weather-sync/src/provider-binding-contract.test.ts
       - name: Verify provider binding fix
         run: |
           pnpm --filter @wnr/config build
