@@ -41,7 +41,8 @@ const COPY = {
     insufficient: "There is not enough hourly-weather data to create a replan proposal.",
     noCoverage: "Hourly weather is unavailable. Execution Mode will not create an optimistic proposal.",
     noChange: "No safe change improves weather risk enough while preserving fixed constraints.",
-    fallbackEstimate: "Proposal ready. Routing was unavailable, so relocation uses the deterministic fallback estimate.",
+    fallbackEstimate:
+      "Proposal ready. Routing was unavailable, so relocation uses the deterministic fallback estimate.",
     routed: "Proposal uses hourly weather and routed relocation time.",
     move: "Move time",
     replace: "Use fallback",
@@ -153,7 +154,9 @@ export function TripExecutionReplanPanel({
         date: day.date,
         locale: locale === "en" ? "en" : "zh-cn",
       });
-      const response = await fetch(`${WEATHER_READ_BASE}/api/v1/trip-hourly?${params.toString()}`);
+      const response = await fetch(
+        `${WEATHER_READ_BASE}/api/v1/trip-hourly?${params.toString()}`,
+      );
       if (!response.ok) throw new Error(`HOURLY_${response.status}`);
       const payload = (await response.json()) as HourlyResponse;
       const hourly = payload.data?.items ?? [];
@@ -176,7 +179,9 @@ export function TripExecutionReplanPanel({
       try {
         routeCostMatrix =
           sourceWaypoints.length > 0 && fallbackWaypoints.length > 0
-            ? await fetchRouteCostMatrix(sourceWaypoints, fallbackWaypoints, { profile: "driving" })
+            ? await fetchRouteCostMatrix(sourceWaypoints, fallbackWaypoints, {
+                profile: "driving",
+              })
             : undefined;
       } catch {
         routeCostMatrix = undefined;
@@ -250,12 +255,15 @@ export function TripExecutionReplanPanel({
                 </span>
               </div>
               <p className="mt-2 text-xs text-muted">
-                {change.before.startTime ?? "—"} {change.before.title} → {change.after.startTime ?? "—"}{" "}
-                {change.after.title}
+                {change.before.startTime ?? "—"} {change.before.title} →{" "}
+                {change.after.startTime ?? "—"} {change.after.title}
               </p>
               {change.kind === "replace_activity" ? (
                 <p className="mt-1 text-xs text-muted">
-                  {copy.relocation}: {change.travelDeltaMinutes === null ? copy.unknown : `${change.travelDeltaMinutes} ${copy.minutes}`}
+                  {copy.relocation}:{" "}
+                  {change.travelDeltaMinutes === null
+                    ? copy.unknown
+                    : `${change.travelDeltaMinutes} ${copy.minutes}`}
                 </p>
               ) : null}
             </article>
