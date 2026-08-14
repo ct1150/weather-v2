@@ -1,6 +1,8 @@
 import { normalizeActivityItems } from "./activity-intelligence";
 import type { TripForecastDay, TripPartyProfile, TripWorkspace } from "./workspace";
 
+export type TripExportLocale = "en" | "zh-cn" | "zh-hant";
+
 export interface PackingItem {
   readonly id: string;
   readonly label: string;
@@ -73,15 +75,76 @@ function pushUnique(target: PackingItem[], item: PackingItem): void {
   if (!target.some((current) => current.id === item.id)) target.push(item);
 }
 
+function packingBase(locale: TripExportLocale): PackingItem[] {
+  if (locale === "en") {
+    return [
+      { id: "documents", label: "Passport / tickets / booking confirmations", reason: "Core travel documents", category: "documents" },
+      { id: "power", label: "Chargers and power bank", reason: "Maps and weather execution depend on phone battery", category: "comfort" },
+    ];
+  }
+  if (locale === "zh-hant") {
+    return [
+      { id: "documents", label: "證件 / 車票 / 預約確認", reason: "旅行基礎資料", category: "documents" },
+      { id: "power", label: "充電器與行動電源", reason: "地圖與天氣執行模式需要手機續航", category: "comfort" },
+    ];
+  }
+  return [
+    { id: "documents", label: "证件 / 车票 / 预约确认", reason: "旅行基础资料", category: "documents" },
+    { id: "power", label: "充电器与移动电源", reason: "地图与天气执行模式需要手机续航", category: "comfort" },
+  ];
+}
+
+function localizedItem(
+  locale: TripExportLocale,
+  id: string,
+  value: number | null = null,
+): PackingItem {
+  const numeric = value ?? 0;
+  if (locale === "en") {
+    const map: Record<string, PackingItem> = {
+      "rain-shell": { id, label: "Light rain shell / compact umbrella", reason: `Peak rain probability ${numeric}%`, category: "weather" },
+      "waterproof-bag": { id, label: "Waterproof pouch / phone bag", reason: "Protect documents and electronics", category: "weather" },
+      "sun-protection": { id, label: "Sunscreen, hat and sunglasses", reason: `Peak UV ${numeric}`, category: "weather" },
+      heat: { id, label: "Water bottle, electrolytes and quick-dry clothing", reason: `High around ${numeric}°C`, category: "weather" },
+      "warm-layer": { id, label: "Light warm layer / wind shell", reason: `Low around ${numeric}°C`, category: "weather" },
+      wind: { id, label: "Wind shell and secure hat strap", reason: `Peak gust around ${numeric} km/h`, category: "weather" },
+      family: { id, label: "Children's spare clothing, snacks and usual medicines", reason: "Extra redundancy for family travel", category: "comfort" },
+      senior: { id, label: "Regular medicines, insulated bottle and portable seat pad", reason: "Prioritize comfort and medication continuity", category: "comfort" },
+    };
+    return map[id]!;
+  }
+  if (locale === "zh-hant") {
+    const map: Record<string, PackingItem> = {
+      "rain-shell": { id, label: "輕量雨衣 / 折疊傘", reason: `最高降雨機率 ${numeric}%`, category: "weather" },
+      "waterproof-bag": { id, label: "防水袋 / 防水手機袋", reason: "保護證件和電子設備", category: "weather" },
+      "sun-protection": { id, label: "防曬霜、遮陽帽、太陽眼鏡", reason: `最高 UV ${numeric}`, category: "weather" },
+      heat: { id, label: "水壺 / 電解質補充 / 快乾衣", reason: `最高溫約 ${numeric}°C`, category: "weather" },
+      "warm-layer": { id, label: "輕薄保暖層 / 防風外套", reason: `最低溫約 ${numeric}°C`, category: "weather" },
+      wind: { id, label: "防風外套與固定帽帶", reason: `最大陣風約 ${numeric} km/h`, category: "weather" },
+      family: { id, label: "兒童備用衣物、零食與常用藥", reason: "親子出行增加備援", category: "comfort" },
+      senior: { id, label: "長者常用藥、保溫水杯、便攜坐墊", reason: "長者同行優先舒適與用藥連續性", category: "comfort" },
+    };
+    return map[id]!;
+  }
+  const map: Record<string, PackingItem> = {
+    "rain-shell": { id, label: "轻量雨衣 / 折叠伞", reason: `最高降雨概率 ${numeric}%`, category: "weather" },
+    "waterproof-bag": { id, label: "防水袋 / 防水手机袋", reason: "保护证件和电子设备", category: "weather" },
+    "sun-protection": { id, label: "防晒霜、遮阳帽、太阳镜", reason: `最高 UV ${numeric}`, category: "weather" },
+    heat: { id, label: "水壶 / 电解质补充 / 速干衣", reason: `最高温约 ${numeric}°C`, category: "weather" },
+    "warm-layer": { id, label: "轻薄保暖层 / 防风外套", reason: `最低温约 ${numeric}°C`, category: "weather" },
+    wind: { id, label: "防风外套与固定帽带", reason: `最大阵风约 ${numeric} km/h`, category: "weather" },
+    family: { id, label: "儿童备用衣物、零食与常用药", reason: "亲子出行增加冗余", category: "comfort" },
+    senior: { id, label: "老人常用药、保温水杯、便携坐垫", reason: "老人同行优先舒适与用药连续性", category: "comfort" },
+  };
+  return map[id]!;
+}
+
 export function buildWeatherPackingList(
   forecasts: ReadonlyArray<TripForecastDay>,
   partyProfile: TripPartyProfile,
+  locale: TripExportLocale = "zh-cn",
 ): ReadonlyArray<PackingItem> {
-  const items: PackingItem[] = [
-    { id: "documents", label: "证件 / tickets / booking confirmations", reason: "旅行基础资料", category: "documents" },
-    { id: "power", label: "充电器与移动电源", reason: "地图与天气执行模式需要手机续航", category: "comfort" },
-  ];
-
+  const items = packingBase(locale);
   const maxRain = Math.max(0, ...forecasts.map((item) => item.rainProbability ?? 0));
   const maxUv = Math.max(0, ...forecasts.map((item) => item.uvIndex ?? 0));
   const maxTemp = Math.max(-99, ...forecasts.map((item) => item.temperatureMaxC ?? -99));
@@ -89,27 +152,15 @@ export function buildWeatherPackingList(
   const maxWind = Math.max(0, ...forecasts.map((item) => item.windGustKph ?? item.windSpeedKph ?? 0));
 
   if (maxRain >= 35) {
-    pushUnique(items, { id: "rain-shell", label: "轻量雨衣 / 折叠伞", reason: `最高降雨概率 ${maxRain}%`, category: "weather" });
-    pushUnique(items, { id: "waterproof-bag", label: "防水袋 / 防水手机袋", reason: "保护证件和电子设备", category: "weather" });
+    pushUnique(items, localizedItem(locale, "rain-shell", maxRain));
+    pushUnique(items, localizedItem(locale, "waterproof-bag"));
   }
-  if (maxUv >= 7) {
-    pushUnique(items, { id: "sun-protection", label: "防晒霜、遮阳帽、太阳镜", reason: `最高 UV ${maxUv}`, category: "weather" });
-  }
-  if (maxTemp >= 32) {
-    pushUnique(items, { id: "heat", label: "水壶 / 电解质补充 / 速干衣", reason: `最高温约 ${maxTemp}°C`, category: "weather" });
-  }
-  if (minTemp <= 12) {
-    pushUnique(items, { id: "warm-layer", label: "轻薄保暖层 / 防风外套", reason: `最低温约 ${minTemp}°C`, category: "weather" });
-  }
-  if (maxWind >= 35) {
-    pushUnique(items, { id: "wind", label: "防风外套与固定帽带", reason: `最大阵风约 ${maxWind} km/h`, category: "weather" });
-  }
-  if (partyProfile === "family") {
-    pushUnique(items, { id: "family", label: "儿童备用衣物、零食与常用药", reason: "亲子出行增加冗余", category: "comfort" });
-  }
-  if (partyProfile === "senior") {
-    pushUnique(items, { id: "senior", label: "老人常用药、保温水杯、便携坐垫", reason: "老人同行优先舒适与用药连续性", category: "comfort" });
-  }
+  if (maxUv >= 7) pushUnique(items, localizedItem(locale, "sun-protection", maxUv));
+  if (maxTemp >= 32) pushUnique(items, localizedItem(locale, "heat", maxTemp));
+  if (minTemp <= 12) pushUnique(items, localizedItem(locale, "warm-layer", minTemp));
+  if (maxWind >= 35) pushUnique(items, localizedItem(locale, "wind", maxWind));
+  if (partyProfile === "family") pushUnique(items, localizedItem(locale, "family"));
+  if (partyProfile === "senior") pushUnique(items, localizedItem(locale, "senior"));
   return items;
 }
 
