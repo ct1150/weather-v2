@@ -117,7 +117,9 @@ function routeDistance(
   start: RouteAnchor | null,
   end: RouteAnchor | null,
 ): number {
-  if (order.length === 0) return start !== null && end !== null ? haversineMeters(start, end) : 0;
+  if (order.length === 0) {
+    return start !== null && end !== null ? haversineMeters(start, end) : 0;
+  }
   let distance = start === null ? 0 : haversineMeters(start, order[0]!);
   for (let index = 0; index < order.length - 1; index += 1) {
     distance += haversineMeters(order[index]!, order[index + 1]!);
@@ -153,7 +155,7 @@ function twoOpt(
   start: RouteAnchor | null,
   end: RouteAnchor | null,
 ): RouteWaypoint[] {
-  if (source.length < 3) return [...source];
+  if (source.length < 2) return [...source];
   let best = [...source];
   let bestDistance = routeDistance(best, start, end);
   let changed = true;
@@ -186,7 +188,7 @@ export function optimizeRouteOrder(
   waypoints: ReadonlyArray<RouteWaypoint>,
   anchors: { readonly start?: RouteAnchor | null; readonly end?: RouteAnchor | null } = {},
 ): ReadonlyArray<RouteWaypoint> {
-  if (waypoints.length <= 2) return [...waypoints];
+  if (waypoints.length <= 1) return [...waypoints];
   const start = anchors.start ?? null;
   const end = anchors.end ?? null;
   const output: RouteWaypoint[] = [];
@@ -268,7 +270,9 @@ export function estimateRoutePlan(
     legs,
     distanceMeters: legs.reduce((sum, leg) => sum + leg.distanceMeters, 0),
     durationSeconds: legs.reduce((sum, leg) => sum + leg.durationSeconds, 0),
-    geometry: legs.flatMap((leg, index) => (index === 0 ? leg.geometry : leg.geometry.slice(1))),
+    geometry: legs.flatMap((leg, index) =>
+      index === 0 ? leg.geometry : leg.geometry.slice(1),
+    ),
     source: "estimated",
   };
 }
