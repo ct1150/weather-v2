@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import type { ReactElement } from "react";
+import { TripExecutionUtilities } from "../../../components/TripExecutionUtilities";
 import { TripExecutionWorkspace } from "../../../components/TripExecutionWorkspace";
 
 export const metadata: Metadata = {
@@ -19,6 +20,7 @@ export default function TripExecutionPage(): ReactElement {
         </ol>
       </nav>
       <div className="mt-6"><TripExecutionWorkspace locale="en" /></div>
+      <TripExecutionUtilities locale="en" />
     </main>
   );
 }
