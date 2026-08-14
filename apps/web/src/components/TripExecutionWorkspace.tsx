@@ -20,7 +20,136 @@ import {
   type TripWorkspaceDay,
 } from "../trips/workspace";
 import { TripExecutionMap } from "./TripExecutionMap";
-import { TripExecutionReplanPanel } from "./TripExecutionReplanPanel";
+import {
+  TripExecutionReplanPanel,
+  type TripExecutionLocale,
+} from "./TripExecutionReplanPanel";
+
+interface TripExecutionWorkspaceProps {
+  readonly locale?: TripExecutionLocale;
+}
+
+const COPY = {
+  en: {
+    emptyTitle: "No local trip is ready to execute",
+    emptyBody: "Create or import a trip in the workspace first, then return to Execution Mode.",
+    openWorkspace: "Open trip workspace",
+    eyebrow: "Trip Execution Mode",
+    title: "See exactly how today should run",
+    intro:
+      "Use the same trip document to combine activities, hard constraints, hotel anchors and routing in one execution view. Real routing degrades safely to a local estimate.",
+    back: "Back to editor",
+    optimize: "Optimize route & save",
+    route: "Refresh real road route",
+    routing: "Routing…",
+    day: "Execution day",
+    cityMissing: "City not set",
+    routeSource: "Route source",
+    routed: "Real roads",
+    estimated: "Local estimate",
+    distance: "Estimated distance",
+    transit: "Estimated transfer",
+    noCoords: "This day does not have enough geocoded activities for routing.",
+    routedOk: "Real road routing refreshed; the timeline now shows the same route preview order.",
+    routedFallback: "Routing is temporarily unavailable. Local route estimates remain usable.",
+    saved: "Route order saved. Fixed tickets, transport and required reservations stayed in place.",
+    timeline: "Execution timeline",
+    preview: "This is the route preview order. Use “Optimize route & save” to persist it.",
+    maps: "Open in Maps",
+    noActivities: "No structured activities for this day yet.",
+    timeMissing: "Time not set",
+    fixed: "Fixed constraint",
+    indoor: "Indoor",
+    previous: "Previous leg",
+    hotelStart: "Start from hotel/accommodation",
+    reservations: "Fixed reservations & transport",
+    mapNote:
+      "Optimization only moves eligible activities. Fixed tickets, transport and required reservations never move. The map keeps Weather V2's existing MapLibre + OpenFreeMap stack.",
+    min: "min",
+    hour: "h",
+  },
+  "zh-cn": {
+    emptyTitle: "还没有可执行的本地行程",
+    emptyBody: "先到天气旅行工作台创建或导入行程，再进入执行模式。",
+    openWorkspace: "打开旅行工作台",
+    eyebrow: "Trip Execution Mode",
+    title: "今天怎么走，一屏看清",
+    intro:
+      "复用现有行程数据，把活动、固定约束、酒店锚点和路线放到同一个执行视图。真实道路路线失败时会自动降级为本地估算。",
+    back: "返回编辑",
+    optimize: "优化路线并保存",
+    route: "刷新真实道路路线",
+    routing: "路线计算中…",
+    day: "执行日期",
+    cityMissing: "未设置城市",
+    routeSource: "路线来源",
+    routed: "真实道路",
+    estimated: "本地估算",
+    distance: "预计里程",
+    transit: "预计转场",
+    noCoords: "当天还没有足够的带坐标活动用于路线计算。",
+    routedOk: "已使用真实道路数据刷新当天路线；左侧时间轴同步显示路线预览顺序。",
+    routedFallback: "路线服务暂时不可用，已使用本地估算路线，不影响行程执行。",
+    saved: "已优化可移动景点顺序并保存；固定门票、交通和必须预约活动保持原位。",
+    timeline: "执行时间轴",
+    preview: "当前显示路线预览顺序；点击“优化路线并保存”后写回行程。",
+    maps: "在地图中打开",
+    noActivities: "当天还没有结构化活动。",
+    timeMissing: "未定时间",
+    fixed: "固定约束",
+    indoor: "室内",
+    previous: "上一段",
+    hotelStart: "从酒店/住宿出发",
+    reservations: "固定预约与交通",
+    mapNote:
+      "路线优化只调整可移动活动；固定门票、交通和必须预约活动不会被移动。地图继续使用 Weather V2 现有 MapLibre + OpenFreeMap 技术栈。",
+    min: "分钟",
+    hour: "小时",
+  },
+  "zh-hant": {
+    emptyTitle: "還沒有可執行的本機行程",
+    emptyBody: "先到天氣旅行工作台建立或匯入行程，再進入執行模式。",
+    openWorkspace: "開啟旅行工作台",
+    eyebrow: "Trip Execution Mode",
+    title: "今天怎麼走，一屏看清",
+    intro:
+      "重用既有行程資料，把活動、固定限制、住宿錨點和路線放到同一個執行視圖。真實道路路線失敗時會自動降級為本機估算。",
+    back: "返回編輯",
+    optimize: "最佳化路線並儲存",
+    route: "更新真實道路路線",
+    routing: "路線計算中…",
+    day: "執行日期",
+    cityMissing: "未設定城市",
+    routeSource: "路線來源",
+    routed: "真實道路",
+    estimated: "本機估算",
+    distance: "預估里程",
+    transit: "預估轉場",
+    noCoords: "當天還沒有足夠的座標活動可進行路線計算。",
+    routedOk: "已使用真實道路資料更新當天路線；左側時間軸同步顯示路線預覽順序。",
+    routedFallback: "路線服務暫時不可用，已使用本機估算路線，不影響行程執行。",
+    saved: "已最佳化可移動景點順序並儲存；固定門票、交通和必須預約活動保持原位。",
+    timeline: "執行時間軸",
+    preview: "目前顯示路線預覽順序；點擊「最佳化路線並儲存」後寫回行程。",
+    maps: "在地圖中開啟",
+    noActivities: "當天還沒有結構化活動。",
+    timeMissing: "未定時間",
+    fixed: "固定限制",
+    indoor: "室內",
+    previous: "上一段",
+    hotelStart: "從飯店／住宿出發",
+    reservations: "固定預約與交通",
+    mapNote:
+      "路線最佳化只調整可移動活動；固定門票、交通和必須預約活動不會被移動。地圖繼續使用 Weather V2 現有 MapLibre + OpenFreeMap 技術棧。",
+    min: "分鐘",
+    hour: "小時",
+  },
+} as const;
+
+function localePrefix(locale: TripExecutionLocale): string {
+  if (locale === "en") return "";
+  return `/${locale}`;
+}
 
 function loadWorkspace(): TripWorkspace | null {
   const raw = window.localStorage.getItem(TRIP_WORKSPACE_STORAGE_KEY);
@@ -42,10 +171,11 @@ function dayActivities(day: TripWorkspaceDay): ReadonlyArray<TripActivity> {
   });
 }
 
-function minutes(seconds: number): string {
+function formatMinutes(seconds: number, locale: TripExecutionLocale): string {
+  const copy = COPY[locale];
   const total = Math.round(seconds / 60);
-  if (total < 60) return `${total} 分钟`;
-  return `${Math.floor(total / 60)} 小时 ${total % 60} 分钟`;
+  if (total < 60) return `${total} ${copy.min}`;
+  return `${Math.floor(total / 60)} ${copy.hour} ${total % 60} ${copy.min}`;
 }
 
 function distance(meters: number): string {
@@ -59,7 +189,11 @@ function mapsUrl(activities: ReadonlyArray<TripActivity>): string | null {
   return `https://www.google.com/maps/dir/${points}`;
 }
 
-export function TripExecutionWorkspace(): ReactElement {
+export function TripExecutionWorkspace({
+  locale = "zh-cn",
+}: TripExecutionWorkspaceProps): ReactElement {
+  const copy = COPY[locale];
+  const prefix = localePrefix(locale);
   const [workspace, setWorkspace] = useState<TripWorkspace | null>(null);
   const [dayId, setDayId] = useState("");
   const [routePlan, setRoutePlan] = useState<RoutePlan | null>(null);
@@ -104,7 +238,7 @@ export function TripExecutionWorkspace(): ReactElement {
 
   const refreshRoute = async (): Promise<void> => {
     if (projection.routeWaypoints.length < 1) {
-      setMessage("当天还没有足够的带坐标活动用于路线计算。");
+      setMessage(copy.noCoords);
       return;
     }
     setRouting(true);
@@ -116,10 +250,10 @@ export function TripExecutionWorkspace(): ReactElement {
         { profile: "driving" },
       );
       setRoutePlan(routed);
-      setMessage("已使用真实道路数据刷新当天路线；左侧时间轴同步显示路线预览顺序。");
+      setMessage(copy.routedOk);
     } catch {
       setRoutePlan(estimated);
-      setMessage("路线服务暂时不可用，已使用本地估算路线，不影响行程执行。");
+      setMessage(copy.routedFallback);
     } finally {
       setRouting(false);
     }
@@ -151,18 +285,16 @@ export function TripExecutionWorkspace(): ReactElement {
     window.localStorage.setItem(TRIP_WORKSPACE_STORAGE_KEY, JSON.stringify(next));
     setWorkspace(next);
     setRoutePlan(null);
-    setMessage("已优化可移动景点顺序并保存；固定门票、交通和必须预约活动保持原位。");
+    setMessage(copy.saved);
   };
 
   if (workspace === null) {
     return (
       <section className="info-panel">
-        <h1 className="text-xl font-bold">还没有可执行的本地行程</h1>
-        <p className="mt-2 text-sm text-muted">
-          先到天气旅行工作台创建或导入行程，再进入执行模式。
-        </p>
-        <a className="trip-primary-button mt-4 inline-flex" href="/zh-cn/trips/workspace">
-          打开旅行工作台
+        <h1 className="text-xl font-bold">{copy.emptyTitle}</h1>
+        <p className="mt-2 text-sm text-muted">{copy.emptyBody}</p>
+        <a className="trip-primary-button mt-4 inline-flex" href={`${prefix}/trips/workspace`}>
+          {copy.openWorkspace}
         </a>
       </section>
     );
@@ -175,20 +307,18 @@ export function TripExecutionWorkspace(): ReactElement {
       <section className="rounded-3xl border border-border bg-white p-5 sm:p-7">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <p className="eyebrow">Trip Execution Mode</p>
+            <p className="eyebrow">{copy.eyebrow}</p>
             <h1 className="mt-3 text-3xl font-bold tracking-[-0.04em] text-foreground sm:text-5xl">
-              今天怎么走，一屏看清
+              {copy.title}
             </h1>
-            <p className="mt-3 max-w-3xl text-sm leading-7 text-muted">
-              复用现有行程数据，把活动、固定约束、酒店锚点和路线放到同一个执行视图。真实道路路线失败时会自动降级为本地估算。
-            </p>
+            <p className="mt-3 max-w-3xl text-sm leading-7 text-muted">{copy.intro}</p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <a className="trip-secondary-button" href="/zh-cn/trips/workspace">
-              返回编辑
+            <a className="trip-secondary-button" href={`${prefix}/trips/workspace`}>
+              {copy.back}
             </a>
             <button className="trip-secondary-button" type="button" onClick={optimizeAndSave}>
-              优化路线并保存
+              {copy.optimize}
             </button>
             <button
               className="trip-primary-button"
@@ -196,7 +326,7 @@ export function TripExecutionWorkspace(): ReactElement {
               disabled={routing}
               onClick={() => void refreshRoute()}
             >
-              {routing ? "路线计算中…" : "刷新真实道路路线"}
+              {routing ? copy.routing : copy.route}
             </button>
           </div>
         </div>
@@ -204,7 +334,7 @@ export function TripExecutionWorkspace(): ReactElement {
 
       <section className="mt-5 grid gap-4 rounded-2xl border border-border bg-white p-4 sm:grid-cols-[220px_1fr] sm:p-5">
         <label className="grid gap-2 text-xs font-semibold text-muted">
-          执行日期
+          {copy.day}
           <select
             className="min-h-11 rounded-xl border border-border bg-white px-3 text-sm text-foreground"
             value={selectedDay?.id ?? ""}
@@ -212,25 +342,27 @@ export function TripExecutionWorkspace(): ReactElement {
           >
             {workspace.days.map((day) => (
               <option key={day.id} value={day.id}>
-                D{day.dayNumber} · {day.date} · {day.cityName || "未设置城市"}
+                D{day.dayNumber} · {day.date} · {day.cityName || copy.cityMissing}
               </option>
             ))}
           </select>
         </label>
         <div className="grid gap-3 sm:grid-cols-3">
           <div className="rounded-xl bg-surface-elevated p-3">
-            <span className="text-xs text-muted">路线来源</span>
+            <span className="text-xs text-muted">{copy.routeSource}</span>
             <strong className="mt-1 block text-sm">
-              {visiblePlan.source === "routed" ? "真实道路" : "本地估算"}
+              {visiblePlan.source === "routed" ? copy.routed : copy.estimated}
             </strong>
           </div>
           <div className="rounded-xl bg-surface-elevated p-3">
-            <span className="text-xs text-muted">预计里程</span>
+            <span className="text-xs text-muted">{copy.distance}</span>
             <strong className="mt-1 block text-sm">{distance(visiblePlan.distanceMeters)}</strong>
           </div>
           <div className="rounded-xl bg-surface-elevated p-3">
-            <span className="text-xs text-muted">预计转场</span>
-            <strong className="mt-1 block text-sm">{minutes(visiblePlan.durationSeconds)}</strong>
+            <span className="text-xs text-muted">{copy.transit}</span>
+            <strong className="mt-1 block text-sm">
+              {formatMinutes(visiblePlan.durationSeconds, locale)}
+            </strong>
           </div>
         </div>
       </section>
@@ -246,8 +378,10 @@ export function TripExecutionWorkspace(): ReactElement {
           <div className="flex items-center justify-between gap-3">
             <div>
               <p className="eyebrow">Timeline</p>
-              <h2 className="mt-2 text-xl font-bold">D{selectedDay?.dayNumber} 执行时间轴</h2>
-              <p className="mt-1 text-[11px] text-muted">当前显示路线预览顺序；点击“优化路线并保存”后写回行程。</p>
+              <h2 className="mt-2 text-xl font-bold">
+                D{selectedDay?.dayNumber} {copy.timeline}
+              </h2>
+              <p className="mt-1 text-[11px] text-muted">{copy.preview}</p>
             </div>
             {externalMaps ? (
               <a
@@ -256,14 +390,14 @@ export function TripExecutionWorkspace(): ReactElement {
                 target="_blank"
                 rel="noreferrer"
               >
-                在地图中打开
+                {copy.maps}
               </a>
             ) : null}
           </div>
 
           <div className="mt-5 grid gap-3">
             {visibleActivities.length === 0 ? (
-              <p className="text-sm text-muted">当天还没有结构化活动。</p>
+              <p className="text-sm text-muted">{copy.noActivities}</p>
             ) : (
               visibleActivities.map((activity, index) => {
                 const reservation = visibleProjection.reservations.find(
@@ -278,25 +412,25 @@ export function TripExecutionWorkspace(): ReactElement {
                     <div className="flex items-start justify-between gap-3">
                       <div>
                         <p className="text-xs font-semibold text-muted">
-                          {activity.startTime ?? "未定时间"}
+                          {activity.startTime ?? copy.timeMissing}
                         </p>
                         <h3 className="mt-1 text-sm font-bold text-foreground">{activity.title}</h3>
                       </div>
                       <div className="flex flex-wrap justify-end gap-1">
                         {reservation?.hard ? (
-                          <span className="trip-risk-badge trip-risk-high">固定约束</span>
+                          <span className="trip-risk-badge trip-risk-high">{copy.fixed}</span>
                         ) : null}
                         {activity.environment === "indoor" ? (
-                          <span className="trip-risk-badge trip-risk-low">室内</span>
+                          <span className="trip-risk-badge trip-risk-low">{copy.indoor}</span>
                         ) : null}
                       </div>
                     </div>
                     {leg ? (
                       <p className="mt-2 text-xs text-muted">
-                        上一段：{distance(leg.distanceMeters)} · {minutes(leg.durationSeconds)}
+                        {copy.previous}: {distance(leg.distanceMeters)} · {formatMinutes(leg.durationSeconds, locale)}
                       </p>
                     ) : index === 0 && visibleProjection.startAnchor ? (
-                      <p className="mt-2 text-xs text-muted">从酒店/住宿出发</p>
+                      <p className="mt-2 text-xs text-muted">{copy.hotelStart}</p>
                     ) : null}
                   </article>
                 );
@@ -306,11 +440,11 @@ export function TripExecutionWorkspace(): ReactElement {
 
           {visibleProjection.reservations.length > 0 ? (
             <div className="mt-5 rounded-xl border border-border p-3">
-              <p className="text-xs font-bold text-foreground">固定预约与交通</p>
+              <p className="text-xs font-bold text-foreground">{copy.reservations}</p>
               <ul className="mt-2 grid gap-2 text-xs text-muted">
                 {visibleProjection.reservations.map((item) => (
                   <li key={item.id}>
-                    🔒 {item.startTime ?? "时间未定"} · {item.title}
+                    🔒 {item.startTime ?? copy.timeMissing} · {item.title}
                   </li>
                 ))}
               </ul>
@@ -325,14 +459,13 @@ export function TripExecutionWorkspace(): ReactElement {
             startAnchor={visibleProjection.startAnchor}
             endAnchor={visibleProjection.endAnchor}
           />
-          <p className="mt-3 text-[11px] leading-5 text-muted">
-            路线优化只调整可移动活动；固定门票、交通和必须预约活动不会被移动。地图继续使用 Weather V2 现有 MapLibre + OpenFreeMap 技术栈。
-          </p>
+          <p className="mt-3 text-[11px] leading-5 text-muted">{copy.mapNote}</p>
         </div>
       </section>
 
       {selectedDay !== null ? (
         <TripExecutionReplanPanel
+          locale={locale}
           day={selectedDay}
           activities={activities}
           partyProfile={workspace.partyProfile}
