@@ -68,7 +68,10 @@ function radians(value: number): number {
   return (value * Math.PI) / 180;
 }
 
-export function haversineMeters(left: RouteWaypoint | RouteAnchor, right: RouteWaypoint | RouteAnchor): number {
+export function haversineMeters(
+  left: RouteWaypoint | RouteAnchor,
+  right: RouteWaypoint | RouteAnchor,
+): number {
   const latitudeDelta = radians(right.latitude - left.latitude);
   const longitudeDelta = radians(right.longitude - left.longitude);
   const leftLatitude = radians(left.latitude);
@@ -195,9 +198,15 @@ export function optimizeRouteOrder(
     const boundary = lockedIndex === -1 ? waypoints.length : lockedIndex;
     const run = waypoints.slice(cursor, boundary);
     const locked = lockedIndex === -1 ? null : waypoints[lockedIndex]!;
-    const runEnd: RouteAnchor | null = locked === null
-      ? end
-      : { id: locked.id, label: locked.label, latitude: locked.latitude, longitude: locked.longitude };
+    const runEnd: RouteAnchor | null =
+      locked === null
+        ? end
+        : {
+            id: locked.id,
+            label: locked.label,
+            latitude: locked.latitude,
+            longitude: locked.longitude,
+          };
     output.push(...twoOpt(nearestNeighbor(run, previousAnchor), previousAnchor, runEnd));
     if (locked !== null) {
       output.push(locked);
@@ -215,7 +224,9 @@ export function optimizeRouteOrder(
   return output;
 }
 
-export function activityWaypoints(activities: ReadonlyArray<TripActivity>): ReadonlyArray<RouteWaypoint> {
+export function activityWaypoints(
+  activities: ReadonlyArray<TripActivity>,
+): ReadonlyArray<RouteWaypoint> {
   return activities
     .filter(
       (activity) =>
@@ -291,6 +302,10 @@ function tableBase(baseUrl: string | undefined): string {
   return baseUrl.replace(/\/route\/v1\/?$/u, "/table/v1").replace(/\/$/u, "");
 }
 
+function requestInit(signal: AbortSignal | undefined): RequestInit | undefined {
+  return signal === undefined ? undefined : { signal };
+}
+
 export async function fetchRoutedPlan(
   waypoints: ReadonlyArray<RouteWaypoint>,
   anchors: { readonly start?: RouteAnchor | null; readonly end?: RouteAnchor | null } = {},
@@ -307,7 +322,7 @@ export async function fetchRoutedPlan(
 
   const request = options.fetchImpl ?? fetch;
   const url = `${routeBase(options.baseUrl)}/${profile}/${nodes.map(coord).join(";")}?overview=full&geometries=geojson&steps=false`;
-  const response = await request(url, { signal: options.signal });
+  const response = await request(url, requestInit(options.signal));
   if (!response.ok) throw new Error(`ROUTE_HTTP_${response.status}`);
   const payload = (await response.json()) as OsrmRouteResponse;
   const route = payload.code === "Ok" ? payload.routes?.[0] : undefined;
@@ -357,7 +372,7 @@ export async function fetchRouteCostMatrix(
   });
   const request = options.fetchImpl ?? fetch;
   const url = `${tableBase(options.baseUrl)}/${profile}/${nodes.map(coord).join(";")}?${params.toString()}`;
-  const response = await request(url, { signal: options.signal });
+  const response = await request(url, requestInit(options.signal));
   if (!response.ok) throw new Error(`ROUTE_MATRIX_HTTP_${response.status}`);
   const payload = (await response.json()) as OsrmTableResponse;
   if (payload.code !== "Ok" || !Array.isArray(payload.durations)) {
@@ -373,7 +388,8 @@ export async function fetchRouteCostMatrix(
         fromId: source.id,
         toId: destination.id,
         durationMinutes: Math.max(0, Math.round(seconds / 60)),
-        distanceMeters: typeof meters === "number" && Number.isFinite(meters) ? Math.round(meters) : null,
+        distanceMeters:
+          typeof meters === "number" && Number.isFinite(meters) ? Math.round(meters) : null,
       });
     });
   });
