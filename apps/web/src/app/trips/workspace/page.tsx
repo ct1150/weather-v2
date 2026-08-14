@@ -22,6 +22,11 @@ export default function InternationalTripWorkspacePage(): ReactElement {
           <li>Workspace</li>
         </ol>
       </nav>
+      <div className="mt-5 flex justify-end">
+        <a className="trip-primary-button" href="/trips/execution">
+          Open execution mode →
+        </a>
+      </div>
       <div className="mt-6">
         <InternationalTripWorkspace />
       </div>
