@@ -48,7 +48,9 @@ function isObject(value: unknown): value is Record<string, unknown> {
 function parseQueuedBody(value: unknown): QueuedCloudUpdateBody | null {
   if (!isObject(value)) return null;
   if (typeof value.cloudTripId !== "string" || value.cloudTripId.length === 0) return null;
-  if (value.locale !== "en" && value.locale !== "zh-cn" && value.locale !== "zh-hant") return null;
+  if (value.locale !== "en" && value.locale !== "zh-cn" && value.locale !== "zh-hant") {
+    return null;
+  }
   if (!isObject(value.document)) return null;
   return {
     cloudTripId: value.cloudTripId,
@@ -145,7 +147,7 @@ export async function flushQueuedCloudTripUpdate(
     await removeOfflineMutation(id);
     return { status: "synced", remote, errorCode: null };
   } catch (error) {
-    if (error instanceof CloudTripError && error.status === 409) {
+    if (error instanceof CloudTripError && (error.status === 409 || error.status === 403)) {
       await markFailure(mutation, "conflict", error);
       return { status: "conflict", remote: null, errorCode: error.code };
     }
