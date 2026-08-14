@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 
 const layout = readFileSync(new URL("../app/layout.tsx", import.meta.url), "utf8");
 const bootstrap = readFileSync(new URL("./PwaBootstrap.tsx", import.meta.url), "utf8");
+const workspace = readFileSync(new URL("./TripExecutionWorkspace.tsx", import.meta.url), "utf8");
 const utilities = readFileSync(new URL("./TripExecutionUtilities.tsx", import.meta.url), "utf8");
 const englishExecution = readFileSync(
   new URL("../app/trips/execution/page.tsx", import.meta.url),
@@ -28,16 +29,29 @@ describe("Trip execution PWA / offline contracts", () => {
     expect(manifest).toContain('"start_url": "/trips/execution"');
   });
 
-  it("uses network-first navigation and runtime asset caching without caching external APIs", () => {
+  it("uses locale-aware fail-safe navigation caching without intercepting external APIs", () => {
     expect(serviceWorker).toContain('request.mode === "navigate"');
     expect(serviceWorker).toContain("networkFirst(request)");
     expect(serviceWorker).toContain("url.origin !== self.location.origin");
+    expect(serviceWorker).toContain('"/zh-cn/trips/execution"');
+    expect(serviceWorker).toContain('"/zh-hant/trips/execution"');
+    expect(serviceWorker).toContain("executionFallback(pathname)");
+    expect(serviceWorker).toContain("Response.error()");
     expect(serviceWorker).toContain("staleWhileRevalidate(request)");
+  });
+
+  it("lets the main execution workspace load Trip and route state directly from IndexedDB", () => {
+    expect(workspace).toContain("loadMostRecentOfflineTrip");
+    expect(workspace).toContain("loadOfflineRoute");
+    expect(workspace).toContain("saveOfflineRoute");
+    expect(workspace).toContain("initial.fromOffline");
   });
 
   it("exposes offline download, weather overview, ICS, print/PDF and packing tools in all locales", () => {
     expect(utilities).toContain("saveOfflineTripBundle");
     expect(utilities).toContain("saveOfflineRoute");
+    expect(utilities).toContain("cacheOfflineShell");
+    expect(utilities).toContain("offlineOnly");
     expect(utilities).toContain("workspaceToIcs");
     expect(utilities).toContain("workspaceToPrintableHtml");
     expect(utilities).toContain("buildWeatherPackingList");
