@@ -11,6 +11,7 @@ import {
   loadOfflineRoute,
   saveOfflineRoute,
 } from "../trips/offline-store";
+import { routeContextFingerprint } from "../trips/route-cache";
 import {
   estimateRoutePlan,
   fetchRoutedPlan,
@@ -243,6 +244,14 @@ export function TripExecutionWorkspace({
     [selectedDay],
   );
   const projection = useMemo(() => projectExecution(activities), [activities]);
+  const routeFingerprint = useMemo(
+    () =>
+      routeContextFingerprint(projection.routeWaypoints, {
+        start: projection.startAnchor,
+        end: projection.endAnchor,
+      }),
+    [projection],
+  );
   const estimated = useMemo(
     () =>
       estimateRoutePlan(projection.routeWaypoints, "driving", {
@@ -267,13 +276,13 @@ export function TripExecutionWorkspace({
     let active = true;
     setRoutePlan(null);
     if (workspaceId.length === 0 || selectedDayId.length === 0) return;
-    void loadOfflineRoute(workspaceId, selectedDayId).then((plan) => {
+    void loadOfflineRoute(workspaceId, selectedDayId, routeFingerprint).then((plan) => {
       if (active && plan !== null) setRoutePlan(plan);
     });
     return () => {
       active = false;
     };
-  }, [selectedDayId, workspaceId]);
+  }, [routeFingerprint, selectedDayId, workspaceId]);
 
   const refreshRoute = async (): Promise<void> => {
     if (projection.routeWaypoints.length < 1) {
@@ -290,13 +299,13 @@ export function TripExecutionWorkspace({
       );
       setRoutePlan(routed);
       if (workspace !== null && selectedDay !== null) {
-        await saveOfflineRoute(workspace.id, selectedDay.id, routed);
+        await saveOfflineRoute(workspace.id, selectedDay.id, routed, routeFingerprint);
       }
       setMessage(copy.routedOk);
     } catch {
       setRoutePlan(estimated);
       if (workspace !== null && selectedDay !== null) {
-        await saveOfflineRoute(workspace.id, selectedDay.id, estimated);
+        await saveOfflineRoute(workspace.id, selectedDay.id, estimated, routeFingerprint);
       }
       setMessage(copy.routedFallback);
     } finally {
@@ -332,10 +341,14 @@ export function TripExecutionWorkspace({
       start: reorderedProjection.startAnchor,
       end: reorderedProjection.endAnchor,
     });
+    const reorderedFingerprint = routeContextFingerprint(reorderedProjection.routeWaypoints, {
+      start: reorderedProjection.startAnchor,
+      end: reorderedProjection.endAnchor,
+    });
     window.localStorage.setItem(TRIP_WORKSPACE_STORAGE_KEY, JSON.stringify(next));
     setWorkspace(next);
     setRoutePlan(reorderedRoute);
-    void saveOfflineRoute(next.id, selectedDay.id, reorderedRoute);
+    void saveOfflineRoute(next.id, selectedDay.id, reorderedRoute, reorderedFingerprint);
     setMessage(copy.saved);
   };
 
