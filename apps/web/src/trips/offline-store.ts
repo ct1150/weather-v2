@@ -54,6 +54,14 @@ function requestValue<T>(request: IDBRequest<T>): Promise<T> {
   });
 }
 
+function transactionDone(transaction: IDBTransaction): Promise<void> {
+  return new Promise((resolve, reject) => {
+    transaction.oncomplete = () => resolve();
+    transaction.onabort = () => reject(transaction.error ?? new Error("INDEXED_DB_TX_ABORTED"));
+    transaction.onerror = () => reject(transaction.error ?? new Error("INDEXED_DB_TX_FAILED"));
+  });
+}
+
 async function openDb(): Promise<IDBDatabase | null> {
   if (!indexedDbAvailable()) return null;
   return new Promise((resolve, reject) => {
@@ -87,13 +95,36 @@ async function withStore<T>(
   if (db === null) return null;
   try {
     const transaction = db.transaction(storeName, mode);
+    const done = transactionDone(transaction);
     const result = await requestValue(run(transaction.objectStore(storeName)));
-    await new Promise<void>((resolve, reject) => {
-      transaction.oncomplete = () => resolve();
-      transaction.onabort = () => reject(transaction.error ?? new Error("INDEXED_DB_TX_ABORTED"));
-      transaction.onerror = () => reject(transaction.error ?? new Error("INDEXED_DB_TX_FAILED"));
-    });
+    await done;
     return result;
+  } finally {
+    db.close();
+  }
+}
+
+async function deleteByWorkspace(storeName: string, workspaceId: string): Promise<void> {
+  const db = await openDb();
+  if (db === null) return;
+  try {
+    const transaction = db.transaction(storeName, "readwrite");
+    const done = transactionDone(transaction);
+    const index = transaction.objectStore(storeName).index("workspaceId");
+    await new Promise<void>((resolve, reject) => {
+      const request = index.openCursor(IDBKeyRange.only(workspaceId));
+      request.onsuccess = () => {
+        const cursor = request.result;
+        if (cursor === null) {
+          resolve();
+          return;
+        }
+        cursor.delete();
+        cursor.continue();
+      };
+      request.onerror = () => reject(request.error ?? new Error("INDEXED_DB_CURSOR_FAILED"));
+    });
+    await done;
   } finally {
     db.close();
   }
@@ -134,9 +165,11 @@ export async function loadMostRecentOfflineTrip(): Promise<OfflineTripBundle | n
   if (db === null) return null;
   try {
     const transaction = db.transaction(BUNDLE_STORE, "readonly");
+    const done = transactionDone(transaction);
     const values = await requestValue(
       transaction.objectStore(BUNDLE_STORE).getAll() as IDBRequest<OfflineTripBundle[]>,
     );
+    await done;
     return values.sort((left, right) => right.savedAt.localeCompare(left.savedAt))[0] ?? null;
   } catch {
     return null;
@@ -205,8 +238,10 @@ export async function listOfflineMutations(workspaceId: string): Promise<Readonl
   if (db === null) return [];
   try {
     const transaction = db.transaction(QUEUE_STORE, "readonly");
+    const done = transactionDone(transaction);
     const index = transaction.objectStore(QUEUE_STORE).index("workspaceId");
     const values = await requestValue(index.getAll(workspaceId) as IDBRequest<OfflineMutation[]>);
+    await done;
     return values.sort((left, right) => left.createdAt.localeCompare(right.createdAt));
   } catch {
     return [];
@@ -216,24 +251,11 @@ export async function listOfflineMutations(workspaceId: string): Promise<Readonl
 }
 
 export async function clearOfflineTrip(workspaceId: string): Promise<void> {
-  const db = await openDb();
-  if (db === null) return;
   try {
-    const transaction = db.transaction([BUNDLE_STORE, ROUTE_STORE, QUEUE_STORE], "readwrite");
-    transaction.objectStore(BUNDLE_STORE).delete(workspaceId);
-    for (const storeName of [ROUTE_STORE, QUEUE_STORE]) {
-      const store = transaction.objectStore(storeName);
-      const index = store.index("workspaceId");
-      const keys = await requestValue(index.getAllKeys(workspaceId));
-      keys.forEach((key) => store.delete(key));
-    }
-    await new Promise<void>((resolve, reject) => {
-      transaction.oncomplete = () => resolve();
-      transaction.onabort = () => reject(transaction.error ?? new Error("INDEXED_DB_TX_ABORTED"));
-    });
+    await withStore(BUNDLE_STORE, "readwrite", (store) => store.delete(workspaceId));
+    await deleteByWorkspace(ROUTE_STORE, workspaceId);
+    await deleteByWorkspace(QUEUE_STORE, workspaceId);
   } catch {
     // Offline cache deletion is best-effort and must not affect the live trip.
-  } finally {
-    db.close();
   }
 }
