@@ -5,7 +5,11 @@ import type { TripActivity } from "../trips/activity-intelligence";
 import type { ActivityHourlyWeather } from "../trips/activity-risk";
 import { findWeatherFallbacks, poiName } from "../trips/poi-catalog";
 import { buildDeterministicReplan, type ReplanProposalDraft } from "../trips/replan-solver";
-import { fetchRouteCostMatrix, type RouteWaypoint } from "../trips/route-intelligence";
+import {
+  fetchRouteCostMatrix,
+  type RouteCostMatrix,
+  type RouteWaypoint,
+} from "../trips/route-intelligence";
 import type { TripPartyProfile, TripWorkspaceDay } from "../trips/workspace";
 
 const WEATHER_READ_BASE = (process.env.NEXT_PUBLIC_WEATHER_READ_URL ?? "").replace(/\/$/u, "");
@@ -92,7 +96,7 @@ export function TripExecutionReplanPanel({
 
       const sourceWaypoints = activities.map(toWaypoint).filter((item): item is RouteWaypoint => item !== null);
       const fallbackWaypoints = fallbacks.map(toWaypoint).filter((item): item is RouteWaypoint => item !== null);
-      let routeCostMatrix;
+      let routeCostMatrix: RouteCostMatrix | undefined;
       try {
         routeCostMatrix =
           sourceWaypoints.length > 0 && fallbackWaypoints.length > 0
@@ -108,7 +112,7 @@ export function TripExecutionReplanPanel({
         activities,
         hourly,
         fallbackActivities: fallbacks,
-        routeCostMatrix,
+        ...(routeCostMatrix === undefined ? {} : { routeCostMatrix }),
         partyProfile,
       });
       setProposal(next);
