@@ -1,8 +1,9 @@
 # Weather V2 — TREK-inspired Route & Execution Layer
 
 Date: 2026-08-14
-Status: Implementing
+Status: Implemented / CI validation pending
 Branch: `agent/trek-route-execution-layer`
+PR: `#45`
 
 ## 1. Objective
 
@@ -32,10 +33,10 @@ Structured activities
 
 ## 3. T0 — Reference boundary
 
-Deliverables:
+Delivered:
 
 - this implementation plan;
-- explicit clean-room rule in source comments;
+- explicit clean-room rule in `route-intelligence.ts`;
 - no TREK file copied into Weather V2;
 - implementation based on generic algorithms (nearest-neighbor, 2-opt, OSRM HTTP contract, MapLibre rendering).
 
@@ -46,102 +47,125 @@ Acceptance:
 
 ## 4. T1 — Route Intelligence (P0)
 
-### Domain contracts
-
-Add:
+### Delivered domain contracts
 
 - `RouteWaypoint`
 - `RouteAnchor`
 - `RouteLeg`
 - `RoutePlan`
 - `RouteProfile`
+- `RouteCostMatrix`
 
-### Pure route optimizer
+### Delivered pure route optimizer
 
-Implement deterministic:
-
-- nearest-neighbor seed;
-- 2-opt improvement;
+- deterministic nearest-neighbor seed;
+- deterministic 2-opt improvement;
 - optional start/end hotel anchors;
 - locked waypoint preservation;
-- deterministic tie-breaking;
 - estimated route fallback when a routing service is unavailable.
 
-### Routing adapter
+### Delivered routing adapter
 
-Add OSRM-compatible adapter with:
+OSRM-compatible adapter with:
 
 - driving route geometry;
 - per-leg distance/duration;
 - configurable routing base URL;
 - public no-key default;
 - bounded route and table requests;
-- route-aware activity-to-fallback travel-time matrix.
+- route-aware activity-to-fallback travel-time matrix;
+- strict optional `AbortSignal` handling compatible with `exactOptionalPropertyTypes`.
 
-### Replan integration
+### Delivered replan integration
 
-Extend the deterministic replan input with an optional real route matrix. When present, fallback selection and displayed relocation cost use routed minutes instead of the previous straight-line / fixed-speed approximation. Missing routed values fail gracefully to the existing approximation.
+The deterministic replan input accepts an optional real route matrix. When present, fallback selection and displayed relocation cost use routed minutes. Missing routed values fail gracefully to the existing deterministic geometric approximation.
 
-Acceptance:
+Tests added:
 
-- route optimizer tests cover locks, anchors, deterministic ordering, and distance improvement;
-- routing parser/matrix tests cover success and malformed responses;
-- replan regression proves routed travel cost wins over geometric approximation when supplied.
+- route optimizer locks and anchors;
+- deterministic ordering;
+- estimated hotel-bookended route;
+- OSRM route parser;
+- OSRM table/matrix parser;
+- routed fallback-cost regression.
 
 ## 5. T2 — Route-aware Trip Execution Mode (P0)
 
-Add a dedicated execution surface that reads/writes the same local Workspace document rather than replacing the existing editor.
-
-Routes:
+Delivered routes:
 
 - `/trips/execution`
 - `/zh-cn/trips/execution`
 - `/zh-hant/trips/execution`
 
-Execution surface:
+Delivered execution surface:
 
+- EN / zh-CN / zh-Hant UI;
 - day selector;
-- merged time-ordered activity/reservation timeline;
+- route-preview-aligned activity/reservation timeline;
 - compact fixed-constraint badges;
 - route summary;
 - real-route refresh;
-- route optimization;
-- MapLibre route map;
-- external Maps handoff;
+- local estimated-route fallback;
+- route optimization and persistence;
+- MapLibre + OpenFreeMap route map;
+- external Google Maps handoff;
 - graceful fallback when coordinates/routing/WebGL are unavailable.
 
-The existing Workspace pages gain an explicit “Execution Mode” link.
+All existing Workspace pages now expose an explicit Execution Mode entry.
 
-Acceptance:
+Acceptance behavior:
 
-- editing remains in existing Workspace;
+- editing remains in the existing Workspace;
 - execution mode uses the same `TRIP_WORKSPACE_STORAGE_KEY` document;
 - route optimization persists reordered structured activities back to Workspace;
 - non-geocoded activities remain in place and are never discarded;
-- locked/required/transport items are not reordered.
+- locked/required/transport items are not reordered;
+- preview timeline and map share the same optimized order before persistence.
 
 ## 6. T3 — Reservation / hard constraint layer (P0/P1)
 
-Weather V2 already has canonical structured activity fields (`category`, `reservation`, `flexibility`, start/end time). To avoid a breaking Trip document schema migration in this increment, create an execution `TripReservation` entity as a deterministic projection from those canonical activities.
+Weather V2 already has canonical structured activity fields (`category`, `reservation`, `flexibility`, start/end time). To avoid a breaking Trip document schema migration, this increment adds an execution `TripReservation` projection from those canonical activities.
 
-Rules:
+Delivered rules:
 
 - transport -> hard reservation;
 - `reservation=required` -> hard reservation;
 - `flexibility=fixed` -> hard reservation;
 - hotel coordinates -> route anchor;
-- confirmed/fixed execution entities lock their source activity;
-- hard constraints are passed to route optimization and replan.
+- hard execution entities lock their source activity;
+- hard constraints are passed to route optimization and remain protected by deterministic replan.
 
-This keeps Cloud Trip/revision compatibility while creating a clean seam for a future persisted standalone reservation table/entity.
+This keeps Cloud Trip/revision compatibility while creating a seam for a future persisted standalone reservation entity.
 
-Acceptance:
+Tests added:
 
-- derived reservation tests cover train/flight/ticket/hotel behavior;
-- route optimization preserves hard constraints;
-- route-aware replan receives constrained activities.
+- hard-constraint classification;
+- reservation projection;
+- hotel anchors;
+- route persistence without moving hard constraints;
+- combined execution projection.
 
-## 7. Validation gates
+## 7. Route-aware weather replanning
+
+Delivered in Execution Mode:
+
+```text
+weather-read hourly snapshot
+  + structured activities
+  + curated fallback POIs
+  + OSRM route-cost matrix (best effort)
+  -> deterministic replan
+```
+
+Rules:
+
+- fixed/required/transport activities stay protected;
+- safer same-day time moves remain preferred over replacements;
+- fallback replacement ranking uses real routed minutes when available;
+- OSRM failure falls back to the prior deterministic geometric estimate;
+- no automatic itinerary mutation is introduced.
+
+## 8. Validation gates
 
 Required before merge:
 
@@ -151,11 +175,17 @@ Required before merge:
 4. `pnpm test`
 5. web build/static export
 6. existing Phase 6/7/8/9 regressions
-7. dedicated route execution smoke
+7. route-execution unit/regression coverage
 
-## 8. Rollout
+Current CI note:
 
-1. Merge as a backwards-compatible additive feature.
+- early PR runs failed before acquiring a GitHub Actions runner (`runner_id=0`, `steps=[]`), so those failures did not execute checkout, install, typecheck, tests, or build;
+- later runs reached queued state and remain the authoritative validation path;
+- PR stays Draft until executable CI gates complete successfully.
+
+## 9. Rollout
+
+1. Merge as a backwards-compatible additive feature only after CI validation.
 2. Keep routing adapter fail-open to estimated geometry; routing failure must never break Workspace.
 3. Observe public routing usage before considering a dedicated Cloudflare routing proxy/provider.
-4. Future increment can persist standalone reservations only after Cloud Trip document migration is explicitly designed and versioned.
+4. Persist a standalone reservation entity only after Cloud Trip document migration is explicitly designed and versioned.
