@@ -95,9 +95,8 @@ async function withStore<T>(
   if (db === null) return null;
   try {
     const transaction = db.transaction(storeName, mode);
-    const done = transactionDone(transaction);
-    const result = await requestValue(run(transaction.objectStore(storeName)));
-    await done;
+    const request = run(transaction.objectStore(storeName));
+    const [result] = await Promise.all([requestValue(request), transactionDone(transaction)]);
     return result;
   } finally {
     db.close();
@@ -109,10 +108,11 @@ async function deleteByWorkspace(storeName: string, workspaceId: string): Promis
   if (db === null) return;
   try {
     const transaction = db.transaction(storeName, "readwrite");
-    const done = transactionDone(transaction);
-    const index = transaction.objectStore(storeName).index("workspaceId");
-    await new Promise<void>((resolve, reject) => {
-      const request = index.openCursor(IDBKeyRange.only(workspaceId));
+    const cursorDone = new Promise<void>((resolve, reject) => {
+      const request = transaction
+        .objectStore(storeName)
+        .index("workspaceId")
+        .openCursor(IDBKeyRange.only(workspaceId));
       request.onsuccess = () => {
         const cursor = request.result;
         if (cursor === null) {
@@ -124,7 +124,7 @@ async function deleteByWorkspace(storeName: string, workspaceId: string): Promis
       };
       request.onerror = () => reject(request.error ?? new Error("INDEXED_DB_CURSOR_FAILED"));
     });
-    await done;
+    await Promise.all([cursorDone, transactionDone(transaction)]);
   } finally {
     db.close();
   }
@@ -165,11 +165,10 @@ export async function loadMostRecentOfflineTrip(): Promise<OfflineTripBundle | n
   if (db === null) return null;
   try {
     const transaction = db.transaction(BUNDLE_STORE, "readonly");
-    const done = transactionDone(transaction);
-    const values = await requestValue(
-      transaction.objectStore(BUNDLE_STORE).getAll() as IDBRequest<OfflineTripBundle[]>,
-    );
-    await done;
+    const request = transaction.objectStore(BUNDLE_STORE).getAll() as IDBRequest<
+      OfflineTripBundle[]
+    >;
+    const [values] = await Promise.all([requestValue(request), transactionDone(transaction)]);
     return values.sort((left, right) => right.savedAt.localeCompare(left.savedAt))[0] ?? null;
   } catch {
     return null;
@@ -233,15 +232,18 @@ export async function enqueueOfflineMutation(
   }
 }
 
-export async function listOfflineMutations(workspaceId: string): Promise<ReadonlyArray<OfflineMutation>> {
+export async function listOfflineMutations(
+  workspaceId: string,
+): Promise<ReadonlyArray<OfflineMutation>> {
   const db = await openDb();
   if (db === null) return [];
   try {
     const transaction = db.transaction(QUEUE_STORE, "readonly");
-    const done = transactionDone(transaction);
-    const index = transaction.objectStore(QUEUE_STORE).index("workspaceId");
-    const values = await requestValue(index.getAll(workspaceId) as IDBRequest<OfflineMutation[]>);
-    await done;
+    const request = transaction
+      .objectStore(QUEUE_STORE)
+      .index("workspaceId")
+      .getAll(workspaceId) as IDBRequest<OfflineMutation[]>;
+    const [values] = await Promise.all([requestValue(request), transactionDone(transaction)]);
     return values.sort((left, right) => left.createdAt.localeCompare(right.createdAt));
   } catch {
     return [];
