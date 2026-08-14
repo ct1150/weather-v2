@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import type { ReactElement } from "react";
+import { TripExecutionUtilities } from "../../../../components/TripExecutionUtilities";
 import { TripExecutionWorkspace } from "../../../../components/TripExecutionWorkspace";
 import { localeUrl } from "../../../seo";
 
@@ -21,6 +22,7 @@ export default function TripExecutionPage(): ReactElement {
         </ol>
       </nav>
       <div className="mt-6"><TripExecutionWorkspace locale="zh-hant" /></div>
+      <TripExecutionUtilities locale="zh-hant" />
     </main>
   );
 }
