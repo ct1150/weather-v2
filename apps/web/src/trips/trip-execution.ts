@@ -1,7 +1,12 @@
 import type { TripActivity } from "./activity-intelligence";
 import type { RouteAnchor, RouteWaypoint } from "./route-intelligence";
 
-export type TripReservationType = "transport" | "ticket" | "hotel" | "restaurant" | "activity";
+export type TripReservationType =
+  | "transport"
+  | "ticket"
+  | "hotel"
+  | "restaurant"
+  | "activity";
 
 export interface TripReservation {
   readonly id: string;
@@ -64,7 +69,10 @@ export function projectReservations(
     }));
 }
 
-function anchorFromActivity(activity: TripActivity, suffix: "start" | "end"): RouteAnchor | null {
+function anchorFromActivity(
+  activity: TripActivity,
+  suffix: "start" | "end",
+): RouteAnchor | null {
   if (activity.latitude === null || activity.longitude === null) return null;
   return {
     id: `${activity.id}-${suffix}`,
@@ -127,7 +135,10 @@ export function reorderActivitiesByRoute(
   const reorderableIds = new Set(routeWaypointIds);
   const queue = routeWaypointIds
     .map((id) => activityById.get(id))
-    .filter((activity): activity is TripActivity => activity !== undefined && !isHardExecutionConstraint(activity));
+    .filter(
+      (activity): activity is TripActivity =>
+        activity !== undefined && !isHardExecutionConstraint(activity),
+    );
   let queueIndex = 0;
 
   return activities.map((activity) => {
