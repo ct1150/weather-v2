@@ -57,8 +57,8 @@ describe("trip execution constraints", () => {
     const last = activity("hotel-b", {
       category: "hotel",
       title: "Hotel B",
-      latitude: 35.70,
-      longitude: 139.80,
+      latitude: 35.7,
+      longitude: 139.8,
     });
     const anchors = hotelAnchors([first, activity("walk"), last]);
 
@@ -76,7 +76,20 @@ describe("trip execution constraints", () => {
     const reordered = reorderActivitiesByRoute(source, ["c", "train", "b", "a"]);
 
     expect(reordered[1]?.id).toBe("train");
-    expect(new Set(reordered.map((item) => item.id))).toEqual(new Set(source.map((item) => item.id)));
+    expect(new Set(reordered.map((item) => item.id))).toEqual(
+      new Set(source.map((item) => item.id)),
+    );
+  });
+
+  it("keeps non-geocoded activities in their original slots while route points reorder", () => {
+    const source = [
+      activity("a"),
+      activity("note", { latitude: null, longitude: null }),
+      activity("b"),
+    ];
+    const reordered = reorderActivitiesByRoute(source, ["b", "a"]);
+
+    expect(reordered.map((item) => item.id)).toEqual(["b", "note", "a"]);
   });
 
   it("produces one execution projection for reservations, route points and anchors", () => {
