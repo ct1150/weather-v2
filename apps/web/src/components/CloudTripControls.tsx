@@ -1,12 +1,25 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState, type ReactElement } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactElement,
+} from "react";
 import {
   getTripSession,
   sendTripMagicLink,
   signInTripWithGoogle,
   signOutTrip,
 } from "../trips/auth-client";
+import {
+  discardQueuedCloudTripUpdate,
+  flushQueuedCloudTripUpdate,
+  queueCloudTripUpdate,
+  shouldQueueCloudWrite,
+} from "../trips/cloud-offline-sync";
 import {
   CloudTripError,
   applyCloudTripReplan,
@@ -159,6 +172,7 @@ export function CloudTripControls({
   onAccessRole,
 }: CloudTripControlsProps): ReactElement {
   const copy = COPY[locale];
+  const workspaceRef = useRef(workspace);
   const [health, setHealth] = useState<TripApiHealth | null>(null);
   const [signedInEmail, setSignedInEmail] = useState<string | null>(null);
   const [metadata, setMetadata] = useState<CloudTripMetadata | null>(null);
@@ -171,6 +185,10 @@ export function CloudTripControls({
   const [historyLoading, setHistoryLoading] = useState(false);
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
+
+  useEffect(() => {
+    workspaceRef.current = workspace;
+  }, [workspace]);
 
   const applyAccessRole = useCallback(
     (role: TripAccessRole | null): void => {
@@ -216,9 +234,32 @@ export function CloudTripControls({
         return;
       }
       if (localMetadata !== null) {
+        const queued = await flushQueuedCloudTripUpdate(localMetadata);
+        if (queued.status === "conflict") {
+          setSyncState("conflict");
+          return;
+        }
+        if (queued.status === "failed") {
+          setSyncState("offline");
+          return;
+        }
+        if (queued.status === "synced" && queued.remote !== null) {
+          persistRemote(queued.remote);
+          setSyncState("saved");
+          return;
+        }
         try {
           const remote = await readCloudTrip(localMetadata.cloudTripId);
           applyAccessRole(remote.accessRole);
+          const localChanged = !sameDocument(workspaceRef.current, localMetadata.localDocument);
+          if (
+            remote.accessRole !== "viewer" &&
+            remote.version > localMetadata.lastSyncedVersion &&
+            localChanged
+          ) {
+            setSyncState("conflict");
+            return;
+          }
           if (remote.accessRole === "viewer" || remote.version > localMetadata.lastSyncedVersion) {
             persistRemote(remote);
           }
@@ -227,6 +268,7 @@ export function CloudTripControls({
         } catch {
           applyAccessRole(null);
           setSyncState("offline");
+          return;
         }
       }
       const trips = await listCloudTrips();
@@ -245,19 +287,37 @@ export function CloudTripControls({
   }, [refreshIdentity]);
 
   useEffect(() => {
+    const handleOnline = (): void => {
+      void refreshIdentity();
+    };
+    window.addEventListener("online", handleOnline);
+    return () => window.removeEventListener("online", handleOnline);
+  }, [refreshIdentity]);
+
+  useEffect(() => {
     if (
       signedInEmail === null ||
       metadata === null ||
       syncState === "conflict" ||
+      syncState === "saving" ||
       accessRole === "viewer"
     ) {
       return;
     }
     if (sameDocument(workspace, metadata.localDocument)) return;
+
+    if (syncState === "offline") {
+      const queueTimer = window.setTimeout(() => {
+        void queueCloudTripUpdate(metadata, workspace, locale);
+      }, 900);
+      return () => window.clearTimeout(queueTimer);
+    }
+
     const timer = window.setTimeout(() => {
       setSyncState("saving");
       void updateCloudTrip(metadata.cloudTripId, metadata.lastSyncedVersion, workspace, locale)
-        .then((remote) => {
+        .then(async (remote) => {
+          await discardQueuedCloudTripUpdate(metadata.cloudTripId);
           const next = {
             cloudTripId: remote.id,
             lastSyncedVersion: remote.version,
@@ -269,13 +329,16 @@ export function CloudTripControls({
           applyAccessRole(remote.accessRole);
           setSyncState("saved");
         })
-        .catch((error: unknown) => {
+        .catch(async (error: unknown) => {
           if (error instanceof CloudTripError && error.status === 409) {
             setSyncState("conflict");
           } else if (error instanceof CloudTripError && error.status === 403) {
             applyAccessRole("viewer");
             setSyncState("saved");
           } else {
+            if (shouldQueueCloudWrite(error)) {
+              await queueCloudTripUpdate(metadata, workspace, locale);
+            }
             setSyncState("offline");
           }
         });
@@ -322,6 +385,7 @@ export function CloudTripControls({
   const loadLatest = useCallback(async (): Promise<void> => {
     if (metadata === null) return;
     try {
+      await discardQueuedCloudTripUpdate(metadata.cloudTripId);
       const remote = await readCloudTrip(metadata.cloudTripId);
       persistRemote(remote);
       setSyncState("saved");
