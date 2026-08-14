@@ -1,6 +1,19 @@
 const SHELL_CACHE = "wnr-shell-v1";
 const RUNTIME_CACHE = "wnr-runtime-v1";
-const CORE = ["/", "/trips", "/trips/workspace", "/trips/execution", "/favicon.svg", "/manifest.webmanifest"];
+const CORE = [
+  "/",
+  "/trips",
+  "/trips/workspace",
+  "/trips/execution",
+  "/zh-cn/trips",
+  "/zh-cn/trips/workspace",
+  "/zh-cn/trips/execution",
+  "/zh-hant/trips",
+  "/zh-hant/trips/workspace",
+  "/zh-hant/trips/execution",
+  "/favicon.svg",
+  "/manifest.webmanifest",
+];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -30,17 +43,29 @@ function cacheable(request, response) {
   return request.method === "GET" && response && response.ok && response.type === "basic";
 }
 
+function executionFallback(pathname) {
+  if (pathname.startsWith("/zh-hant/")) return "/zh-hant/trips/execution";
+  if (pathname.startsWith("/zh-cn/")) return "/zh-cn/trips/execution";
+  return "/trips/execution";
+}
+
 async function networkFirst(request) {
   const cache = await caches.open(RUNTIME_CACHE);
   try {
     const response = await fetch(request);
     if (cacheable(request, response)) await cache.put(request, response.clone());
     return response;
-  } catch (error) {
+  } catch {
     const cached = await cache.match(request);
     if (cached) return cached;
     const shell = await caches.open(SHELL_CACHE);
-    return (await shell.match(request)) || (await shell.match("/trips/execution")) || (await shell.match("/"));
+    const pathname = new URL(request.url).pathname;
+    return (
+      (await shell.match(request)) ||
+      (await shell.match(executionFallback(pathname))) ||
+      (await shell.match("/")) ||
+      Response.error()
+    );
   }
 }
 
@@ -67,7 +92,10 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  if (url.pathname.startsWith("/_next/") || /\.(?:css|js|svg|png|jpg|jpeg|webp|woff2?)$/i.test(url.pathname)) {
+  if (
+    url.pathname.startsWith("/_next/") ||
+    /\.(?:css|js|svg|png|jpg|jpeg|webp|woff2?)$/i.test(url.pathname)
+  ) {
     event.respondWith(staleWhileRevalidate(request));
   }
 });
