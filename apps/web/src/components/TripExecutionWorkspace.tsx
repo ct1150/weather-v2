@@ -1,17 +1,18 @@
 "use client";
 
 import { useEffect, useMemo, useState, type ReactElement } from "react";
-import { activityItemsToLegacy, normalizeActivityItems, type TripActivity } from "../trips/activity-intelligence";
+import {
+  activityItemsToLegacy,
+  normalizeActivityItems,
+  type TripActivity,
+} from "../trips/activity-intelligence";
 import {
   estimateRoutePlan,
   fetchRoutedPlan,
   optimizeRouteOrder,
   type RoutePlan,
 } from "../trips/route-intelligence";
-import {
-  projectExecution,
-  reorderActivitiesByRoute,
-} from "../trips/trip-execution";
+import { projectExecution, reorderActivitiesByRoute } from "../trips/trip-execution";
 import {
   TRIP_WORKSPACE_STORAGE_KEY,
   normalizeWorkspace,
@@ -71,8 +72,12 @@ export function TripExecutionWorkspace(): ReactElement {
     setDayId(next?.days[0]?.id ?? "");
   }, []);
 
-  const selectedDay = workspace?.days.find((day) => day.id === dayId) ?? workspace?.days[0] ?? null;
-  const activities = useMemo(() => (selectedDay === null ? [] : dayActivities(selectedDay)), [selectedDay]);
+  const selectedDay =
+    workspace?.days.find((day) => day.id === dayId) ?? workspace?.days[0] ?? null;
+  const activities = useMemo(
+    () => (selectedDay === null ? [] : dayActivities(selectedDay)),
+    [selectedDay],
+  );
   const projection = useMemo(() => projectExecution(activities), [activities]);
   const estimated = useMemo(
     () =>
@@ -83,6 +88,14 @@ export function TripExecutionWorkspace(): ReactElement {
     [projection],
   );
   const visiblePlan = routePlan ?? estimated;
+  const visibleActivities = useMemo(
+    () => reorderActivitiesByRoute(activities, visiblePlan.waypointIds),
+    [activities, visiblePlan.waypointIds],
+  );
+  const visibleProjection = useMemo(
+    () => projectExecution(visibleActivities),
+    [visibleActivities],
+  );
 
   useEffect(() => {
     setRoutePlan(null);
@@ -103,7 +116,7 @@ export function TripExecutionWorkspace(): ReactElement {
         { profile: "driving" },
       );
       setRoutePlan(routed);
-      setMessage("已使用真实道路数据刷新当天路线。");
+      setMessage("已使用真实道路数据刷新当天路线；左侧时间轴同步显示路线预览顺序。");
     } catch {
       setRoutePlan(estimated);
       setMessage("路线服务暂时不可用，已使用本地估算路线，不影响行程执行。");
@@ -118,7 +131,10 @@ export function TripExecutionWorkspace(): ReactElement {
       start: projection.startAnchor,
       end: projection.endAnchor,
     });
-    const reordered = reorderActivitiesByRoute(activities, optimized.map((item) => item.id));
+    const reordered = reorderActivitiesByRoute(
+      activities,
+      optimized.map((item) => item.id),
+    );
     const next = normalizeWorkspace({
       ...workspace,
       updatedAt: new Date().toISOString(),
@@ -142,7 +158,9 @@ export function TripExecutionWorkspace(): ReactElement {
     return (
       <section className="info-panel">
         <h1 className="text-xl font-bold">还没有可执行的本地行程</h1>
-        <p className="mt-2 text-sm text-muted">先到天气旅行工作台创建或导入行程，再进入执行模式。</p>
+        <p className="mt-2 text-sm text-muted">
+          先到天气旅行工作台创建或导入行程，再进入执行模式。
+        </p>
         <a className="trip-primary-button mt-4 inline-flex" href="/zh-cn/trips/workspace">
           打开旅行工作台
         </a>
@@ -150,7 +168,7 @@ export function TripExecutionWorkspace(): ReactElement {
     );
   }
 
-  const externalMaps = mapsUrl(activities);
+  const externalMaps = mapsUrl(visibleActivities);
 
   return (
     <div className="trip-execution-workspace">
@@ -166,11 +184,18 @@ export function TripExecutionWorkspace(): ReactElement {
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <a className="trip-secondary-button" href="/zh-cn/trips/workspace">返回编辑</a>
+            <a className="trip-secondary-button" href="/zh-cn/trips/workspace">
+              返回编辑
+            </a>
             <button className="trip-secondary-button" type="button" onClick={optimizeAndSave}>
               优化路线并保存
             </button>
-            <button className="trip-primary-button" type="button" disabled={routing} onClick={() => void refreshRoute()}>
+            <button
+              className="trip-primary-button"
+              type="button"
+              disabled={routing}
+              onClick={() => void refreshRoute()}
+            >
               {routing ? "路线计算中…" : "刷新真实道路路线"}
             </button>
           </div>
@@ -195,7 +220,9 @@ export function TripExecutionWorkspace(): ReactElement {
         <div className="grid gap-3 sm:grid-cols-3">
           <div className="rounded-xl bg-surface-elevated p-3">
             <span className="text-xs text-muted">路线来源</span>
-            <strong className="mt-1 block text-sm">{visiblePlan.source === "routed" ? "真实道路" : "本地估算"}</strong>
+            <strong className="mt-1 block text-sm">
+              {visiblePlan.source === "routed" ? "真实道路" : "本地估算"}
+            </strong>
           </div>
           <div className="rounded-xl bg-surface-elevated p-3">
             <span className="text-xs text-muted">预计里程</span>
@@ -208,7 +235,11 @@ export function TripExecutionWorkspace(): ReactElement {
         </div>
       </section>
 
-      {message ? <p className="trip-workspace-message mt-4" role="status">{message}</p> : null}
+      {message ? (
+        <p className="trip-workspace-message mt-4" role="status">
+          {message}
+        </p>
+      ) : null}
 
       <section className="mt-5 grid gap-5 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
         <div className="rounded-2xl border border-border bg-white p-4 sm:p-5">
@@ -216,38 +247,55 @@ export function TripExecutionWorkspace(): ReactElement {
             <div>
               <p className="eyebrow">Timeline</p>
               <h2 className="mt-2 text-xl font-bold">D{selectedDay?.dayNumber} 执行时间轴</h2>
+              <p className="mt-1 text-[11px] text-muted">当前显示路线预览顺序；点击“优化路线并保存”后写回行程。</p>
             </div>
             {externalMaps ? (
-              <a className="trip-secondary-button" href={externalMaps} target="_blank" rel="noreferrer">
+              <a
+                className="trip-secondary-button"
+                href={externalMaps}
+                target="_blank"
+                rel="noreferrer"
+              >
                 在地图中打开
               </a>
             ) : null}
           </div>
 
           <div className="mt-5 grid gap-3">
-            {activities.length === 0 ? (
+            {visibleActivities.length === 0 ? (
               <p className="text-sm text-muted">当天还没有结构化活动。</p>
             ) : (
-              activities.map((activity, index) => {
-                const reservation = projection.reservations.find((item) => item.activityId === activity.id);
+              visibleActivities.map((activity, index) => {
+                const reservation = visibleProjection.reservations.find(
+                  (item) => item.activityId === activity.id,
+                );
                 const leg = visiblePlan.legs.find((item) => item.toId === activity.id);
                 return (
-                  <article key={activity.id} className="rounded-xl border border-border bg-surface-elevated p-3">
+                  <article
+                    key={activity.id}
+                    className="rounded-xl border border-border bg-surface-elevated p-3"
+                  >
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <p className="text-xs font-semibold text-muted">{activity.startTime ?? "未定时间"}</p>
+                        <p className="text-xs font-semibold text-muted">
+                          {activity.startTime ?? "未定时间"}
+                        </p>
                         <h3 className="mt-1 text-sm font-bold text-foreground">{activity.title}</h3>
                       </div>
                       <div className="flex flex-wrap justify-end gap-1">
-                        {reservation?.hard ? <span className="trip-risk-badge trip-risk-high">固定约束</span> : null}
-                        {activity.environment === "indoor" ? <span className="trip-risk-badge trip-risk-low">室内</span> : null}
+                        {reservation?.hard ? (
+                          <span className="trip-risk-badge trip-risk-high">固定约束</span>
+                        ) : null}
+                        {activity.environment === "indoor" ? (
+                          <span className="trip-risk-badge trip-risk-low">室内</span>
+                        ) : null}
                       </div>
                     </div>
                     {leg ? (
                       <p className="mt-2 text-xs text-muted">
                         上一段：{distance(leg.distanceMeters)} · {minutes(leg.durationSeconds)}
                       </p>
-                    ) : index === 0 && projection.startAnchor ? (
+                    ) : index === 0 && visibleProjection.startAnchor ? (
                       <p className="mt-2 text-xs text-muted">从酒店/住宿出发</p>
                     ) : null}
                   </article>
@@ -256,12 +304,14 @@ export function TripExecutionWorkspace(): ReactElement {
             )}
           </div>
 
-          {projection.reservations.length > 0 ? (
+          {visibleProjection.reservations.length > 0 ? (
             <div className="mt-5 rounded-xl border border-border p-3">
               <p className="text-xs font-bold text-foreground">固定预约与交通</p>
               <ul className="mt-2 grid gap-2 text-xs text-muted">
-                {projection.reservations.map((item) => (
-                  <li key={item.id}>🔒 {item.startTime ?? "时间未定"} · {item.title}</li>
+                {visibleProjection.reservations.map((item) => (
+                  <li key={item.id}>
+                    🔒 {item.startTime ?? "时间未定"} · {item.title}
+                  </li>
                 ))}
               </ul>
             </div>
@@ -271,9 +321,9 @@ export function TripExecutionWorkspace(): ReactElement {
         <div className="rounded-2xl border border-border bg-white p-3 sm:p-4">
           <TripExecutionMap
             plan={visiblePlan}
-            waypoints={projection.routeWaypoints}
-            startAnchor={projection.startAnchor}
-            endAnchor={projection.endAnchor}
+            waypoints={visibleProjection.routeWaypoints}
+            startAnchor={visibleProjection.startAnchor}
+            endAnchor={visibleProjection.endAnchor}
           />
           <p className="mt-3 text-[11px] leading-5 text-muted">
             路线优化只调整可移动活动；固定门票、交通和必须预约活动不会被移动。地图继续使用 Weather V2 现有 MapLibre + OpenFreeMap 技术栈。
