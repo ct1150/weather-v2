@@ -20,7 +20,7 @@ export default function TripExecutionPage(): ReactElement {
           <li>執行模式</li>
         </ol>
       </nav>
-      <div className="mt-6"><TripExecutionWorkspace /></div>
+      <div className="mt-6"><TripExecutionWorkspace locale="zh-hant" /></div>
     </main>
   );
 }
