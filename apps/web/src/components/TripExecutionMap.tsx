@@ -43,17 +43,17 @@ export function TripExecutionMap({
       .then((module) => {
         if (cancelled || containerRef.current === null) return;
         const maplibregl = module.default;
-        const points = [
-          ...(startAnchor ? [[startAnchor.longitude, startAnchor.latitude] as const] : []),
-          ...waypoints.map((item) => [item.longitude, item.latitude] as const),
-          ...(endAnchor ? [[endAnchor.longitude, endAnchor.latitude] as const] : []),
+        const points: Array<[number, number]> = [
+          ...(startAnchor ? [[startAnchor.longitude, startAnchor.latitude] as [number, number]] : []),
+          ...waypoints.map((item) => [item.longitude, item.latitude] as [number, number]),
+          ...(endAnchor ? [[endAnchor.longitude, endAnchor.latitude] as [number, number]] : []),
         ];
-        const center = points.length > 0
-          ? ([
+        const center: [number, number] = points.length > 0
+          ? [
               points.reduce((sum, point) => sum + point[0], 0) / points.length,
               points.reduce((sum, point) => sum + point[1], 0) / points.length,
-            ] as [number, number])
-          : ([120, 30] as [number, number]);
+            ]
+          : [120, 30];
 
         const instance = new maplibregl.Map({
           container: containerRef.current,
@@ -71,7 +71,7 @@ export function TripExecutionMap({
               data: {
                 type: "Feature",
                 properties: {},
-                geometry: { type: "LineString", coordinates: plan.geometry },
+                geometry: { type: "LineString", coordinates: plan.geometry.map(([lng, lat]) => [lng, lat]) },
               },
             });
             instance.addLayer({
@@ -93,18 +93,31 @@ export function TripExecutionMap({
           ];
           markerNodes.forEach((item, index) => {
             const element = document.createElement("div");
-            element.className = "trip-execution-map-marker";
             element.textContent = String(index + 1);
             element.title = item.label;
+            Object.assign(element.style, {
+              width: "28px",
+              height: "28px",
+              borderRadius: "999px",
+              display: "grid",
+              placeItems: "center",
+              background: item.locked ? "#dc2626" : "#2563eb",
+              color: "#ffffff",
+              border: "2px solid #ffffff",
+              fontSize: "12px",
+              fontWeight: "700",
+              boxShadow: "0 4px 12px rgba(15,23,42,0.22)",
+            });
             new maplibregl.Marker({ element })
               .setLngLat([item.longitude, item.latitude])
               .addTo(instance);
           });
 
           if (points.length > 1) {
+            const firstPoint = points[0]!;
             const bounds = points.reduce(
               (value, point) => value.extend(point),
-              new maplibregl.LngLatBounds(points[0], points[0]),
+              new maplibregl.LngLatBounds(firstPoint, firstPoint),
             );
             instance.fitBounds(bounds, { padding: 52, maxZoom: 14, duration: 0 });
           }
