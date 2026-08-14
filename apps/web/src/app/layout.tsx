@@ -7,6 +7,7 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { CloudflareAnalytics } from "../components/CloudflareAnalytics";
 import { LocaleBootstrap } from "../components/LocaleBootstrap";
+import { PwaBootstrap } from "../components/PwaBootstrap";
 import { SiteHeader } from "../components/SiteHeader";
 import "./globals.css";
 
@@ -19,7 +20,14 @@ export const metadata: Metadata = {
     "Compare rain, temperature and Travel Scores across Asian destinations on one map before choosing where and when to travel.",
   metadataBase: new URL("https://868656.xyz"),
   applicationName: "Where Not Rain",
-  icons: { icon: "/favicon.svg" },
+  manifest: "/manifest.webmanifest",
+  themeColor: "#2563eb",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Where Not Rain",
+  },
+  icons: { icon: "/favicon.svg", apple: "/favicon.svg" },
 };
 
 export default function RootLayout({ children }: { children: ReactNode }): ReactNode {
@@ -27,6 +35,7 @@ export default function RootLayout({ children }: { children: ReactNode }): React
     <html lang="en">
       <body>
         <LocaleBootstrap />
+        <PwaBootstrap />
         <SiteHeader />
         {children}
         <CloudflareAnalytics />
