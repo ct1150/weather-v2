@@ -237,10 +237,13 @@ export function TripExecutionUtilities({ locale }: TripExecutionUtilitiesProps):
 
   const currentWorkspace = (): TripWorkspace | null => loadLocalWorkspace() ?? workspace;
 
+  const weatherForWorkspace = (current: TripWorkspace): OfflineWeatherBundle | null =>
+    loadWorkspaceWeather(current.id) ?? (current.id === workspace?.id ? weather : null);
+
   const saveOffline = async (): Promise<void> => {
     const current = currentWorkspace();
     if (current === null) return;
-    const currentWeather = loadWorkspaceWeather(current.id) ?? weather;
+    const currentWeather = weatherForWorkspace(current);
     const bundleSaved = await saveOfflineTripBundle(current, currentWeather);
     const [shellSaved, routeResults] = await Promise.all([
       cacheOfflineShell(locale),
@@ -301,7 +304,7 @@ export function TripExecutionUtilities({ locale }: TripExecutionUtilitiesProps):
   const printTrip = (): void => {
     const current = currentWorkspace();
     if (current === null) return;
-    const currentForecasts = loadWorkspaceWeather(current.id)?.items ?? forecasts;
+    const currentForecasts = weatherForWorkspace(current)?.items ?? [];
     const printable = window.open("", "_blank");
     if (printable === null) {
       downloadText(
