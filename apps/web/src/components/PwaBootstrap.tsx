@@ -27,7 +27,7 @@ export function PwaBootstrap(): ReactElement | null {
     window.addEventListener("online", update);
     window.addEventListener("offline", update);
 
-    if ("serviceWorker" in navigator) {
+    if (process.env.NODE_ENV === "production" && "serviceWorker" in navigator) {
       void navigator.serviceWorker.register("/sw.js", { scope: "/" }).catch(() => undefined);
     }
 
