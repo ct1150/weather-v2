@@ -43,6 +43,12 @@ export interface OfflineMutation {
   readonly lastError: string | null;
 }
 
+export interface OfflineMutationPatch {
+  readonly status?: OfflineMutationStatus;
+  readonly attempts?: number;
+  readonly lastError?: string | null;
+}
+
 function indexedDbAvailable(): boolean {
   return typeof indexedDB !== "undefined";
 }
@@ -227,6 +233,46 @@ export async function enqueueOfflineMutation(
       lastError: null,
     };
     return (await withStore(QUEUE_STORE, "readwrite", (store) => store.put(record))) !== null;
+  } catch {
+    return false;
+  }
+}
+
+export async function readOfflineMutation(id: string): Promise<OfflineMutation | null> {
+  try {
+    const value = await withStore<OfflineMutation | undefined>(
+      QUEUE_STORE,
+      "readonly",
+      (store) => store.get(id),
+    );
+    return value ?? null;
+  } catch {
+    return null;
+  }
+}
+
+export async function updateOfflineMutation(
+  id: string,
+  patch: OfflineMutationPatch,
+): Promise<boolean> {
+  const current = await readOfflineMutation(id);
+  if (current === null) return false;
+  try {
+    const next: OfflineMutation = {
+      ...current,
+      ...(patch.status === undefined ? {} : { status: patch.status }),
+      ...(patch.attempts === undefined ? {} : { attempts: patch.attempts }),
+      ...(patch.lastError === undefined ? {} : { lastError: patch.lastError }),
+    };
+    return (await withStore(QUEUE_STORE, "readwrite", (store) => store.put(next))) !== null;
+  } catch {
+    return false;
+  }
+}
+
+export async function removeOfflineMutation(id: string): Promise<boolean> {
+  try {
+    return (await withStore(QUEUE_STORE, "readwrite", (store) => store.delete(id))) !== null;
   } catch {
     return false;
   }
