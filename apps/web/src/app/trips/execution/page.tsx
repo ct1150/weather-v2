@@ -18,7 +18,7 @@ export default function TripExecutionPage(): ReactElement {
           <li>Execution mode</li>
         </ol>
       </nav>
-      <div className="mt-6"><TripExecutionWorkspace /></div>
+      <div className="mt-6"><TripExecutionWorkspace locale="en" /></div>
     </main>
   );
 }
