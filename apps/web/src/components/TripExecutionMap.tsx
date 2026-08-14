@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, type ReactElement } from "react";
-import type { RoutePlan, RouteWaypoint, RouteAnchor } from "../trips/route-intelligence";
+import type { RouteAnchor, RoutePlan, RouteWaypoint } from "../trips/route-intelligence";
 import { MAPLIBRE_STYLE_URL } from "./ExplorerMap";
 
 import "maplibre-gl/dist/maplibre-gl.css";
@@ -19,7 +19,7 @@ function hasWebGL(): boolean {
     const canvas = document.createElement("canvas");
     return Boolean(
       window.WebGLRenderingContext &&
-      (canvas.getContext("webgl") ?? canvas.getContext("experimental-webgl")),
+        (canvas.getContext("webgl") ?? canvas.getContext("experimental-webgl")),
     );
   } catch {
     return false;
@@ -44,16 +44,21 @@ export function TripExecutionMap({
         if (cancelled || containerRef.current === null) return;
         const maplibregl = module.default;
         const points: Array<[number, number]> = [
-          ...(startAnchor ? [[startAnchor.longitude, startAnchor.latitude] as [number, number]] : []),
+          ...(startAnchor
+            ? [[startAnchor.longitude, startAnchor.latitude] as [number, number]]
+            : []),
           ...waypoints.map((item) => [item.longitude, item.latitude] as [number, number]),
-          ...(endAnchor ? [[endAnchor.longitude, endAnchor.latitude] as [number, number]] : []),
+          ...(endAnchor
+            ? [[endAnchor.longitude, endAnchor.latitude] as [number, number]]
+            : []),
         ];
-        const center: [number, number] = points.length > 0
-          ? [
-              points.reduce((sum, point) => sum + point[0], 0) / points.length,
-              points.reduce((sum, point) => sum + point[1], 0) / points.length,
-            ]
-          : [120, 30];
+        const center: [number, number] =
+          points.length > 0
+            ? [
+                points.reduce((sum, point) => sum + point[0], 0) / points.length,
+                points.reduce((sum, point) => sum + point[1], 0) / points.length,
+              ]
+            : [120, 30];
 
         const instance = new maplibregl.Map({
           container: containerRef.current,
@@ -71,7 +76,10 @@ export function TripExecutionMap({
               data: {
                 type: "Feature",
                 properties: {},
-                geometry: { type: "LineString", coordinates: plan.geometry.map(([lng, lat]) => [lng, lat]) },
+                geometry: {
+                  type: "LineString",
+                  coordinates: plan.geometry.map(([lng, lat]) => [lng, lat]),
+                },
               },
             });
             instance.addLayer({
