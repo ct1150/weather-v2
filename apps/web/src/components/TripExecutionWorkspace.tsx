@@ -19,6 +19,7 @@ import {
   type TripWorkspaceDay,
 } from "../trips/workspace";
 import { TripExecutionMap } from "./TripExecutionMap";
+import { TripExecutionReplanPanel } from "./TripExecutionReplanPanel";
 
 function loadWorkspace(): TripWorkspace | null {
   const raw = window.localStorage.getItem(TRIP_WORKSPACE_STORAGE_KEY);
@@ -279,6 +280,14 @@ export function TripExecutionWorkspace(): ReactElement {
           </p>
         </div>
       </section>
+
+      {selectedDay !== null ? (
+        <TripExecutionReplanPanel
+          day={selectedDay}
+          activities={activities}
+          partyProfile={workspace.partyProfile}
+        />
+      ) : null}
     </div>
   );
 }
