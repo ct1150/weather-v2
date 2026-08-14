@@ -41,11 +41,14 @@ interface TripExecutionUtilitiesProps {
 const COPY = {
   en: {
     title: "Offline & travel utilities",
-    intro: "Save the active trip for offline execution, review day weather, export calendar events and build a weather-driven packing list.",
+    intro:
+      "Save the active trip for offline execution, review day weather, export calendar events and build a weather-driven packing list.",
     noTrip: "No local or offline trip is available yet.",
     offline: "Download trip for offline use",
-    offlineDone: "Trip, weather, route estimates and the execution shell are saved for offline use.",
-    offlinePartial: "Trip data was saved, but part of the offline shell or route cache could not be prepared. The saved itinerary remains usable.",
+    offlineDone:
+      "Trip, weather, route estimates and the execution shell are saved for offline use.",
+    offlinePartial:
+      "Trip data was saved, but part of the offline shell or route cache could not be prepared. The saved itinerary remains usable.",
     offlineFailed: "Offline storage is unavailable on this browser.",
     ics: "Export ICS",
     print: "Print / Save PDF",
@@ -63,11 +66,13 @@ const COPY = {
   },
   "zh-cn": {
     title: "离线与旅行工具",
-    intro: "把当前行程下载到本机离线执行，并集中查看逐日天气、导出日历、生成天气行李清单和打印/PDF。",
+    intro:
+      "把当前行程下载到本机离线执行，并集中查看逐日天气、导出日历、生成天气行李清单和打印/PDF。",
     noTrip: "当前没有本地或离线保存的行程。",
     offline: "下载此行程离线使用",
     offlineDone: "已保存行程、天气、每天估算路线和执行页面，可用于离线执行。",
-    offlinePartial: "行程数据已保存，但部分执行页面或路线缓存未能完成；已保存的行程仍可离线查看。",
+    offlinePartial:
+      "行程数据已保存，但部分执行页面或路线缓存未能完成；已保存的行程仍可离线查看。",
     offlineFailed: "当前浏览器无法使用离线存储。",
     ics: "导出 ICS 日历",
     print: "打印 / 保存 PDF",
@@ -85,11 +90,13 @@ const COPY = {
   },
   "zh-hant": {
     title: "離線與旅行工具",
-    intro: "把目前行程下載到本機離線執行，並集中查看逐日天氣、匯出行事曆、產生天氣行李清單和列印／PDF。",
+    intro:
+      "把目前行程下載到本機離線執行，並集中查看逐日天氣、匯出行事曆、產生天氣行李清單和列印／PDF。",
     noTrip: "目前沒有本機或離線儲存的行程。",
     offline: "下載此行程離線使用",
     offlineDone: "已儲存行程、天氣、每天估算路線和執行頁面，可用於離線執行。",
-    offlinePartial: "行程資料已儲存，但部分執行頁面或路線快取未能完成；已儲存的行程仍可離線查看。",
+    offlinePartial:
+      "行程資料已儲存，但部分執行頁面或路線快取未能完成；已儲存的行程仍可離線查看。",
     offlineFailed: "目前瀏覽器無法使用離線儲存。",
     ics: "匯出 ICS 行事曆",
     print: "列印 / 儲存 PDF",
@@ -130,6 +137,10 @@ function loadLocalWorkspace(): TripWorkspace | null {
   } catch {
     return null;
   }
+}
+
+function loadWorkspaceWeather(workspaceId: string): OfflineWeatherBundle | null {
+  return parseWeather(window.localStorage.getItem(`${WEATHER_STORAGE_PREFIX}${workspaceId}`));
 }
 
 function dayActivities(day: TripWorkspaceDay) {
@@ -203,7 +214,7 @@ export function TripExecutionUtilities({ locale }: TripExecutionUtilitiesProps):
     const local = loadLocalWorkspace();
     if (local !== null) {
       setWorkspace(local);
-      setWeather(parseWeather(window.localStorage.getItem(`${WEATHER_STORAGE_PREFIX}${local.id}`)));
+      setWeather(loadWorkspaceWeather(local.id));
     }
     void loadMostRecentOfflineTrip().then((bundle) => {
       setOfflineBundle(bundle);
@@ -217,30 +228,39 @@ export function TripExecutionUtilities({ locale }: TripExecutionUtilitiesProps):
 
   const forecasts = weather?.items ?? [];
   const packing = useMemo(
-    () => (workspace === null ? [] : buildWeatherPackingList(forecasts, workspace.partyProfile, locale)),
+    () =>
+      workspace === null
+        ? []
+        : buildWeatherPackingList(forecasts, workspace.partyProfile, locale),
     [forecasts, locale, workspace],
   );
 
+  const currentWorkspace = (): TripWorkspace | null => loadLocalWorkspace() ?? workspace;
+
   const saveOffline = async (): Promise<void> => {
-    if (workspace === null) return;
-    const bundleSaved = await saveOfflineTripBundle(workspace, weather);
+    const current = currentWorkspace();
+    if (current === null) return;
+    const currentWeather = loadWorkspaceWeather(current.id) ?? weather;
+    const bundleSaved = await saveOfflineTripBundle(current, currentWeather);
     const [shellSaved, routeResults] = await Promise.all([
       cacheOfflineShell(locale),
       Promise.all(
-        workspace.days.map(async (day) => {
+        current.days.map(async (day) => {
           const projection = projectExecution(dayActivities(day));
           const plan = estimateRoutePlan(projection.routeWaypoints, "driving", {
             start: projection.startAnchor,
             end: projection.endAnchor,
           });
-          return saveOfflineRoute(workspace.id, day.id, plan);
+          return saveOfflineRoute(current.id, day.id, plan);
         }),
       ),
     ]);
+    setWorkspace(current);
+    setWeather(currentWeather);
     setOfflineBundle({
-      workspaceId: workspace.id,
-      workspace,
-      weather,
+      workspaceId: current.id,
+      workspace: current,
+      weather: currentWeather,
       savedAt: new Date().toISOString(),
     });
     setOfflineOnly(false);
@@ -248,7 +268,9 @@ export function TripExecutionUtilities({ locale }: TripExecutionUtilitiesProps):
       setMessage(copy.offlineFailed);
       return;
     }
-    setMessage(shellSaved && routeResults.every(Boolean) ? copy.offlineDone : copy.offlinePartial);
+    setMessage(
+      shellSaved && routeResults.every(Boolean) ? copy.offlineDone : copy.offlinePartial,
+    );
   };
 
   const restoreOffline = (): void => {
@@ -267,28 +289,31 @@ export function TripExecutionUtilities({ locale }: TripExecutionUtilitiesProps):
   };
 
   const exportIcs = (): void => {
-    if (workspace === null) return;
+    const current = currentWorkspace();
+    if (current === null) return;
     downloadText(
-      workspaceToIcs(workspace),
-      `${safeName(workspace.title)}.ics`,
+      workspaceToIcs(current),
+      `${safeName(current.title)}.ics`,
       "text/calendar;charset=utf-8",
     );
   };
 
   const printTrip = (): void => {
-    if (workspace === null) return;
+    const current = currentWorkspace();
+    if (current === null) return;
+    const currentForecasts = loadWorkspaceWeather(current.id)?.items ?? forecasts;
     const printable = window.open("", "_blank");
     if (printable === null) {
       downloadText(
-        workspaceToPrintableHtml(workspace, forecasts),
-        `${safeName(workspace.title)}.html`,
+        workspaceToPrintableHtml(current, currentForecasts),
+        `${safeName(current.title)}.html`,
         "text/html;charset=utf-8",
       );
       return;
     }
     printable.opener = null;
     printable.document.open();
-    printable.document.write(workspaceToPrintableHtml(workspace, forecasts));
+    printable.document.write(workspaceToPrintableHtml(current, currentForecasts));
     printable.document.close();
     printable.focus();
     printable.print();
@@ -378,10 +403,18 @@ export function TripExecutionUtilities({ locale }: TripExecutionUtilitiesProps):
                     </strong>
                   </div>
                   <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-muted">
-                    <span>{copy.rain} {forecast.rainProbability ?? "—"}%</span>
-                    <span>{copy.wind} {forecast.windSpeedKph ?? "—"} km/h</span>
-                    <span>{copy.uv} {forecast.uvIndex ?? "—"}</span>
-                    <span>{copy.sun} {forecast.sunrise ?? "—"} / {forecast.sunset ?? "—"}</span>
+                    <span>
+                      {copy.rain} {forecast.rainProbability ?? "—"}%
+                    </span>
+                    <span>
+                      {copy.wind} {forecast.windSpeedKph ?? "—"} km/h
+                    </span>
+                    <span>
+                      {copy.uv} {forecast.uvIndex ?? "—"}
+                    </span>
+                    <span>
+                      {copy.sun} {forecast.sunrise ?? "—"} / {forecast.sunset ?? "—"}
+                    </span>
                   </div>
                 </article>
               );
