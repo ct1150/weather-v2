@@ -24,6 +24,7 @@ export interface OfflineRouteRecord {
   readonly key: string;
   readonly workspaceId: string;
   readonly dayId: string;
+  readonly fingerprint: string;
   readonly plan: RoutePlan;
   readonly savedAt: string;
 }
@@ -191,12 +192,14 @@ export async function saveOfflineRoute(
   workspaceId: string,
   dayId: string,
   plan: RoutePlan,
+  fingerprint: string,
 ): Promise<boolean> {
   try {
     const record: OfflineRouteRecord = {
       key: routeKey(workspaceId, dayId),
       workspaceId,
       dayId,
+      fingerprint,
       plan,
       savedAt: new Date().toISOString(),
     };
@@ -209,6 +212,7 @@ export async function saveOfflineRoute(
 export async function loadOfflineRoute(
   workspaceId: string,
   dayId: string,
+  expectedFingerprint: string,
 ): Promise<RoutePlan | null> {
   try {
     const value = await withStore<OfflineRouteRecord | undefined>(
@@ -216,7 +220,10 @@ export async function loadOfflineRoute(
       "readonly",
       (store) => store.get(routeKey(workspaceId, dayId)),
     );
-    return value?.plan ?? null;
+    if (value === null || value === undefined || value.fingerprint !== expectedFingerprint) {
+      return null;
+    }
+    return value.plan;
   } catch {
     return null;
   }
