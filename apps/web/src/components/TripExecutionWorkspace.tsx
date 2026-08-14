@@ -7,6 +7,11 @@ import {
   type TripActivity,
 } from "../trips/activity-intelligence";
 import {
+  loadMostRecentOfflineTrip,
+  loadOfflineRoute,
+  saveOfflineRoute,
+} from "../trips/offline-store";
+import {
   estimateRoutePlan,
   fetchRoutedPlan,
   optimizeRouteOrder,
@@ -27,6 +32,11 @@ import {
 
 interface TripExecutionWorkspaceProps {
   readonly locale?: TripExecutionLocale;
+}
+
+interface InitialWorkspace {
+  readonly workspace: TripWorkspace | null;
+  readonly fromOffline: boolean;
 }
 
 const COPY = {
@@ -53,6 +63,7 @@ const COPY = {
     routedOk: "Real road routing refreshed; the timeline now shows the same route preview order.",
     routedFallback: "Routing is temporarily unavailable. Local route estimates remain usable.",
     saved: "Route order saved. Fixed tickets, transport and required reservations stayed in place.",
+    offlineLoaded: "Loaded the most recent offline trip from this device.",
     timeline: "Execution timeline",
     preview: "This is the route preview order. Use “Optimize route & save” to persist it.",
     maps: "Open in Maps",
@@ -91,6 +102,7 @@ const COPY = {
     routedOk: "已使用真实道路数据刷新当天路线；左侧时间轴同步显示路线预览顺序。",
     routedFallback: "路线服务暂时不可用，已使用本地估算路线，不影响行程执行。",
     saved: "已优化可移动景点顺序并保存；固定门票、交通和必须预约活动保持原位。",
+    offlineLoaded: "已从本机 IndexedDB 载入最近保存的离线行程。",
     timeline: "执行时间轴",
     preview: "当前显示路线预览顺序；点击“优化路线并保存”后写回行程。",
     maps: "在地图中打开",
@@ -129,6 +141,7 @@ const COPY = {
     routedOk: "已使用真實道路資料更新當天路線；左側時間軸同步顯示路線預覽順序。",
     routedFallback: "路線服務暫時不可用，已使用本機估算路線，不影響行程執行。",
     saved: "已最佳化可移動景點順序並儲存；固定門票、交通和必須預約活動保持原位。",
+    offlineLoaded: "已從本機 IndexedDB 載入最近儲存的離線行程。",
     timeline: "執行時間軸",
     preview: "目前顯示路線預覽順序；點擊「最佳化路線並儲存」後寫回行程。",
     maps: "在地圖中開啟",
@@ -151,7 +164,7 @@ function localePrefix(locale: TripExecutionLocale): string {
   return `/${locale}`;
 }
 
-function loadWorkspace(): TripWorkspace | null {
+function loadLocalWorkspace(): TripWorkspace | null {
   const raw = window.localStorage.getItem(TRIP_WORKSPACE_STORAGE_KEY);
   if (raw === null) return null;
   try {
@@ -159,6 +172,16 @@ function loadWorkspace(): TripWorkspace | null {
   } catch {
     return null;
   }
+}
+
+async function loadInitialWorkspace(): Promise<InitialWorkspace> {
+  const local = loadLocalWorkspace();
+  if (local !== null) return { workspace: local, fromOffline: false };
+  const offline = await loadMostRecentOfflineTrip();
+  return {
+    workspace: offline?.workspace ?? null,
+    fromOffline: offline !== null,
+  };
 }
 
 function dayActivities(day: TripWorkspaceDay): ReadonlyArray<TripActivity> {
@@ -201,10 +224,17 @@ export function TripExecutionWorkspace({
   const [message, setMessage] = useState("");
 
   useEffect(() => {
-    const next = loadWorkspace();
-    setWorkspace(next);
-    setDayId(next?.days[0]?.id ?? "");
-  }, []);
+    let active = true;
+    void loadInitialWorkspace().then((initial) => {
+      if (!active) return;
+      setWorkspace(initial.workspace);
+      setDayId(initial.workspace?.days[0]?.id ?? "");
+      if (initial.fromOffline) setMessage(copy.offlineLoaded);
+    });
+    return () => {
+      active = false;
+    };
+  }, [copy.offlineLoaded]);
 
   const selectedDay =
     workspace?.days.find((day) => day.id === dayId) ?? workspace?.days[0] ?? null;
@@ -230,11 +260,20 @@ export function TripExecutionWorkspace({
     () => projectExecution(visibleActivities),
     [visibleActivities],
   );
+  const workspaceId = workspace?.id ?? "";
+  const selectedDayId = selectedDay?.id ?? "";
 
   useEffect(() => {
+    let active = true;
     setRoutePlan(null);
-    setMessage("");
-  }, [dayId]);
+    if (workspaceId.length === 0 || selectedDayId.length === 0) return;
+    void loadOfflineRoute(workspaceId, selectedDayId).then((plan) => {
+      if (active && plan !== null) setRoutePlan(plan);
+    });
+    return () => {
+      active = false;
+    };
+  }, [selectedDayId, workspaceId]);
 
   const refreshRoute = async (): Promise<void> => {
     if (projection.routeWaypoints.length < 1) {
@@ -250,9 +289,15 @@ export function TripExecutionWorkspace({
         { profile: "driving" },
       );
       setRoutePlan(routed);
+      if (workspace !== null && selectedDay !== null) {
+        await saveOfflineRoute(workspace.id, selectedDay.id, routed);
+      }
       setMessage(copy.routedOk);
     } catch {
       setRoutePlan(estimated);
+      if (workspace !== null && selectedDay !== null) {
+        await saveOfflineRoute(workspace.id, selectedDay.id, estimated);
+      }
       setMessage(copy.routedFallback);
     } finally {
       setRouting(false);
@@ -282,9 +327,15 @@ export function TripExecutionWorkspace({
           : day,
       ),
     });
+    const reorderedProjection = projectExecution(reordered);
+    const reorderedRoute = estimateRoutePlan(reorderedProjection.routeWaypoints, "driving", {
+      start: reorderedProjection.startAnchor,
+      end: reorderedProjection.endAnchor,
+    });
     window.localStorage.setItem(TRIP_WORKSPACE_STORAGE_KEY, JSON.stringify(next));
     setWorkspace(next);
-    setRoutePlan(null);
+    setRoutePlan(reorderedRoute);
+    void saveOfflineRoute(next.id, selectedDay.id, reorderedRoute);
     setMessage(copy.saved);
   };
 
@@ -427,7 +478,8 @@ export function TripExecutionWorkspace({
                     </div>
                     {leg ? (
                       <p className="mt-2 text-xs text-muted">
-                        {copy.previous}: {distance(leg.distanceMeters)} · {formatMinutes(leg.durationSeconds, locale)}
+                        {copy.previous}: {distance(leg.distanceMeters)} ·{" "}
+                        {formatMinutes(leg.durationSeconds, locale)}
                       </p>
                     ) : index === 0 && visibleProjection.startAnchor ? (
                       <p className="mt-2 text-xs text-muted">{copy.hotelStart}</p>
