@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import type { TripForecastDay, TripWorkspace } from "./workspace";
 import { buildWeatherPackingList, workspaceToIcs, workspaceToPrintableHtml } from "./trip-exports";
+import type { TripForecastDay, TripWorkspace } from "./workspace";
 
 const workspace: TripWorkspace = {
   version: 2,
@@ -75,6 +75,31 @@ describe("trip execution exports", () => {
     expect(ics).toContain("GEO:35.68;139.76");
   });
 
+  it("carries duration across midnight instead of clipping the event to the same date", () => {
+    const baseActivity = workspace.days[0]!.activityItems![0]!;
+    const overnight: TripWorkspace = {
+      ...workspace,
+      days: [
+        {
+          ...workspace.days[0]!,
+          activities: ["23:30 Night transfer"],
+          activityItems: [
+            {
+              ...baseActivity,
+              id: "night-transfer",
+              title: "Night transfer",
+              startTime: "23:30",
+              durationMinutes: 90,
+            },
+          ],
+        },
+      ],
+    };
+    const ics = workspaceToIcs(overnight);
+    expect(ics).toContain("DTSTART:20260820T233000");
+    expect(ics).toContain("DTEND:20260821T010000");
+  });
+
   it("generates weather and family-specific packing items without duplicates", () => {
     const items = buildWeatherPackingList([forecast], "family");
     const ids = items.map((item) => item.id);
@@ -85,6 +110,14 @@ describe("trip execution exports", () => {
     expect(ids).toContain("wind");
     expect(ids).toContain("family");
     expect(new Set(ids).size).toBe(ids.length);
+  });
+
+  it("localizes packing copy without changing deterministic item IDs", () => {
+    const english = buildWeatherPackingList([forecast], "family", "en");
+    const traditional = buildWeatherPackingList([forecast], "family", "zh-hant");
+    expect(english.map((item) => item.id)).toEqual(traditional.map((item) => item.id));
+    expect(english.find((item) => item.id === "rain-shell")?.label).toContain("rain");
+    expect(traditional.find((item) => item.id === "rain-shell")?.label).toContain("雨衣");
   });
 
   it("creates printable HTML with weather and activity content", () => {
