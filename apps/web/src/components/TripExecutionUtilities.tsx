@@ -45,6 +45,7 @@ const COPY = {
     noTrip: "No local or offline trip is available yet.",
     offline: "Download trip for offline use",
     offlineDone: "Trip, weather, route estimates and the execution shell are saved for offline use.",
+    offlinePartial: "Trip data was saved, but part of the offline shell or route cache could not be prepared. The saved itinerary remains usable.",
     offlineFailed: "Offline storage is unavailable on this browser.",
     ics: "Export ICS",
     print: "Print / Save PDF",
@@ -66,6 +67,7 @@ const COPY = {
     noTrip: "当前没有本地或离线保存的行程。",
     offline: "下载此行程离线使用",
     offlineDone: "已保存行程、天气、每天估算路线和执行页面，可用于离线执行。",
+    offlinePartial: "行程数据已保存，但部分执行页面或路线缓存未能完成；已保存的行程仍可离线查看。",
     offlineFailed: "当前浏览器无法使用离线存储。",
     ics: "导出 ICS 日历",
     print: "打印 / 保存 PDF",
@@ -87,6 +89,7 @@ const COPY = {
     noTrip: "目前沒有本機或離線儲存的行程。",
     offline: "下載此行程離線使用",
     offlineDone: "已儲存行程、天氣、每天估算路線和執行頁面，可用於離線執行。",
+    offlinePartial: "行程資料已儲存，但部分執行頁面或路線快取未能完成；已儲存的行程仍可離線查看。",
     offlineFailed: "目前瀏覽器無法使用離線儲存。",
     ics: "匯出 ICS 行事曆",
     print: "列印 / 儲存 PDF",
@@ -162,23 +165,29 @@ function localeCode(locale: TripExecutionLocale): string {
   return locale === "zh-hant" ? "zh-TW" : "zh-CN";
 }
 
-async function cacheOfflineShell(locale: TripExecutionLocale): Promise<void> {
-  if (!("caches" in window)) return;
-  const prefix = localePrefix(locale);
-  const paths = [
-    `${prefix}/trips`,
-    `${prefix}/trips/workspace`,
-    `${prefix}/trips/execution`,
-    "/manifest.webmanifest",
-    "/favicon.svg",
-  ];
-  const cache = await caches.open(OFFLINE_RUNTIME_CACHE);
-  await Promise.allSettled(
-    paths.map(async (path) => {
-      const response = await fetch(path, { cache: "reload" });
-      if (response.ok) await cache.put(path, response.clone());
-    }),
-  );
+async function cacheOfflineShell(locale: TripExecutionLocale): Promise<boolean> {
+  if (!("caches" in window)) return false;
+  try {
+    const prefix = localePrefix(locale);
+    const paths = [
+      `${prefix}/trips`,
+      `${prefix}/trips/workspace`,
+      `${prefix}/trips/execution`,
+      "/manifest.webmanifest",
+      "/favicon.svg",
+    ];
+    const cache = await caches.open(OFFLINE_RUNTIME_CACHE);
+    const results = await Promise.allSettled(
+      paths.map(async (path) => {
+        const response = await fetch(path, { cache: "reload" });
+        if (!response.ok) throw new Error(`OFFLINE_SHELL_${response.status}`);
+        await cache.put(path, response.clone());
+      }),
+    );
+    return results.every((result) => result.status === "fulfilled");
+  } catch {
+    return false;
+  }
 }
 
 export function TripExecutionUtilities({ locale }: TripExecutionUtilitiesProps): ReactElement {
@@ -186,6 +195,7 @@ export function TripExecutionUtilities({ locale }: TripExecutionUtilitiesProps):
   const [workspace, setWorkspace] = useState<TripWorkspace | null>(null);
   const [weather, setWeather] = useState<OfflineWeatherBundle | null>(null);
   const [offlineBundle, setOfflineBundle] = useState<OfflineTripBundle | null>(null);
+  const [offlineOnly, setOfflineOnly] = useState(false);
   const [packingOpen, setPackingOpen] = useState(false);
   const [message, setMessage] = useState("");
 
@@ -200,6 +210,7 @@ export function TripExecutionUtilities({ locale }: TripExecutionUtilitiesProps):
       if (local === null && bundle !== null) {
         setWorkspace(bundle.workspace);
         setWeather(bundle.weather);
+        setOfflineOnly(true);
       }
     });
   }, []);
@@ -213,16 +224,18 @@ export function TripExecutionUtilities({ locale }: TripExecutionUtilitiesProps):
   const saveOffline = async (): Promise<void> => {
     if (workspace === null) return;
     const bundleSaved = await saveOfflineTripBundle(workspace, weather);
-    await Promise.all([
+    const [shellSaved, routeResults] = await Promise.all([
       cacheOfflineShell(locale),
-      ...workspace.days.map(async (day) => {
-        const projection = projectExecution(dayActivities(day));
-        const plan = estimateRoutePlan(projection.routeWaypoints, "driving", {
-          start: projection.startAnchor,
-          end: projection.endAnchor,
-        });
-        await saveOfflineRoute(workspace.id, day.id, plan);
-      }),
+      Promise.all(
+        workspace.days.map(async (day) => {
+          const projection = projectExecution(dayActivities(day));
+          const plan = estimateRoutePlan(projection.routeWaypoints, "driving", {
+            start: projection.startAnchor,
+            end: projection.endAnchor,
+          });
+          return saveOfflineRoute(workspace.id, day.id, plan);
+        }),
+      ),
     ]);
     setOfflineBundle({
       workspaceId: workspace.id,
@@ -230,7 +243,12 @@ export function TripExecutionUtilities({ locale }: TripExecutionUtilitiesProps):
       weather,
       savedAt: new Date().toISOString(),
     });
-    setMessage(bundleSaved ? copy.offlineDone : copy.offlineFailed);
+    setOfflineOnly(false);
+    if (!bundleSaved) {
+      setMessage(copy.offlineFailed);
+      return;
+    }
+    setMessage(shellSaved && routeResults.every(Boolean) ? copy.offlineDone : copy.offlinePartial);
   };
 
   const restoreOffline = (): void => {
@@ -244,6 +262,7 @@ export function TripExecutionUtilities({ locale }: TripExecutionUtilitiesProps):
     }
     setWorkspace(offlineBundle.workspace);
     setWeather(offlineBundle.weather);
+    setOfflineOnly(false);
     setMessage(copy.restored);
   };
 
@@ -307,7 +326,7 @@ export function TripExecutionUtilities({ locale }: TripExecutionUtilitiesProps):
           >
             {copy.packing}
           </button>
-          {offlineBundle !== null && offlineBundle.workspace.id !== workspace.id ? (
+          {offlineOnly && offlineBundle !== null ? (
             <button type="button" className="trip-secondary-button" onClick={restoreOffline}>
               {copy.restore}
             </button>
