@@ -26,6 +26,7 @@ import {
 import type { TripExecutionLocale } from "./TripExecutionReplanPanel";
 
 const WEATHER_STORAGE_PREFIX = "wnr:trip-weather:v1:";
+const OFFLINE_RUNTIME_CACHE = "wnr-runtime-v1";
 
 interface StoredWeather {
   readonly dataUpdatedAt: string;
@@ -43,7 +44,7 @@ const COPY = {
     intro: "Save the active trip for offline execution, review day weather, export calendar events and build a weather-driven packing list.",
     noTrip: "No local or offline trip is available yet.",
     offline: "Download trip for offline use",
-    offlineDone: "Trip, weather and estimated routes are saved in IndexedDB for offline execution.",
+    offlineDone: "Trip, weather, route estimates and the execution shell are saved for offline use.",
     offlineFailed: "Offline storage is unavailable on this browser.",
     ics: "Export ICS",
     print: "Print / Save PDF",
@@ -64,7 +65,7 @@ const COPY = {
     intro: "把当前行程下载到本机离线执行，并集中查看逐日天气、导出日历、生成天气行李清单和打印/PDF。",
     noTrip: "当前没有本地或离线保存的行程。",
     offline: "下载此行程离线使用",
-    offlineDone: "已把行程、天气和每天估算路线保存到 IndexedDB，可用于离线执行。",
+    offlineDone: "已保存行程、天气、每天估算路线和执行页面，可用于离线执行。",
     offlineFailed: "当前浏览器无法使用离线存储。",
     ics: "导出 ICS 日历",
     print: "打印 / 保存 PDF",
@@ -85,7 +86,7 @@ const COPY = {
     intro: "把目前行程下載到本機離線執行，並集中查看逐日天氣、匯出行事曆、產生天氣行李清單和列印／PDF。",
     noTrip: "目前沒有本機或離線儲存的行程。",
     offline: "下載此行程離線使用",
-    offlineDone: "已把行程、天氣和每天估算路線儲存到 IndexedDB，可用於離線執行。",
+    offlineDone: "已儲存行程、天氣、每天估算路線和執行頁面，可用於離線執行。",
     offlineFailed: "目前瀏覽器無法使用離線儲存。",
     ics: "匯出 ICS 行事曆",
     print: "列印 / 儲存 PDF",
@@ -152,6 +153,34 @@ function safeName(value: string): string {
   return value.replace(/[^\p{L}\p{N}-]+/gu, "-").replace(/^-|-$/gu, "") || "trip";
 }
 
+function localePrefix(locale: TripExecutionLocale): string {
+  return locale === "en" ? "" : `/${locale}`;
+}
+
+function localeCode(locale: TripExecutionLocale): string {
+  if (locale === "en") return "en-US";
+  return locale === "zh-hant" ? "zh-TW" : "zh-CN";
+}
+
+async function cacheOfflineShell(locale: TripExecutionLocale): Promise<void> {
+  if (!("caches" in window)) return;
+  const prefix = localePrefix(locale);
+  const paths = [
+    `${prefix}/trips`,
+    `${prefix}/trips/workspace`,
+    `${prefix}/trips/execution`,
+    "/manifest.webmanifest",
+    "/favicon.svg",
+  ];
+  const cache = await caches.open(OFFLINE_RUNTIME_CACHE);
+  await Promise.allSettled(
+    paths.map(async (path) => {
+      const response = await fetch(path, { cache: "reload" });
+      if (response.ok) await cache.put(path, response.clone());
+    }),
+  );
+}
+
 export function TripExecutionUtilities({ locale }: TripExecutionUtilitiesProps): ReactElement {
   const copy = COPY[locale];
   const [workspace, setWorkspace] = useState<TripWorkspace | null>(null);
@@ -177,15 +206,16 @@ export function TripExecutionUtilities({ locale }: TripExecutionUtilitiesProps):
 
   const forecasts = weather?.items ?? [];
   const packing = useMemo(
-    () => (workspace === null ? [] : buildWeatherPackingList(forecasts, workspace.partyProfile)),
-    [forecasts, workspace],
+    () => (workspace === null ? [] : buildWeatherPackingList(forecasts, workspace.partyProfile, locale)),
+    [forecasts, locale, workspace],
   );
 
   const saveOffline = async (): Promise<void> => {
     if (workspace === null) return;
     const bundleSaved = await saveOfflineTripBundle(workspace, weather);
-    await Promise.all(
-      workspace.days.map(async (day) => {
+    await Promise.all([
+      cacheOfflineShell(locale),
+      ...workspace.days.map(async (day) => {
         const projection = projectExecution(dayActivities(day));
         const plan = estimateRoutePlan(projection.routeWaypoints, "driving", {
           start: projection.startAnchor,
@@ -193,7 +223,7 @@ export function TripExecutionUtilities({ locale }: TripExecutionUtilitiesProps):
         });
         await saveOfflineRoute(workspace.id, day.id, plan);
       }),
-    );
+    ]);
     setOfflineBundle({
       workspaceId: workspace.id,
       workspace,
@@ -219,12 +249,16 @@ export function TripExecutionUtilities({ locale }: TripExecutionUtilitiesProps):
 
   const exportIcs = (): void => {
     if (workspace === null) return;
-    downloadText(workspaceToIcs(workspace), `${safeName(workspace.title)}.ics`, "text/calendar;charset=utf-8");
+    downloadText(
+      workspaceToIcs(workspace),
+      `${safeName(workspace.title)}.ics`,
+      "text/calendar;charset=utf-8",
+    );
   };
 
   const printTrip = (): void => {
     if (workspace === null) return;
-    const printable = window.open("", "_blank", "noopener,noreferrer");
+    const printable = window.open("", "_blank");
     if (printable === null) {
       downloadText(
         workspaceToPrintableHtml(workspace, forecasts),
@@ -233,6 +267,7 @@ export function TripExecutionUtilities({ locale }: TripExecutionUtilitiesProps):
       );
       return;
     }
+    printable.opener = null;
     printable.document.open();
     printable.document.write(workspaceToPrintableHtml(workspace, forecasts));
     printable.document.close();
@@ -245,7 +280,10 @@ export function TripExecutionUtilities({ locale }: TripExecutionUtilitiesProps):
   }
 
   return (
-    <section className="mt-5 rounded-2xl border border-border bg-white p-4 sm:p-5" data-trip-offline-tools="v1">
+    <section
+      className="mt-5 rounded-2xl border border-border bg-white p-4 sm:p-5"
+      data-trip-offline-tools="v1"
+    >
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
           <p className="eyebrow">PWA / Offline / Export</p>
@@ -253,24 +291,43 @@ export function TripExecutionUtilities({ locale }: TripExecutionUtilitiesProps):
           <p className="mt-2 max-w-3xl text-xs leading-5 text-muted">{copy.intro}</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <button type="button" className="trip-primary-button" onClick={() => void saveOffline()}>{copy.offline}</button>
-          <button type="button" className="trip-secondary-button" onClick={exportIcs}>{copy.ics}</button>
-          <button type="button" className="trip-secondary-button" onClick={printTrip}>{copy.print}</button>
-          <button type="button" className="trip-secondary-button" onClick={() => setPackingOpen((value) => !value)}>{copy.packing}</button>
+          <button type="button" className="trip-primary-button" onClick={() => void saveOffline()}>
+            {copy.offline}
+          </button>
+          <button type="button" className="trip-secondary-button" onClick={exportIcs}>
+            {copy.ics}
+          </button>
+          <button type="button" className="trip-secondary-button" onClick={printTrip}>
+            {copy.print}
+          </button>
+          <button
+            type="button"
+            className="trip-secondary-button"
+            onClick={() => setPackingOpen((value) => !value)}
+          >
+            {copy.packing}
+          </button>
           {offlineBundle !== null && offlineBundle.workspace.id !== workspace.id ? (
-            <button type="button" className="trip-secondary-button" onClick={restoreOffline}>{copy.restore}</button>
+            <button type="button" className="trip-secondary-button" onClick={restoreOffline}>
+              {copy.restore}
+            </button>
           ) : null}
         </div>
       </div>
 
-      {message ? <p className="trip-workspace-message mt-4" role="status">{message}</p> : null}
+      {message ? (
+        <p className="trip-workspace-message mt-4" role="status">
+          {message}
+        </p>
+      ) : null}
 
       <div className="mt-5">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h3 className="text-sm font-bold text-foreground">{copy.weather}</h3>
           {weather !== null ? (
             <span className="text-[11px] text-muted">
-              {weather.stale ? copy.stale : copy.fresh} · {new Date(weather.dataUpdatedAt).toLocaleString()}
+              {weather.stale ? copy.stale : copy.fresh} ·{" "}
+              {new Date(weather.dataUpdatedAt).toLocaleString(localeCode(locale))}
             </span>
           ) : null}
         </div>
@@ -279,16 +336,27 @@ export function TripExecutionUtilities({ locale }: TripExecutionUtilitiesProps):
         ) : (
           <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
             {workspace.days.map((day) => {
-              const forecast = forecasts.find((item) => item.cityId === day.cityId && item.date === day.date);
+              const forecast = forecasts.find(
+                (item) => item.cityId === day.cityId && item.date === day.date,
+              );
               if (forecast === undefined) return null;
               return (
-                <article key={day.id} className="rounded-xl border border-border bg-surface-elevated p-3">
+                <article
+                  key={day.id}
+                  className="rounded-xl border border-border bg-surface-elevated p-3"
+                >
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <p className="text-xs font-semibold text-muted">D{day.dayNumber} · {day.date}</p>
-                      <strong className="mt-1 block text-sm text-foreground">{day.cityName} · {forecast.condition}</strong>
+                      <p className="text-xs font-semibold text-muted">
+                        D{day.dayNumber} · {day.date}
+                      </p>
+                      <strong className="mt-1 block text-sm text-foreground">
+                        {day.cityName} · {forecast.condition}
+                      </strong>
                     </div>
-                    <strong className="text-sm">{forecast.temperatureMinC ?? "—"}°–{forecast.temperatureMaxC ?? "—"}°</strong>
+                    <strong className="text-sm">
+                      {forecast.temperatureMinC ?? "—"}°–{forecast.temperatureMaxC ?? "—"}°
+                    </strong>
                   </div>
                   <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-muted">
                     <span>{copy.rain} {forecast.rainProbability ?? "—"}%</span>
@@ -308,9 +376,15 @@ export function TripExecutionUtilities({ locale }: TripExecutionUtilitiesProps):
           <h3 className="text-sm font-bold text-foreground">{copy.packing}</h3>
           <div className="mt-3 grid gap-2 md:grid-cols-2">
             {packing.map((item) => (
-              <label key={item.id} className="flex items-start gap-3 rounded-lg bg-surface-elevated p-3 text-xs">
+              <label
+                key={item.id}
+                className="flex items-start gap-3 rounded-lg bg-surface-elevated p-3 text-xs"
+              >
                 <input type="checkbox" className="mt-0.5" />
-                <span><strong className="block text-foreground">{item.label}</strong><span className="mt-1 block text-muted">{item.reason}</span></span>
+                <span>
+                  <strong className="block text-foreground">{item.label}</strong>
+                  <span className="mt-1 block text-muted">{item.reason}</span>
+                </span>
               </label>
             ))}
           </div>
