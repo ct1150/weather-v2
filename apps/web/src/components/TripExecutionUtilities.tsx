@@ -4,11 +4,13 @@ import { useEffect, useMemo, useState, type ReactElement } from "react";
 import { normalizeActivityItems } from "../trips/activity-intelligence";
 import {
   loadMostRecentOfflineTrip,
+  loadOfflineRoute,
   saveOfflineRoute,
   saveOfflineTripBundle,
   type OfflineTripBundle,
   type OfflineWeatherBundle,
 } from "../trips/offline-store";
+import { routeContextFingerprint } from "../trips/route-cache";
 import { estimateRoutePlan } from "../trips/route-intelligence";
 import { projectExecution } from "../trips/trip-execution";
 import {
@@ -250,11 +252,17 @@ export function TripExecutionUtilities({ locale }: TripExecutionUtilitiesProps):
       Promise.all(
         current.days.map(async (day) => {
           const projection = projectExecution(dayActivities(day));
+          const fingerprint = routeContextFingerprint(projection.routeWaypoints, {
+            start: projection.startAnchor,
+            end: projection.endAnchor,
+          });
+          const cached = await loadOfflineRoute(current.id, day.id, fingerprint);
+          if (cached !== null) return true;
           const plan = estimateRoutePlan(projection.routeWaypoints, "driving", {
             start: projection.startAnchor,
             end: projection.endAnchor,
           });
-          return saveOfflineRoute(current.id, day.id, plan);
+          return saveOfflineRoute(current.id, day.id, plan, fingerprint);
         }),
       ),
     ]);
