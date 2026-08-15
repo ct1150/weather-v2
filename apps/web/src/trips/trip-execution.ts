@@ -44,6 +44,10 @@ export function isHardExecutionConstraint(activity: TripActivity): boolean {
   );
 }
 
+export function isRouteSequenceLocked(activity: TripActivity): boolean {
+  return isHardExecutionConstraint(activity) || activity.startTime !== null;
+}
+
 export function projectReservations(
   activities: ReadonlyArray<TripActivity>,
 ): ReadonlyArray<TripReservation> {
@@ -118,7 +122,7 @@ export function projectExecution(
         label: activity.title,
         latitude: activity.latitude!,
         longitude: activity.longitude!,
-        locked: isHardExecutionConstraint(activity),
+        locked: isRouteSequenceLocked(activity),
         sourceActivityId: activity.id,
       })),
     startAnchor: anchors.startAnchor,
@@ -137,12 +141,12 @@ export function reorderActivitiesByRoute(
     .map((id) => activityById.get(id))
     .filter(
       (activity): activity is TripActivity =>
-        activity !== undefined && !isHardExecutionConstraint(activity),
+        activity !== undefined && !isRouteSequenceLocked(activity),
     );
   let queueIndex = 0;
 
   return activities.map((activity) => {
-    if (!reorderableIds.has(activity.id) || isHardExecutionConstraint(activity)) return activity;
+    if (!reorderableIds.has(activity.id) || isRouteSequenceLocked(activity)) return activity;
     const next = queue[queueIndex];
     queueIndex += 1;
     return next ?? activity;
