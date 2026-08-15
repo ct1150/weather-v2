@@ -4,6 +4,7 @@ import type { TripActivity } from "./activity-intelligence";
 import {
   hotelAnchors,
   isHardExecutionConstraint,
+  isRouteSequenceLocked,
   projectExecution,
   projectReservations,
   reorderActivitiesByRoute,
@@ -14,7 +15,7 @@ function activity(id: string, overrides: Partial<TripActivity> = {}): TripActivi
     id,
     title: id,
     cityId: "jp-tokyo",
-    startTime: "09:00",
+    startTime: null,
     endTime: null,
     durationMinutes: 60,
     latitude: 35.68,
@@ -38,6 +39,14 @@ describe("trip execution constraints", () => {
     expect(isHardExecutionConstraint(activity("ticket", { reservation: "required" }))).toBe(true);
     expect(isHardExecutionConstraint(activity("fixed", { flexibility: "fixed" }))).toBe(true);
     expect(isHardExecutionConstraint(activity("walk"))).toBe(false);
+  });
+
+  it("sequence-locks scheduled activities without turning them into hard reservations", () => {
+    const scheduled = activity("scheduled", { startTime: "14:00" });
+
+    expect(isHardExecutionConstraint(scheduled)).toBe(false);
+    expect(isRouteSequenceLocked(scheduled)).toBe(true);
+    expect(projectExecution([scheduled]).routeWaypoints[0]?.locked).toBe(true);
   });
 
   it("projects canonical structured activities into execution reservations", () => {
@@ -81,6 +90,18 @@ describe("trip execution constraints", () => {
     );
   });
 
+  it("keeps scheduled activities in place while untimed activities reorder", () => {
+    const source = [
+      activity("a"),
+      activity("scheduled", { startTime: "14:00" }),
+      activity("b"),
+    ];
+    const reordered = reorderActivitiesByRoute(source, ["b", "scheduled", "a"]);
+
+    expect(reordered.map((item) => item.id)).toEqual(["b", "scheduled", "a"]);
+    expect(reordered[1]?.startTime).toBe("14:00");
+  });
+
   it("keeps non-geocoded activities in their original slots while route points reorder", () => {
     const source = [
       activity("a"),
@@ -102,5 +123,6 @@ describe("trip execution constraints", () => {
     expect(projection.startAnchor?.label).toBe("hotel");
     expect(projection.routeWaypoints.map((item) => item.id)).toEqual(["museum", "park"]);
     expect(projection.routeWaypoints[0]?.locked).toBe(true);
+    expect(projection.routeWaypoints[1]?.locked).toBe(false);
   });
 });
