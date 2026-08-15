@@ -52,11 +52,15 @@ function parseQueuedBody(value: unknown): QueuedCloudUpdateBody | null {
     return null;
   }
   if (!isObject(value.document)) return null;
-  return {
-    cloudTripId: value.cloudTripId,
-    locale: value.locale,
-    document: normalizeWorkspace(value.document),
-  };
+  try {
+    return {
+      cloudTripId: value.cloudTripId,
+      locale: value.locale,
+      document: normalizeWorkspace(value.document),
+    };
+  } catch {
+    return null;
+  }
 }
 
 export function shouldQueueCloudWrite(error: unknown): boolean {
