@@ -192,14 +192,23 @@ export async function saveOfflineRoute(
   workspaceId: string,
   dayId: string,
   plan: RoutePlan,
-  fingerprint: string,
+  fingerprint?: string,
 ): Promise<boolean> {
   try {
+    const key = routeKey(workspaceId, dayId);
+    if (fingerprint === undefined) {
+      const existing = await withStore<OfflineRouteRecord | undefined>(
+        ROUTE_STORE,
+        "readonly",
+        (store) => store.get(key),
+      );
+      if (existing?.plan.source === "routed") return true;
+    }
     const record: OfflineRouteRecord = {
-      key: routeKey(workspaceId, dayId),
+      key,
       workspaceId,
       dayId,
-      fingerprint,
+      fingerprint: fingerprint ?? "",
       plan,
       savedAt: new Date().toISOString(),
     };
@@ -212,7 +221,7 @@ export async function saveOfflineRoute(
 export async function loadOfflineRoute(
   workspaceId: string,
   dayId: string,
-  expectedFingerprint: string,
+  expectedFingerprint?: string,
 ): Promise<RoutePlan | null> {
   try {
     const value = await withStore<OfflineRouteRecord | undefined>(
@@ -220,9 +229,8 @@ export async function loadOfflineRoute(
       "readonly",
       (store) => store.get(routeKey(workspaceId, dayId)),
     );
-    if (value === null || value === undefined || value.fingerprint !== expectedFingerprint) {
-      return null;
-    }
+    if (value === null || value === undefined) return null;
+    if (expectedFingerprint !== undefined && value.fingerprint !== expectedFingerprint) return null;
     return value.plan;
   } catch {
     return null;
