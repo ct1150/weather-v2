@@ -1,7 +1,8 @@
 # Where Not Rain — production deployment
 #
 # Automatic production deployment happens only after code lands on main.
-# workflow_dispatch is retained as an explicit emergency/manual release path.
+# workflow_dispatch is retained as an explicit emergency/manual release path,
+# but the deploy job itself is locked to refs/heads/main.
 
 name: Deploy
 
@@ -26,6 +27,7 @@ env:
 
 jobs:
   deploy:
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 35
     steps:

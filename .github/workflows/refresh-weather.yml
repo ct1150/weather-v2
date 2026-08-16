@@ -2,9 +2,8 @@ name: Refresh weather pages
 
 on:
   schedule:
-    # Static/SEO weather pages need freshness, but a full rebuild every 6 hours
-    # consumes too many hosted-runner minutes. Runtime trip weather remains fresh
-    # through weather-sync/weather-read; rebuild the static shell once per day.
+    # Runtime weather remains fresh through weather-sync/weather-read. Rebuild the
+    # static/SEO shell once per day to keep hosted-runner usage bounded.
     - cron: "17 2 * * *"
   workflow_dispatch:
 
@@ -23,11 +22,16 @@ env:
 
 jobs:
   refresh:
+    # Scheduled runs use the default branch. Manual refreshes are allowed only
+    # from main so a feature branch can never publish static production pages.
+    if: github.event_name == 'schedule' || github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: main
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -49,6 +53,7 @@ jobs:
       - name: Bake latest real forecast
         env:
           APP_BASE_URL: https://868656.xyz
+          NEXT_PUBLIC_TRIP_API_URL: https://trip.868656.xyz
           NEXT_PUBLIC_CLOUDFLARE_ANALYTICS_ENABLED: ${{ secrets.NEXT_PUBLIC_CLOUDFLARE_ANALYTICS_ENABLED }}
           NEXT_PUBLIC_CLOUDFLARE_ANALYTICS_TOKEN: ${{ secrets.NEXT_PUBLIC_CLOUDFLARE_ANALYTICS_TOKEN }}
         run: pnpm --filter @wnr/web build

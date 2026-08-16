@@ -24,13 +24,12 @@ A single development commit could therefore allocate several runners and redeplo
 
 ## New workflow set
 
-The repository is intentionally reduced to five workflows:
+The repository is intentionally reduced to four workflows:
 
 1. `PR CI`
 2. `Deploy`
 3. `Production Smoke`
 4. `Refresh weather pages`
-5. `Verify trip product production`
 
 ### PR CI
 
@@ -53,19 +52,7 @@ Behavior:
 - later updates to a non-Draft PR re-run that single job;
 - no D1 migration, Worker deploy, Pages deploy, or live preview smoke occurs from normal PR synchronization.
 
-PR CI includes:
-
-- install;
-- format;
-- lint;
-- library builds;
-- typecheck;
-- unit/integration tests;
-- docs gate;
-- static web build;
-- Worker builds;
-- deploy pipeline contract test;
-- secret scan.
+PR CI includes install, format, lint, library builds, typecheck, unit/integration tests, docs gate, static web build, Worker builds, deploy pipeline contract tests and secret scanning.
 
 ### Deploy
 
@@ -75,48 +62,38 @@ Automatic trigger:
 push -> main
 ```
 
-`workflow_dispatch` remains as an explicit emergency/manual production release path.
+`workflow_dispatch` remains as an explicit emergency/manual production release path, but the job itself is guarded by:
+
+```text
+github.ref == refs/heads/main
+```
+
+A manually selected feature branch therefore cannot deploy production.
 
 There is no `pull_request` trigger.
 
-The workflow keeps production safety gates before deployment, then deploys:
-
-- weather D1/migrations and seed;
-- weather-sync Worker and trigger secret;
-- fresh production weather snapshot;
-- weather-read Worker;
-- Trip D1 migrations;
-- trip-api Worker and secrets;
-- Better Auth schema;
-- Cloudflare Pages production;
-- IndexNow notification;
-- basic production weather smoke.
+The workflow keeps production safety gates before deployment, then deploys weather D1/seed, weather-sync, the fresh weather snapshot, weather-read, Trip D1, trip-api, Better Auth schema and Cloudflare Pages, followed by IndexNow and a basic production weather smoke.
 
 ### Production Smoke
 
-Trigger:
+Runs after a successful `Deploy` from main, including a manual main Deploy. Manual Production Smoke dispatch is also restricted to main.
 
-```text
-Deploy completed successfully on a main push
-```
+One runner now performs all broad production verification that previously required several workflows:
 
-A single runner executes the former separate smoke workflows sequentially:
-
+- broad EN / zh-CN / zh-Hant Trip, Workspace, Execution, Share and weather-route page checks;
+- Trip Cities, Trip Forecast, Cloud Trip health and protected sync API checks;
+- anonymous Cloud Trip/sync rejection checks;
 - Phase 5 weather intelligence;
 - Phase 6 Weather Discovery;
 - Phase 7 structured activity intelligence;
 - Phase 8 hourly weather;
 - Phase 8 adaptive replanning;
 - collaboration/revision contracts;
-- localized collaboration surfaces;
+- localized invite surfaces;
 - Phase 9 trust contracts;
 - Phase 9 production zero-fill.
 
-This replaces multiple post-deploy runner allocations with one consolidated verification runner.
-
-### Verify trip product production
-
-Kept as a separate broad production-level verification because it covers a larger end-user product surface and already runs only after a successful main Deploy.
+The former separate `Verify trip product production` runner is removed; its end-user page/API coverage is incorporated into this consolidated workflow.
 
 ### Refresh weather pages
 
@@ -127,22 +104,11 @@ old: 17 */6 * * *   (~120 runs/month)
 new: 17 2 * * *     (~30 runs/month)
 ```
 
-Runtime weather freshness still comes from the weather-sync/weather-read architecture. The scheduled Pages rebuild is only for static/SEO weather content.
+Runtime weather freshness still comes from weather-sync/weather-read. Scheduled and manually triggered refreshes always checkout `main`; manual refresh is rejected at job level when invoked from any non-main ref.
 
 ## Removed workflows
 
-The following automatic Preview/report fan-out workflows were removed and their production verification responsibilities consolidated:
-
-- refresh production weather after deploy;
-- deploy status reporter;
-- Phase 5 weather smoke reporter;
-- adaptive replanning verifier;
-- conversion/retention verifier;
-- activity intelligence verifier;
-- collaboration verifier;
-- hourly verifier;
-- weather intelligence verifier;
-- weather discovery verifier.
+The automatic Preview/report fan-out workflows were removed, including refresh-after-deploy, deploy/Phase reporters, separate Phase 5/6/7/8/9 verifiers, collaboration verifier, hourly verifier and the standalone Trip Product production verifier.
 
 ## Expected runner behavior
 
@@ -163,16 +129,13 @@ After merge:
 ```text
 main push -> 1 Deploy runner
           -> 1 consolidated Production Smoke runner
-          -> 1 broad Trip Product production verifier
 ```
 
-Scheduled static weather publishing is reduced to one run per day.
+Scheduled static weather publishing is reduced to one runner per day.
 
 ## Verified behavior on PR #45
 
-The first commit containing this policy produced only one `PR CI` workflow run. Because PR #45 remained Draft, the `verify` job concluded `skipped` with no steps and no hosted-runner execution.
-
-The previous seven-workflow pull-request fan-out did not occur.
+Commits made after this policy was introduced produced only one `PR CI` workflow run. Because PR #45 remained Draft, the `verify` job concluded `skipped` with no steps and no hosted-runner execution. The previous seven-workflow pull-request fan-out did not occur.
 
 ## Billing caveat
 
@@ -184,5 +147,5 @@ This refactor prevents future unnecessary Actions consumption but does not clear
 2. Mark Ready only when the change set is ready for consolidated validation.
 3. Merge only after PR CI succeeds.
 4. Production deployment happens automatically from `main` only.
-5. Production Smoke executes only after successful Deploy.
-6. Use manual workflow dispatch only for intentional operational recovery or verification.
+5. Production Smoke executes only after successful main Deploy.
+6. Manual Deploy, Smoke and weather refresh operations are allowed only from `main`.
