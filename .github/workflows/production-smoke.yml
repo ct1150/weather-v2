@@ -1,0 +1,156 @@
+# Consolidated post-deploy production verification.
+# One hosted runner executes all Phase 5-9 smoke checks sequentially.
+
+name: Production Smoke
+
+on:
+  workflow_run:
+    workflows: [Deploy]
+    types: [completed]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-smoke
+  cancel-in-progress: true
+
+env:
+  PNPM_VERSION: "10.11.0"
+  NODE_VERSION: "22"
+  SITE_URL: "https://868656.xyz"
+  READ_URL: "https://where-not-rain-read-production.ct1150.workers.dev"
+  TRIP_URL: "https://trip.868656.xyz"
+
+jobs:
+  verify:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'push' &&
+       github.event.workflow_run.head_branch == 'main')
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install dependencies once
+        run: pnpm install --frozen-lockfile
+
+      - name: Build test dependencies once
+        run: pnpm -r --filter '!@wnr/web' --filter '!@wnr/weather-sync' --filter '!@wnr/maintenance' build
+
+      - name: Wait for production endpoints
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent --show-error --location "${SITE_URL}/" >/dev/null \
+              && curl --fail --silent --show-error "${TRIP_URL}/health" >/tmp/trip-health.json \
+              && curl --fail --silent --show-error "${READ_URL}/health" >/tmp/read-health.json; then
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "::error::Production endpoints did not become ready after Deploy"
+          exit 1
+
+      - name: Phase 5 — weather intelligence
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          SMOKE_TOKEN="$(printf 'wnr-trip-smoke:%s' "$CLOUDFLARE_API_TOKEN" | sha256sum | cut -d' ' -f1)"
+          TRIP_SMOKE_TOKEN="$SMOKE_TOKEN" node tooling/deploy/trip-weather-intelligence-smoke.mjs \
+            --trip-url "${TRIP_URL}" \
+            --suffix production
+
+      - name: Phase 6 — weather discovery
+        run: |
+          node tooling/deploy/weather-discovery-smoke.mjs \
+            --site-url "${SITE_URL}" \
+            --read-url "${READ_URL}"
+
+      - name: Phase 7 — activity intelligence
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          SMOKE_TOKEN="$(printf 'wnr-trip-smoke:%s' "$CLOUDFLARE_API_TOKEN" | sha256sum | cut -d' ' -f1)"
+          TRIP_SMOKE_TOKEN="$SMOKE_TOKEN" node tooling/deploy/trip-activity-intelligence-smoke.mjs \
+            --trip-url "${TRIP_URL}" \
+            --suffix production
+
+      - name: Phase 8 — hourly weather
+        run: |
+          node tooling/deploy/trip-hourly-smoke.mjs \
+            --read-url "${READ_URL}" \
+            --city jp-tokyo \
+            --date "$(date -u +%F)"
+
+      - name: Phase 8 — adaptive replanning
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          SMOKE_TOKEN="$(printf 'wnr-trip-smoke:%s' "$CLOUDFLARE_API_TOKEN" | sha256sum | cut -d' ' -f1)"
+          TRIP_SMOKE_TOKEN="$SMOKE_TOKEN" node tooling/deploy/adaptive-replanning-smoke.mjs \
+            --trip-url "${TRIP_URL}" \
+            --read-url "${READ_URL}" \
+            --suffix production
+
+      - name: Collaboration and revision contracts
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          SMOKE_TOKEN="$(printf 'wnr-trip-smoke:%s' "$CLOUDFLARE_API_TOKEN" | sha256sum | cut -d' ' -f1)"
+          TRIP_SMOKE_TOKEN="$SMOKE_TOKEN" node tooling/deploy/trip-collaboration-smoke.mjs \
+            --trip-url "${TRIP_URL}" \
+            --suffix production
+          TRIP_SMOKE_TOKEN="$SMOKE_TOKEN" node tooling/deploy/trip-collaboration-intelligence-smoke.mjs \
+            --trip-url "${TRIP_URL}" \
+            --suffix production
+
+      - name: Localized collaboration surfaces
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --location --retry 3 "${SITE_URL}/trips/invite" -o /tmp/invite-en.html
+          grep -Fq "Trip collaboration invite" /tmp/invite-en.html
+          curl --fail --silent --show-error --location --retry 3 "${SITE_URL}/zh-cn/trips/invite" -o /tmp/invite-cn.html
+          grep -Fq "行程协作邀请" /tmp/invite-cn.html
+          curl --fail --silent --show-error --location --retry 3 "${SITE_URL}/zh-hant/trips/invite" -o /tmp/invite-hant.html
+          grep -Fq "行程協作邀請" /tmp/invite-hant.html
+
+      - name: Phase 9 — trust contracts
+        run: |
+          pnpm --filter @wnr/analytics exec vitest run \
+            src/affiliate-adapter.test.ts \
+            src/contextual-conversion.test.ts \
+            src/funnel-events.test.ts
+          pnpm --filter @wnr/domain exec vitest run \
+            src/notification-readiness.test.ts \
+            src/product-entitlements.test.ts
+          pnpm --filter @wnr/web exec vitest run \
+            src/analytics/browser-events.test.ts \
+            src/commercial/contextual-affiliate.test.ts \
+            src/components/phase9-commercial-surface-contract.test.ts
+
+      - name: Phase 9 — production zero-fill
+        run: |
+          node tooling/deploy/conversion-retention-live-smoke.mjs \
+            --site-url "${SITE_URL}"
