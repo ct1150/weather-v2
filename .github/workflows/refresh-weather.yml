@@ -68,3 +68,24 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: pnpm --filter @wnr/web exec wrangler pages deploy out --project-name where-not-rain --branch main
+
+      - name: Smoke refreshed production pages
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 12); do
+            if curl --fail --silent --show-error --location --retry 2 \
+              "https://868656.xyz/jp" -o /tmp/weather-en.html \
+              && curl --fail --silent --show-error --location --retry 2 \
+              "https://868656.xyz/zh-cn/jp" -o /tmp/weather-cn.html \
+              && curl --fail --silent --show-error --location --retry 2 \
+              "https://868656.xyz/zh-hant/jp" -o /tmp/weather-hant.html \
+              && grep -Fq "Forecast data by" /tmp/weather-en.html \
+              && grep -Fq "Open-Meteo" /tmp/weather-en.html \
+              && grep -Fq "日本" /tmp/weather-cn.html \
+              && grep -Fq "日本" /tmp/weather-hant.html; then
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "::error::Refreshed production weather pages did not become healthy"
+          exit 1
