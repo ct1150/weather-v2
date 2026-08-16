@@ -227,9 +227,11 @@ New/expanded coverage includes:
 - Cloud Trip offline queue policy and replay wiring contracts;
 - ICS, cross-midnight ICS and weather packing rules.
 
-## 12. Required merge gates
+## 12. Required merge and release gates
 
-Required before merge:
+### Before merge
+
+The consolidated `PR CI` must succeed after the PR is marked Ready. It covers:
 
 1. `pnpm format:check`
 2. `pnpm lint`
@@ -239,24 +241,27 @@ Required before merge:
 6. docs gate
 7. Next.js static export
 8. worker builds
-9. existing Phase 6/7/8/9 regression workflows
+9. deploy pipeline contract tests
 10. route/PWA/offline-sync/export tests added in this branch
+11. secret scan
+
+Draft PR synchronizations skip the hosted runner entirely.
+
+### After merge
+
+A push to `main` runs the production `Deploy` workflow. A successful Deploy then triggers one consolidated `Production Smoke` runner covering broad product pages/APIs plus the former Phase 5–9, hourly, adaptive replanning and collaboration production checks.
+
+Manual Deploy, Production Smoke and static weather refresh jobs are all restricted to `refs/heads/main` so a selected feature branch cannot publish production.
 
 ### Current GitHub Actions blocker
 
-GitHub Actions is not reaching repository code. The check annotation reports:
+Earlier workflow runs did not reach repository code. GitHub reported:
 
 > The job was not started because recent account payments have failed or your spending limit needs to be increased. Please check the 'Billing & plans' section in your settings.
 
-Observed behavior:
+The CI/CD cost-control refactor now ensures Draft PR commits create only a skipped `PR CI` job with no runner steps. It prevents future unnecessary consumption but cannot clear the existing Billing/Actions spending lock.
 
-- `runner_id=0`;
-- `steps=[]`;
-- Deploy fails before checkout;
-- rerunning failed jobs reproduces the same result;
-- all Phase verification workflows fail for the same pre-run billing reason.
-
-Therefore no CI failure currently demonstrates a source/build/test defect. PR #45 remains Draft until GitHub Billing / Actions spending is restored and the full gates execute.
+Therefore no prior CI failure demonstrates a source/build/test defect. PR #45 remains Draft until Billing / Actions spending is restored and the consolidated PR CI can execute.
 
 Local environment note:
 
@@ -268,8 +273,9 @@ Local environment note:
 ## 13. Rollout
 
 1. Fix GitHub Billing / Actions spending limit.
-2. Rerun PR #45 workflows.
-3. Fix any real code/test/build failures that appear after a runner is allocated.
-4. Keep PR Draft until all required gates pass.
-5. Mark Ready and merge only after successful executable validation.
-6. Observe public OSRM usage before considering a dedicated routing service/proxy.
+2. Mark PR #45 Ready once implementation is final.
+3. Run the single consolidated PR CI.
+4. Fix any real source/test/build failures that appear.
+5. Merge only after PR CI succeeds.
+6. Let the main push trigger one production Deploy and one consolidated Production Smoke.
+7. Observe public OSRM usage before considering a dedicated routing service/proxy.
