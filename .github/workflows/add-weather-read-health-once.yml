@@ -76,6 +76,9 @@ jobs:
           PY
           pnpm exec prettier --write workers/weather-read/src/index.ts workers/weather-read/src/index.test.ts
 
+      - name: Build hotfix dependencies
+        run: pnpm --filter @wnr/test-utils build
+
       - name: Validate weather-read hotfix
         run: |
           pnpm --filter @wnr/weather-read lint
