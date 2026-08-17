@@ -6,8 +6,7 @@ import { localeUrl } from "../../../seo";
 
 export const metadata: Metadata = {
   title: { absolute: "旅行执行模式 - Where Not Rain" },
-  description:
-    "把结构化行程、固定预约、酒店锚点和真实道路路线整合到一个天气旅行执行工作台。",
+  description: "把结构化行程、固定预约、酒店锚点和真实道路路线整合到一个天气旅行执行工作台。",
   alternates: { canonical: localeUrl("zh-cn", "/trips/execution") },
   robots: { index: false, follow: true },
 };

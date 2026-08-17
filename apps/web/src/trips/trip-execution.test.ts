@@ -91,11 +91,7 @@ describe("trip execution constraints", () => {
   });
 
   it("keeps scheduled activities in place while untimed activities reorder", () => {
-    const source = [
-      activity("a"),
-      activity("scheduled", { startTime: "14:00" }),
-      activity("b"),
-    ];
+    const source = [activity("a"), activity("scheduled", { startTime: "14:00" }), activity("b")];
     const reordered = reorderActivitiesByRoute(source, ["b", "scheduled", "a"]);
 
     expect(reordered.map((item) => item.id)).toEqual(["b", "scheduled", "a"]);

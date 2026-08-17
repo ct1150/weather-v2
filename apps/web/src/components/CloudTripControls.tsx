@@ -1,13 +1,6 @@
 "use client";
 
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type ReactElement,
-} from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactElement } from "react";
 import {
   getTripSession,
   sendTripMagicLink,

@@ -270,9 +270,7 @@ export function estimateRoutePlan(
     legs,
     distanceMeters: legs.reduce((sum, leg) => sum + leg.distanceMeters, 0),
     durationSeconds: legs.reduce((sum, leg) => sum + leg.durationSeconds, 0),
-    geometry: legs.flatMap((leg, index) =>
-      index === 0 ? leg.geometry : leg.geometry.slice(1),
-    ),
+    geometry: legs.flatMap((leg, index) => (index === 0 ? leg.geometry : leg.geometry.slice(1))),
     source: "estimated",
   };
 }

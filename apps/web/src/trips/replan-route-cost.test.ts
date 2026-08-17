@@ -63,7 +63,7 @@ describe("route-aware deterministic replan", () => {
       environment: "indoor",
       weatherSensitivity: [],
       category: "attraction",
-      latitude: 35.70,
+      latitude: 35.7,
       longitude: 139.79,
     });
 

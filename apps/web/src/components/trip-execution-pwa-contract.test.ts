@@ -17,7 +17,10 @@ const traditionalExecution = readFileSync(
   new URL("../app/zh-hant/trips/execution/page.tsx", import.meta.url),
   "utf8",
 );
-const manifest = readFileSync(new URL("../../public/manifest.webmanifest", import.meta.url), "utf8");
+const manifest = readFileSync(
+  new URL("../../public/manifest.webmanifest", import.meta.url),
+  "utf8",
+);
 const serviceWorker = readFileSync(new URL("../../public/sw.js", import.meta.url), "utf8");
 
 describe("Trip execution PWA / offline contracts", () => {

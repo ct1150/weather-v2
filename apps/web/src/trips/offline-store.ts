@@ -154,7 +154,9 @@ export async function saveOfflineTripBundle(
   }
 }
 
-export async function loadOfflineTripBundle(workspaceId: string): Promise<OfflineTripBundle | null> {
+export async function loadOfflineTripBundle(
+  workspaceId: string,
+): Promise<OfflineTripBundle | null> {
   try {
     const value = await withStore<OfflineTripBundle | undefined>(
       BUNDLE_STORE,
@@ -255,10 +257,8 @@ export async function enqueueOfflineMutation(
 
 export async function readOfflineMutation(id: string): Promise<OfflineMutation | null> {
   try {
-    const value = await withStore<OfflineMutation | undefined>(
-      QUEUE_STORE,
-      "readonly",
-      (store) => store.get(id),
+    const value = await withStore<OfflineMutation | undefined>(QUEUE_STORE, "readonly", (store) =>
+      store.get(id),
     );
     return value ?? null;
   } catch {

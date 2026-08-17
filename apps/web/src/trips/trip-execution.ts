@@ -1,12 +1,7 @@
 import type { TripActivity } from "./activity-intelligence";
 import type { RouteAnchor, RouteWaypoint } from "./route-intelligence";
 
-export type TripReservationType =
-  | "transport"
-  | "ticket"
-  | "hotel"
-  | "restaurant"
-  | "activity";
+export type TripReservationType = "transport" | "ticket" | "hotel" | "restaurant" | "activity";
 
 export interface TripReservation {
   readonly id: string;
@@ -73,10 +68,7 @@ export function projectReservations(
     }));
 }
 
-function anchorFromActivity(
-  activity: TripActivity,
-  suffix: "start" | "end",
-): RouteAnchor | null {
+function anchorFromActivity(activity: TripActivity, suffix: "start" | "end"): RouteAnchor | null {
   if (activity.latitude === null || activity.longitude === null) return null;
   return {
     id: `${activity.id}-${suffix}`,
@@ -86,14 +78,13 @@ function anchorFromActivity(
   };
 }
 
-export function hotelAnchors(
-  activities: ReadonlyArray<TripActivity>,
-): { readonly startAnchor: RouteAnchor | null; readonly endAnchor: RouteAnchor | null } {
+export function hotelAnchors(activities: ReadonlyArray<TripActivity>): {
+  readonly startAnchor: RouteAnchor | null;
+  readonly endAnchor: RouteAnchor | null;
+} {
   const hotels = activities.filter(
     (activity) =>
-      activity.category === "hotel" &&
-      activity.latitude !== null &&
-      activity.longitude !== null,
+      activity.category === "hotel" && activity.latitude !== null && activity.longitude !== null,
   );
   if (hotels.length === 0) return { startAnchor: null, endAnchor: null };
   const first = hotels[0]!;
@@ -104,9 +95,7 @@ export function hotelAnchors(
   };
 }
 
-export function projectExecution(
-  activities: ReadonlyArray<TripActivity>,
-): TripExecutionProjection {
+export function projectExecution(activities: ReadonlyArray<TripActivity>): TripExecutionProjection {
   const anchors = hotelAnchors(activities);
   return {
     reservations: projectReservations(activities),

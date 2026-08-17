@@ -10,12 +10,7 @@ import {
   type RouteWaypoint,
 } from "./route-intelligence";
 
-function waypoint(
-  id: string,
-  latitude: number,
-  longitude: number,
-  locked = false,
-): RouteWaypoint {
+function waypoint(id: string, latitude: number, longitude: number, locked = false): RouteWaypoint {
   return { id, label: id, latitude, longitude, locked, sourceActivityId: id };
 }
 
@@ -77,21 +72,27 @@ describe("route intelligence", () => {
   });
 
   it("parses a routed OSRM plan", async () => {
-    const fetchImpl = vi.fn(async () =>
-      new Response(
-        JSON.stringify({
-          code: "Ok",
-          routes: [
-            {
-              distance: 3200,
-              duration: 720,
-              geometry: { coordinates: [[139.76, 35.68], [139.77, 35.69]] },
-              legs: [{ distance: 3200, duration: 720 }],
-            },
-          ],
-        }),
-        { status: 200 },
-      ),
+    const fetchImpl = vi.fn(
+      async () =>
+        new Response(
+          JSON.stringify({
+            code: "Ok",
+            routes: [
+              {
+                distance: 3200,
+                duration: 720,
+                geometry: {
+                  coordinates: [
+                    [139.76, 35.68],
+                    [139.77, 35.69],
+                  ],
+                },
+                legs: [{ distance: 3200, duration: 720 }],
+              },
+            ],
+          }),
+          { status: 200 },
+        ),
     ) as unknown as typeof fetch;
 
     const plan = await fetchRoutedPlan(
@@ -107,15 +108,22 @@ describe("route intelligence", () => {
   });
 
   it("builds a source-to-destination route cost matrix", async () => {
-    const fetchImpl = vi.fn(async () =>
-      new Response(
-        JSON.stringify({
-          code: "Ok",
-          durations: [[600, 1200], [300, 900]],
-          distances: [[5000, 10000], [2000, 7000]],
-        }),
-        { status: 200 },
-      ),
+    const fetchImpl = vi.fn(
+      async () =>
+        new Response(
+          JSON.stringify({
+            code: "Ok",
+            durations: [
+              [600, 1200],
+              [300, 900],
+            ],
+            distances: [
+              [5000, 10000],
+              [2000, 7000],
+            ],
+          }),
+          { status: 200 },
+        ),
     ) as unknown as typeof fetch;
     const matrix = await fetchRouteCostMatrix(
       [waypoint("s1", 35.68, 139.76), waypoint("s2", 35.69, 139.77)],

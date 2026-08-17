@@ -5,10 +5,7 @@ import {
   type ActivityHourlyWeather,
   type ActivityRiskPartyProfile,
 } from "./activity-risk";
-import {
-  routeMatrixMinutes,
-  type RouteCostMatrix,
-} from "./route-intelligence";
+import { routeMatrixMinutes, type RouteCostMatrix } from "./route-intelligence";
 
 export type ReplanChangeKind = "move_time" | "replace_activity";
 export type ReplanReasonCode = "better_hourly_window" | "indoor_fallback";

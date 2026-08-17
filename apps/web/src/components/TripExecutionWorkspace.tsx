@@ -26,10 +26,7 @@ import {
   type TripWorkspaceDay,
 } from "../trips/workspace";
 import { TripExecutionMap } from "./TripExecutionMap";
-import {
-  TripExecutionReplanPanel,
-  type TripExecutionLocale,
-} from "./TripExecutionReplanPanel";
+import { TripExecutionReplanPanel, type TripExecutionLocale } from "./TripExecutionReplanPanel";
 
 interface TripExecutionWorkspaceProps {
   readonly locale?: TripExecutionLocale;
@@ -237,8 +234,7 @@ export function TripExecutionWorkspace({
     };
   }, [copy.offlineLoaded]);
 
-  const selectedDay =
-    workspace?.days.find((day) => day.id === dayId) ?? workspace?.days[0] ?? null;
+  const selectedDay = workspace?.days.find((day) => day.id === dayId) ?? workspace?.days[0] ?? null;
   const activities = useMemo(
     () => (selectedDay === null ? [] : dayActivities(selectedDay)),
     [selectedDay],
@@ -265,10 +261,7 @@ export function TripExecutionWorkspace({
     () => reorderActivitiesByRoute(activities, visiblePlan.waypointIds),
     [activities, visiblePlan.waypointIds],
   );
-  const visibleProjection = useMemo(
-    () => projectExecution(visibleActivities),
-    [visibleActivities],
-  );
+  const visibleProjection = useMemo(() => projectExecution(visibleActivities), [visibleActivities]);
   const workspaceId = workspace?.id ?? "";
   const selectedDayId = selectedDay?.id ?? "";
 

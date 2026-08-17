@@ -39,7 +39,8 @@ const COPY = {
     analyze: "Analyze weather replan",
     analyzing: "Analyzing…",
     insufficient: "There is not enough hourly-weather data to create a replan proposal.",
-    noCoverage: "Hourly weather is unavailable. Execution Mode will not create an optimistic proposal.",
+    noCoverage:
+      "Hourly weather is unavailable. Execution Mode will not create an optimistic proposal.",
     noChange: "No safe change improves weather risk enough while preserving fixed constraints.",
     fallbackEstimate:
       "Proposal ready. Routing was unavailable, so relocation uses the deterministic fallback estimate.",
@@ -92,10 +93,7 @@ const COPY = {
   },
 } as const;
 
-function fallbackActivities(
-  day: TripWorkspaceDay,
-  locale: PoiLocale,
-): ReadonlyArray<TripActivity> {
+function fallbackActivities(day: TripWorkspaceDay, locale: PoiLocale): ReadonlyArray<TripActivity> {
   return findWeatherFallbacks(day.cityId, null, 5).map((poi) => ({
     id: `fallback-${poi.id}`,
     title: poiName(poi, locale),
@@ -154,9 +152,7 @@ export function TripExecutionReplanPanel({
         date: day.date,
         locale: locale === "en" ? "en" : "zh-cn",
       });
-      const response = await fetch(
-        `${WEATHER_READ_BASE}/api/v1/trip-hourly?${params.toString()}`,
-      );
+      const response = await fetch(`${WEATHER_READ_BASE}/api/v1/trip-hourly?${params.toString()}`);
       if (!response.ok) throw new Error(`HOURLY_${response.status}`);
       const payload = (await response.json()) as HourlyResponse;
       const hourly = payload.data?.items ?? [];
