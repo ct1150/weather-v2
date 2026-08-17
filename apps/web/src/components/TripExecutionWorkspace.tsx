@@ -348,7 +348,8 @@ export function TripExecutionWorkspace({
   if (workspace === null) {
     return (
       <section className="info-panel">
-        <h1 className="text-xl font-bold">{copy.emptyTitle}</h1>
+        <p className="eyebrow">{copy.eyebrow}</p>
+        <h1 className="mt-3 text-xl font-bold">{copy.emptyTitle}</h1>
         <p className="mt-2 text-sm text-muted">{copy.emptyBody}</p>
         <a className="trip-primary-button mt-4 inline-flex" href={`${prefix}/trips/workspace`}>
           {copy.openWorkspace}
