@@ -66,12 +66,15 @@ describe("Weather Discovery Phase 6 contract", () => {
     expect(trip).not.toContain("poi");
   });
 
-  it("ships English, Simplified Chinese and Traditional Chinese discovery routes", () => {
+  it("ships localized discovery routes with user-facing product language", () => {
     expect(englishRoute).toContain('locale="en"');
     expect(simplifiedRoute).toContain('locale="zh-cn"');
     expect(traditionalRoute).toContain('locale="zh-hant"');
-    expect(planner).toContain("Weather Discovery 2.0");
-    expect(planner).toContain("天气探索 2.0");
-    expect(planner).toContain("天氣探索 2.0");
+    expect(planner).toContain("Find the right destination");
+    expect(planner).toContain("按天气找目的地");
+    expect(planner).toContain("按天氣找目的地");
+    expect(planner).not.toContain("Weather Discovery 2.0");
+    expect(planner).not.toContain("天气探索 2.0");
+    expect(planner).not.toContain("天氣探索 2.0");
   });
 });
