@@ -1,0 +1,744 @@
+name: Apply UX funnel P0 once
+
+on:
+  push:
+    branches:
+      - agent/ux-funnel-p0
+    paths:
+      - .github/workflows/apply-ux-funnel-p0-once.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout UX branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent/ux-funnel-p0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.11.0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Apply P0 funnel and retention-entry improvements
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import json
+
+          def read(path: str) -> str:
+              return Path(path).read_text(encoding="utf-8")
+
+          def write(path: str, content: str) -> None:
+              Path(path).write_text(content, encoding="utf-8")
+
+          def replace_once(path: str, old: str, new: str) -> None:
+              source = read(path)
+              if source.count(old) != 1:
+                  raise SystemExit(f"expected exactly one marker in {path}: {old[:80]!r}; found {source.count(old)}")
+              write(path, source.replace(old, new, 1))
+
+          # 1. Homepage task split and complete locale alternates.
+          replace_once(
+              "apps/web/src/app/page.tsx",
+              'alternates: buildAlternates("/", "en", ["en", "zh-cn"]),',
+              'alternates: buildAlternates("/", "en", ["en", "zh-cn", "zh-hant"]),',
+          )
+          replace_once(
+              "apps/web/src/app/page.tsx",
+              '''            <div className="mt-5 flex flex-wrap items-center gap-3">
+                        <a
+                          href="#recommendations"
+                          className="rounded-full bg-foreground px-5 py-3 text-sm font-bold text-white shadow-lg shadow-foreground/15 transition hover:-translate-y-0.5 hover:bg-primary focus-ring"
+                        >
+                          Compare ranked options
+                        </a>
+                        <a
+                          href="/explore"
+                          className="rounded-full border border-border bg-white px-5 py-3 text-sm font-bold text-foreground transition hover:border-primary/30 hover:bg-surface-elevated focus-ring"
+                        >
+                          Explore the map <span aria-hidden="true">→</span>
+                        </a>
+                      </div>''',
+              '''            <div className="mt-5 flex flex-wrap items-center gap-3">
+                        <a
+                          href="/discover"
+                          className="rounded-full bg-foreground px-5 py-3 text-sm font-bold text-white shadow-lg shadow-foreground/15 transition hover:-translate-y-0.5 hover:bg-primary focus-ring"
+                        >
+                          I haven't chosen a destination
+                        </a>
+                        <a
+                          href="/trips/new"
+                          className="rounded-full border border-border bg-white px-5 py-3 text-sm font-bold text-foreground transition hover:border-primary/30 hover:bg-surface-elevated focus-ring"
+                        >
+                          I already have a trip <span aria-hidden="true">→</span>
+                        </a>
+                      </div>
+                      <a
+                        href="#recommendations"
+                        className="mt-3 inline-flex text-sm font-semibold text-primary underline-offset-4 hover:underline focus-ring"
+                      >
+                        Browse today's ranked options
+                      </a>''',
+          )
+
+          replace_once(
+              "apps/web/src/app/zh-cn/page.tsx",
+              'alternates: buildAlternates("/", "zh-cn", ["en", "zh-cn"]),',
+              'alternates: buildAlternates("/", "zh-cn", ["en", "zh-cn", "zh-hant"]),',
+          )
+          replace_once(
+              "apps/web/src/app/zh-cn/page.tsx",
+              '''          <div className="mt-6 flex flex-wrap gap-3">
+                        <a
+                          href="/zh-cn/discover"
+                          className="rounded-full bg-foreground px-5 py-3 text-sm font-bold text-white shadow-lg shadow-foreground/15 transition hover:-translate-y-0.5 hover:bg-primary focus-ring"
+                        >
+                          按天气条件选城市 →
+                        </a>
+                      </div>''',
+              '''          <div className="mt-6 flex flex-wrap gap-3">
+                        <a
+                          href="/zh-cn/discover"
+                          className="rounded-full bg-foreground px-5 py-3 text-sm font-bold text-white shadow-lg shadow-foreground/15 transition hover:-translate-y-0.5 hover:bg-primary focus-ring"
+                        >
+                          还没决定去哪
+                        </a>
+                        <a
+                          href="/zh-cn/trips/new"
+                          className="rounded-full border border-border bg-white px-5 py-3 text-sm font-bold text-foreground transition hover:border-primary/30 hover:bg-surface-elevated focus-ring"
+                        >
+                          已有行程，直接导入 →
+                        </a>
+                      </div>''',
+          )
+          replace_once(
+              "apps/web/src/app/zh-hant/page.tsx",
+              '''          <div className="mt-6 flex flex-wrap gap-3">
+                        <a
+                          href="/zh-hant/discover"
+                          className="rounded-full bg-foreground px-5 py-3 text-sm font-bold text-white shadow-lg shadow-foreground/15 transition hover:-translate-y-0.5 hover:bg-primary focus-ring"
+                        >
+                          按天氣條件選城市 →
+                        </a>
+                      </div>''',
+              '''          <div className="mt-6 flex flex-wrap gap-3">
+                        <a
+                          href="/zh-hant/discover"
+                          className="rounded-full bg-foreground px-5 py-3 text-sm font-bold text-white shadow-lg shadow-foreground/15 transition hover:-translate-y-0.5 hover:bg-primary focus-ring"
+                        >
+                          還沒決定去哪
+                        </a>
+                        <a
+                          href="/zh-hant/trips/new"
+                          className="rounded-full border border-border bg-white px-5 py-3 text-sm font-bold text-foreground transition hover:border-primary/30 hover:bg-surface-elevated focus-ring"
+                        >
+                          已有行程，直接匯入 →
+                        </a>
+                      </div>''',
+          )
+
+          # 2. User-language navigation instead of overlapping product module names.
+          replace_once(
+              "apps/web/src/components/SiteHeader.tsx",
+              '{isTraditional ? "天氣雷達" : isSimplified ? "目的地天气" : "Weather radar"}',
+              '{isTraditional ? "找目的地" : isSimplified ? "找目的地" : "Find a destination"}',
+          )
+          replace_once(
+              "apps/web/src/components/SiteHeader.tsx",
+              '{isTraditional ? "天氣" : isSimplified ? "天气" : "Radar"}',
+              '{isTraditional ? "目的地" : isSimplified ? "目的地" : "Discover"}',
+          )
+          replace_once(
+              "apps/web/src/components/SiteHeader.tsx",
+              '{isTraditional ? "行程助手" : isSimplified ? "行程助手" : "Trip planner"}',
+              '{isTraditional ? "規劃行程" : isSimplified ? "规划行程" : "Plan a trip"}',
+          )
+
+          # 3. Show the product value and primary actions before anonymous account state.
+          trip_pages = {
+              "apps/web/src/app/trips/page.tsx": "en",
+              "apps/web/src/app/zh-cn/trips/page.tsx": "zh-cn",
+              "apps/web/src/app/zh-hant/trips/page.tsx": "zh-hant",
+          }
+          for path, locale in trip_pages.items():
+              source = read(path)
+              dashboard = f'      <MyTripsDashboard locale="{locale}" />\n'
+              if source.count(dashboard) != 1:
+                  raise SystemExit(f"dashboard marker mismatch in {path}")
+              source = source.replace(dashboard, "", 1)
+              process_marker = '      <section className="mt-12 grid gap-4 md:grid-cols-3"'
+              index = source.find(process_marker)
+              if index < 0:
+                  raise SystemExit(f"process marker missing in {path}")
+              source = source[:index] + dashboard + "\n" + source[index:]
+              write(path, source)
+
+          # 4. Upgrade Discover into an indexable, localized application landing surface.
+          discover_pages = {
+              "apps/web/src/app/discover/page.tsx": '''import type { Metadata } from "next";
+          import type { ReactElement } from "react";
+          import { JsonLd } from "../../components/JsonLd";
+          import { WeatherDiscoveryPlannerV2 } from "../../components/WeatherDiscoveryPlannerV2";
+          import { buildAlternates, localeUrl } from "../seo";
+
+          const description =
+            "Choose travel dates and priorities, then compare destinations by rain, temperature, wind and trip comfort.";
+
+          export const metadata: Metadata = {
+            title: "Find a travel destination by weather",
+            description,
+            alternates: buildAlternates("/discover", "en", ["en", "zh-cn", "zh-hant"]),
+            robots: { index: true, follow: true },
+          };
+
+          export default function WeatherDiscoveryPage(): ReactElement {
+            const jsonLd = {
+              "@context": "https://schema.org",
+              "@type": "WebApplication",
+              name: "Where Not Rain destination finder",
+              description,
+              url: localeUrl("en", "/discover"),
+              applicationCategory: "TravelApplication",
+              operatingSystem: "Web",
+              inLanguage: "en",
+            };
+
+            return (
+              <>
+                <JsonLd schema={jsonLd} />
+                <WeatherDiscoveryPlannerV2 locale="en" />
+              </>
+            );
+          }
+          ''',
+              "apps/web/src/app/zh-cn/discover/page.tsx": '''import type { Metadata } from "next";
+          import type { ReactElement } from "react";
+          import { JsonLd } from "../../../components/JsonLd";
+          import { WeatherDiscoveryPlannerV2 } from "../../../components/WeatherDiscoveryPlannerV2";
+          import { buildAlternates, localeUrl } from "../../seo";
+
+          const description = "选择出行日期和最在意的天气条件，对比少雨、气温、风力及亲子或长辈舒适度。";
+
+          export const metadata: Metadata = {
+            title: "按天气寻找旅行目的地",
+            description,
+            alternates: buildAlternates("/discover", "zh-cn", ["en", "zh-cn", "zh-hant"]),
+            robots: { index: true, follow: true },
+          };
+
+          export default function SimplifiedWeatherDiscoveryPage(): ReactElement {
+            const jsonLd = {
+              "@context": "https://schema.org",
+              "@type": "WebApplication",
+              name: "Where Not Rain 天气目的地推荐",
+              description,
+              url: localeUrl("zh-cn", "/discover"),
+              applicationCategory: "TravelApplication",
+              operatingSystem: "Web",
+              inLanguage: "zh-CN",
+            };
+
+            return (
+              <>
+                <JsonLd schema={jsonLd} />
+                <WeatherDiscoveryPlannerV2 locale="zh-cn" />
+              </>
+            );
+          }
+          ''',
+              "apps/web/src/app/zh-hant/discover/page.tsx": '''import type { Metadata } from "next";
+          import type { ReactElement } from "react";
+          import { JsonLd } from "../../../components/JsonLd";
+          import { WeatherDiscoveryPlannerV2 } from "../../../components/WeatherDiscoveryPlannerV2";
+          import { buildAlternates, localeUrl } from "../../seo";
+
+          const description = "選擇出行日期和最在意的天氣條件，比較少雨、氣溫、風力及親子或長輩舒適度。";
+
+          export const metadata: Metadata = {
+            title: "按天氣尋找旅行目的地",
+            description,
+            alternates: buildAlternates("/discover", "zh-hant", ["en", "zh-cn", "zh-hant"]),
+            robots: { index: true, follow: true },
+          };
+
+          export default function TraditionalWeatherDiscoveryPage(): ReactElement {
+            const jsonLd = {
+              "@context": "https://schema.org",
+              "@type": "WebApplication",
+              name: "Where Not Rain 天氣目的地推薦",
+              description,
+              url: localeUrl("zh-hant", "/discover"),
+              applicationCategory: "TravelApplication",
+              operatingSystem: "Web",
+              inLanguage: "zh-Hant",
+            };
+
+            return (
+              <>
+                <JsonLd schema={jsonLd} />
+                <WeatherDiscoveryPlannerV2 locale="zh-hant" />
+              </>
+            );
+          }
+          ''',
+          }
+          for path, content in discover_pages.items():
+              write(path, content)
+
+          # 5. Simplify Discover copy and progressively disclose secondary filters.
+          discovery_path = "apps/web/src/components/WeatherDiscoveryPlannerV2.tsx"
+          source = read(discovery_path)
+          copy_replacements = {
+              'eyebrow: "Weather Discovery 2.0"': 'eyebrow: "Find the right destination"',
+              '"Choose exact dates and the conditions you care about. Rankings, map markers and comparisons use the same persisted forecast snapshot."': '"Choose your dates and what matters most. We’ll show the strongest matches, the trade-offs and the daily outlook."',
+              'score: "Intent score"': 'score: "Match"',
+              '"The selected dates are split into contiguous city blocks. This creates city/day scaffolding only—POIs come in Phase 7."': '"We’ll create an editable city-and-date plan first. Add places yourself or continue from recommended activities."',
+              'eyebrow: "天气探索 2.0"': 'eyebrow: "按天气找目的地"',
+              'intro: "选择准确日期和真正关心的天气条件。排行榜、地图和城市对比始终使用同一份持久化天气快照。"': 'intro: "选好日期和最在意的条件，我们会给出最匹配的目的地、主要取舍和逐日天气。"',
+              'score: "意图评分"': 'score: "匹配度"',
+              'tripIntro: "所选日期会按城市顺序连续均分，只创建“城市 + 日期”骨架；具体 POI 留到 Phase 7。"': 'tripIntro: "系统会先生成可编辑的城市与日期计划，你可以自己添加景点，也可以继续使用推荐活动。"',
+              'eyebrow: "天氣探索 2.0"': 'eyebrow: "按天氣找目的地"',
+              'intro: "選擇準確日期和真正關心的天氣條件。排行榜、地圖和城市比較始終使用同一份持久化天氣快照。"': 'intro: "選好日期和最在意的條件，我們會給出最匹配的目的地、主要取捨和逐日天氣。"',
+              'score: "意圖評分"': 'score: "匹配度"',
+              'tripIntro: "所選日期會按城市順序連續均分，只建立「城市 + 日期」骨架；具體 POI 留到 Phase 7。"': 'tripIntro: "系統會先建立可編輯的城市與日期計畫，你可以自行加入景點，也可以繼續使用推薦活動。"',
+          }
+          for old, new in copy_replacements.items():
+              if source.count(old) != 1:
+                  raise SystemExit(f"discovery copy marker mismatch: {old}")
+              source = source.replace(old, new, 1)
+
+          advanced_replacements = {
+              'constraints: "Optional limits",': 'constraints: "Optional limits",\n    advanced: "Refine for your trip",\n    advancedHelp: "Add travellers, trip style or strict limits only when they matter.",',
+              'constraints: "可选限制条件",': 'constraints: "可选限制条件",\n    advanced: "更多旅行偏好",\n    advancedHelp: "只有在确实重要时，再补充同行成员、游玩类型或严格限制。",',
+              'constraints: "可選限制條件",': 'constraints: "可選限制條件",\n    advanced: "更多旅行偏好",\n    advancedHelp: "只有在確實重要時，再補充同行成員、遊玩類型或嚴格限制。",',
+          }
+          for old, new in advanced_replacements.items():
+              if source.count(old) != 1:
+                  raise SystemExit(f"advanced-copy marker mismatch: {old}")
+              source = source.replace(old, new, 1)
+
+          filter_start = source.index('      <section className="info-panel mt-6" aria-label={copy.when}>')
+          filter_end = source.index('\n\n      {message.length > 0', filter_start)
+          filter_section = '''      <section className="info-panel mt-6" aria-label={copy.when}>
+            <div className="grid gap-6 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]">
+              <div>
+                <p className="eyebrow">{copy.when}</p>
+                <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                  <label className="grid gap-1 text-sm font-semibold text-foreground">
+                    {copy.from}
+                    <input
+                      type="date"
+                      value={draft.from}
+                      className="min-h-11 rounded-xl border border-border bg-white px-3"
+                      onChange={(event) =>
+                        setDraft((current) => ({ ...current, from: event.target.value }))
+                      }
+                    />
+                  </label>
+                  <label className="grid gap-1 text-sm font-semibold text-foreground">
+                    {copy.to}
+                    <input
+                      type="date"
+                      value={draft.to}
+                      className="min-h-11 rounded-xl border border-border bg-white px-3"
+                      onChange={(event) =>
+                        setDraft((current) => ({ ...current, to: event.target.value }))
+                      }
+                    />
+                  </label>
+                </div>
+              </div>
+
+              <div>
+                <p className="eyebrow">{copy.intent}</p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {listDiscoveryIntents().map((intent) => (
+                    <button
+                      key={intent}
+                      type="button"
+                      aria-pressed={draft.intent === intent}
+                      className={`min-h-11 rounded-full border px-3 text-sm font-semibold focus-ring ${draft.intent === intent ? "border-foreground bg-foreground text-white" : "border-border bg-white text-foreground"}`}
+                      onClick={() => setDraft((current) => ({ ...current, intent }))}
+                    >
+                      {INTENT_COPY[locale][intent]}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <details className="mt-5 rounded-2xl border border-border bg-surface-elevated p-4">
+              <summary className="cursor-pointer text-sm font-bold text-foreground focus-ring">
+                {copy.advanced}
+              </summary>
+              <p className="mt-2 text-xs leading-5 text-muted">{copy.advancedHelp}</p>
+              <div className="mt-4 grid gap-6 lg:grid-cols-2">
+                <div>
+                  <p className="eyebrow">{copy.context}</p>
+                  <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                    <label className="grid gap-1 text-xs font-semibold text-muted">
+                      {copy.party}
+                      <select
+                        className="min-h-11 rounded-xl border border-border bg-white px-3 text-sm text-foreground"
+                        value={draft.partyProfile ?? ""}
+                        onChange={(event) =>
+                          setDraft((current) => ({
+                            ...current,
+                            partyProfile: (event.target.value || null) as TripPartyProfile | null,
+                          }))
+                        }
+                      >
+                        <option value="">{copy.any}</option>
+                        <option value="adults">{copy.adults}</option>
+                        <option value="family">{copy.family}</option>
+                        <option value="senior">{copy.senior}</option>
+                      </select>
+                    </label>
+                    <label className="grid gap-1 text-xs font-semibold text-muted">
+                      {copy.theme}
+                      <select
+                        className="min-h-11 rounded-xl border border-border bg-white px-3 text-sm text-foreground"
+                        value={draft.theme ?? ""}
+                        onChange={(event) =>
+                          setDraft((current) => ({
+                            ...current,
+                            theme: (event.target.value || null) as DiscoveryTheme | null,
+                          }))
+                        }
+                      >
+                        <option value="">{copy.any}</option>
+                        <option value="city">{copy.city}</option>
+                        <option value="beach">{copy.beach}</option>
+                        <option value="outdoor">{copy.outdoor}</option>
+                        <option value="indoor">{copy.indoor}</option>
+                      </select>
+                    </label>
+                  </div>
+                </div>
+
+                <div>
+                  <p className="eyebrow">{copy.constraints}</p>
+                  <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                    <label className="grid gap-1 text-xs font-semibold text-muted">
+                      {copy.rain} (%)
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        value={draft.rainProbabilityMax ?? ""}
+                        placeholder={copy.noLimit}
+                        className="min-h-11 rounded-xl border border-border bg-white px-3 text-sm text-foreground"
+                        onChange={(event) => updateNumber("rainProbabilityMax", event)}
+                      />
+                    </label>
+                    <label className="grid gap-1 text-xs font-semibold text-muted">
+                      {copy.wind} (km/h)
+                      <input
+                        type="number"
+                        min="0"
+                        max="250"
+                        value={draft.windSpeedMaxKph ?? ""}
+                        placeholder={copy.noLimit}
+                        className="min-h-11 rounded-xl border border-border bg-white px-3 text-sm text-foreground"
+                        onChange={(event) => updateNumber("windSpeedMaxKph", event)}
+                      />
+                    </label>
+                    <label className="grid gap-1 text-xs font-semibold text-muted">
+                      {copy.tempMin} (°C)
+                      <input
+                        type="number"
+                        min="-50"
+                        max="60"
+                        value={draft.temperatureMinC ?? ""}
+                        placeholder={copy.noLimit}
+                        className="min-h-11 rounded-xl border border-border bg-white px-3 text-sm text-foreground"
+                        onChange={(event) => updateNumber("temperatureMinC", event)}
+                      />
+                    </label>
+                    <label className="grid gap-1 text-xs font-semibold text-muted">
+                      {copy.tempMax} (°C)
+                      <input
+                        type="number"
+                        min="-50"
+                        max="60"
+                        value={draft.temperatureMaxC ?? ""}
+                        placeholder={copy.noLimit}
+                        className="min-h-11 rounded-xl border border-border bg-white px-3 text-sm text-foreground"
+                        onChange={(event) => updateNumber("temperatureMaxC", event)}
+                      />
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </details>
+
+            <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:items-center">
+              <button type="button" className="trip-primary-button" onClick={apply}>
+                {copy.apply}
+              </button>
+              <p className="text-xs leading-5 text-muted">{copy.filtersShare}</p>
+            </div>
+          </section>'''
+          source = source[:filter_start] + filter_section + source[filter_end:]
+
+          compare_start = source.index('          <section className="info-panel mt-10" aria-labelledby="discovery-compare">')
+          compare_end = source.index('\n\n          <section className="info-panel mt-6"', compare_start)
+          compare = source[compare_start:compare_end]
+          old_wrapper = '''              <div className="mt-5 overflow-x-auto pb-2">
+                        <div
+                          className="grid min-w-[760px] gap-3"
+                          style={{
+                            gridTemplateColumns: `repeat(${selectedResults.length}, minmax(180px, 1fr))`,
+                          }}
+                        >'''
+          if compare.count(old_wrapper) != 1:
+              raise SystemExit("comparison wrapper marker mismatch")
+          compare = compare.replace(
+              old_wrapper,
+              '              <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">',
+              1,
+          )
+          old_closing = '''                  ))}
+                        </div>
+                      </div>
+                    )}'''
+          if compare.count(old_closing) != 1:
+              raise SystemExit("comparison closing marker mismatch")
+          compare = compare.replace(
+              old_closing,
+              '''                  ))}
+                      </div>
+                    )}''',
+              1,
+          )
+          source = source[:compare_start] + compare + source[compare_end:]
+          write(discovery_path, source)
+
+          # 6. Discover joins the crawlable sitemap.
+          replace_once(
+              "apps/web/src/app/sitemap.ts",
+              '    ...localizedSitemapEntries("/explore", { lastModified, changeFrequency }),',
+              '''    ...localizedSitemapEntries("/explore", { lastModified, changeFrequency }),
+              ...localizedSitemapEntries("/discover", { lastModified, changeFrequency }, [
+                "en",
+                "zh-cn",
+                "zh-hant",
+              ]),''',
+          )
+
+          # 7. PWA opens at the trip hub and exposes intent-based shortcuts.
+          manifest = {
+              "name": "Where Not Rain",
+              "short_name": "Where Not Rain",
+              "description": "Find destinations by weather, plan a trip and use a route-aware travel mode offline.",
+              "start_url": "/trips",
+              "scope": "/",
+              "display": "standalone",
+              "background_color": "#f7f8f3",
+              "theme_color": "#2563eb",
+              "icons": [
+                  {"src": "/pwa-icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable"}
+              ],
+              "shortcuts": [
+                  {"name": "My trips", "short_name": "Trips", "url": "/trips"},
+                  {"name": "Find a destination", "short_name": "Discover", "url": "/discover"},
+                  {"name": "Today's execution", "short_name": "Today", "url": "/trips/execution"},
+              ],
+          }
+          write("apps/web/public/manifest.webmanifest", json.dumps(manifest, ensure_ascii=False, indent=2) + "\n")
+
+          # 8. Regression coverage for the user funnel, copy and install entry point.
+          replace_once(
+              "apps/web/src/app/travel-radar.test.ts",
+              '''  it("renders the hero without implying a live AI decision", () => {
+                expect(html).toContain("Where is NOT raining?");
+              });''',
+              '''  it("renders the hero without implying a live AI decision", () => {
+                expect(html).toContain("Where is NOT raining?");
+                expect(html).toContain("I haven't chosen a destination");
+                expect(html).toContain('href="/discover"');
+                expect(html).toContain("I already have a trip");
+                expect(html).toContain('href="/trips/new"');
+              });''',
+          )
+          replace_once(
+              "apps/web/src/components/trip-execution-pwa-contract.test.ts",
+              '''    expect(manifest).toContain('"display": "standalone"');
+                expect(manifest).toContain('"start_url": "/trips/execution"');''',
+              '''    expect(manifest).toContain('"display": "standalone"');
+                expect(manifest).toContain('"start_url": "/trips"');
+                expect(manifest).toContain('"url": "/discover"');
+                expect(manifest).toContain('"url": "/trips/execution"');''',
+          )
+
+          ux_test = '''import { readFileSync } from "node:fs";
+          import { describe, expect, it } from "vitest";
+
+          const englishHome = readFileSync(new URL("../app/page.tsx", import.meta.url), "utf8");
+          const simplifiedHome = readFileSync(new URL("../app/zh-cn/page.tsx", import.meta.url), "utf8");
+          const traditionalHome = readFileSync(new URL("../app/zh-hant/page.tsx", import.meta.url), "utf8");
+          const header = readFileSync(new URL("./SiteHeader.tsx", import.meta.url), "utf8");
+          const discovery = readFileSync(new URL("./WeatherDiscoveryPlannerV2.tsx", import.meta.url), "utf8");
+          const sitemap = readFileSync(new URL("../app/sitemap.ts", import.meta.url), "utf8");
+
+          const tripPages = [
+            [readFileSync(new URL("../app/trips/page.tsx", import.meta.url), "utf8"), '<MyTripsDashboard locale="en" />'],
+            [readFileSync(new URL("../app/zh-cn/trips/page.tsx", import.meta.url), "utf8"), '<MyTripsDashboard locale="zh-cn" />'],
+            [readFileSync(new URL("../app/zh-hant/trips/page.tsx", import.meta.url), "utf8"), '<MyTripsDashboard locale="zh-hant" />'],
+          ] as const;
+
+          describe("search-to-retention P0 UX contracts", () => {
+            it("splits first-time visitors by task on every homepage", () => {
+              expect(englishHome).toContain('href="/discover"');
+              expect(englishHome).toContain("I haven't chosen a destination");
+              expect(englishHome).toContain('href="/trips/new"');
+              expect(simplifiedHome).toContain("还没决定去哪");
+              expect(simplifiedHome).toContain('href="/zh-cn/trips/new"');
+              expect(traditionalHome).toContain("還沒決定去哪");
+              expect(traditionalHome).toContain('href="/zh-hant/trips/new"');
+            });
+
+            it("publishes complete three-locale homepage alternates", () => {
+              expect(englishHome).toContain('buildAlternates("/", "en", ["en", "zh-cn", "zh-hant"])');
+              expect(simplifiedHome).toContain(
+                'buildAlternates("/", "zh-cn", ["en", "zh-cn", "zh-hant"])',
+              );
+              expect(traditionalHome).toContain(
+                'buildAlternates("/", "zh-hant", ["en", "zh-cn", "zh-hant"])',
+              );
+            });
+
+            it("uses task language in the global navigation", () => {
+              expect(header).toContain("Find a destination");
+              expect(header).toContain("Plan a trip");
+              expect(header).toContain("找目的地");
+              expect(header).toContain("规划行程");
+              expect(header).toContain("規劃行程");
+            });
+
+            it("shows product value before account state on trip landing pages", () => {
+              for (const [source, dashboard] of tripPages) {
+                const heroIndex = source.indexOf('<section className="trip-hero">');
+                const dashboardIndex = source.indexOf(dashboard);
+                expect(heroIndex).toBeGreaterThan(-1);
+                expect(dashboardIndex).toBeGreaterThan(heroIndex);
+              }
+            });
+
+            it("keeps advanced discovery controls optional and removes internal release language", () => {
+              expect(discovery).toContain("<details");
+              expect(discovery).toContain("Refine for your trip");
+              expect(discovery).toContain("更多旅行偏好");
+              expect(discovery).not.toContain("Weather Discovery 2.0");
+              expect(discovery).not.toContain("天气探索 2.0");
+              expect(discovery).not.toContain("天氣探索 2.0");
+              expect(discovery).not.toContain("Phase 7");
+              expect(discovery).not.toContain("persisted forecast snapshot");
+            });
+
+            it("uses a responsive shortlist comparison instead of a forced desktop-width table", () => {
+              expect(discovery).toContain("sm:grid-cols-2 xl:grid-cols-4");
+              expect(discovery).not.toContain("min-w-[760px]");
+              expect(discovery).not.toContain("gridTemplateColumns");
+            });
+
+            it("makes the localized discovery application crawlable", () => {
+              expect(sitemap).toContain('localizedSitemapEntries("/discover"');
+              for (const path of [
+                "../app/discover/page.tsx",
+                "../app/zh-cn/discover/page.tsx",
+                "../app/zh-hant/discover/page.tsx",
+              ]) {
+                const source = readFileSync(new URL(path, import.meta.url), "utf8");
+                expect(source).toContain('buildAlternates("/discover"');
+                expect(source).toContain('"@type": "WebApplication"');
+                expect(source).toContain("<JsonLd schema={jsonLd} />");
+              }
+            });
+          });
+          '''
+          write("apps/web/src/components/ux-funnel-contract.test.ts", ux_test)
+          PY
+
+          pnpm exec prettier --write \
+            apps/web/src/app/page.tsx \
+            apps/web/src/app/zh-cn/page.tsx \
+            apps/web/src/app/zh-hant/page.tsx \
+            apps/web/src/components/SiteHeader.tsx \
+            apps/web/src/app/trips/page.tsx \
+            apps/web/src/app/zh-cn/trips/page.tsx \
+            apps/web/src/app/zh-hant/trips/page.tsx \
+            apps/web/src/app/discover/page.tsx \
+            apps/web/src/app/zh-cn/discover/page.tsx \
+            apps/web/src/app/zh-hant/discover/page.tsx \
+            apps/web/src/components/WeatherDiscoveryPlannerV2.tsx \
+            apps/web/src/app/sitemap.ts \
+            apps/web/public/manifest.webmanifest \
+            apps/web/src/app/travel-radar.test.ts \
+            apps/web/src/components/trip-execution-pwa-contract.test.ts \
+            apps/web/src/components/ux-funnel-contract.test.ts
+
+      - name: Validate focused UX contracts
+        run: |
+          pnpm --filter @wnr/web lint
+          pnpm --filter @wnr/web exec vitest run \
+            src/app/travel-radar.test.ts \
+            src/components/trip-execution-pwa-contract.test.ts \
+            src/components/ux-funnel-contract.test.ts
+
+      - name: Validate production-equivalent static export
+        env:
+          APP_BASE_URL: https://868656.xyz
+          NEXT_PUBLIC_TRIP_API_URL: https://trip.868656.xyz
+        run: |
+          pnpm -r --filter '!@wnr/web' --filter '!@wnr/weather-sync' --filter '!@wnr/maintenance' build
+          pnpm --filter @wnr/web build
+          grep -Fq "I haven't chosen a destination" apps/web/out/index.html
+          grep -Fq "还没决定去哪" apps/web/out/zh-cn/index.html
+          grep -Fq "還沒決定去哪" apps/web/out/zh-hant/index.html
+          grep -Fq "Find the right destination" apps/web/out/discover.html
+          grep -Fq "按天气找目的地" apps/web/out/zh-cn/discover.html
+          grep -Fq "按天氣找目的地" apps/web/out/zh-hant/discover.html
+
+      - name: Commit implementation and remove one-shot workflow
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/apply-ux-funnel-p0-once.yml
+          git add \
+            apps/web/src/app/page.tsx \
+            apps/web/src/app/zh-cn/page.tsx \
+            apps/web/src/app/zh-hant/page.tsx \
+            apps/web/src/components/SiteHeader.tsx \
+            apps/web/src/app/trips/page.tsx \
+            apps/web/src/app/zh-cn/trips/page.tsx \
+            apps/web/src/app/zh-hant/trips/page.tsx \
+            apps/web/src/app/discover/page.tsx \
+            apps/web/src/app/zh-cn/discover/page.tsx \
+            apps/web/src/app/zh-hant/discover/page.tsx \
+            apps/web/src/components/WeatherDiscoveryPlannerV2.tsx \
+            apps/web/src/app/sitemap.ts \
+            apps/web/public/manifest.webmanifest \
+            apps/web/src/app/travel-radar.test.ts \
+            apps/web/src/components/trip-execution-pwa-contract.test.ts \
+            apps/web/src/components/ux-funnel-contract.test.ts
+          git commit -m "feat: optimize search-to-retention UX funnel"
+          git push origin HEAD:agent/ux-funnel-p0
