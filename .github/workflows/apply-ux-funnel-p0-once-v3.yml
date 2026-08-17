@@ -124,6 +124,9 @@ jobs:
             apps/web/src/components/trip-execution-pwa-contract.test.ts \
             apps/web/src/components/ux-funnel-contract.test.ts
 
+      - name: Build focused test dependencies
+        run: pnpm -r --filter '!@wnr/web' --filter '!@wnr/weather-sync' --filter '!@wnr/maintenance' build
+
       - name: Validate focused UX contracts
         run: |
           pnpm --filter @wnr/web lint
@@ -137,7 +140,6 @@ jobs:
           APP_BASE_URL: https://868656.xyz
           NEXT_PUBLIC_TRIP_API_URL: https://trip.868656.xyz
         run: |
-          pnpm -r --filter '!@wnr/web' --filter '!@wnr/weather-sync' --filter '!@wnr/maintenance' build
           pnpm --filter @wnr/web build
           grep -Fq "I haven't chosen a destination" apps/web/out/index.html
           grep -Fq "还没决定去哪" apps/web/out/zh-cn/index.html
