@@ -68,7 +68,13 @@ export default async function TraditionalChineseHome(): Promise<ReactElement> {
               href="/zh-hant/discover"
               className="rounded-full bg-foreground px-5 py-3 text-sm font-bold text-white shadow-lg shadow-foreground/15 transition hover:-translate-y-0.5 hover:bg-primary focus-ring"
             >
-              按天氣條件選城市 →
+              還沒決定去哪
+            </a>
+            <a
+              href="/zh-hant/trips/new"
+              className="rounded-full border border-border bg-white px-5 py-3 text-sm font-bold text-foreground transition hover:border-primary/30 hover:bg-surface-elevated focus-ring"
+            >
+              已有行程，直接匯入 →
             </a>
           </div>
         </div>

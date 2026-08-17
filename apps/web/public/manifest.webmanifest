@@ -1,18 +1,35 @@
 {
   "name": "Where Not Rain",
-  "short_name": "WNR",
-  "description": "Weather-first destination discovery and trip execution.",
-  "start_url": "/trips/execution",
+  "short_name": "Where Not Rain",
+  "description": "Find destinations by weather, plan a trip and use a route-aware travel mode offline.",
+  "start_url": "/trips",
   "scope": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
+  "background_color": "#f7f8f3",
   "theme_color": "#2563eb",
   "icons": [
     {
-      "src": "/favicon.svg",
+      "src": "/pwa-icon.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "My trips",
+      "short_name": "Trips",
+      "url": "/trips"
+    },
+    {
+      "name": "Find a destination",
+      "short_name": "Discover",
+      "url": "/discover"
+    },
+    {
+      "name": "Today's execution",
+      "short_name": "Today",
+      "url": "/trips/execution"
     }
   ]
 }

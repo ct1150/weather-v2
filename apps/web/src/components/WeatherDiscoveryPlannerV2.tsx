@@ -60,10 +60,10 @@ const MAX_SHORTLIST = 4;
 
 const COPY = {
   en: {
-    eyebrow: "Weather Discovery 2.0",
+    eyebrow: "Find the right destination",
     title: "Start with the weather. Decide the destination second.",
     intro:
-      "Choose exact dates and the conditions you care about. Rankings, map markers and comparisons use the same persisted forecast snapshot.",
+      "Choose your dates and what matters most. We’ll show the strongest matches, the trade-offs and the daily outlook.",
     when: "Travel dates",
     from: "From",
     to: "To",
@@ -80,6 +80,8 @@ const COPY = {
     outdoor: "Outdoor",
     indoor: "Indoor",
     constraints: "Optional limits",
+    advanced: "Refine for your trip",
+    advancedHelp: "Add travellers, trip style or strict limits only when they matter.",
     rain: "Max rain chance",
     tempMin: "Min night temperature",
     tempMax: "Max daytime temperature",
@@ -98,7 +100,7 @@ const COPY = {
     compare: "Compare shortlist",
     compareIntro: "One weather snapshot, the same dates, side by side.",
     emptyShortlist: "Shortlist 2–4 destinations to compare them here.",
-    score: "Intent score",
+    score: "Match",
     rainMetric: "Peak rain",
     tempMetric: "Avg temperature",
     windMetric: "Peak wind",
@@ -106,7 +108,7 @@ const COPY = {
     forecast: "Daily outlook",
     trip: "Turn shortlist into a trip",
     tripIntro:
-      "The selected dates are split into contiguous city blocks. This creates city/day scaffolding only—POIs come in Phase 7.",
+      "We’ll create an editable city-and-date plan first. Add places yourself or continue from recommended activities.",
     create: "Create new trip",
     append: "Append to current trip",
     openTrip: "Open trip",
@@ -122,9 +124,9 @@ const COPY = {
     remove: "Remove",
   },
   "zh-cn": {
-    eyebrow: "天气探索 2.0",
+    eyebrow: "按天气找目的地",
     title: "先看天气，再决定去哪里。",
-    intro: "选择准确日期和真正关心的天气条件。排行榜、地图和城市对比始终使用同一份持久化天气快照。",
+    intro: "选好日期和最在意的条件，我们会给出最匹配的目的地、主要取舍和逐日天气。",
     when: "出行日期",
     from: "开始",
     to: "结束",
@@ -141,6 +143,8 @@ const COPY = {
     outdoor: "户外",
     indoor: "室内",
     constraints: "可选限制条件",
+    advanced: "更多旅行偏好",
+    advancedHelp: "只有在确实重要时，再补充同行成员、游玩类型或严格限制。",
     rain: "最高降雨概率",
     tempMin: "最低夜间温度",
     tempMax: "最高白天气温",
@@ -159,14 +163,14 @@ const COPY = {
     compare: "城市对比",
     compareIntro: "同一份天气快照、同一组日期，直接横向比较。",
     emptyShortlist: "先加入 2–4 个目的地，即可在这里横向比较。",
-    score: "意图评分",
+    score: "匹配度",
     rainMetric: "最高降雨",
     tempMetric: "平均气温",
     windMetric: "最大风速",
     uvMetric: "最高 UV",
     forecast: "逐日天气",
     trip: "把对比城市变成行程",
-    tripIntro: "所选日期会按城市顺序连续均分，只创建“城市 + 日期”骨架；具体 POI 留到 Phase 7。",
+    tripIntro: "系统会先生成可编辑的城市与日期计划，你可以自己添加景点，也可以继续使用推荐活动。",
     create: "创建新行程",
     append: "追加到当前行程",
     openTrip: "打开行程",
@@ -182,9 +186,9 @@ const COPY = {
     remove: "移除",
   },
   "zh-hant": {
-    eyebrow: "天氣探索 2.0",
+    eyebrow: "按天氣找目的地",
     title: "先看天氣，再決定去哪裡。",
-    intro: "選擇準確日期和真正關心的天氣條件。排行榜、地圖和城市比較始終使用同一份持久化天氣快照。",
+    intro: "選好日期和最在意的條件，我們會給出最匹配的目的地、主要取捨和逐日天氣。",
     when: "出行日期",
     from: "開始",
     to: "結束",
@@ -201,6 +205,8 @@ const COPY = {
     outdoor: "戶外",
     indoor: "室內",
     constraints: "可選限制條件",
+    advanced: "更多旅行偏好",
+    advancedHelp: "只有在確實重要時，再補充同行成員、遊玩類型或嚴格限制。",
     rain: "最高降雨機率",
     tempMin: "最低夜間溫度",
     tempMax: "最高白天氣溫",
@@ -219,14 +225,14 @@ const COPY = {
     compare: "城市比較",
     compareIntro: "同一份天氣快照、同一組日期，直接橫向比較。",
     emptyShortlist: "先加入 2–4 個目的地，即可在這裡橫向比較。",
-    score: "意圖評分",
+    score: "匹配度",
     rainMetric: "最高降雨",
     tempMetric: "平均氣溫",
     windMetric: "最大風速",
     uvMetric: "最高 UV",
     forecast: "逐日天氣",
     trip: "把比較城市變成行程",
-    tripIntro: "所選日期會按城市順序連續均分，只建立「城市 + 日期」骨架；具體 POI 留到 Phase 7。",
+    tripIntro: "系統會先建立可編輯的城市與日期計畫，你可以自行加入景點，也可以繼續使用推薦活動。",
     create: "建立新行程",
     append: "追加到目前行程",
     openTrip: "開啟行程",
@@ -616,10 +622,10 @@ export function WeatherDiscoveryPlannerV2({
       </section>
 
       <section className="info-panel mt-6" aria-label={copy.when}>
-        <div className="grid gap-6 xl:grid-cols-3">
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]">
           <div>
             <p className="eyebrow">{copy.when}</p>
-            <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
+            <div className="mt-3 grid gap-3 sm:grid-cols-2">
               <label className="grid gap-1 text-sm font-semibold text-foreground">
                 {copy.from}
                 <input
@@ -643,7 +649,10 @@ export function WeatherDiscoveryPlannerV2({
                 />
               </label>
             </div>
-            <p className="eyebrow mt-6">{copy.intent}</p>
+          </div>
+
+          <div>
+            <p className="eyebrow">{copy.intent}</p>
             <div className="mt-3 flex flex-wrap gap-2">
               {listDiscoveryIntents().map((intent) => (
                 <button
@@ -658,107 +667,118 @@ export function WeatherDiscoveryPlannerV2({
               ))}
             </div>
           </div>
+        </div>
 
-          <div>
-            <p className="eyebrow">{copy.context}</p>
-            <div className="mt-3 grid gap-3">
-              <label className="grid gap-1 text-xs font-semibold text-muted">
-                {copy.party}
-                <select
-                  className="min-h-11 rounded-xl border border-border bg-white px-3 text-sm text-foreground"
-                  value={draft.partyProfile ?? ""}
-                  onChange={(event) =>
-                    setDraft((current) => ({
-                      ...current,
-                      partyProfile: (event.target.value || null) as TripPartyProfile | null,
-                    }))
-                  }
-                >
-                  <option value="">{copy.any}</option>
-                  <option value="adults">{copy.adults}</option>
-                  <option value="family">{copy.family}</option>
-                  <option value="senior">{copy.senior}</option>
-                </select>
-              </label>
-              <label className="grid gap-1 text-xs font-semibold text-muted">
-                {copy.theme}
-                <select
-                  className="min-h-11 rounded-xl border border-border bg-white px-3 text-sm text-foreground"
-                  value={draft.theme ?? ""}
-                  onChange={(event) =>
-                    setDraft((current) => ({
-                      ...current,
-                      theme: (event.target.value || null) as DiscoveryTheme | null,
-                    }))
-                  }
-                >
-                  <option value="">{copy.any}</option>
-                  <option value="city">{copy.city}</option>
-                  <option value="beach">{copy.beach}</option>
-                  <option value="outdoor">{copy.outdoor}</option>
-                  <option value="indoor">{copy.indoor}</option>
-                </select>
-              </label>
+        <details className="mt-5 rounded-2xl border border-border bg-surface-elevated p-4">
+          <summary className="cursor-pointer text-sm font-bold text-foreground focus-ring">
+            {copy.advanced}
+          </summary>
+          <p className="mt-2 text-xs leading-5 text-muted">{copy.advancedHelp}</p>
+          <div className="mt-4 grid gap-6 lg:grid-cols-2">
+            <div>
+              <p className="eyebrow">{copy.context}</p>
+              <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                <label className="grid gap-1 text-xs font-semibold text-muted">
+                  {copy.party}
+                  <select
+                    className="min-h-11 rounded-xl border border-border bg-white px-3 text-sm text-foreground"
+                    value={draft.partyProfile ?? ""}
+                    onChange={(event) =>
+                      setDraft((current) => ({
+                        ...current,
+                        partyProfile: (event.target.value || null) as TripPartyProfile | null,
+                      }))
+                    }
+                  >
+                    <option value="">{copy.any}</option>
+                    <option value="adults">{copy.adults}</option>
+                    <option value="family">{copy.family}</option>
+                    <option value="senior">{copy.senior}</option>
+                  </select>
+                </label>
+                <label className="grid gap-1 text-xs font-semibold text-muted">
+                  {copy.theme}
+                  <select
+                    className="min-h-11 rounded-xl border border-border bg-white px-3 text-sm text-foreground"
+                    value={draft.theme ?? ""}
+                    onChange={(event) =>
+                      setDraft((current) => ({
+                        ...current,
+                        theme: (event.target.value || null) as DiscoveryTheme | null,
+                      }))
+                    }
+                  >
+                    <option value="">{copy.any}</option>
+                    <option value="city">{copy.city}</option>
+                    <option value="beach">{copy.beach}</option>
+                    <option value="outdoor">{copy.outdoor}</option>
+                    <option value="indoor">{copy.indoor}</option>
+                  </select>
+                </label>
+              </div>
+            </div>
+
+            <div>
+              <p className="eyebrow">{copy.constraints}</p>
+              <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                <label className="grid gap-1 text-xs font-semibold text-muted">
+                  {copy.rain} (%)
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={draft.rainProbabilityMax ?? ""}
+                    placeholder={copy.noLimit}
+                    className="min-h-11 rounded-xl border border-border bg-white px-3 text-sm text-foreground"
+                    onChange={(event) => updateNumber("rainProbabilityMax", event)}
+                  />
+                </label>
+                <label className="grid gap-1 text-xs font-semibold text-muted">
+                  {copy.wind} (km/h)
+                  <input
+                    type="number"
+                    min="0"
+                    max="250"
+                    value={draft.windSpeedMaxKph ?? ""}
+                    placeholder={copy.noLimit}
+                    className="min-h-11 rounded-xl border border-border bg-white px-3 text-sm text-foreground"
+                    onChange={(event) => updateNumber("windSpeedMaxKph", event)}
+                  />
+                </label>
+                <label className="grid gap-1 text-xs font-semibold text-muted">
+                  {copy.tempMin} (°C)
+                  <input
+                    type="number"
+                    min="-50"
+                    max="60"
+                    value={draft.temperatureMinC ?? ""}
+                    placeholder={copy.noLimit}
+                    className="min-h-11 rounded-xl border border-border bg-white px-3 text-sm text-foreground"
+                    onChange={(event) => updateNumber("temperatureMinC", event)}
+                  />
+                </label>
+                <label className="grid gap-1 text-xs font-semibold text-muted">
+                  {copy.tempMax} (°C)
+                  <input
+                    type="number"
+                    min="-50"
+                    max="60"
+                    value={draft.temperatureMaxC ?? ""}
+                    placeholder={copy.noLimit}
+                    className="min-h-11 rounded-xl border border-border bg-white px-3 text-sm text-foreground"
+                    onChange={(event) => updateNumber("temperatureMaxC", event)}
+                  />
+                </label>
+              </div>
             </div>
           </div>
+        </details>
 
-          <div>
-            <p className="eyebrow">{copy.constraints}</p>
-            <div className="mt-3 grid gap-3 sm:grid-cols-2">
-              <label className="grid gap-1 text-xs font-semibold text-muted">
-                {copy.rain} (%)
-                <input
-                  type="number"
-                  min="0"
-                  max="100"
-                  value={draft.rainProbabilityMax ?? ""}
-                  placeholder={copy.noLimit}
-                  className="min-h-11 rounded-xl border border-border bg-white px-3 text-sm text-foreground"
-                  onChange={(event) => updateNumber("rainProbabilityMax", event)}
-                />
-              </label>
-              <label className="grid gap-1 text-xs font-semibold text-muted">
-                {copy.wind} (km/h)
-                <input
-                  type="number"
-                  min="0"
-                  max="250"
-                  value={draft.windSpeedMaxKph ?? ""}
-                  placeholder={copy.noLimit}
-                  className="min-h-11 rounded-xl border border-border bg-white px-3 text-sm text-foreground"
-                  onChange={(event) => updateNumber("windSpeedMaxKph", event)}
-                />
-              </label>
-              <label className="grid gap-1 text-xs font-semibold text-muted">
-                {copy.tempMin} (°C)
-                <input
-                  type="number"
-                  min="-50"
-                  max="60"
-                  value={draft.temperatureMinC ?? ""}
-                  placeholder={copy.noLimit}
-                  className="min-h-11 rounded-xl border border-border bg-white px-3 text-sm text-foreground"
-                  onChange={(event) => updateNumber("temperatureMinC", event)}
-                />
-              </label>
-              <label className="grid gap-1 text-xs font-semibold text-muted">
-                {copy.tempMax} (°C)
-                <input
-                  type="number"
-                  min="-50"
-                  max="60"
-                  value={draft.temperatureMaxC ?? ""}
-                  placeholder={copy.noLimit}
-                  className="min-h-11 rounded-xl border border-border bg-white px-3 text-sm text-foreground"
-                  onChange={(event) => updateNumber("temperatureMaxC", event)}
-                />
-              </label>
-            </div>
-            <button type="button" className="trip-primary-button mt-4 w-full" onClick={apply}>
-              {copy.apply}
-            </button>
-            <p className="mt-2 text-xs leading-5 text-muted">{copy.filtersShare}</p>
-          </div>
+        <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:items-center">
+          <button type="button" className="trip-primary-button" onClick={apply}>
+            {copy.apply}
+          </button>
+          <p className="text-xs leading-5 text-muted">{copy.filtersShare}</p>
         </div>
       </section>
 
@@ -883,80 +903,71 @@ export function WeatherDiscoveryPlannerV2({
             {selectedResults.length < 2 ? (
               <p className="mt-5 text-sm text-muted">{copy.emptyShortlist}</p>
             ) : (
-              <div className="mt-5 overflow-x-auto pb-2">
-                <div
-                  className="grid min-w-[760px] gap-3"
-                  style={{
-                    gridTemplateColumns: `repeat(${selectedResults.length}, minmax(180px, 1fr))`,
-                  }}
-                >
-                  {selectedResults.map((result) => (
-                    <article
-                      key={result.city.cityId}
-                      className="rounded-2xl border border-border bg-white p-4"
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <div>
-                          <p className="text-xs text-muted">{result.city.countryName}</p>
-                          <h3 className="text-lg font-bold">{result.city.cityName}</h3>
-                        </div>
-                        <button
-                          type="button"
-                          className="text-xs font-bold text-primary"
-                          onClick={() => toggle(result.city.cityId)}
-                        >
-                          {copy.remove}
-                        </button>
+              <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                {selectedResults.map((result) => (
+                  <article
+                    key={result.city.cityId}
+                    className="rounded-2xl border border-border bg-white p-4"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <p className="text-xs text-muted">{result.city.countryName}</p>
+                        <h3 className="text-lg font-bold">{result.city.cityName}</h3>
                       </div>
-                      <p className="mt-3 text-3xl font-bold">{result.score}</p>
-                      <p className="text-xs text-muted">{copy.score}</p>
-                      <dl className="mt-4 grid gap-2 text-xs">
-                        <div className="flex justify-between">
-                          <dt>{copy.rainMetric}</dt>
-                          <dd className="font-bold">
-                            {format(result.metrics.maxRainProbability, "%")}
-                          </dd>
-                        </div>
-                        <div className="flex justify-between">
-                          <dt>{copy.tempMetric}</dt>
-                          <dd className="font-bold">{temperature(result)}</dd>
-                        </div>
-                        <div className="flex justify-between">
-                          <dt>{copy.windMetric}</dt>
-                          <dd className="font-bold">
-                            {format(result.metrics.maxWindKph, " km/h")}
-                          </dd>
-                        </div>
-                        <div className="flex justify-between">
-                          <dt>{copy.uvMetric}</dt>
-                          <dd className="font-bold">{format(result.metrics.maxUv, "")}</dd>
-                        </div>
-                      </dl>
-                      <p className="mt-4 text-xs font-bold uppercase tracking-[0.08em] text-muted">
-                        {copy.forecast}
-                      </p>
-                      <ul className="mt-2 grid gap-2">
-                        {result.forecastDays.map((day) => (
-                          <li
-                            key={`${day.cityId}-${day.date}`}
-                            className="rounded-xl bg-surface-elevated p-2 text-xs"
-                          >
-                            <div className="flex justify-between gap-2">
-                              <strong>{day.date.slice(5)}</strong>
-                              <span>{day.condition}</span>
-                            </div>
-                            <div className="mt-1 flex justify-between gap-2 text-muted">
-                              <span>
-                                {day.temperatureMinC ?? "—"}°–{day.temperatureMaxC ?? "—"}°
-                              </span>
-                              <span>{day.rainProbability ?? "—"}%</span>
-                            </div>
-                          </li>
-                        ))}
-                      </ul>
-                    </article>
-                  ))}
-                </div>
+                      <button
+                        type="button"
+                        className="text-xs font-bold text-primary"
+                        onClick={() => toggle(result.city.cityId)}
+                      >
+                        {copy.remove}
+                      </button>
+                    </div>
+                    <p className="mt-3 text-3xl font-bold">{result.score}</p>
+                    <p className="text-xs text-muted">{copy.score}</p>
+                    <dl className="mt-4 grid gap-2 text-xs">
+                      <div className="flex justify-between">
+                        <dt>{copy.rainMetric}</dt>
+                        <dd className="font-bold">
+                          {format(result.metrics.maxRainProbability, "%")}
+                        </dd>
+                      </div>
+                      <div className="flex justify-between">
+                        <dt>{copy.tempMetric}</dt>
+                        <dd className="font-bold">{temperature(result)}</dd>
+                      </div>
+                      <div className="flex justify-between">
+                        <dt>{copy.windMetric}</dt>
+                        <dd className="font-bold">{format(result.metrics.maxWindKph, " km/h")}</dd>
+                      </div>
+                      <div className="flex justify-between">
+                        <dt>{copy.uvMetric}</dt>
+                        <dd className="font-bold">{format(result.metrics.maxUv, "")}</dd>
+                      </div>
+                    </dl>
+                    <p className="mt-4 text-xs font-bold uppercase tracking-[0.08em] text-muted">
+                      {copy.forecast}
+                    </p>
+                    <ul className="mt-2 grid gap-2">
+                      {result.forecastDays.map((day) => (
+                        <li
+                          key={`${day.cityId}-${day.date}`}
+                          className="rounded-xl bg-surface-elevated p-2 text-xs"
+                        >
+                          <div className="flex justify-between gap-2">
+                            <strong>{day.date.slice(5)}</strong>
+                            <span>{day.condition}</span>
+                          </div>
+                          <div className="mt-1 flex justify-between gap-2 text-muted">
+                            <span>
+                              {day.temperatureMinC ?? "—"}°–{day.temperatureMaxC ?? "—"}°
+                            </span>
+                            <span>{day.rainProbability ?? "—"}%</span>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  </article>
+                ))}
               </div>
             )}
           </section>

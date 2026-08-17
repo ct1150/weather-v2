@@ -51,7 +51,6 @@ export default function TripsLanding(): ReactElement {
   return (
     <main id="main-content" className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-10">
       <JsonLd schema={jsonLd} />
-      <MyTripsDashboard locale="en" />
 
       <section className="trip-hero">
         <div className="relative z-10 max-w-4xl">
@@ -81,6 +80,8 @@ export default function TripsLanding(): ReactElement {
           </p>
         </div>
       </section>
+
+      <MyTripsDashboard locale="en" />
 
       <section className="mt-12 grid gap-4 md:grid-cols-3" aria-label="How the product works">
         {[

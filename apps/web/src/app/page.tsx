@@ -114,18 +114,24 @@ export function TravelRadarPage({
             ) : null}
             <div className="mt-5 flex flex-wrap items-center gap-3">
               <a
-                href="#recommendations"
+                href="/discover"
                 className="rounded-full bg-foreground px-5 py-3 text-sm font-bold text-white shadow-lg shadow-foreground/15 transition hover:-translate-y-0.5 hover:bg-primary focus-ring"
               >
-                Compare ranked options
+                I haven't chosen a destination
               </a>
               <a
-                href="/explore"
+                href="/trips/new"
                 className="rounded-full border border-border bg-white px-5 py-3 text-sm font-bold text-foreground transition hover:border-primary/30 hover:bg-surface-elevated focus-ring"
               >
-                Explore the map <span aria-hidden="true">→</span>
+                I already have a trip <span aria-hidden="true">→</span>
               </a>
             </div>
+            <a
+              href="#recommendations"
+              className="mt-3 inline-flex text-sm font-semibold text-primary underline-offset-4 hover:underline focus-ring"
+            >
+              Browse today's ranked options
+            </a>
           </div>
           {bestOption !== null ? (
             <aside className="decision-board" aria-label="Best available option">
@@ -392,7 +398,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title: { absolute: title },
     description,
-    alternates: buildAlternates("/", "en", ["en", "zh-cn"]),
+    alternates: buildAlternates("/", "en", ["en", "zh-cn", "zh-hant"]),
     robots: routeRobots("homepage", true),
     openGraph: {
       type: "website",

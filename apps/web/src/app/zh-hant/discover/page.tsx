@@ -1,11 +1,34 @@
 import type { Metadata } from "next";
+import type { ReactElement } from "react";
+import { JsonLd } from "../../../components/JsonLd";
 import { WeatherDiscoveryPlannerV2 } from "../../../components/WeatherDiscoveryPlannerV2";
+import { buildAlternates, localeUrl } from "../../seo";
+
+const description = "選擇出行日期和最在意的天氣條件，比較少雨、氣溫、風力及親子或長輩舒適度。";
 
 export const metadata: Metadata = {
-  title: "天氣探索 | Where Not Rain",
-  description: "選擇準確出行日期和天氣偏好，比較多個城市，並把天氣優選目的地直接建立成行程。",
+  title: "按天氣尋找旅行目的地",
+  description,
+  alternates: buildAlternates("/discover", "zh-hant", ["en", "zh-cn", "zh-hant"]),
+  robots: { index: true, follow: true },
 };
 
-export default function DiscoverPage() {
-  return <WeatherDiscoveryPlannerV2 locale="zh-hant" />;
+export default function TraditionalWeatherDiscoveryPage(): ReactElement {
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    name: "Where Not Rain 天氣目的地推薦",
+    description,
+    url: localeUrl("zh-hant", "/discover"),
+    applicationCategory: "TravelApplication",
+    operatingSystem: "Web",
+    inLanguage: "zh-Hant",
+  };
+
+  return (
+    <>
+      <JsonLd schema={jsonLd} />
+      <WeatherDiscoveryPlannerV2 locale="zh-hant" />
+    </>
+  );
 }

@@ -47,7 +47,6 @@ export default function TraditionalTripsLanding(): ReactElement {
   return (
     <main id="main-content" className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-10">
       <JsonLd schema={jsonLd} />
-      <MyTripsDashboard locale="zh-hant" />
       <section className="trip-hero">
         <div className="relative z-10 max-w-4xl">
           <p className="eyebrow">Weather-aware travel across Asia</p>
@@ -72,6 +71,8 @@ export default function TraditionalTripsLanding(): ReactElement {
           </p>
         </div>
       </section>
+
+      <MyTripsDashboard locale="zh-hant" />
 
       <section className="mt-12 grid gap-4 md:grid-cols-3" aria-label="產品使用流程">
         {[

@@ -122,6 +122,10 @@ describe("Travel Radar homepage — required card content", () => {
 
   it("renders the hero without implying a live AI decision", () => {
     expect(html).toContain("Where is NOT raining?");
+    expect(html).toContain("I haven&#x27;t chosen a destination");
+    expect(html).toContain('href="/discover"');
+    expect(html).toContain("I already have a trip");
+    expect(html).toContain('href="/trips/new"');
   });
 
   it("exposes every card's required fields in crawlable primary content", () => {

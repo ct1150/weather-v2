@@ -11,7 +11,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title: { absolute: title },
     description,
-    alternates: buildAlternates("/", "zh-cn", ["en", "zh-cn"]),
+    alternates: buildAlternates("/", "zh-cn", ["en", "zh-cn", "zh-hant"]),
     robots: routeRobots("homepage", true),
     openGraph: {
       type: "website",
@@ -67,7 +67,13 @@ export default async function SimplifiedChineseHome(): Promise<ReactElement> {
               href="/zh-cn/discover"
               className="rounded-full bg-foreground px-5 py-3 text-sm font-bold text-white shadow-lg shadow-foreground/15 transition hover:-translate-y-0.5 hover:bg-primary focus-ring"
             >
-              按天气条件选城市 →
+              还没决定去哪
+            </a>
+            <a
+              href="/zh-cn/trips/new"
+              className="rounded-full border border-border bg-white px-5 py-3 text-sm font-bold text-foreground transition hover:border-primary/30 hover:bg-surface-elevated focus-ring"
+            >
+              已有行程，直接导入 →
             </a>
           </div>
         </div>
