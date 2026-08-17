@@ -106,6 +106,18 @@ jobs:
           PY
           python /tmp/apply-ux-funnel.py
 
+          python - <<'PY'
+          from pathlib import Path
+
+          test = Path("apps/web/src/app/travel-radar.test.ts")
+          source = test.read_text(encoding="utf-8")
+          old = """expect(html).toContain("I haven't chosen a destination");"""
+          new = """expect(html).toContain("I haven&#x27;t chosen a destination");"""
+          if source.count(old) != 1:
+              raise SystemExit("rendered apostrophe assertion marker mismatch")
+          test.write_text(source.replace(old, new, 1), encoding="utf-8")
+          PY
+
           pnpm exec prettier --write \
             apps/web/src/app/page.tsx \
             apps/web/src/app/zh-cn/page.tsx \
@@ -141,7 +153,7 @@ jobs:
           NEXT_PUBLIC_TRIP_API_URL: https://trip.868656.xyz
         run: |
           pnpm --filter @wnr/web build
-          grep -Fq "I haven't chosen a destination" apps/web/out/index.html
+          grep -Fq "I haven&#x27;t chosen a destination" apps/web/out/index.html
           grep -Fq "还没决定去哪" apps/web/out/zh-cn/index.html
           grep -Fq "還沒決定去哪" apps/web/out/zh-hant/index.html
           grep -Fq "Find the right destination" apps/web/out/discover.html
