@@ -154,8 +154,8 @@ jobs:
         run: |
           pnpm --filter @wnr/web build
           grep -Fq "I haven&#x27;t chosen a destination" apps/web/out/index.html
-          grep -Fq "还没决定去哪" apps/web/out/zh-cn/index.html
-          grep -Fq "還沒決定去哪" apps/web/out/zh-hant/index.html
+          grep -Fq "还没决定去哪" apps/web/out/zh-cn.html
+          grep -Fq "還沒決定去哪" apps/web/out/zh-hant.html
           grep -Fq "Find the right destination" apps/web/out/discover.html
           grep -Fq "按天气找目的地" apps/web/out/zh-cn/discover.html
           grep -Fq "按天氣找目的地" apps/web/out/zh-hant/discover.html
