@@ -22,6 +22,11 @@ export default function TripWorkspacePage(): ReactElement {
           <li>天气旅行工作台</li>
         </ol>
       </nav>
+      <div className="mt-5 flex justify-end">
+        <a className="trip-primary-button" href="/zh-cn/trips/execution">
+          进入路线执行模式 →
+        </a>
+      </div>
       <div className="mt-6">
         <TripWorkspace />
       </div>

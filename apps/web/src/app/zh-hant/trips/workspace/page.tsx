@@ -21,6 +21,11 @@ export default function TraditionalTripWorkspacePage(): ReactElement {
           <li>工作台</li>
         </ol>
       </nav>
+      <div className="mt-5 flex justify-end">
+        <a className="trip-primary-button" href="/zh-hant/trips/execution">
+          進入路線執行模式 →
+        </a>
+      </div>
       <div className="mt-6">
         <TraditionalTripWorkspace />
       </div>

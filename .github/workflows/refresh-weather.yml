@@ -2,8 +2,9 @@ name: Refresh weather pages
 
 on:
   schedule:
-    # Static pages stay useful without running the full deployment pipeline.
-    - cron: "17 */6 * * *"
+    # Runtime weather remains fresh through weather-sync/weather-read. Rebuild the
+    # static/SEO shell once per day to keep hosted-runner usage bounded.
+    - cron: "17 2 * * *"
   workflow_dispatch:
 
 permissions:
@@ -21,10 +22,16 @@ env:
 
 jobs:
   refresh:
+    # Scheduled runs use the default branch. Manual refreshes are allowed only
+    # from main so a feature branch can never publish static production pages.
+    if: github.event_name == 'schedule' || github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: main
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -46,6 +53,7 @@ jobs:
       - name: Bake latest real forecast
         env:
           APP_BASE_URL: https://868656.xyz
+          NEXT_PUBLIC_TRIP_API_URL: https://trip.868656.xyz
           NEXT_PUBLIC_CLOUDFLARE_ANALYTICS_ENABLED: ${{ secrets.NEXT_PUBLIC_CLOUDFLARE_ANALYTICS_ENABLED }}
           NEXT_PUBLIC_CLOUDFLARE_ANALYTICS_TOKEN: ${{ secrets.NEXT_PUBLIC_CLOUDFLARE_ANALYTICS_TOKEN }}
         run: pnpm --filter @wnr/web build
@@ -60,3 +68,24 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: pnpm --filter @wnr/web exec wrangler pages deploy out --project-name where-not-rain --branch main
+
+      - name: Smoke refreshed production pages
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 12); do
+            if curl --fail --silent --show-error --location --retry 2 \
+              "https://868656.xyz/jp" -o /tmp/weather-en.html \
+              && curl --fail --silent --show-error --location --retry 2 \
+              "https://868656.xyz/zh-cn/jp" -o /tmp/weather-cn.html \
+              && curl --fail --silent --show-error --location --retry 2 \
+              "https://868656.xyz/zh-hant/jp" -o /tmp/weather-hant.html \
+              && grep -Fq "Forecast data by" /tmp/weather-en.html \
+              && grep -Fq "Open-Meteo" /tmp/weather-en.html \
+              && grep -Fq "日本" /tmp/weather-cn.html \
+              && grep -Fq "日本" /tmp/weather-hant.html; then
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "::error::Refreshed production weather pages did not become healthy"
+          exit 1

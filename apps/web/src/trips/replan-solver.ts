@@ -5,6 +5,7 @@ import {
   type ActivityHourlyWeather,
   type ActivityRiskPartyProfile,
 } from "./activity-risk";
+import { routeMatrixMinutes, type RouteCostMatrix } from "./route-intelligence";
 
 export type ReplanChangeKind = "move_time" | "replace_activity";
 export type ReplanReasonCode = "better_hourly_window" | "indoor_fallback";
@@ -18,7 +19,7 @@ export interface ReplanChange {
   readonly riskAfter: ActivityHourlyRisk;
   readonly riskReduction: number;
   readonly reasonCodes: ReadonlyArray<ReplanReasonCode>;
-  /** Approximate added relocation time. Same-activity time moves are always zero. */
+  /** Added relocation time. Uses routed minutes when supplied, geometric fallback otherwise. */
   readonly travelDeltaMinutes: number | null;
 }
 
@@ -39,6 +40,7 @@ export interface BuildDeterministicReplanInput {
   readonly activities: ReadonlyArray<TripActivity>;
   readonly hourly: ReadonlyArray<ActivityHourlyWeather>;
   readonly fallbackActivities?: ReadonlyArray<TripActivity>;
+  readonly routeCostMatrix?: RouteCostMatrix;
   readonly partyProfile: ActivityRiskPartyProfile;
 }
 
@@ -208,7 +210,7 @@ function radians(value: number): number {
   return (value * Math.PI) / 180;
 }
 
-function approximateRelocationMinutes(source: TripActivity, fallback: TripActivity): number | null {
+function geometricRelocationMinutes(source: TripActivity, fallback: TripActivity): number | null {
   if (
     source.latitude === null ||
     source.longitude === null ||
@@ -227,6 +229,15 @@ function approximateRelocationMinutes(source: TripActivity, fallback: TripActivi
     Math.cos(sourceLatitude) * Math.cos(fallbackLatitude) * Math.sin(longitudeDelta / 2) ** 2;
   const distanceKm = earthRadiusKm * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return Math.max(0, Math.round((distanceKm / APPROX_CITY_SPEED_KPH) * 60));
+}
+
+function relocationMinutes(
+  source: TripActivity,
+  fallback: TripActivity,
+  input: BuildDeterministicReplanInput,
+): number | null {
+  const routed = routeMatrixMinutes(input.routeCostMatrix, source.id, fallback.id);
+  return routed ?? geometricRelocationMinutes(source, fallback);
 }
 
 function findFallbackReplacement(
@@ -265,7 +276,7 @@ function findFallbackReplacement(
         riskAfter: afterRisk,
         riskReduction: reduction,
         reasonCodes: ["indoor_fallback"],
-        travelDeltaMinutes: approximateRelocationMinutes(activity, fallback),
+        travelDeltaMinutes: relocationMinutes(activity, fallback, input),
       },
     });
   }
