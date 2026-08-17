@@ -62,4 +62,10 @@ describe("Trip execution PWA / offline contracts", () => {
     expect(simplifiedExecution).toContain('<TripExecutionUtilities locale="zh-cn" />');
     expect(traditionalExecution).toContain('<TripExecutionUtilities locale="zh-hant" />');
   });
+  it("server-renders localized execution mode identity for empty workspaces", () => {
+    expect(workspace).toContain('eyebrow: "Trip Execution Mode"');
+    expect(workspace).toContain('eyebrow: "旅行执行模式"');
+    expect(workspace).toContain('eyebrow: "旅行執行模式"');
+    expect(workspace).toContain('<p className="eyebrow">{copy.eyebrow}</p>');
+  });
 });

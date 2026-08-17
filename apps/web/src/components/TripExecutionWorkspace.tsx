@@ -81,7 +81,7 @@ const COPY = {
     emptyTitle: "还没有可执行的本地行程",
     emptyBody: "先到天气旅行工作台创建或导入行程，再进入执行模式。",
     openWorkspace: "打开旅行工作台",
-    eyebrow: "Trip Execution Mode",
+    eyebrow: "旅行执行模式",
     title: "今天怎么走，一屏看清",
     intro:
       "复用现有行程数据，把活动、固定约束、酒店锚点和路线放到同一个执行视图。真实道路路线失败时会自动降级为本地估算。",
@@ -120,7 +120,7 @@ const COPY = {
     emptyTitle: "還沒有可執行的本機行程",
     emptyBody: "先到天氣旅行工作台建立或匯入行程，再進入執行模式。",
     openWorkspace: "開啟旅行工作台",
-    eyebrow: "Trip Execution Mode",
+    eyebrow: "旅行執行模式",
     title: "今天怎麼走，一屏看清",
     intro:
       "重用既有行程資料，把活動、固定限制、住宿錨點和路線放到同一個執行視圖。真實道路路線失敗時會自動降級為本機估算。",
