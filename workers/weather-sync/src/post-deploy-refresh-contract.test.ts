@@ -28,17 +28,15 @@ describe("production weather deploy refresh guard", () => {
 
   it("uses the protected sync endpoint and requires an activated snapshot", () => {
     expect(deployWorkflow).toContain("/internal/sync");
-    expect(deployWorkflow).toContain('authorization: Bearer $SYNC_TRIGGER_TOKEN');
+    expect(deployWorkflow).toContain("authorization: Bearer $SYNC_TRIGGER_TOKEN");
     expect(deployWorkflow).toContain("--retry 3 --retry-all-errors");
-    expect(deployWorkflow).toContain(`grep -Fq '\"activated\":true'`);
+    expect(deployWorkflow).toContain(`grep -Fq '"activated":true'`);
   });
 
   it("runs consolidated production verification only after a successful main Deploy", () => {
     expect(productionSmokeWorkflow).toContain("workflows: [Deploy]");
     expect(productionSmokeWorkflow).toContain("github.event.workflow_run.conclusion == 'success'");
-    expect(productionSmokeWorkflow).toContain(
-      "github.event.workflow_run.head_branch == 'main'",
-    );
+    expect(productionSmokeWorkflow).toContain("github.event.workflow_run.head_branch == 'main'");
     expect(productionSmokeWorkflow).toContain("ref: main");
   });
 });
