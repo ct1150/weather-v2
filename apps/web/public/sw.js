@@ -1,3 +1,5 @@
+/* global self, caches, fetch, URL, Response */
+
 const SHELL_CACHE = "wnr-shell-v1";
 const RUNTIME_CACHE = "wnr-runtime-v1";
 const CORE = [
