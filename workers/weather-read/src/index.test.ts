@@ -73,6 +73,18 @@ describe("weather-read public API", () => {
     await db.exec(MIGRATION);
   });
 
+  it("exposes a lightweight read-only health endpoint without querying a publication", async () => {
+    const response = await handleRequest(new Request("https://read.example/health"), { DB: db });
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("private, no-store");
+    await expect(response.json()).resolves.toEqual({
+      ok: true,
+      service: "weather-read",
+      readOnly: true,
+    });
+  });
+
   it("serves only the active persisted ranking with no-store and fixed-origin CORS", async () => {
     await seedPublishedRanking(db);
     const response = await handleRequest(

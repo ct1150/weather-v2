@@ -487,6 +487,9 @@ export async function handleRequest(
   if (request.method !== "GET") return json({ error: { code: "METHOD_NOT_ALLOWED" } }, 405, env);
 
   const url = new URL(request.url);
+  if (url.pathname === "/health") {
+    return json({ ok: true, service: "weather-read", readOnly: true }, 200, env);
+  }
   if (url.pathname === "/api/v1/rankings") return handleRanking(url, env, now);
   if (url.pathname === "/api/v1/trip-cities") return handleTripCities(url, env, now);
   if (url.pathname === "/api/v1/trip-hourly") return handleTripHourly(url, env, now);
