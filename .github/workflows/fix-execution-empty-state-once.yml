@@ -44,33 +44,47 @@ jobs:
           component = Path("apps/web/src/components/TripExecutionWorkspace.tsx")
           source = component.read_text(encoding="utf-8")
 
-          source, simplified_count = re.subn(
-              r'("zh-cn": \{.*?eyebrow: )"Trip Execution Mode"',
-              r'\1"旅行执行模式"',
-              source,
-              count=1,
-              flags=re.S,
-          )
-          source, traditional_count = re.subn(
-              r'("zh-hant": \{.*?eyebrow: )"Trip Execution Mode"',
-              r'\1"旅行執行模式"',
-              source,
-              count=1,
-              flags=re.S,
-          )
-          if simplified_count != 1 or traditional_count != 1:
-              raise SystemExit("execution locale eyebrow markers not found")
+          if 'eyebrow: "旅行执行模式"' not in source:
+              source, count = re.subn(
+                  r'("zh-cn": \{.*?eyebrow: )"Trip Execution Mode"',
+                  r'\1"旅行执行模式"',
+                  source,
+                  count=1,
+                  flags=re.S,
+              )
+              if count != 1:
+                  raise SystemExit("simplified execution eyebrow marker not found")
 
-          empty_marker = '''      <section className="info-panel">
-                <h1 className="text-xl font-bold">{copy.emptyTitle}</h1>
-          '''
-          empty_replacement = '''      <section className="info-panel">
-                <p className="eyebrow">{copy.eyebrow}</p>
-                <h1 className="mt-3 text-xl font-bold">{copy.emptyTitle}</h1>
-          '''
-          if empty_marker not in source:
-              raise SystemExit("execution empty-state marker not found")
-          source = source.replace(empty_marker, empty_replacement, 1)
+          if 'eyebrow: "旅行執行模式"' not in source:
+              source, count = re.subn(
+                  r'("zh-hant": \{.*?eyebrow: )"Trip Execution Mode"',
+                  r'\1"旅行執行模式"',
+                  source,
+                  count=1,
+                  flags=re.S,
+              )
+              if count != 1:
+                  raise SystemExit("traditional execution eyebrow marker not found")
+
+          if '<p className="eyebrow">{copy.eyebrow}</p>' not in source:
+              pattern = re.compile(
+                  r'^(?P<indent>[ \t]*)<section className="info-panel">\n'
+                  r'(?P=indent)  <h1 className="text-xl font-bold">\{copy\.emptyTitle\}</h1>',
+                  flags=re.M,
+              )
+
+              def add_heading(match: re.Match[str]) -> str:
+                  indent = match.group("indent")
+                  return (
+                      f'{indent}<section className="info-panel">\n'
+                      f'{indent}  <p className="eyebrow">{{copy.eyebrow}}</p>\n'
+                      f'{indent}  <h1 className="mt-3 text-xl font-bold">{{copy.emptyTitle}}</h1>'
+                  )
+
+              source, count = pattern.subn(add_heading, source, count=1)
+              if count != 1:
+                  raise SystemExit("execution empty-state structure not found")
+
           component.write_text(source, encoding="utf-8")
 
           contract = Path("apps/web/src/components/trip-execution-pwa-contract.test.ts")
