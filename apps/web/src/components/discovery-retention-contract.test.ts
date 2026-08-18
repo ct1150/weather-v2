@@ -29,6 +29,19 @@ describe("discovery decision and retention contracts", () => {
     expect(companion).toContain("window.localStorage.setItem");
   });
 
+  it("treats a cleared URL shortlist as authoritative after initial restoration", () => {
+    expect(companion).toContain("initializedRef.current");
+    expect(companion).toContain("window.localStorage.removeItem");
+    expect(companion).toContain("Clearing URL state remains authoritative");
+  });
+
+  it("uses labels that match the existing shortlist controls", () => {
+    expect(companion).toContain("Use “Shortlist”");
+    expect(companion).toContain("点击“加入对比”");
+    expect(companion).toContain("點擊「加入比較」");
+    expect(companion).not.toContain("Save & compare");
+  });
+
   it("explains recommendation value and weather trade-offs in all locales", () => {
     expect(companion).toContain("Why it fits");
     expect(companion).toContain("Watch-outs");
