@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import type { ReactElement } from "react";
+import { DiscoveryRetentionCompanion } from "../../../components/DiscoveryRetentionCompanion";
 import { JsonLd } from "../../../components/JsonLd";
 import { WeatherDiscoveryPlannerV2 } from "../../../components/WeatherDiscoveryPlannerV2";
 import { buildAlternates, localeUrl } from "../../seo";
@@ -28,6 +29,7 @@ export default function SimplifiedWeatherDiscoveryPage(): ReactElement {
   return (
     <>
       <JsonLd schema={jsonLd} />
+      <DiscoveryRetentionCompanion locale="zh-cn" />
       <WeatherDiscoveryPlannerV2 locale="zh-cn" />
     </>
   );
