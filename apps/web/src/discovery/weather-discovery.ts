@@ -1,13 +1,7 @@
 import type { TripCityOption, TripForecastDay, TripPartyProfile } from "../trips/workspace";
 
 export type WeatherDiscoveryIntent =
-  | "dry"
-  | "outdoor"
-  | "beach"
-  | "cool_escape"
-  | "warm_escape"
-  | "family_comfort"
-  | "senior_comfort";
+  "dry" | "outdoor" | "beach" | "cool_escape" | "warm_escape" | "family_comfort" | "senior_comfort";
 
 export type DiscoveryTheme = "city" | "beach" | "outdoor" | "indoor";
 
