@@ -1,7 +1,13 @@
 import type { TripCityOption, TripForecastDay, TripPartyProfile } from "../trips/workspace";
 
 export type WeatherDiscoveryIntent =
-  "dry" | "outdoor" | "beach" | "cool_escape" | "warm_escape" | "family_comfort" | "senior_comfort";
+  | "dry"
+  | "outdoor"
+  | "beach"
+  | "cool_escape"
+  | "warm_escape"
+  | "family_comfort"
+  | "senior_comfort";
 
 export type DiscoveryTheme = "city" | "beach" | "outdoor" | "indoor";
 
@@ -58,18 +64,7 @@ export interface DiscoveryCityResult extends DiscoveryScore {
   readonly forecastDays: ReadonlyArray<TripForecastDay>;
 }
 
-const INTENTS: ReadonlyArray<WeatherDiscoveryIntent> = [
-  "dry",
-  "outdoor",
-  "beach",
-  "cool_escape",
-  "warm_escape",
-  "family_comfort",
-  "senior_comfort",
-];
-
-const THEMES: ReadonlyArray<DiscoveryTheme> = ["city", "beach", "outdoor", "indoor"];
-const PARTY_PROFILES: ReadonlyArray<TripPartyProfile> = ["adults", "family", "senior"];
+const INTENTS: ReadonlyArray<WeatherDiscoveryIntent> = ["dry"];
 
 function clamp(value: number, min: number, max: number): number {
   return Math.min(Math.max(value, min), max);
@@ -390,42 +385,37 @@ export function parseDiscoveryPreferences(
   search: URLSearchParams,
   fallback: { readonly from: string; readonly to: string },
 ): DiscoveryPreferences {
-  const intentRaw = search.get("intent");
-  const partyRaw = search.get("party");
-  const themeRaw = search.get("theme");
   return {
-    intent: INTENTS.includes(intentRaw as WeatherDiscoveryIntent)
-      ? (intentRaw as WeatherDiscoveryIntent)
-      : "dry",
+    intent: "dry",
     from: isIsoDate(search.get("from")) ? search.get("from")! : fallback.from,
     to: isIsoDate(search.get("to")) ? search.get("to")! : fallback.to,
     rainProbabilityMax: parseNumber(search, "rainMax", 0, 100),
     temperatureMinC: parseNumber(search, "tempMin", -50, 60),
     temperatureMaxC: parseNumber(search, "tempMax", -50, 60),
     windSpeedMaxKph: parseNumber(search, "windMax", 0, 250),
-    partyProfile: PARTY_PROFILES.includes(partyRaw as TripPartyProfile)
-      ? (partyRaw as TripPartyProfile)
-      : null,
-    theme: THEMES.includes(themeRaw as DiscoveryTheme) ? (themeRaw as DiscoveryTheme) : null,
+    partyProfile: null,
+    theme: null,
   };
 }
 
 export function serializeDiscoveryPreferences(preferences: DiscoveryPreferences): URLSearchParams {
   const search = new URLSearchParams({
-    intent: preferences.intent,
+    intent: "dry",
     from: preferences.from,
     to: preferences.to,
   });
-  if (preferences.rainProbabilityMax !== null)
+  if (preferences.rainProbabilityMax !== null) {
     search.set("rainMax", String(preferences.rainProbabilityMax));
-  if (preferences.temperatureMinC !== null)
+  }
+  if (preferences.temperatureMinC !== null) {
     search.set("tempMin", String(preferences.temperatureMinC));
-  if (preferences.temperatureMaxC !== null)
+  }
+  if (preferences.temperatureMaxC !== null) {
     search.set("tempMax", String(preferences.temperatureMaxC));
-  if (preferences.windSpeedMaxKph !== null)
+  }
+  if (preferences.windSpeedMaxKph !== null) {
     search.set("windMax", String(preferences.windSpeedMaxKph));
-  if (preferences.partyProfile !== null) search.set("party", preferences.partyProfile);
-  if (preferences.theme !== null) search.set("theme", preferences.theme);
+  }
   return search;
 }
 

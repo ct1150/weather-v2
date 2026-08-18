@@ -57,17 +57,9 @@ function city(id: string, name: string): TripCityOption {
   };
 }
 
-describe("Weather Discovery 2.0 intent engine", () => {
-  it("ships seven deterministic travel intents", () => {
-    expect(listDiscoveryIntents()).toEqual([
-      "dry",
-      "outdoor",
-      "beach",
-      "cool_escape",
-      "warm_escape",
-      "family_comfort",
-      "senior_comfort",
-    ]);
+describe("least-rain discovery engine", () => {
+  it("exposes one deterministic product intent", () => {
+    expect(listDiscoveryIntents()).toEqual(["dry"]);
   });
 
   it("ranks a dry window above a rainy one", () => {
@@ -121,31 +113,19 @@ describe("Weather Discovery 2.0 intent engine", () => {
     expect(oneDay.score).toBe(fourDays.score);
   });
 
-  it("uses stricter comfort scoring for senior travel", () => {
-    const warmWindy = [
-      day({ temperatureMinC: 22, temperatureMaxC: 32, windSpeedKph: 28, uvIndex: 9 }),
-    ];
-    const family = assessDiscoveryWeather(warmWindy, {
-      ...DEFAULT_PREFERENCES,
-      intent: "family_comfort",
-    });
-    const senior = assessDiscoveryWeather(warmWindy, {
-      ...DEFAULT_PREFERENCES,
-      intent: "senior_comfort",
-    });
-
-    expect(family.score).not.toBeNull();
-    expect(senior.score).not.toBeNull();
-    expect(senior.score!).toBeLessThan(family.score!);
-  });
-
-  it("fails custom constraints closed when a required metric is missing or exceeded", () => {
+  it("applies optional limits as hard filters", () => {
     const tooWet = assessDiscoveryWeather([day({ rainProbability: 55 })], {
       ...DEFAULT_PREFERENCES,
       rainProbabilityMax: 30,
     });
     expect(tooWet.passesConstraints).toBe(false);
     expect(tooWet.reasonCodes).toContain("CUSTOM_CONSTRAINT_MISS");
+
+    const tooHot = assessDiscoveryWeather([day({ temperatureMaxC: 34 })], {
+      ...DEFAULT_PREFERENCES,
+      temperatureMaxC: 30,
+    });
+    expect(tooHot.passesConstraints).toBe(false);
 
     const missingWind = assessDiscoveryWeather([day({ windSpeedKph: null })], {
       ...DEFAULT_PREFERENCES,
@@ -182,7 +162,7 @@ describe("Weather Discovery 2.0 intent engine", () => {
     expect(results.map((result) => result.city.cityId)).toEqual(["jp-osaka", "jp-tokyo"]);
   });
 
-  it("round-trips shareable discovery preferences", () => {
+  it("round-trips dates and optional limits in dry-only mode", () => {
     const preferences: DiscoveryPreferences = {
       intent: "family_comfort",
       from: "2026-08-11",
@@ -194,10 +174,28 @@ describe("Weather Discovery 2.0 intent engine", () => {
       partyProfile: "family",
       theme: "outdoor",
     };
-    const serialized = serializeDiscoveryPreferences(preferences);
-    expect(parseDiscoveryPreferences(serialized, { from: "2026-01-01", to: "2026-01-02" })).toEqual(
-      preferences,
+    const parsed = parseDiscoveryPreferences(serializeDiscoveryPreferences(preferences), {
+      from: "2026-01-01",
+      to: "2026-01-02",
+    });
+    expect(parsed).toEqual({
+      ...preferences,
+      intent: "dry",
+      partyProfile: null,
+      theme: null,
+    });
+  });
+
+  it("normalizes legacy intent and context links to dry-only mode", () => {
+    const search = new URLSearchParams(
+      "intent=beach&party=family&theme=outdoor&from=2026-08-11&to=2026-08-14&rainMax=40",
     );
+    expect(parseDiscoveryPreferences(search, { from: "2026-01-01", to: "2026-01-02" })).toEqual({
+      ...DEFAULT_PREFERENCES,
+      from: "2026-08-11",
+      to: "2026-08-14",
+      rainProbabilityMax: 40,
+    });
   });
 
   it("rejects invalid query values to safe defaults", () => {

@@ -10,6 +10,7 @@ import { LocaleBootstrap } from "../components/LocaleBootstrap";
 import { PwaBootstrap } from "../components/PwaBootstrap";
 import { SiteHeader } from "../components/SiteHeader";
 import "./globals.css";
+import "./discovery-focus.css";
 
 export const metadata: Metadata = {
   title: {

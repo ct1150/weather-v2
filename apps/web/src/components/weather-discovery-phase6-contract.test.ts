@@ -3,8 +3,9 @@ import { describe, expect, it } from "vitest";
 
 const planner = readFileSync(new URL("./WeatherDiscoveryPlannerV2.tsx", import.meta.url), "utf8");
 const engine = readFileSync(new URL("../discovery/weather-discovery.ts", import.meta.url), "utf8");
-const context = readFileSync(new URL("../discovery/discovery-context.ts", import.meta.url), "utf8");
 const trip = readFileSync(new URL("../discovery/discovery-trip.ts", import.meta.url), "utf8");
+const focusCss = readFileSync(new URL("../app/discovery-focus.css", import.meta.url), "utf8");
+const layout = readFileSync(new URL("../app/layout.tsx", import.meta.url), "utf8");
 const englishRoute = readFileSync(new URL("../app/discover/page.tsx", import.meta.url), "utf8");
 const simplifiedRoute = readFileSync(
   new URL("../app/zh-cn/discover/page.tsx", import.meta.url),
@@ -16,21 +17,26 @@ const traditionalRoute = readFileSync(
 );
 
 describe("Weather Discovery Phase 6 contract", () => {
-  it("ships seven deterministic weather intents and context scoring", () => {
-    for (const intent of [
-      "dry",
-      "outdoor",
-      "beach",
-      "cool_escape",
-      "warm_escape",
-      "family_comfort",
-      "senior_comfort",
-    ]) {
-      expect(engine).toContain(`"${intent}"`);
-    }
-    expect(context).toContain("partyProfile");
-    expect(context).toContain("preferences.theme");
-    expect(planner).toContain("contextualizeDiscoveryResults");
+  it("exposes one active least-rain intent and normalizes legacy links", () => {
+    expect(engine).toContain('const INTENTS: ReadonlyArray<WeatherDiscoveryIntent> = ["dry"]');
+    expect(engine).toContain('intent: "dry"');
+    expect(engine).toContain("partyProfile: null");
+    expect(engine).toContain("theme: null");
+    expect(engine).toContain('intent: "dry",\n    from: preferences.from');
+    expect(engine).not.toContain('search.set("party"');
+    expect(engine).not.toContain('search.set("theme"');
+    expect(planner).toContain("listDiscoveryIntents().map");
+  });
+
+  it("removes trip-context dropdowns from the active UI while preserving optional limits", () => {
+    expect(layout).toContain('import "./discovery-focus.css"');
+    expect(focusCss).toContain("details > .mt-4.grid.gap-6 > :first-child");
+    expect(focusCss).toContain("display: none");
+    expect(planner).toContain("rainProbabilityMax");
+    expect(planner).toContain("temperatureMinC");
+    expect(planner).toContain("temperatureMaxC");
+    expect(planner).toContain("windSpeedMaxKph");
+    expect(planner).toContain("copy.constraints");
   });
 
   it("keeps forecast reads bounded and provider-isolated", () => {
@@ -51,7 +57,7 @@ describe("Weather Discovery Phase 6 contract", () => {
     expect(planner).toContain("selectedResults");
   });
 
-  it("keeps filters and shortlist shareable through URL state", () => {
+  it("keeps dates, optional limits and shortlist shareable through URL state", () => {
     expect(engine).toContain("parseDiscoveryPreferences");
     expect(engine).toContain("serializeDiscoveryPreferences");
     expect(planner).toContain('search.set("cities"');
