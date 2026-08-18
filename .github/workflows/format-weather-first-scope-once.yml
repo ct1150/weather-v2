@@ -1,0 +1,61 @@
+name: Format weather-first scope once
+
+on:
+  push:
+    branches:
+      - agent/weather-first-group-decision
+    paths:
+      - .github/workflows/format-weather-first-scope-once.yml
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    if: github.event.head_commit.message != 'style: format weather-first product scope'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout feature branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent/weather-first-group-decision
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.11.0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Apply repository formatting
+        run: |
+          pnpm exec prettier --write \
+            apps/web/src/app/page.tsx \
+            apps/web/src/app/trips/page.tsx \
+            apps/web/src/app/zh-cn/page.tsx \
+            apps/web/src/app/zh-cn/trips/page.tsx \
+            apps/web/src/app/zh-hant/trips/page.tsx \
+            apps/web/src/components/ux-funnel-contract.test.ts
+
+      - name: Commit formatted files and remove temporary workflow
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/format-weather-first-scope-once.yml
+          git add \
+            apps/web/src/app/page.tsx \
+            apps/web/src/app/trips/page.tsx \
+            apps/web/src/app/zh-cn/page.tsx \
+            apps/web/src/app/zh-cn/trips/page.tsx \
+            apps/web/src/app/zh-hant/trips/page.tsx \
+            apps/web/src/components/ux-funnel-contract.test.ts
+          git commit -m "style: format weather-first product scope"
+          git push origin HEAD:agent/weather-first-group-decision
