@@ -6,7 +6,8 @@ import { buildAlternates, localeUrl } from "../../seo";
 
 export const metadata: Metadata = {
   title: "目的地确定后的多人天气行程规划",
-  description: "从共同决定的目的地继续，在一个共享行程中安排活动、讨论取舍、记录决定并查看逐日天气。",
+  description:
+    "从共同决定的目的地继续，在一个共享行程中安排活动、讨论取舍、记录决定并查看逐日天气。",
   alternates: buildAlternates("/trips", "zh-cn", ["en", "zh-hant", "zh-cn"]),
   robots: { index: true, follow: true },
 };

@@ -45,9 +45,7 @@ describe("weather-first group decision UX contracts", () => {
 
   it("publishes complete three-locale homepage alternates", () => {
     expect(englishHome).toContain('buildAlternates("/", "en", ["en", "zh-cn", "zh-hant"])');
-    expect(simplifiedHome).toContain(
-      'buildAlternates("/", "zh-cn", ["en", "zh-cn", "zh-hant"])',
-    );
+    expect(simplifiedHome).toContain('buildAlternates("/", "zh-cn", ["en", "zh-cn", "zh-hant"])');
     expect(traditionalHome).toContain(
       'buildAlternates("/", "zh-hant", ["en", "zh-cn", "zh-hant"])',
     );
@@ -59,7 +57,7 @@ describe("weather-first group decision UX contracts", () => {
     expect(header).toContain("一起去哪");
     expect(header).toContain("共同规划");
     expect(header).toContain("共同規劃");
-    expect(header).toContain('const decisionHref = `${localePrefix}/discover`');
+    expect(header).toContain("const decisionHref = `${localePrefix}/discover`");
   });
 
   it("shows shared planning value before account state on trip landing pages", () => {

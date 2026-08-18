@@ -95,8 +95,9 @@ export function TravelRadarPage({
               Destination open?
             </h1>
             <p className="mt-5 max-w-2xl text-base leading-7 text-muted sm:text-lg">
-              Compare the next 14 days, keep the shortlist small, and share the same weather evidence
-              with the people travelling with you. Once everyone agrees, continue in one shared trip.
+              Compare the next 14 days, keep the shortlist small, and share the same weather
+              evidence with the people travelling with you. Once everyone agrees, continue in one
+              shared trip.
             </p>
             <div className="mt-6 flex flex-wrap items-center gap-3">
               <a
@@ -161,7 +162,11 @@ export function TravelRadarPage({
       >
         {[
           ["01", "Set the window", "Choose dates and the weather conditions that matter most."],
-          ["02", "Compare 3–5 places", "Review the reasons, trade-offs and daily outlook together."],
+          [
+            "02",
+            "Compare 3–5 places",
+            "Review the reasons, trade-offs and daily outlook together.",
+          ],
           [
             "03",
             "Share and plan",
@@ -300,8 +305,7 @@ export function TravelRadarPage({
 
                   <p
                     className={`relative mt-4 inline-flex rounded-full border px-2.5 py-1 text-[11px] font-bold ${
-                      card.weather.rainProbability !== null &&
-                      card.weather.rainProbability <= 45
+                      card.weather.rainProbability !== null && card.weather.rainProbability <= 45
                         ? "signal-good"
                         : "signal-caution"
                     }`}

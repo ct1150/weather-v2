@@ -81,7 +81,11 @@ export default async function SimplifiedChineseHome(): Promise<ReactElement> {
 
       <section className="mt-6 grid gap-4 md:grid-cols-3" aria-label="一起决定目的地的流程">
         {[
-          ["01", "确定日期与天气偏好", "先明确什么时候出发，以及最在意少雨、舒适、避暑或海岛天气。"],
+          [
+            "01",
+            "确定日期与天气偏好",
+            "先明确什么时候出发，以及最在意少雨、舒适、避暑或海岛天气。",
+          ],
           ["02", "比较3–5个候选", "一起查看推荐理由、主要取舍和逐日天气，避免选择过载。"],
           ["03", "分享候选并共同规划", "把同一份候选发给同行人，决定后进入共享行程继续安排。"],
         ].map(([number, title, description]) => (

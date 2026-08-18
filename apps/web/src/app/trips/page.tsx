@@ -93,8 +93,8 @@ export default function TripsLanding(): ReactElement {
           <h2 className="section-title mt-3">Keep the group decision visible</h2>
           <p className="mt-4 text-sm leading-7 text-muted">
             This is not another open-ended AI itinerary generator. The shared workspace keeps the
-            destination, dates, activity ideas and weather context together so the group can make and
-            revisit explicit choices.
+            destination, dates, activity ideas and weather context together so the group can make
+            and revisit explicit choices.
           </p>
         </div>
         <ul className="grid gap-3 text-sm leading-6 text-body">
@@ -109,7 +109,9 @@ export default function TripsLanding(): ReactElement {
 
       <footer className="page-footer">
         <span>Where Not Rain · Weather-first group planning</span>
-        <span>Choose together first · plan together second · advanced execution remains optional</span>
+        <span>
+          Choose together first · plan together second · advanced execution remains optional
+        </span>
       </footer>
     </main>
   );
