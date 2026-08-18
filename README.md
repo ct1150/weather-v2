@@ -1,6 +1,30 @@
 # Where Not Rain
 
-Weather-driven travel discovery platform. Monorepo managed with pnpm workspaces.
+Weather-first group destination decision and lightweight trip collaboration platform. Built for travellers whose dates are fixed but destination is still open. Monorepo managed with pnpm workspaces.
+
+## Current product direction
+
+The product is intentionally focused on one journey:
+
+```text
+set dates and weather priorities
+→ compare a small destination shortlist
+→ share the same evidence with the group
+→ decide where to go
+→ continue in one shared trip
+→ arrange indoor and outdoor activities around daily weather
+```
+
+Advanced route optimization, execution mode, imports and adaptive replanning remain available, but they are not the primary acquisition or navigation path.
+
+Direction package:
+
+- [`docs/superpowers/product/2026-08-18-founder-prd-weather-first-group-decision.md`](docs/superpowers/product/2026-08-18-founder-prd-weather-first-group-decision.md)
+- [`docs/superpowers/product/2026-08-18-domain-model-weather-first-group-decision.md`](docs/superpowers/product/2026-08-18-domain-model-weather-first-group-decision.md)
+- [`docs/superpowers/product/2026-08-18-information-architecture-weather-first-group-decision.md`](docs/superpowers/product/2026-08-18-information-architecture-weather-first-group-decision.md)
+- [`docs/superpowers/plans/2026-08-18-weather-first-group-decision-execution.md`](docs/superpowers/plans/2026-08-18-weather-first-group-decision-execution.md)
+
+These files record the approved implementation direction but do not replace the active authority documents indexed by `SPEC.md` until a controlled documentation cutover is completed.
 
 ## Documentation authority
 
@@ -21,7 +45,7 @@ The Kiro-derived files are implementation material and never override an authori
 
 The monorepo layout and package boundaries are authoritative via the domain documents indexed in [`SPEC.md`](SPEC.md):
 
-```
+```text
 apps/web              Next.js App Router app (UI + read APIs) — never imports @wnr/weather
 workers/weather-sync  Six-hour tiered ingestion + scoring + read-model writer (only provider caller)
 workers/maintenance   Ranking refresh, sitemap, health, cleanup
@@ -38,11 +62,10 @@ tooling/*             Shared tsconfig, eslint, prettier, tailwind, vitest preset
 docs/12-ADR/          Architecture Decision Records
 ```
 
-## Dependency direction (must never cycle)
+## Dependency direction
 
-`packages/domain` sits at the bottom and imports no framework/Cloudflare/provider code.
-`packages/weather` is importable only by `workers/weather-sync`, so a user-path provider
-call cannot compile (see [`SPEC.md`](SPEC.md)).
+`packages/domain` sits at the bottom and imports no framework, Cloudflare or provider code.
+`packages/weather` is importable only by `workers/weather-sync`, so a user-path provider call cannot compile.
 
 ## Commands
 
@@ -51,7 +74,7 @@ pnpm install        # install workspace deps
 pnpm -r typecheck   # typecheck every package
 pnpm -r build       # build every package
 pnpm -r test        # run tests
-pnpm lint           # lint (incl. import-boundary rules, task 1.4)
+pnpm lint           # lint
 pnpm format         # prettier
 ```
 

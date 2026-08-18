@@ -39,10 +39,12 @@ export function SiteHeader(): ReactElement {
   const isSimplified = currentLocale === "zh-cn";
   const isChinese = currentLocale !== "en";
   const isTripArea = basePath === "/trips" || basePath.startsWith("/trips/");
-  const isWeatherArea = !isTripArea;
+  const isDecisionArea = !isTripArea;
 
-  const weatherHref = isTraditional ? "/zh-hant" : isSimplified ? "/zh-cn" : "/";
-  const tripHref = isTraditional ? "/zh-hant/trips" : isSimplified ? "/zh-cn/trips" : "/trips";
+  const localePrefix = isTraditional ? "/zh-hant" : isSimplified ? "/zh-cn" : "";
+  const homeHref = localePrefix || "/";
+  const decisionHref = `${localePrefix}/discover`;
+  const tripHref = `${localePrefix}/trips`;
 
   function chooseLocale(event: ChangeEvent<HTMLSelectElement>): void {
     const locale = event.target.value as SiteLocale;
@@ -52,8 +54,8 @@ export function SiteHeader(): ReactElement {
     const destination = isAutoLocalizablePath(pathname)
       ? localizedPath(pathname, locale)
       : locale === "en"
-        ? "/trips"
-        : `/${locale}/trips`;
+        ? "/discover"
+        : `/${locale}/discover`;
     window.location.assign(`${destination}${window.location.search}${window.location.hash}`);
   }
 
@@ -64,14 +66,14 @@ export function SiteHeader(): ReactElement {
       </a>
       <div className="mx-auto flex h-[72px] max-w-6xl items-center justify-between px-4 sm:px-6">
         <a
-          href={weatherHref}
+          href={homeHref}
           className="group flex items-center gap-2.5 rounded-lg focus-ring"
           aria-label={
             isTraditional
-              ? "Where Not Rain 天氣雷達首頁"
+              ? "Where Not Rain 一起決定旅行目的地首頁"
               : isSimplified
-                ? "Where Not Rain 天气雷达首页"
-                : "Where Not Rain weather radar home"
+                ? "Where Not Rain 一起决定旅行目的地首页"
+                : "Where Not Rain group destination decision home"
           }
         >
           <BrandMark />
@@ -79,7 +81,7 @@ export function SiteHeader(): ReactElement {
             Where Not Rain
           </span>
           <span className="hidden rounded-full border border-border bg-surface-elevated px-2 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-muted md:inline">
-            {isTraditional ? "旅行天氣決策" : isSimplified ? "旅行天气决策" : "Travel weather"}
+            {isTraditional ? "一起去哪" : isSimplified ? "一起去哪" : "Decide together"}
           </span>
         </a>
         <nav
@@ -87,15 +89,15 @@ export function SiteHeader(): ReactElement {
           className="flex items-center gap-1"
         >
           <a
-            href={weatherHref}
-            aria-current={isWeatherArea ? "page" : undefined}
-            className={`nav-link focus-ring ${isWeatherArea ? "bg-foreground !text-white shadow-sm" : ""}`}
+            href={decisionHref}
+            aria-current={isDecisionArea ? "page" : undefined}
+            className={`nav-link focus-ring ${isDecisionArea ? "bg-foreground !text-white shadow-sm" : ""}`}
           >
             <span className="hidden sm:inline">
-              {isTraditional ? "找目的地" : isSimplified ? "找目的地" : "Find a destination"}
+              {isTraditional ? "一起去哪" : isSimplified ? "一起去哪" : "Decide where"}
             </span>
             <span className="sm:hidden">
-              {isTraditional ? "目的地" : isSimplified ? "目的地" : "Discover"}
+              {isTraditional ? "去哪" : isSimplified ? "去哪" : "Decide"}
             </span>
           </a>
           <a
@@ -104,10 +106,10 @@ export function SiteHeader(): ReactElement {
             className={`nav-link focus-ring ${isTripArea ? "bg-foreground !text-white shadow-sm" : ""}`}
           >
             <span className="hidden sm:inline">
-              {isTraditional ? "規劃行程" : isSimplified ? "规划行程" : "Plan a trip"}
+              {isTraditional ? "共同規劃" : isSimplified ? "共同规划" : "Plan together"}
             </span>
             <span className="sm:hidden">
-              {isTraditional ? "行程" : isSimplified ? "行程" : "Trips"}
+              {isTraditional ? "規劃" : isSimplified ? "规划" : "Plan"}
             </span>
           </a>
           <label className="nav-link focus-within:ring-2 focus-within:ring-primary/30">

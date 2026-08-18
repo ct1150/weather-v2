@@ -23,39 +23,53 @@ const tripPages = [
   ],
 ] as const;
 
-describe("search-to-retention P0 UX contracts", () => {
-  it("splits first-time visitors by task on every homepage", () => {
+describe("weather-first group decision UX contracts", () => {
+  it("makes destination comparison the primary homepage task in every locale", () => {
     expect(englishHome).toContain('href="/discover"');
-    expect(englishHome).toContain("I haven't chosen a destination");
-    expect(englishHome).toContain('href="/trips/new"');
-    expect(simplifiedHome).toContain("还没决定去哪");
-    expect(simplifiedHome).toContain('href="/zh-cn/trips/new"');
-    expect(traditionalHome).toContain("還沒決定去哪");
-    expect(traditionalHome).toContain('href="/zh-hant/trips/new"');
+    expect(englishHome).toContain("Dates fixed.");
+    expect(englishHome).toContain("Destination open?");
+    expect(englishHome).toContain("Compare destinations");
+    expect(englishHome).toContain('href="/trips"');
+    expect(englishHome).not.toContain("I already have a trip");
+
+    expect(simplifiedHome).toContain("日期定了，去哪还没定？");
+    expect(simplifiedHome).toContain("开始比较目的地");
+    expect(simplifiedHome).toContain('href="/zh-cn/trips"');
+    expect(simplifiedHome).not.toContain("已有行程，直接导入");
+
+    expect(traditionalHome).toContain("日期定了，去哪還沒定？");
+    expect(traditionalHome).toContain("開始比較目的地");
+    expect(traditionalHome).toContain('href="/zh-hant/trips"');
+    expect(traditionalHome).not.toContain("已有行程，直接匯入");
   });
 
   it("publishes complete three-locale homepage alternates", () => {
     expect(englishHome).toContain('buildAlternates("/", "en", ["en", "zh-cn", "zh-hant"])');
-    expect(simplifiedHome).toContain('buildAlternates("/", "zh-cn", ["en", "zh-cn", "zh-hant"])');
+    expect(simplifiedHome).toContain(
+      'buildAlternates("/", "zh-cn", ["en", "zh-cn", "zh-hant"])',
+    );
     expect(traditionalHome).toContain(
       'buildAlternates("/", "zh-hant", ["en", "zh-cn", "zh-hant"])',
     );
   });
 
-  it("uses task language in the global navigation", () => {
-    expect(header).toContain("Find a destination");
-    expect(header).toContain("Plan a trip");
-    expect(header).toContain("找目的地");
-    expect(header).toContain("规划行程");
-    expect(header).toContain("規劃行程");
+  it("uses the two-step product language in global navigation", () => {
+    expect(header).toContain("Decide where");
+    expect(header).toContain("Plan together");
+    expect(header).toContain("一起去哪");
+    expect(header).toContain("共同规划");
+    expect(header).toContain("共同規劃");
+    expect(header).toContain('const decisionHref = `${localePrefix}/discover`');
   });
 
-  it("shows product value before account state on trip landing pages", () => {
+  it("shows shared planning value before account state on trip landing pages", () => {
     for (const [source, dashboard] of tripPages) {
       const heroIndex = source.indexOf('<section className="trip-hero">');
       const dashboardIndex = source.indexOf(dashboard);
       expect(heroIndex).toBeGreaterThan(-1);
       expect(dashboardIndex).toBeGreaterThan(heroIndex);
+      expect(source).toContain("/discover");
+      expect(source).toContain("/trips/workspace");
     }
   });
 
