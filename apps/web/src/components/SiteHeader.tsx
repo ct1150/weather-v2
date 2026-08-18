@@ -92,10 +92,10 @@ export function SiteHeader(): ReactElement {
             className={`nav-link focus-ring ${isWeatherArea ? "bg-foreground !text-white shadow-sm" : ""}`}
           >
             <span className="hidden sm:inline">
-              {isTraditional ? "天氣雷達" : isSimplified ? "目的地天气" : "Weather radar"}
+              {isTraditional ? "找目的地" : isSimplified ? "找目的地" : "Find a destination"}
             </span>
             <span className="sm:hidden">
-              {isTraditional ? "天氣" : isSimplified ? "天气" : "Radar"}
+              {isTraditional ? "目的地" : isSimplified ? "目的地" : "Discover"}
             </span>
           </a>
           <a
@@ -104,7 +104,7 @@ export function SiteHeader(): ReactElement {
             className={`nav-link focus-ring ${isTripArea ? "bg-foreground !text-white shadow-sm" : ""}`}
           >
             <span className="hidden sm:inline">
-              {isTraditional ? "行程助手" : isSimplified ? "行程助手" : "Trip planner"}
+              {isTraditional ? "規劃行程" : isSimplified ? "规划行程" : "Plan a trip"}
             </span>
             <span className="sm:hidden">
               {isTraditional ? "行程" : isSimplified ? "行程" : "Trips"}
