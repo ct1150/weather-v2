@@ -107,7 +107,9 @@ function render(state: TravelRadarViewModel["state"]): string {
 describe("critical path — Travel Radar homepage renders without JS", () => {
   it("ready: shows the recommendation and its decision fields", () => {
     const html = render("ready");
-    expect(html).toContain("Where is NOT raining?");
+    expect(html).toContain("Dates fixed.");
+    expect(html).toContain("Destination open?");
+    expect(html).toContain("Compare destinations");
     expect(html).toContain("Tokyo");
     expect(html).toContain("Japan");
     expect(html).toContain("/jp/tokyo");
