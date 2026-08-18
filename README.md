@@ -17,14 +17,7 @@ set dates and weather priorities
 
 Advanced route optimization, execution mode, imports and adaptive replanning remain available, but they are not the primary acquisition or navigation path.
 
-Direction package:
-
-- [`docs/superpowers/product/2026-08-18-founder-prd-weather-first-group-decision.md`](docs/superpowers/product/2026-08-18-founder-prd-weather-first-group-decision.md)
-- [`docs/superpowers/product/2026-08-18-domain-model-weather-first-group-decision.md`](docs/superpowers/product/2026-08-18-domain-model-weather-first-group-decision.md)
-- [`docs/superpowers/product/2026-08-18-information-architecture-weather-first-group-decision.md`](docs/superpowers/product/2026-08-18-information-architecture-weather-first-group-decision.md)
-- [`docs/superpowers/plans/2026-08-18-weather-first-group-decision-execution.md`](docs/superpowers/plans/2026-08-18-weather-first-group-decision-execution.md)
-
-These files record the approved implementation direction but do not replace the active authority documents indexed by `SPEC.md` until a controlled documentation cutover is completed.
+The approved implementation-direction drafts are stored under `docs/superpowers/product/` and `docs/superpowers/plans/`. They do not replace the active authority documents indexed by `SPEC.md` until a controlled documentation cutover is completed.
 
 ## Documentation authority
 
