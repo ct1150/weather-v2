@@ -30,8 +30,11 @@ describe("Weather Discovery Phase 6 contract", () => {
 
   it("removes trip-context dropdowns from the active UI while preserving optional limits", () => {
     expect(layout).toContain('import "./discovery-focus.css"');
+    expect(focusCss).toContain("#main-content:has(button[aria-pressed])");
     expect(focusCss).toContain("details > .mt-4.grid.gap-6 > :first-child");
     expect(focusCss).toContain("display: none");
+    expect(focusCss).toContain("pointer-events: none");
+    expect(focusCss).not.toContain("#main-content .info-panel details");
     expect(planner).toContain("rainProbabilityMax");
     expect(planner).toContain("temperatureMinC");
     expect(planner).toContain("temperatureMaxC");
