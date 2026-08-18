@@ -1,0 +1,569 @@
+name: Apply discovery decision and retention once v2
+
+on:
+  push:
+    branches:
+      - agent/discovery-decision-retention
+    paths:
+      - .github/workflows/apply-discovery-decision-retention-once-v2.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout feature branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent/discovery-decision-retention
+          fetch-depth: 1
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.11.0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Apply, validate and publish implementation
+        shell: bash
+        env:
+          APP_BASE_URL: https://868656.xyz
+          NEXT_PUBLIC_TRIP_API_URL: https://trip.868656.xyz
+        run: |
+          set +e
+          {
+            cat > /tmp/apply-discovery-retention.py <<'PY'
+          from pathlib import Path
+          import re
+
+          ROOT = Path(".")
+          COMPONENT = ROOT / "apps/web/src/components/WeatherDiscoveryPlannerV2.tsx"
+
+          def write(path: str, content: str) -> None:
+              target = ROOT / path
+              target.parent.mkdir(parents=True, exist_ok=True)
+              target.write_text(content, encoding="utf-8")
+
+          def replace_literal(source: str, old: str, new: str, label: str) -> str:
+              count = source.count(old)
+              if count != 1:
+                  raise SystemExit(f"{label}: expected one literal marker, found {count}")
+              return source.replace(old, new, 1)
+
+          source = COMPONENT.read_text(encoding="utf-8")
+
+          source = replace_literal(
+              source,
+              '} from "../discovery/weather-discovery";\nimport { ContextualAffiliateSurface } from "./ContextualAffiliateSurface";',
+              '} from "../discovery/weather-discovery";\nimport {\n  DISCOVERY_SHORTLIST_STORAGE_KEY,\n  parseDiscoveryShortlist,\n  serializeDiscoveryShortlist,\n} from "../discovery/discovery-shortlist";\nimport { ContextualAffiliateSurface } from "./ContextualAffiliateSurface";',
+              "shortlist import",
+          )
+
+          source = replace_literal(
+              source,
+              "const MAX_SHORTLIST = 4;",
+              '''const MAX_SHORTLIST = 4;
+          const CAUTION_REASONS = new Set<DiscoveryReasonCode>([
+            "RAIN_RISK",
+            "HEAT_RISK",
+            "COLD_RISK",
+            "WIND_RISK",
+            "UV_CAUTION",
+            "LIMITED_DATA",
+            "CUSTOM_CONSTRAINT_MISS",
+          ]);''',
+              "caution reason vocabulary",
+          )
+
+          copy_blocks = [
+              (
+                  '''    shortlist: "Shortlist",
+              shortlisted: "Shortlisted",
+              shortlistFull: "You can compare up to 4 cities.",''',
+                  '''    shortlist: "Save & compare",
+              shortlisted: "Saved",
+              shortlistFull: "You can compare up to 4 cities.",
+              saved: "Saved destinations",
+              savedIntro: "Kept on this device and included in the shareable URL.",
+              clearSaved: "Clear saved",
+              whyFits: "Why it fits",
+              watchOuts: "Watch-outs",
+              noWatchOuts: "No major weather warning in the selected window.",
+              bestAvailable: "Best available match for the selected priorities.",''',
+                  "English decision copy",
+              ),
+              (
+                  '''    shortlist: "加入对比",
+              shortlisted: "已加入对比",
+              shortlistFull: "最多同时对比 4 个城市。",''',
+                  '''    shortlist: "保存并对比",
+              shortlisted: "已保存",
+              shortlistFull: "最多同时对比 4 个城市。",
+              saved: "已保存的目的地",
+              savedIntro: "保存在当前设备中，也会写入可分享链接。",
+              clearSaved: "清空已保存",
+              whyFits: "推荐理由",
+              watchOuts: "需要注意",
+              noWatchOuts: "所选日期内暂无明显天气风险。",
+              bestAvailable: "这是当前条件下综合匹配度较高的选择。",''',
+                  "Simplified Chinese decision copy",
+              ),
+              (
+                  '''    shortlist: "加入比較",
+              shortlisted: "已加入比較",
+              shortlistFull: "最多同時比較 4 個城市。",''',
+                  '''    shortlist: "儲存並比較",
+              shortlisted: "已儲存",
+              shortlistFull: "最多同時比較 4 個城市。",
+              saved: "已儲存的目的地",
+              savedIntro: "保存在目前裝置中，也會寫入可分享連結。",
+              clearSaved: "清空已儲存",
+              whyFits: "推薦理由",
+              watchOuts: "需要注意",
+              noWatchOuts: "所選日期內暫無明顯天氣風險。",
+              bestAvailable: "這是目前條件下綜合匹配度較高的選擇。",''',
+                  "Traditional Chinese decision copy",
+              ),
+          ]
+          for old, new, label in copy_blocks:
+              source = replace_literal(source, old, new, label)
+
+          helper_marker = '''function temperature(result: DiscoveryCityResult): string {
+            const { averageMinC: low, averageMaxC: high } = result.metrics;
+            return low === null || high === null ? "—" : `${low}°–${high}°`;
+          }
+          '''
+          helpers = helper_marker + '''function isCautionReason(reason: DiscoveryReasonCode): boolean {
+            return CAUTION_REASONS.has(reason);
+          }
+          function readStoredShortlist(): ReadonlyArray<string> {
+            try {
+              return parseDiscoveryShortlist(
+                window.localStorage.getItem(DISCOVERY_SHORTLIST_STORAGE_KEY),
+                MAX_SHORTLIST,
+              );
+            } catch {
+              return [];
+            }
+          }
+          function persistShortlist(selected: ReadonlyArray<string>): void {
+            try {
+              if (selected.length === 0) {
+                window.localStorage.removeItem(DISCOVERY_SHORTLIST_STORAGE_KEY);
+                return;
+              }
+              window.localStorage.setItem(
+                DISCOVERY_SHORTLIST_STORAGE_KEY,
+                serializeDiscoveryShortlist(selected, MAX_SHORTLIST),
+              );
+            } catch {
+              // Storage is optional; the shareable URL remains available.
+            }
+          }
+          '''
+          source = replace_literal(source, helper_marker, helpers, "shortlist helpers")
+
+          source = replace_literal(
+              source,
+              '''    setDraft(parsed);
+              setApplied(parsed);
+              setShortlist((search.get("cities") ?? "").split(",").filter(Boolean).slice(0, MAX_SHORTLIST));''',
+              '''    setDraft(parsed);
+              setApplied(parsed);
+              const fromUrl = (search.get("cities") ?? "")
+                .split(",")
+                .filter(Boolean)
+                .slice(0, MAX_SHORTLIST);
+              const initialShortlist = fromUrl.length > 0 ? fromUrl : readStoredShortlist();
+              setShortlist(initialShortlist);
+              if (fromUrl.length === 0 && initialShortlist.length > 0) {
+                const restored = serializeDiscoveryPreferences(parsed);
+                restored.set("cities", initialShortlist.join(","));
+                window.history.replaceState(
+                  {},
+                  "",
+                  `${window.location.pathname}?${restored.toString()}`,
+                );
+              }''',
+              "restore saved destinations",
+          )
+
+          models_old = '''  const resultIds = useMemo(() => new Set(results.map((result) => result.city.cityId)), [results]);
+            const selectedResults = useMemo(
+              () =>
+                shortlist
+                  .map((id) => results.find((result) => result.city.cityId === id))
+                  .filter((result): result is DiscoveryCityResult => result !== undefined),
+              [results, shortlist],
+            );'''
+          models_new = '''  const selectedResults = useMemo(
+              () =>
+                shortlist
+                  .map((id) => results.find((result) => result.city.cityId === id))
+                  .filter((result): result is DiscoveryCityResult => result !== undefined),
+              [results, shortlist],
+            );
+            const savedCities = useMemo(
+              () =>
+                shortlist
+                  .map((id) => cities.find((city) => city.cityId === id))
+                  .filter((city): city is TripCityOption => city !== undefined),
+              [cities, shortlist],
+            );
+            const cityIds = useMemo(() => new Set(cities.map((city) => city.cityId)), [cities]);'''
+          source = replace_literal(source, models_old, models_new, "saved destination models")
+
+          source = replace_literal(
+              source,
+              '''  useEffect(() => {
+              if (state === "ready") setShortlist((current) => current.filter((id) => resultIds.has(id)));
+            }, [resultIds, state]);''',
+              '''  useEffect(() => {
+              if (cities.length === 0) return;
+              setShortlist((current) => {
+                const next = current.filter((id) => cityIds.has(id));
+                if (next.length === current.length) return current;
+                persistShortlist(next);
+                return next;
+              });
+            }, [cities.length, cityIds]);''',
+              "retain shortlist across filter changes",
+          )
+
+          source = replace_literal(
+              source,
+              '''        updateUrl(applied, next);
+                    return next;
+                  });
+                },
+                [applied, copy.shortlistFull, updateUrl],
+              );''',
+              '''        updateUrl(applied, next);
+                    persistShortlist(next);
+                    return next;
+                  });
+                },
+                [applied, copy.shortlistFull, locale, updateUrl],
+              );
+
+              const clearShortlist = useCallback((): void => {
+                setShortlist([]);
+                persistShortlist([]);
+                setTripReady(false);
+                setMessage("");
+                updateUrl(applied, []);
+              }, [applied, updateUrl]);''',
+              "persist shortlist changes",
+          )
+
+          source = replace_literal(
+              source,
+              '''      </section>
+
+                {message.length > 0 ? <p className="mt-4 text-sm text-muted">{message}</p> : null}''',
+              '''      </section>
+
+                {savedCities.length > 0 ? (
+                  <section className="info-panel mt-6" aria-labelledby="discovery-saved">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        <p className="eyebrow">{copy.saved}</p>
+                        <h2 id="discovery-saved" className="section-title mt-2">
+                          {copy.saved} · {savedCities.length}/{MAX_SHORTLIST}
+                        </h2>
+                        <p className="mt-2 text-sm text-muted">{copy.savedIntro}</p>
+                      </div>
+                      <button
+                        type="button"
+                        className="text-sm font-bold text-primary focus-ring"
+                        onClick={clearShortlist}
+                      >
+                        {copy.clearSaved}
+                      </button>
+                    </div>
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      {savedCities.map((city) => (
+                        <button
+                          key={city.cityId}
+                          type="button"
+                          className="min-h-10 rounded-full border border-border bg-white px-3 text-sm font-semibold text-foreground focus-ring"
+                          onClick={() => toggle(city.cityId)}
+                          aria-label={`${copy.remove} ${city.cityName}`}
+                        >
+                          {city.cityName} <span aria-hidden="true">×</span>
+                        </button>
+                      ))}
+                    </div>
+                  </section>
+                ) : null}
+
+                {message.length > 0 ? <p className="mt-4 text-sm text-muted">{message}</p> : null}''',
+              "saved destination panel",
+          )
+
+          source = replace_literal(
+              source,
+              '''              {results.map((result, index) => {
+                            const selected = shortlist.includes(result.city.cityId);
+                            return (''',
+              '''              {results.map((result, index) => {
+                            const selected = shortlist.includes(result.city.cityId);
+                            const fitReasons = result.reasonCodes.filter(
+                              (reason) => !isCautionReason(reason),
+                            );
+                            const cautionReasons = result.reasonCodes.filter(isCautionReason);
+                            return (''',
+              "reason grouping",
+          )
+
+          source = replace_literal(
+              source,
+              '''                              <a
+                                        href={cityPath(locale, result.city)}
+                                        className="focus-ring hover:text-primary"
+                                      >''',
+              '''                              <a
+                                        href={cityPath(locale, result.city)}
+                                        className="focus-ring hover:text-primary"
+                                        onClick={() =>
+                                          emitProductAnalytics({
+                                            locale,
+                                            routeTemplate: "/discover",
+                                            fields: {
+                                              event: "search_result_clicked",
+                                              destination_id: result.city.cityId,
+                                              result_type: "city",
+                                              position: index + 1,
+                                            },
+                                          })
+                                        }
+                                      >''',
+              "destination detail analytics",
+          )
+
+          source = replace_literal(
+              source,
+              '''                        <ul className="relative mt-4 flex flex-wrap gap-1.5">
+                                  {result.reasonCodes.slice(0, 4).map((reason) => (
+                                    <li
+                                      key={reason}
+                                      className="rounded-full border border-border px-2.5 py-1 text-[11px] font-semibold text-muted"
+                                    >
+                                      {REASON_COPY[locale][reason]}
+                                    </li>
+                                  ))}
+                                </ul>''',
+              '''                        <div className="relative mt-4 grid gap-3 sm:grid-cols-2">
+                                  <div className="rounded-2xl border border-border bg-surface-elevated p-3">
+                                    <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-foreground">
+                                      {copy.whyFits}
+                                    </p>
+                                    {fitReasons.length > 0 ? (
+                                      <ul className="mt-2 grid gap-1.5 text-xs text-muted">
+                                        {fitReasons.slice(0, 3).map((reason) => (
+                                          <li key={reason}>✓ {REASON_COPY[locale][reason]}</li>
+                                        ))}
+                                      </ul>
+                                    ) : (
+                                      <p className="mt-2 text-xs leading-5 text-muted">{copy.bestAvailable}</p>
+                                    )}
+                                  </div>
+                                  <div className="rounded-2xl border border-border bg-white p-3">
+                                    <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-foreground">
+                                      {copy.watchOuts}
+                                    </p>
+                                    {cautionReasons.length > 0 ? (
+                                      <ul className="mt-2 grid gap-1.5 text-xs text-muted">
+                                        {cautionReasons.slice(0, 2).map((reason) => (
+                                          <li key={reason}>• {REASON_COPY[locale][reason]}</li>
+                                        ))}
+                                      </ul>
+                                    ) : (
+                                      <p className="mt-2 text-xs leading-5 text-muted">{copy.noWatchOuts}</p>
+                                    )}
+                                  </div>
+                                </div>''',
+              "decision explanation",
+          )
+
+          COMPONENT.write_text(source, encoding="utf-8")
+
+          write(
+              "apps/web/src/discovery/discovery-shortlist.ts",
+              '''export const DISCOVERY_SHORTLIST_STORAGE_KEY = "wnr:discovery-shortlist:v1";
+
+          export function normalizeDiscoveryShortlist(
+            value: unknown,
+            maxItems = 4,
+          ): ReadonlyArray<string> {
+            if (!Array.isArray(value)) return [];
+            const limit = Number.isInteger(maxItems) && maxItems > 0 ? maxItems : 4;
+            const seen = new Set<string>();
+            const output: string[] = [];
+            for (const item of value) {
+              if (typeof item !== "string") continue;
+              const id = item.trim();
+              if (id.length === 0 || seen.has(id)) continue;
+              seen.add(id);
+              output.push(id);
+              if (output.length >= limit) break;
+            }
+            return output;
+          }
+
+          export function parseDiscoveryShortlist(
+            raw: string | null,
+            maxItems = 4,
+          ): ReadonlyArray<string> {
+            if (raw === null) return [];
+            try {
+              return normalizeDiscoveryShortlist(JSON.parse(raw) as unknown, maxItems);
+            } catch {
+              return [];
+            }
+          }
+
+          export function serializeDiscoveryShortlist(
+            values: ReadonlyArray<string>,
+            maxItems = 4,
+          ): string {
+            return JSON.stringify(normalizeDiscoveryShortlist(values, maxItems));
+          }
+          ''',
+          )
+
+          write(
+              "apps/web/src/discovery/discovery-shortlist.test.ts",
+              '''import { describe, expect, it } from "vitest";
+          import {
+            DISCOVERY_SHORTLIST_STORAGE_KEY,
+            normalizeDiscoveryShortlist,
+            parseDiscoveryShortlist,
+            serializeDiscoveryShortlist,
+          } from "./discovery-shortlist";
+
+          describe("discovery shortlist persistence", () => {
+            it("uses a stable versioned storage key", () => {
+              expect(DISCOVERY_SHORTLIST_STORAGE_KEY).toBe("wnr:discovery-shortlist:v1");
+            });
+
+            it("deduplicates, trims and bounds saved destinations", () => {
+              expect(normalizeDiscoveryShortlist([" tokyo ", "tokyo", 3, "", "seoul", "osaka"], 2)).toEqual([
+                "tokyo",
+                "seoul",
+              ]);
+            });
+
+            it("fails closed for invalid storage payloads", () => {
+              expect(parseDiscoveryShortlist("not-json")).toEqual([]);
+              expect(parseDiscoveryShortlist('{"city":"tokyo"}')).toEqual([]);
+            });
+
+            it("round-trips a valid shortlist", () => {
+              const raw = serializeDiscoveryShortlist(["tokyo", "seoul", "tokyo"]);
+              expect(parseDiscoveryShortlist(raw)).toEqual(["tokyo", "seoul"]);
+            });
+          });
+          ''',
+          )
+
+          write(
+              "apps/web/src/components/discovery-decision-retention-contract.test.ts",
+              '''import { readFileSync } from "node:fs";
+          import { describe, expect, it } from "vitest";
+
+          const planner = readFileSync(new URL("./WeatherDiscoveryPlannerV2.tsx", import.meta.url), "utf8");
+          const shortlist = readFileSync(
+            new URL("../discovery/discovery-shortlist.ts", import.meta.url),
+            "utf8",
+          );
+
+          describe("discovery decision and retention contracts", () => {
+            it("separates recommendation value from weather trade-offs", () => {
+              expect(planner).toContain("Why it fits");
+              expect(planner).toContain("Watch-outs");
+              expect(planner).toContain("推荐理由");
+              expect(planner).toContain("需要注意");
+              expect(planner).toContain("fitReasons");
+              expect(planner).toContain("cautionReasons");
+            });
+
+            it("persists saved destinations while retaining URL state", () => {
+              expect(shortlist).toContain("wnr:discovery-shortlist:v1");
+              expect(planner).toContain("readStoredShortlist");
+              expect(planner).toContain("persistShortlist");
+              expect(planner).toContain("savedCities");
+              expect(planner).toContain("clearShortlist");
+              expect(planner).toContain('search.set("cities"');
+            });
+
+            it("tracks destination detail opens through the allowlisted event", () => {
+              expect(planner).toContain('event: "search_result_clicked"');
+              expect(planner).toContain('result_type: "city"');
+              expect(planner).toContain("position: index + 1");
+            });
+          });
+          ''',
+          )
+          PY
+
+            python /tmp/apply-discovery-retention.py
+            pnpm exec prettier --write \
+              apps/web/src/components/WeatherDiscoveryPlannerV2.tsx \
+              apps/web/src/discovery/discovery-shortlist.ts \
+              apps/web/src/discovery/discovery-shortlist.test.ts \
+              apps/web/src/components/discovery-decision-retention-contract.test.ts
+            pnpm -r --filter '!@wnr/web' --filter '!@wnr/weather-sync' --filter '!@wnr/maintenance' build
+            pnpm --filter @wnr/web lint
+            pnpm --filter @wnr/web exec vitest run \
+              src/discovery/discovery-shortlist.test.ts \
+              src/components/discovery-decision-retention-contract.test.ts \
+              src/components/ux-funnel-contract.test.ts \
+              src/components/weather-discovery-phase6-contract.test.ts
+            pnpm --filter @wnr/web build
+            grep -Fq "Find the right destination" apps/web/out/discover.html
+            grep -Fq "按天气找目的地" apps/web/out/zh-cn/discover.html
+            grep -Fq "按天氣找目的地" apps/web/out/zh-hant/discover.html
+          } > /tmp/discovery-retention.log 2>&1
+          status=$?
+          set -e
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          if [ "$status" -ne 0 ]; then
+            mkdir -p .automation
+            cp /tmp/discovery-retention.log .automation/discovery-decision-retention.log
+            git rm -f \
+              .github/workflows/apply-discovery-decision-retention-once.yml \
+              .github/workflows/apply-discovery-decision-retention-once-v2.yml
+            git add .automation/discovery-decision-retention.log
+            git commit -m "ci: record discovery retention implementation failure"
+            git push origin HEAD:agent/discovery-decision-retention
+            cat /tmp/discovery-retention.log
+            exit "$status"
+          fi
+
+          git rm -f \
+            .github/workflows/apply-discovery-decision-retention-once.yml \
+            .github/workflows/apply-discovery-decision-retention-once-v2.yml
+          rm -rf .automation
+          git add \
+            apps/web/src/components/WeatherDiscoveryPlannerV2.tsx \
+            apps/web/src/discovery/discovery-shortlist.ts \
+            apps/web/src/discovery/discovery-shortlist.test.ts \
+            apps/web/src/components/discovery-decision-retention-contract.test.ts
+          git commit -m "feat: improve discovery decisions and retention"
+          git push origin HEAD:agent/discovery-decision-retention
+          cat /tmp/discovery-retention.log
