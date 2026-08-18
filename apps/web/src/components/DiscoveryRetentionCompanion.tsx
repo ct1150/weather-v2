@@ -5,6 +5,7 @@ import {
   useEffect,
   useLayoutEffect,
   useMemo,
+  useRef,
   useState,
   type ReactElement,
 } from "react";
@@ -33,7 +34,7 @@ const COPY = {
     control: "Saved",
     title: "Saved destinations",
     intro: "Your shortlist stays on this device and remains shareable through the page URL.",
-    empty: "Use “Save & compare” on a result to keep up to four destinations.",
+    empty: "Use “Shortlist” on a result to keep up to four destinations.",
     clear: "Clear saved",
     remove: "Remove",
     guide: "How to read the results",
@@ -47,7 +48,7 @@ const COPY = {
     control: "已保存",
     title: "已保存的目的地",
     intro: "短名单会保存在当前设备中，也能通过页面链接分享。",
-    empty: "在结果中点击“保存并对比”，最多可保留 4 个目的地。",
+    empty: "在结果中点击“加入对比”，最多可保留 4 个目的地。",
     clear: "清空已保存",
     remove: "移除",
     guide: "如何阅读推荐结果",
@@ -61,7 +62,7 @@ const COPY = {
     control: "已儲存",
     title: "已儲存的目的地",
     intro: "短名單會保存在目前裝置中，也能透過頁面連結分享。",
-    empty: "在結果中點擊「儲存並比較」，最多可保留 4 個目的地。",
+    empty: "在結果中點擊「加入比較」，最多可保留 4 個目的地。",
     clear: "清空已儲存",
     remove: "移除",
     guide: "如何閱讀推薦結果",
@@ -93,6 +94,7 @@ export function DiscoveryRetentionCompanion({
   const [open, setOpen] = useState(false);
   const [saved, setSaved] = useState<ReadonlyArray<string>>([]);
   const [cities, setCities] = useState<ReadonlyArray<TripCityOption>>([]);
+  const initializedRef = useRef(false);
 
   const syncFromUrl = useCallback((): void => {
     const search = new URLSearchParams(window.location.search);
@@ -107,6 +109,17 @@ export function DiscoveryRetentionCompanion({
         // Retention is optional and must never block discovery.
       }
       setSaved(fromUrl);
+      initializedRef.current = true;
+      return;
+    }
+
+    if (initializedRef.current) {
+      try {
+        window.localStorage.removeItem(DISCOVERY_SHORTLIST_STORAGE_KEY);
+      } catch {
+        // Clearing URL state remains authoritative when storage is unavailable.
+      }
+      setSaved([]);
       return;
     }
 
@@ -118,6 +131,7 @@ export function DiscoveryRetentionCompanion({
     } catch {
       stored = [];
     }
+    initializedRef.current = true;
     setSaved(stored);
     if (stored.length > 0) {
       window.history.replaceState({}, "", discoveryUrl(stored));
