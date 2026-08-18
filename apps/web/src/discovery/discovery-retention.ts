@@ -35,9 +35,7 @@ export function serializeDiscoveryShortlist(values: ReadonlyArray<string>): stri
   return JSON.stringify(normalizeDiscoveryShortlist(values));
 }
 
-export function discoveryShortlistFromSearch(
-  search: URLSearchParams,
-): ReadonlyArray<string> {
+export function discoveryShortlistFromSearch(search: URLSearchParams): ReadonlyArray<string> {
   return normalizeDiscoveryShortlist((search.get("cities") ?? "").split(","));
 }
 
