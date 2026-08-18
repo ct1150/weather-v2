@@ -12,10 +12,7 @@ const simplifiedTrips = readFileSync(
   new URL("../app/zh-cn/trips/page.tsx", import.meta.url),
   "utf8",
 );
-const traditionalHome = readFileSync(
-  new URL("../app/zh-hant/page.tsx", import.meta.url),
-  "utf8",
-);
+const traditionalHome = readFileSync(new URL("../app/zh-hant/page.tsx", import.meta.url), "utf8");
 const traditionalTrips = readFileSync(
   new URL("../app/zh-hant/trips/page.tsx", import.meta.url),
   "utf8",
@@ -37,12 +34,7 @@ const currentCopy = [
   ],
   [
     simplifiedHome,
-    [
-      "未来14天 · 多人目的地决策",
-      "日期定了，去哪还没定？",
-      "开始比较目的地",
-      "继续共同规划",
-    ],
+    ["未来14天 · 多人目的地决策", "日期定了，去哪还没定？", "开始比较目的地", "继续共同规划"],
   ],
   [
     simplifiedTrips,
@@ -50,12 +42,7 @@ const currentCopy = [
   ],
   [
     traditionalHome,
-    [
-      "未來14天 · 多人目的地決策",
-      "日期定了，去哪還沒定？",
-      "開始比較目的地",
-      "繼續共同規劃",
-    ],
+    ["未來14天 · 多人目的地決策", "日期定了，去哪還沒定？", "開始比較目的地", "繼續共同規劃"],
   ],
   [
     traditionalTrips,
