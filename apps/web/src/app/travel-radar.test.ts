@@ -1,22 +1,12 @@
 // apps/web/src/app/travel-radar.test.ts
 //
-// Travel Radar homepage journey tests (PRD-FR-001, UX-HOME-001, VISION-VALUE-001,
-// UX-STATE-001). The recommendation cards and their required fields must be present
-// in crawlable primary content without a map, the time-window selector must expose
-// exact dates, stale results must be visibly labeled, and the complete async state
-// contract (loading/empty/error) must render.
-//
-// NOTE: This file MUST keep the `.ts` extension (the Verify command checks
-// `src/app/travel-radar.test.ts` by name), so JSX syntax is unavailable here.
-// We compose the element tree with `createElement` instead, which is fully
-// supported in node + react-dom/server.
+// Homepage journey tests. The static weather cards and their required fields
+// remain crawlable while the primary task is now a weather-first group
+// destination decision.
 
 import { createElement } from "react";
-
 import { renderToStaticMarkup } from "react-dom/server";
-
 import { describe, expect, it } from "vitest";
-
 import { TravelRadarPage } from "./page";
 import type { TravelRadarViewModel, WindowControl } from "./view-models";
 
@@ -117,15 +107,23 @@ function controls(): WindowControl[] {
   ];
 }
 
-describe("Travel Radar homepage — required card content", () => {
+describe("Travel Radar homepage — product scope", () => {
   const html = render(fixture("ready"), controls());
 
-  it("renders the hero without implying a live AI decision", () => {
-    expect(html).toContain("Where is NOT raining?");
-    expect(html).toContain("I haven&#x27;t chosen a destination");
+  it("makes weather-first destination comparison the primary action", () => {
+    expect(html).toContain("Dates fixed.");
+    expect(html).toContain("Destination open?");
+    expect(html).toContain("Compare destinations");
     expect(html).toContain('href="/discover"');
-    expect(html).toContain("I already have a trip");
-    expect(html).toContain('href="/trips/new"');
+    expect(html).toContain("Continue shared planning");
+    expect(html).toContain('href="/trips"');
+    expect(html).not.toContain("I already have a trip");
+  });
+
+  it("renders the three-step group decision flow", () => {
+    expect(html).toContain("Set the window");
+    expect(html).toContain("Compare 3–5 places");
+    expect(html).toContain("Share and plan");
   });
 
   it("exposes every card's required fields in crawlable primary content", () => {
@@ -138,7 +136,6 @@ describe("Travel Radar homepage — required card content", () => {
     expect(html).toContain("26°");
     expect(html).toContain("10%");
     expect(html).toContain("LOW_RAIN_CHANCE");
-    // Each card links to its destination detail page.
     expect(html).toContain('href="/jp/tokyo"');
     expect(html).toContain('href="/kr/seoul"');
   });

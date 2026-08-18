@@ -1,30 +1,17 @@
 // apps/web/src/app/page.tsx
 //
-// Travel Radar homepage (PRD-FR-001, UX-HOME-001, VISION-VALUE-001,
-// UX-STATE-001, SEO-STRUCTURED-001).
-//
-// App Router page (system_design.md T03): at build time it bakes the dataset and
-// projects the `TravelRadarViewModel`, then renders the pure presentational
-// component. No request-time data path — the page is statically exported.
-//
-// Every time-window read model is baked into the static page. A small client
-// controller switches between those deterministic models and preserves the
-// selected window in the shareable URL without a request-time data path.
-//
-// Progressive enhancement: crawlable recommendation cards render FIRST; the
-// MapLibre map hydrates AFTER them and the JSON-LD structured data is
-// server-rendered into the static HTML.
+// Static, weather-first destination discovery homepage. Every time-window
+// read model is baked into the page; the client only switches deterministic
+// models and keeps the selected window shareable in the URL.
 
-import type { ReactElement } from "react";
 import type { Metadata } from "next";
-import type { TravelRadarViewModel, WindowControl, ExplorerMapMarker } from "./view-models";
+import type { ReactElement } from "react";
 import type { Window } from "../api/v1/schemas";
-import type { SearchCandidate } from "../search/search-destinations";
 import {
-  getBakedDataset,
   buildConfig,
-  projectHome,
   buildWindowControls,
+  getBakedDataset,
+  projectHome,
   projectHomeMapMarkers,
 } from "../build/bake";
 import { DestinationSearch } from "../components/DestinationSearch";
@@ -37,12 +24,13 @@ import {
   reasonLabel,
 } from "../components/TravelRadarPanel";
 import { WindowExperience } from "../components/WindowExperience";
-import { buildAlternates, routeRobots, localeUrl } from "./seo";
+import type { SearchCandidate } from "../search/search-destinations";
+import { buildAlternates, localeUrl, routeRobots } from "./seo";
+import type { ExplorerMapMarker, TravelRadarViewModel, WindowControl } from "./view-models";
 
 export interface TravelRadarPageProps {
   readonly viewModel: TravelRadarViewModel;
   readonly windowControls: ReadonlyArray<WindowControl>;
-  /** Progressive-map markers (same compact read model as the explorer map). */
   readonly mapMarkers?: ReadonlyArray<ExplorerMapMarker>;
   readonly searchCandidates?: ReadonlyArray<SearchCandidate>;
   readonly windowViews?: ReadonlyArray<{
@@ -56,7 +44,6 @@ export interface TravelRadarPageProps {
     readonly path: string;
     readonly cityCount: number;
   }>;
-  /** Server-rendered JSON-LD schema.org node. */
   readonly jsonLd?: Readonly<Record<string, unknown>>;
 }
 
@@ -101,42 +88,47 @@ export function TravelRadarPage({
       <section className="hero-panel">
         <div className="relative z-10 grid gap-8 lg:grid-cols-[1.25fr_0.75fr] lg:items-end">
           <div>
-            <p className="eyebrow">Your weather-first trip briefing</p>
+            <p className="eyebrow">Weather-first group destination decisions</p>
             <h1 className="mt-5 max-w-3xl text-4xl font-bold leading-[1.02] tracking-[-0.05em] text-foreground sm:text-6xl lg:text-[4.25rem]">
-              Where is NOT raining?
+              Dates fixed.
+              <br />
+              Destination open?
             </h1>
             <p className="mt-5 max-w-2xl text-base leading-7 text-muted sm:text-lg">
-              Compare the weather that can change a trip: rain risk, comfortable temperatures, and
-              the trade-offs behind every ranking.
+              Compare the next 14 days, keep the shortlist small, and share the same weather
+              evidence with the people travelling with you. Once everyone agrees, continue in one
+              shared trip.
             </p>
-            {searchCandidates !== undefined && searchCandidates.length > 0 ? (
-              <DestinationSearch candidates={searchCandidates} />
-            ) : null}
-            <div className="mt-5 flex flex-wrap items-center gap-3">
+            <div className="mt-6 flex flex-wrap items-center gap-3">
               <a
                 href="/discover"
                 className="rounded-full bg-foreground px-5 py-3 text-sm font-bold text-white shadow-lg shadow-foreground/15 transition hover:-translate-y-0.5 hover:bg-primary focus-ring"
               >
-                I haven't chosen a destination
+                Compare destinations
               </a>
               <a
-                href="/trips/new"
+                href="/trips"
                 className="rounded-full border border-border bg-white px-5 py-3 text-sm font-bold text-foreground transition hover:border-primary/30 hover:bg-surface-elevated focus-ring"
               >
-                I already have a trip <span aria-hidden="true">→</span>
+                Continue shared planning <span aria-hidden="true">→</span>
               </a>
             </div>
             <a
               href="#recommendations"
               className="mt-3 inline-flex text-sm font-semibold text-primary underline-offset-4 hover:underline focus-ring"
             >
-              Browse today's ranked options
+              See today&apos;s weather shortlist
             </a>
+            {searchCandidates !== undefined && searchCandidates.length > 0 ? (
+              <div className="mt-6 max-w-2xl">
+                <DestinationSearch candidates={searchCandidates} />
+              </div>
+            ) : null}
           </div>
           {bestOption !== null ? (
-            <aside className="decision-board" aria-label="Best available option">
+            <aside className="decision-board" aria-label="Best available weather signal">
               <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/60">
-                Best available today
+                Best weather signal today
               </p>
               <div className="mt-5 flex items-end justify-between gap-4">
                 <div>
@@ -162,6 +154,31 @@ export function TravelRadarPage({
             </aside>
           ) : null}
         </div>
+      </section>
+
+      <section
+        className="mt-6 grid gap-4 md:grid-cols-3"
+        aria-label="Weather-first group decision flow"
+      >
+        {[
+          ["01", "Set the window", "Choose dates and the weather conditions that matter most."],
+          [
+            "02",
+            "Compare 3–5 places",
+            "Review the reasons, trade-offs and daily outlook together.",
+          ],
+          [
+            "03",
+            "Share and plan",
+            "Send one shortlist to the group, then continue in a shared trip after the choice.",
+          ],
+        ].map(([number, title, description]) => (
+          <article key={number} className="trip-process-card">
+            <span>{number}</span>
+            <h3>{title}</h3>
+            <p>{description}</p>
+          </article>
+        ))}
       </section>
 
       {state === "loading" ? (
@@ -204,7 +221,7 @@ export function TravelRadarPage({
         >
           <div className="mb-5 flex items-end justify-between gap-4">
             <div>
-              <p className="eyebrow">Travel radar</p>
+              <p className="eyebrow">Weather shortlist</p>
               <h2 className="section-title mt-3">Best available weather, ranked</h2>
             </div>
             <p className="hidden text-sm text-muted sm:block">
@@ -226,7 +243,11 @@ export function TravelRadarPage({
                   key={wc.window}
                   href={wc.href}
                   aria-current={wc.selected ? "true" : undefined}
-                  className={`min-h-11 shrink-0 rounded-full border px-4 py-2.5 text-sm font-semibold transition focus-ring ${wc.selected ? "border-foreground bg-foreground text-white shadow-md shadow-foreground/15" : "border-border bg-surface text-foreground hover:border-primary/30 hover:bg-surface-elevated"}`}
+                  className={`min-h-11 shrink-0 rounded-full border px-4 py-2.5 text-sm font-semibold transition focus-ring ${
+                    wc.selected
+                      ? "border-foreground bg-foreground text-white shadow-md shadow-foreground/15"
+                      : "border-border bg-surface text-foreground hover:border-primary/30 hover:bg-surface-elevated"
+                  }`}
                   aria-label={
                     wc.exactDates.length > 0
                       ? `${wc.label} (${wc.exactDates.join(", ")})`
@@ -247,7 +268,7 @@ export function TravelRadarPage({
           </div>
           <p className="mb-4 max-w-2xl text-sm leading-6 text-muted">
             Rankings show the strongest options in the current dataset, even when every destination
-            has trade-offs. Review the warnings before booking.
+            has trade-offs. Review the warnings before the group makes a choice.
           </p>
           <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {rankedCards.map((card, index) => (
@@ -283,7 +304,11 @@ export function TravelRadarPage({
                   </p>
 
                   <p
-                    className={`relative mt-4 inline-flex rounded-full border px-2.5 py-1 text-[11px] font-bold ${card.weather.rainProbability !== null && card.weather.rainProbability <= 45 ? "signal-good" : "signal-caution"}`}
+                    className={`relative mt-4 inline-flex rounded-full border px-2.5 py-1 text-[11px] font-bold ${
+                      card.weather.rainProbability !== null && card.weather.rainProbability <= 45
+                        ? "signal-good"
+                        : "signal-caution"
+                    }`}
                   >
                     {tripVerdict(card.weather.rainProbability)}
                   </p>
@@ -320,7 +345,9 @@ export function TravelRadarPage({
                         <li
                           key={rc}
                           aria-label={`Reason: ${rc}`}
-                          className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold ${isCautionReason(rc) ? "signal-caution" : "signal-good"}`}
+                          className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold ${
+                            isCautionReason(rc) ? "signal-caution" : "signal-good"
+                          }`}
                         >
                           {reasonLabel(rc)}
                         </li>
@@ -344,9 +371,6 @@ export function TravelRadarPage({
         </section>
       ) : null}
 
-      {/* Progressive MapLibre enhancement (PRD-FR-001). Rendered AFTER the
-          crawlable cards; it shares the same compact read model and degrades
-          gracefully if WebGL/script is unavailable. */}
       {showMap && windowViews === undefined ? (
         <ExplorerMap markers={mapMarkers ?? []} theme="general" windowLabel="Today" />
       ) : null}
@@ -382,7 +406,7 @@ export function TravelRadarPage({
       ) : null}
 
       <footer className="page-footer">
-        <span>Where Not Rain · Weather-led travel inspiration</span>
+        <span>Where Not Rain · Decide together with the weather</span>
         <span>
           Forecast data by <a href="https://open-meteo.com/">Open-Meteo</a> · Derived Travel Score
         </span>
@@ -392,9 +416,9 @@ export function TravelRadarPage({
 }
 
 export async function generateMetadata(): Promise<Metadata> {
-  const title = "Travel weather map: find where it won't rain | Where Not Rain";
+  const title = "Weather-first group destination decisions | Where Not Rain";
   const description =
-    "Compare rain, temperature and Travel Scores across 36 destinations in Japan, Korea and Southeast Asia before choosing where and when to travel.";
+    "Dates fixed but destination open? Compare the next 14 days, share a small shortlist and continue planning together after the group decides.";
   return {
     title: { absolute: title },
     description,
@@ -446,9 +470,9 @@ export default async function Page(): Promise<ReactElement> {
         "@type": "WebSite",
         "@id": `${localeUrl("en", "/")}#website`,
         name: "Where Not Rain",
-        alternateName: "Where is NOT raining?",
+        alternateName: "Dates fixed. Destination open?",
         description:
-          "Travel weather maps that compare rain, temperature and Travel Scores across destinations.",
+          "Weather-first destination comparisons and lightweight group trip planning for travellers deciding where to go.",
         url: localeUrl("en", "/"),
         inLanguage: "en",
       },
@@ -461,9 +485,9 @@ export default async function Page(): Promise<ReactElement> {
       {
         "@type": "CollectionPage",
         "@id": `${localeUrl("en", "/")}#webpage`,
-        name: "Asian travel weather maps",
+        name: "Weather-first group destination decisions",
         description:
-          "Compare rain, temperature and Travel Scores across Japan, Korea and Southeast Asia.",
+          "Compare rain, temperature and Travel Scores before sharing a shortlist and planning together.",
         url: localeUrl("en", "/"),
         dateModified: dataset.dataUpdatedAt,
         inLanguage: "en",

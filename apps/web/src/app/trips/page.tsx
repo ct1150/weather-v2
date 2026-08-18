@@ -5,45 +5,22 @@ import { MyTripsDashboard } from "../../components/MyTripsDashboard";
 import { buildAlternates, localeUrl } from "../seo";
 
 export const metadata: Metadata = {
-  title: "Weather-aware trip planning for Japan, Korea and Southeast Asia",
+  title: "Shared weather-aware trip planning after choosing a destination",
   description:
-    "Build a multi-city itinerary, manage cloud trips and know what to keep, move, shorten or replace when conditions change.",
+    "Continue from a weather-informed destination choice into one shared trip with activities, comments, decisions and revisions.",
   alternates: buildAlternates("/trips", "en", ["en", "zh-hant", "zh-cn"]),
   robots: { index: true, follow: true },
 };
-
-const templates = [
-  {
-    id: "japan-family",
-    label: "7-day family trip",
-    title: "Tokyo → Kyoto → Osaka",
-    description:
-      "Balance temples, city walks, timed tickets and theme-park days with reliable indoor fallbacks.",
-  },
-  {
-    id: "thailand-islands",
-    label: "6-day city and island trip",
-    title: "Bangkok → Phuket",
-    description:
-      "Use rain and wind to decide when to keep beach time, move a boat day or switch to the city plan.",
-  },
-  {
-    id: "korea-city",
-    label: "5-day city break",
-    title: "Seoul → Busan",
-    description:
-      "Reorder palaces, viewpoints, markets and beaches without moving fixed train reservations.",
-  },
-] as const;
 
 export default function TripsLanding(): ReactElement {
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "SoftwareApplication",
-    name: "Where Not Rain Weather-aware Trip Planner",
+    name: "Where Not Rain shared trip planning",
     applicationCategory: "TravelApplication",
     operatingSystem: "Web",
-    description: "Weather-aware itinerary planning for Japan, Korea and Southeast Asia travel.",
+    description:
+      "Lightweight group trip planning after travellers choose a destination with the weather.",
     url: localeUrl("en", "/trips"),
     inLanguage: "en",
   };
@@ -54,51 +31,52 @@ export default function TripsLanding(): ReactElement {
 
       <section className="trip-hero">
         <div className="relative z-10 max-w-4xl">
-          <p className="eyebrow">Weather-aware travel across Asia</p>
+          <p className="eyebrow">After the destination decision</p>
           <h1 className="mt-5 text-4xl font-bold tracking-[-0.05em] text-foreground sm:text-6xl">
-            Know what to keep, move,
+            Destination chosen?
             <br className="hidden sm:block" />
-            shorten or replace
+            Plan it together.
           </h1>
           <p className="mt-5 max-w-2xl text-base leading-7 text-muted sm:text-lg">
-            Plan Japan, Korea and Southeast Asia trips around real weather without rebuilding the
-            whole itinerary. Fixed trains and tickets stay protected while flexible outdoor days get
-            practical fallback decisions.
+            Keep days, activity ideas, comments and explicit decisions in one shared trip, with the
+            daily weather visible as the plan takes shape. Start from destination discovery when the
+            group has not chosen where to go.
           </p>
           <div className="mt-7 flex flex-wrap gap-3">
-            <a className="trip-primary-button" href="/trips/workspace?new=1">
-              Build my trip
+            <a className="trip-primary-button" href="/discover">
+              Choose a destination first
             </a>
-            <a className="trip-secondary-button" href="/trips/new">
-              Import existing itinerary
+            <a className="trip-secondary-button" href="/trips/workspace">
+              Open shared workspace
             </a>
           </div>
-          <p className="mt-4 max-w-2xl text-xs leading-5 text-muted">
-            Current weather coverage includes Japan, South Korea, Thailand, Vietnam, Singapore,
-            Malaysia, Indonesia, the Philippines and Cambodia. Start without an account; cloud save
-            and My Trips are optional.
-          </p>
+          <a
+            className="mt-4 inline-flex text-xs font-semibold text-primary underline-offset-4 hover:underline focus-ring"
+            href="/trips/new"
+          >
+            Advanced: import an existing itinerary
+          </a>
         </div>
       </section>
 
       <MyTripsDashboard locale="en" />
 
-      <section className="mt-12 grid gap-4 md:grid-cols-3" aria-label="How the product works">
+      <section className="mt-12 grid gap-4 md:grid-cols-3" aria-label="Shared planning flow">
         {[
           [
             "01",
-            "Build or import",
-            "Add each city, day type, activity and fixed booking constraint.",
+            "Start from one destination",
+            "Carry the selected destination and dates into a shared trip.",
           ],
           [
             "02",
-            "Refresh trip weather",
-            "See rain, wind, heat and family-sensitive risk for every day.",
+            "Build the activity shortlist",
+            "Add ideas, discuss trade-offs and record explicit decisions separately from chat.",
           ],
           [
             "03",
-            "Travel with a fallback",
-            "Save to the cloud when you choose, create a read-only share and keep a local copy offline.",
+            "Place activities by weather",
+            "Use each day’s outlook to decide when indoor and outdoor plans fit best.",
           ],
         ].map(([number, title, description]) => (
           <article key={number} className="trip-process-card">
@@ -109,53 +87,31 @@ export default function TripsLanding(): ReactElement {
         ))}
       </section>
 
-      <section className="mt-12" aria-labelledby="asia-trip-templates">
-        <p className="eyebrow">Start with a real Asia itinerary</p>
-        <h2 id="asia-trip-templates" className="section-title mt-3">
-          Templates that demonstrate a weather decision, not generic AI text
-        </h2>
-        <div className="mt-6 grid gap-4 lg:grid-cols-3">
-          {templates.map((template) => (
-            <article key={template.id} className="trip-process-card flex flex-col">
-              <span>{template.label}</span>
-              <h3>{template.title}</h3>
-              <p className="flex-1">{template.description}</p>
-              <a
-                className="mt-5 text-sm font-bold text-primary"
-                href={`/trips/workspace?template=${template.id}`}
-              >
-                Open this editable template →
-              </a>
-            </article>
-          ))}
-        </div>
-      </section>
-
       <section className="mt-12 grid gap-5 rounded-[2rem] border border-border/80 bg-white p-6 sm:p-8 lg:grid-cols-2">
         <div>
-          <p className="eyebrow">Built for the moments weather actually changes</p>
-          <h2 className="section-title mt-3">More useful than a rain icon</h2>
+          <p className="eyebrow">Collaboration with a clear purpose</p>
+          <h2 className="section-title mt-3">Keep the group decision visible</h2>
           <p className="mt-4 text-sm leading-7 text-muted">
-            A 60% rain forecast means different things for a museum, a boat trip, a beach day or a
-            timed observation deck. The planner applies different rules and considers whether the
-            day can move, plus whether children or older adults are travelling.
+            This is not another open-ended AI itinerary generator. The shared workspace keeps the
+            destination, dates, activity ideas and weather context together so the group can make
+            and revisit explicit choices.
           </p>
         </div>
         <ul className="grid gap-3 text-sm leading-6 text-body">
-          <li className="trip-side-card">Keep fixed flights, trains and timed tickets visible.</li>
-          <li className="trip-side-card">Treat beaches, boats and viewpoints as wind-sensitive.</li>
+          <li className="trip-side-card">Discuss the whole trip or one specific day.</li>
+          <li className="trip-side-card">Record decisions separately from general comments.</li>
+          <li className="trip-side-card">Review revisions when the shared itinerary changes.</li>
           <li className="trip-side-card">
-            Increase heat and cold caution for families and seniors.
-          </li>
-          <li className="trip-side-card">
-            Keep a local-first workspace, then opt into cloud storage and read-only sharing.
+            Keep local-first editing and opt into cloud collaboration only when useful.
           </li>
         </ul>
       </section>
 
       <footer className="page-footer">
-        <span>Where Not Rain · Weather-aware trip execution</span>
-        <span>English-first global product · Asian destinations · local-first privacy</span>
+        <span>Where Not Rain · Weather-first group planning</span>
+        <span>
+          Choose together first · plan together second · advanced execution remains optional
+        </span>
       </footer>
     </main>
   );
