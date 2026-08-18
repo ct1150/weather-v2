@@ -23,13 +23,44 @@ const traditionalShare = readFileSync(
 );
 
 describe("Cloud Trip phase 2 UX contract", () => {
-  it("puts My Trips at the top of every Trips home without removing guest entry points", () => {
-    expect(englishTrips).toContain('<MyTripsDashboard locale="en"');
-    expect(simplifiedTrips).toContain('<MyTripsDashboard locale="zh-cn"');
-    expect(traditionalTrips).toContain('<MyTripsDashboard locale="zh-hant"');
-    expect(englishTrips).toContain("Build my trip");
-    expect(simplifiedTrips).toContain("建立我的行程");
-    expect(traditionalTrips).toContain("建立我的行程");
+  it("keeps My Trips and guest entry points under the shared-planning value proposition", () => {
+    const tripHomes = [
+      {
+        source: englishTrips,
+        dashboard: '<MyTripsDashboard locale="en"',
+        headline: "Destination chosen?",
+        discover: 'href="/discover"',
+        workspace: 'href="/trips/workspace"',
+        advancedImport: 'href="/trips/new"',
+      },
+      {
+        source: simplifiedTrips,
+        dashboard: '<MyTripsDashboard locale="zh-cn"',
+        headline: "去哪已经确定？",
+        discover: 'href="/zh-cn/discover"',
+        workspace: 'href="/zh-cn/trips/workspace"',
+        advancedImport: 'href="/zh-cn/trips/new"',
+      },
+      {
+        source: traditionalTrips,
+        dashboard: '<MyTripsDashboard locale="zh-hant"',
+        headline: "去哪已經確定？",
+        discover: 'href="/zh-hant/discover"',
+        workspace: 'href="/zh-hant/trips/workspace"',
+        advancedImport: 'href="/zh-hant/trips/new"',
+      },
+    ] as const;
+
+    for (const page of tripHomes) {
+      const heroIndex = page.source.indexOf('<section className="trip-hero">');
+      const dashboardIndex = page.source.indexOf(page.dashboard);
+      expect(heroIndex).toBeGreaterThan(-1);
+      expect(dashboardIndex).toBeGreaterThan(heroIndex);
+      expect(page.source).toContain(page.headline);
+      expect(page.source).toContain(page.discover);
+      expect(page.source).toContain(page.workspace);
+      expect(page.source).toContain(page.advancedImport);
+    }
   });
 
   it("supports multiple-trip management actions with destructive confirmation", () => {
