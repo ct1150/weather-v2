@@ -176,8 +176,7 @@ export function DiscoveryRetentionCompanion({
       const citySlug = parts[parts.length - 1] ?? "unknown";
       const countrySlug = parts[parts.length - 2] ?? "unknown";
       const city = cities.find(
-        (candidate) =>
-          candidate.citySlug === citySlug && candidate.countrySlug === countrySlug,
+        (candidate) => candidate.citySlug === citySlug && candidate.countrySlug === countrySlug,
       );
 
       emitProductAnalytics({
@@ -225,7 +224,10 @@ export function DiscoveryRetentionCompanion({
   return (
     <aside className="fixed bottom-4 right-4 z-50 w-[min(24rem,calc(100vw-2rem))]">
       {open ? (
-        <div className="mb-3 rounded-[1.5rem] border border-border bg-white p-4 shadow-xl" aria-live="polite">
+        <div
+          className="mb-3 rounded-[1.5rem] border border-border bg-white p-4 shadow-xl"
+          aria-live="polite"
+        >
           <div className="flex items-start justify-between gap-3">
             <div>
               <p className="eyebrow">{copy.guide}</p>
