@@ -5,6 +5,14 @@ const productionSmoke = readFileSync(
   new URL("../../../../.github/workflows/production-smoke.yml", import.meta.url),
   "utf8",
 );
+const discoverySmoke = readFileSync(
+  new URL("../../../../tooling/deploy/weather-discovery-smoke.mjs", import.meta.url),
+  "utf8",
+);
+const discoveryPlanner = readFileSync(
+  new URL("./WeatherDiscoveryPlannerV2.tsx", import.meta.url),
+  "utf8",
+);
 const englishHome = readFileSync(new URL("../app/page.tsx", import.meta.url), "utf8");
 const englishTrips = readFileSync(new URL("../app/trips/page.tsx", import.meta.url), "utf8");
 const simplifiedHome = readFileSync(new URL("../app/zh-cn/page.tsx", import.meta.url), "utf8");
@@ -50,12 +58,27 @@ const currentCopy = [
   ],
 ] as const;
 
+const discoveryCopy = [
+  ["Find the right destination", "Start with the weather. Decide the destination second."],
+  ["按天气找目的地", "先看天气，再决定去哪里。"],
+  ["按天氣找目的地", "先看天氣，再決定去哪裡。"],
+] as const;
+
 describe("production smoke copy contract", () => {
   it("checks the same weather-first group decision copy rendered by every locale", () => {
     for (const [page, phrases] of currentCopy) {
       for (const phrase of phrases) {
         expect(page).toContain(phrase);
         expect(productionSmoke).toContain(phrase);
+      }
+    }
+  });
+
+  it("keeps the Phase 6 live smoke aligned with the destination finder", () => {
+    for (const phrases of discoveryCopy) {
+      for (const phrase of phrases) {
+        expect(discoveryPlanner).toContain(phrase);
+        expect(discoverySmoke).toContain(phrase);
       }
     }
   });
@@ -70,5 +93,8 @@ describe("production smoke copy contract", () => {
     ]) {
       expect(productionSmoke).not.toContain(obsolete);
     }
+    expect(discoverySmoke).not.toContain('requireText(english, "Weather Discovery"');
+    expect(discoverySmoke).not.toContain('requireText(simplified, "天气探索"');
+    expect(discoverySmoke).not.toContain('requireText(traditional, "天氣探索"');
   });
 });
