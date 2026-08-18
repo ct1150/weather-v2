@@ -3,14 +3,15 @@
  * The legacy contextual controls remain in the reusable component for now, but
  * are deliberately removed from the active UI while optional hard limits stay.
  */
-#main-content .info-panel details > .mt-4.grid.gap-6 > :first-child {
+#main-content:has(button[aria-pressed]) .info-panel details > .mt-4.grid.gap-6 > :first-child {
   display: none;
 }
 
-#main-content .info-panel details > .mt-4.grid.gap-6 {
+#main-content:has(button[aria-pressed]) .info-panel details > .mt-4.grid.gap-6 {
   grid-template-columns: minmax(0, 1fr);
 }
 
-#main-content .info-panel button[aria-pressed="true"] {
+#main-content:has(button[aria-pressed]) .info-panel button[aria-pressed="true"] {
   cursor: default;
+  pointer-events: none;
 }
