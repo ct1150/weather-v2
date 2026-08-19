@@ -113,5 +113,13 @@ new_dependency = '''export interface ProductAnalyticsDependencies {
 if patched.count(old_dependency) != 1:
     raise RuntimeError("Product analytics dependency type not found exactly once")
 patched = patched.replace(old_dependency, new_dependency, 1)
+old_max_travel = '''    max_travel_minutes: reachability.maxTravelMinutes,
+'''
+new_max_travel = '''    max_travel_minutes:
+      reachability.maxTravelMinutes as DiscoveryFunnelContext["max_travel_minutes"],
+'''
+if patched.count(old_max_travel) != 1:
+    raise RuntimeError("discovery funnel max travel projection not found exactly once")
+patched = patched.replace(old_max_travel, new_max_travel, 1)
 path.write_text(patched, encoding="utf-8")
 print("Phase 2.5 codemod patched for current contracts and Worker bindings")
