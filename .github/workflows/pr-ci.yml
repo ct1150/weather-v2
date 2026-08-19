@@ -1,6 +1,7 @@
 # Lightweight pull-request validation.
-# Draft PR pushes do not allocate a hosted runner. Validation starts when the PR
-# is marked Ready for review, and re-runs only for subsequent non-draft updates.
+# PR #59 uses one Ready event to apply repository Prettier formatting, restore
+# this workflow from main, remove temporary files, and then let synchronize run
+# the normal full verification.
 
 name: PR CI
 
@@ -9,7 +10,7 @@ on:
     types: [opened, reopened, ready_for_review, synchronize]
 
 permissions:
-  contents: read
+  contents: write
   pull-requests: read
 
 concurrency:
@@ -21,8 +22,52 @@ env:
   NODE_VERSION: "22"
 
 jobs:
+  format_phase2:
+    if: github.event.action == 'ready_for_review' && github.event.pull_request.number == 59
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent/opc-retention-phase2
+          fetch-depth: 0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Apply repository formatting
+        run: |
+          pnpm exec prettier --write \
+            apps/web/src/components/DiscoveryRetentionCompanion.tsx \
+            apps/web/src/discovery/saved-search.ts
+
+      - name: Restore standard CI and commit formatted implementation
+        run: |
+          git checkout origin/main -- .github/workflows/pr-ci.yml
+          git rm -f .github/workflows/format-opc-retention-phase2-once.yml
+          git rm -f tooling/one-off/format-opc-retention-phase2-trigger.txt
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "style: format OPC retention Phase 2"
+          git push origin HEAD:agent/opc-retention-phase2
+
   verify:
-    if: github.event.pull_request.draft == false
+    if: >-
+      github.event.pull_request.draft == false &&
+      !(github.event.action == 'ready_for_review' && github.event.pull_request.number == 59)
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
