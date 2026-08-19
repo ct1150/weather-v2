@@ -1,108 +1,63 @@
-# One-time branch workflow. It applies Phase 2.5, generates Cloudflare binding
-# types, validates focused contracts, commits product changes, then removes itself.
-name: Apply OPC analytics Phase 2.5 once
+# Temporary export job for PR #63. The product implementation already passed
+# focused verification. This job reconstructs the validated workflow files in a
+# clean main worktree and uploads them for the GitHub app to apply.
+name: Export OPC analytics Phase 2.5 workflows
 
 on:
   push:
-    branches: [agent/opc-analytics-phase25]
+    branches: [agent/opc-analytics-phase25-fix]
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
-  group: apply-opc-analytics-phase25-once
-  cancel-in-progress: false
+  group: export-opc-analytics-phase25-workflows
+  cancel-in-progress: true
 
 jobs:
-  apply:
-    if: contains(github.event.head_commit.message, 'chore: run OPC analytics phase 2.5 once')
+  export:
+    if: contains(github.event.head_commit.message, 'chore: export validated Phase 2.5 workflows')
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 10
     steps:
-      - name: Checkout branch
+      - name: Checkout branch history
         uses: actions/checkout@v4
         with:
-          ref: agent/opc-analytics-phase25
+          ref: agent/opc-analytics-phase25-fix
           fetch-depth: 0
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+      - name: Generate workflow files from clean main
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          git worktree add /tmp/phase25-workflows origin/main
+
+          restore_before_deletion() {
+            local path="$1"
+            local deletion_commit
+            deletion_commit="$(git log -1 --format=%H -- "${path}")"
+            git show "${deletion_commit}^:${path}" > "/tmp/phase25-workflows/${path}"
+          }
+
+          restore_before_deletion tooling/one-off/opc_analytics_phase25.py
+          restore_before_deletion tooling/one-off/opc_analytics_phase25_patch.py
+          restore_before_deletion tooling/one-off/pr-ci-standard-phase25.yml
+
+          cd /tmp/phase25-workflows
+          python tooling/one-off/opc_analytics_phase25_patch.py
+          python tooling/one-off/opc_analytics_phase25.py
+
+          mkdir -p /tmp/phase25-artifact
+          cp .github/workflows/deploy.yml /tmp/phase25-artifact/deploy.yml
+          cp .github/workflows/production-smoke.yml /tmp/phase25-artifact/production-smoke.yml
+          cp .github/workflows/refresh-weather.yml /tmp/phase25-artifact/refresh-weather.yml
+          cp tooling/one-off/pr-ci-standard-phase25.yml /tmp/phase25-artifact/pr-ci.yml
+
+      - name: Upload validated workflow files
+        uses: actions/upload-artifact@v4
         with:
-          version: 10.11.0
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: pnpm
-
-      - name: Apply Phase 2.5 implementation
-        run: python tooling/one-off/opc_analytics_phase25.py
-
-      - name: Install updated workspace
-        run: pnpm install --no-frozen-lockfile
-
-      - name: Generate Cloudflare binding types
-        run: pnpm --filter @wnr/product-analytics cf-typegen
-
-      - name: Format implementation
-        run: |
-          pnpm exec prettier --write \
-            README.md \
-            .github/workflows/deploy.yml \
-            .github/workflows/pr-ci.yml \
-            .github/workflows/production-smoke.yml \
-            .github/workflows/refresh-weather.yml \
-            packages/analytics/src/events.ts \
-            packages/analytics/src/funnel-events.test.ts \
-            apps/web/src/analytics/browser-events.ts \
-            apps/web/src/analytics/browser-events.test.ts \
-            apps/web/src/analytics/discovery-funnel.ts \
-            apps/web/src/analytics/discovery-funnel.test.ts \
-            apps/web/src/components/WeatherDiscoveryPlannerV2.tsx \
-            apps/web/src/components/DiscoveryRetentionCompanion.tsx \
-            apps/web/src/components/discovery-retention-contract.test.ts \
-            apps/web/src/security/controls.ts \
-            apps/web/src/security/controls.test.ts \
-            workers/product-analytics/package.json \
-            workers/product-analytics/tsconfig.json \
-            workers/product-analytics/vitest.config.ts \
-            workers/product-analytics/wrangler.jsonc \
-            workers/product-analytics/src/index.ts \
-            workers/product-analytics/src/index.test.ts \
-            tooling/analytics/README.md \
-            tooling/analytics/funnel.sql \
-            tooling/analytics/origin-demand.sql \
-            tooling/analytics/zero-result.sql \
-            tooling/analytics/retention.sql \
-            tooling/analytics/commercial.sql \
-            tooling/deploy/pipeline-contract.test.mjs \
-            docs/superpowers/plans/2026-08-19-opc-product-analytics-phase25.md
-
-      - name: Build focused dependencies
-        run: pnpm --filter @wnr/analytics build
-
-      - name: Focused verification
-        run: |
-          pnpm --filter @wnr/analytics test
-          pnpm --filter @wnr/product-analytics typecheck
-          pnpm --filter @wnr/product-analytics test
-          pnpm --filter @wnr/web typecheck
-          pnpm --filter @wnr/web exec vitest run \
-            src/analytics/browser-events.test.ts \
-            src/analytics/discovery-funnel.test.ts \
-            src/components/discovery-retention-contract.test.ts \
-            src/components/weather-discovery-phase6-contract.test.ts \
-            src/security/controls.test.ts
-          node --test tooling/deploy/pipeline-contract.test.mjs
-
-      - name: Commit implementation and remove one-time machinery
-        run: |
-          git rm -f .github/workflows/apply-opc-analytics-phase25-once.yml
-          git rm -f tooling/one-off/opc_analytics_phase25.py
-          git rm -f tooling/one-off/opc-analytics-phase25-trigger.txt
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
-          git commit -m "feat: add privacy-safe product funnel analytics"
-          git push origin HEAD:agent/opc-analytics-phase25
+          name: phase25-workflows
+          path: /tmp/phase25-artifact
+          if-no-files-found: error
+          retention-days: 1
