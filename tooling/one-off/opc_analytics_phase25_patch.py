@@ -6,7 +6,7 @@ start_marker = "# Retention static contract now requires analytics ownership of 
 end_marker = "# ---------------------------------------------------------------------------\n# CI/CD and production validation\n"
 start = text.index(start_marker)
 end = text.index(end_marker, start)
-replacement = '''# Retention static contract now requires analytics ownership of all actions.
+replacement = """# Retention static contract now requires analytics ownership of all actions.
 contract = "apps/web/src/components/discovery-retention-contract.test.ts"
 replace_once(
     contract,
@@ -25,6 +25,6 @@ replace_once(
 ''',
 )
 
-'''
+"""
 path.write_text(text[:start] + replacement + text[end:], encoding="utf-8")
 print("Phase 2.5 codemod patched for current retention contract")
