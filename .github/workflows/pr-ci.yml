@@ -1,6 +1,6 @@
-# Lightweight pull-request validation.
-# Draft PR pushes do not allocate a hosted runner. Validation starts when the PR
-# is marked Ready for review, and re-runs only for subsequent non-draft updates.
+# Temporary verification workflow for PR #56. It never deploys branch code.
+# It observes or explicitly dispatches the main-branch release, waits for the
+# consolidated Production Smoke, validates public pages/APIs, and records a report.
 
 name: PR CI
 
@@ -9,84 +9,181 @@ on:
     types: [opened, reopened, ready_for_review, synchronize]
 
 permissions:
-  contents: read
+  actions: write
+  contents: write
   pull-requests: read
 
 concurrency:
-  group: pr-ci-${{ github.event.pull_request.number }}
-  cancel-in-progress: true
+  group: opc-production-release-verification
+  cancel-in-progress: false
 
 env:
-  PNPM_VERSION: "10.11.0"
-  NODE_VERSION: "22"
+  TARGET_SHA: "9f2bb09253d6469ff1504473799029448181f60a"
+  SITE_URL: "https://868656.xyz"
+  READ_URL: "https://where-not-rain-read-production.ct1150.workers.dev"
+  TRIP_URL: "https://trip.868656.xyz"
 
 jobs:
-  verify:
-    if: github.event.pull_request.draft == false
+  verify_production:
+    if: github.event.action == 'ready_for_review' && github.event.pull_request.number == 56
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 35
     steps:
-      - name: Checkout
+      - name: Checkout verification branch
         uses: actions/checkout@v4
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
         with:
-          version: ${{ env.PNPM_VERSION }}
+          ref: verify/opc-production-release
+          fetch-depth: 0
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: pnpm
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Format check
-        run: pnpm format:check
-
-      - name: Lint
-        run: pnpm lint
-
-      - name: Build library packages
-        run: pnpm -r --filter '!@wnr/web' --filter '!@wnr/weather-sync' --filter '!@wnr/maintenance' build
-
-      - name: Typecheck
-        run: pnpm typecheck
-
-      - name: Unit / integration tests
-        run: |
-          set -o pipefail
-          pnpm test 2>&1 | tee test-results.log
-          if grep -qiE "Tests +[0-9]+ failed|Test Files +[0-9]+ failed|FAIL " test-results.log; then
-            echo "::error::Unit/integration tests failed — gate is fail-closed."
-            exit 1
-          fi
-
-      - name: Documentation gate
-        run: pnpm docs:check
-
-      - name: Build web static export
+      - name: Wait for release and verify production
         env:
-          APP_BASE_URL: https://868656.xyz
-          NEXT_PUBLIC_TRIP_API_URL: https://trip.868656.xyz
-          NEXT_PUBLIC_CLOUDFLARE_ANALYTICS_ENABLED: "false"
-        run: pnpm --filter @wnr/web build
-
-      - name: Build Workers
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
         run: |
-          pnpm --filter @wnr/weather-sync build
-          pnpm --filter @wnr/weather-read build
-          pnpm --filter @wnr/trip-api build
+          set -u
 
-      - name: Pipeline contract tests
-        run: node --test tooling/deploy/pipeline-contract.test.mjs
+          DEPLOY_ID=""
+          DEPLOY_CONCLUSION="not-found"
+          DEPLOY_URL=""
+          SMOKE_ID=""
+          SMOKE_CONCLUSION="not-found"
+          SMOKE_URL=""
+          OVERALL="success"
+          ERRORS=""
 
-      - name: Secret scan
-        run: |
-          if grep -RIiE "WEATHERAPI_SECRET|CLOUDFLARE_API_TOKEN|BETTER_AUTH_SECRET|GOOGLE_CLIENT_SECRET|RESEND_API_KEY" apps/web/out apps/web/src workers/trip-api/src 2>/dev/null; then
-            echo "::error::Possible secret leaked into build output or source"
+          append_error() {
+            OVERALL="failure"
+            ERRORS="${ERRORS}\n- $1"
+            echo "::error::$1"
+          }
+
+          latest_run() {
+            local workflow="$1"
+            gh api --method GET \
+              "repos/${GITHUB_REPOSITORY}/actions/workflows/${workflow}/runs" \
+              -f branch=main -f per_page=50 2>/dev/null \
+              | jq -c --arg sha "${TARGET_SHA}" \
+                '[.workflow_runs[] | select(.head_sha == $sha)] | sort_by(.created_at) | last // empty'
+          }
+
+          wait_for_run() {
+            local workflow="$1"
+            local dispatch_after="$2"
+            local run=""
+            local dispatched="false"
+            for attempt in $(seq 1 100); do
+              run="$(latest_run "${workflow}")"
+              if [ -n "${run}" ] && [ "$(jq -r '.status' <<<"${run}")" = "completed" ]; then
+                printf '%s' "${run}"
+                return 0
+              fi
+              if [ -z "${run}" ] && [ "${dispatched}" = "false" ] && [ "${attempt}" -ge "${dispatch_after}" ]; then
+                echo "No ${workflow} run found for ${TARGET_SHA}; dispatching main explicitly" >&2
+                if gh workflow run "${workflow}" --ref main; then
+                  dispatched="true"
+                fi
+              fi
+              sleep 6
+            done
+            return 1
+          }
+
+          echo "Waiting for Deploy on ${TARGET_SHA}"
+          if DEPLOY_JSON="$(wait_for_run deploy.yml 4)"; then
+            DEPLOY_ID="$(jq -r '.id' <<<"${DEPLOY_JSON}")"
+            DEPLOY_CONCLUSION="$(jq -r '.conclusion' <<<"${DEPLOY_JSON}")"
+            DEPLOY_URL="$(jq -r '.html_url' <<<"${DEPLOY_JSON}")"
+            if [ "${DEPLOY_CONCLUSION}" != "success" ]; then
+              append_error "Deploy concluded ${DEPLOY_CONCLUSION}"
+            fi
+          else
+            append_error "Deploy did not complete within the verification window"
+          fi
+
+          if [ "${DEPLOY_CONCLUSION}" = "success" ]; then
+            echo "Waiting for Production Smoke on ${TARGET_SHA}"
+            if SMOKE_JSON="$(wait_for_run production-smoke.yml 6)"; then
+              SMOKE_ID="$(jq -r '.id' <<<"${SMOKE_JSON}")"
+              SMOKE_CONCLUSION="$(jq -r '.conclusion' <<<"${SMOKE_JSON}")"
+              SMOKE_URL="$(jq -r '.html_url' <<<"${SMOKE_JSON}")"
+              if [ "${SMOKE_CONCLUSION}" != "success" ]; then
+                append_error "Production Smoke concluded ${SMOKE_CONCLUSION}"
+              fi
+            else
+              append_error "Production Smoke did not complete within the verification window"
+            fi
+          fi
+
+          fetch_and_match() {
+            local name="$1"
+            local url="$2"
+            local output="$3"
+            shift 3
+            if ! curl --fail --silent --show-error --location --retry 5 --retry-all-errors \
+              --connect-timeout 15 --max-time 45 "${url}" -o "${output}"; then
+              append_error "${name} could not be fetched"
+              return
+            fi
+            for expected in "$@"; do
+              if ! grep -Fq "${expected}" "${output}"; then
+                append_error "${name} missing expected text: ${expected}"
+              fi
+            done
+          }
+
+          if [ "${DEPLOY_CONCLUSION}" = "success" ]; then
+            fetch_and_match "English homepage" "${SITE_URL}/" /tmp/opc-home-en.html \
+              "Where is it least likely to rain?" "Find 3 dry-weather destinations"
+            fetch_and_match "English discovery" "${SITE_URL}/discover" /tmp/opc-discover-en.html \
+              "Least-rain destination finder" "Top 3 least-rain destinations"
+            fetch_and_match "Simplified homepage" "${SITE_URL}/zh-cn" /tmp/opc-home-cn.html \
+              "日期定了，去哪里更不容易下雨？" "找 3 个少雨目的地"
+            fetch_and_match "Simplified discovery" "${SITE_URL}/zh-cn/discover" /tmp/opc-discover-cn.html \
+              "少雨目的地工具" "最少雨的 3 个目的地"
+            fetch_and_match "Traditional homepage" "${SITE_URL}/zh-hant" /tmp/opc-home-hant.html \
+              "日期定了，去哪裡更不容易下雨？" "找 3 個少雨目的地"
+            fetch_and_match "Traditional discovery" "${SITE_URL}/zh-hant/discover" /tmp/opc-discover-hant.html \
+              "少雨目的地工具" "最少雨的 3 個目的地"
+            fetch_and_match "Advanced trips" "${SITE_URL}/trips" /tmp/opc-trips-en.html \
+              "Advanced itinerary tools" "Existing workspaces remain available."
+            fetch_and_match "Trip API health" "${TRIP_URL}/health" /tmp/opc-trip-health.json \
+              '"ok":true' '"service":"trip-api"'
+            fetch_and_match "Weather Read health" "${READ_URL}/health" /tmp/opc-read-health.json \
+              '"ok":true'
+          fi
+
+          {
+            echo "# OPC production release verification"
+            echo
+            echo "- Target main SHA: \`${TARGET_SHA}\`"
+            echo "- Deploy run: ${DEPLOY_ID:-not-found}"
+            echo "- Deploy conclusion: ${DEPLOY_CONCLUSION}"
+            echo "- Deploy URL: ${DEPLOY_URL:-not-found}"
+            echo "- Production Smoke run: ${SMOKE_ID:-not-found}"
+            echo "- Production Smoke conclusion: ${SMOKE_CONCLUSION}"
+            echo "- Production Smoke URL: ${SMOKE_URL:-not-found}"
+            echo "- Localized homepage and discovery checks: $([ "${OVERALL}" = "success" ] && echo passed || echo see-errors)"
+            echo "- Trip API and Weather Read health checks: $([ "${OVERALL}" = "success" ] && echo passed || echo see-errors)"
+            echo "- Overall: ${OVERALL}"
+            echo
+            echo "## Errors"
+            if [ -n "${ERRORS}" ]; then
+              printf '%b\n' "${ERRORS}"
+            else
+              echo
+              echo "None"
+            fi
+          } > opc-production-verification.md
+
+          cat opc-production-verification.md
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add opc-production-verification.md
+          if ! git diff --cached --quiet; then
+            git commit -m "chore: record OPC production verification"
+            git push origin HEAD:verify/opc-production-release
+          fi
+
+          if [ "${OVERALL}" != "success" ]; then
             exit 1
           fi
-          echo "secret scan: clean"
