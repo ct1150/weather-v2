@@ -23,12 +23,13 @@ const traditionalShare = readFileSync(
 );
 
 describe("Cloud Trip phase 2 UX contract", () => {
-  it("keeps My Trips and guest entry points under the shared-planning value proposition", () => {
+  it("keeps My Trips and guest entry points available as noindex advanced tools", () => {
     const tripHomes = [
       {
         source: englishTrips,
         dashboard: '<MyTripsDashboard locale="en"',
-        headline: "Destination chosen?",
+        eyebrow: "Advanced itinerary tools",
+        headline: "Existing workspaces remain available.",
         discover: 'href="/discover"',
         workspace: 'href="/trips/workspace"',
         advancedImport: 'href="/trips/new"',
@@ -36,7 +37,8 @@ describe("Cloud Trip phase 2 UX contract", () => {
       {
         source: simplifiedTrips,
         dashboard: '<MyTripsDashboard locale="zh-cn"',
-        headline: "去哪已经确定？",
+        eyebrow: "高级行程工具",
+        headline: "已有行程仍可继续使用。",
         discover: 'href="/zh-cn/discover"',
         workspace: 'href="/zh-cn/trips/workspace"',
         advancedImport: 'href="/zh-cn/trips/new"',
@@ -44,7 +46,8 @@ describe("Cloud Trip phase 2 UX contract", () => {
       {
         source: traditionalTrips,
         dashboard: '<MyTripsDashboard locale="zh-hant"',
-        headline: "去哪已經確定？",
+        eyebrow: "進階行程工具",
+        headline: "既有行程仍可繼續使用。",
         discover: 'href="/zh-hant/discover"',
         workspace: 'href="/zh-hant/trips/workspace"',
         advancedImport: 'href="/zh-hant/trips/new"',
@@ -56,10 +59,12 @@ describe("Cloud Trip phase 2 UX contract", () => {
       const dashboardIndex = page.source.indexOf(page.dashboard);
       expect(heroIndex).toBeGreaterThan(-1);
       expect(dashboardIndex).toBeGreaterThan(heroIndex);
+      expect(page.source).toContain(page.eyebrow);
       expect(page.source).toContain(page.headline);
       expect(page.source).toContain(page.discover);
       expect(page.source).toContain(page.workspace);
       expect(page.source).toContain(page.advancedImport);
+      expect(page.source).toContain("robots: { index: false, follow: true }");
     }
   });
 
