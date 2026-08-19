@@ -4,7 +4,7 @@ SELECT
   double1 AS max_travel_minutes,
   SUM(_sample_interval) AS submitted_queries
 FROM wnr_product_events_v1
-WHERE timestamp >= NOW() - INTERVAL '30' DAY
+WHERE julianday(timestamp) >= julianday('now', '-30 days')
   AND index1 = 'discovery_query_submitted'
-GROUP BY origin_id, transport_mode, max_travel_minutes
+GROUP BY blob3, blob4, double1
 ORDER BY submitted_queries DESC;
