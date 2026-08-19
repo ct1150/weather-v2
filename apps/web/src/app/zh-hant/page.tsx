@@ -6,9 +6,9 @@ import { toTraditionalText } from "../../trips/traditional";
 import { buildAlternates, localeUrl, routeRobots } from "../seo";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const title = "未來14天天氣目的地推薦與多人旅行決策 | Where Not Rain";
+  const title = "未來14天少雨目的地 Top 3 | Where Not Rain";
   const description =
-    "日期已經確定但目的地未定？比較日本、韓國和東南亞城市未來14天的降雨、氣溫與旅行評分，分享候選後繼續共同規劃。";
+    "日期已經確定？選擇出行日期和可選天氣限制，比較日本、韓國和東南亞城市中降雨風險最低的 3 個目的地。";
   return {
     title: { absolute: title },
     description,
@@ -40,8 +40,8 @@ export default async function TraditionalChineseHome(): Promise<ReactElement> {
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "CollectionPage",
-    name: "天氣驅動的多人目的地決策",
-    description: "日期確定、目的地未定時，比較未來14天天氣並把候選分享給同行人。",
+    name: "未來14天少雨目的地 Top 3",
+    description: "選擇出行日期和可選天氣限制，只比較降雨風險最低的 3 個目的地。",
     url: localeUrl("zh-hant", "/"),
     inLanguage: "zh-Hant",
     hasPart: countries.map((country) => ({
@@ -56,35 +56,30 @@ export default async function TraditionalChineseHome(): Promise<ReactElement> {
       <JsonLd schema={jsonLd} />
       <section className="hero-panel !p-6 sm:!p-10">
         <div className="relative z-10 max-w-4xl">
-          <p className="eyebrow">未來14天 · 多人目的地決策</p>
+          <p className="eyebrow">未來14天 · 少雨目的地決策</p>
           <h1 className="mt-4 text-4xl font-bold tracking-[-0.045em] text-foreground sm:text-6xl">
-            日期定了，去哪還沒定？
+            日期定了，去哪裡更不容易下雨？
           </h1>
           <p className="mt-4 max-w-2xl text-base leading-7 text-muted sm:text-lg">
-            依未來14天天氣比較少量候選，把同一份天氣依據分享給同行人；決定目的地後，再繼續共同規劃每天怎麼玩。
+            選擇出行日期，按整體降雨風險篩選目的地；也可以設定溫度、風速和最高降雨機率限制，只看最值得比較的
+            3 個結果。
           </p>
           <div className="mt-6 flex flex-wrap gap-3">
             <a
               href="/zh-hant/discover"
               className="rounded-full bg-foreground px-5 py-3 text-sm font-bold text-white shadow-lg shadow-foreground/15 transition hover:-translate-y-0.5 hover:bg-primary focus-ring"
             >
-              開始比較目的地
-            </a>
-            <a
-              href="/zh-hant/trips"
-              className="rounded-full border border-border bg-white px-5 py-3 text-sm font-bold text-foreground transition hover:border-primary/30 hover:bg-surface-elevated focus-ring"
-            >
-              繼續共同規劃 →
+              找 3 個少雨目的地
             </a>
           </div>
         </div>
       </section>
 
-      <section className="mt-6 grid gap-4 md:grid-cols-3" aria-label="一起決定目的地的流程">
+      <section className="mt-6 grid gap-4 md:grid-cols-3" aria-label="少雨目的地決策流程">
         {[
-          ["01", "確定日期與天氣偏好", "先明確何時出發，以及最在意少雨、舒適、避暑或海島天氣。"],
-          ["02", "比較3–5個候選", "一起查看推薦理由、主要取捨和逐日天氣，避免選擇過多。"],
-          ["03", "分享候選並共同規劃", "把同一份候選傳給同行人，決定後進入共享行程繼續安排。"],
+          ["01", "選擇準確日期", "在未來14天預報窗口內確定開始和結束日期。"],
+          ["02", "設定可選限制", "需要時排除太熱、太冷、風太大或某天降雨機率太高的城市。"],
+          ["03", "比較並選擇 Top 3", "查看統一天氣依據，選擇一個目的地或把候選分享給同行人。"],
         ].map(([number, title, description]) => (
           <article key={number} className="trip-process-card">
             <span>{number}</span>
@@ -126,9 +121,9 @@ export default async function TraditionalChineseHome(): Promise<ReactElement> {
       </section>
 
       <footer className="page-footer">
-        <span>Where Not Rain · 讓天氣和大家一起決定去哪</span>
+        <span>Where Not Rain · 日期定了，去哪裡更少雨</span>
         <span>
-          天氣資料：<a href="https://open-meteo.com/">Open-Meteo</a> · 衍生旅行評分
+          天氣資料：<a href="https://open-meteo.com/">Open-Meteo</a> · 衍生少雨指數
         </span>
       </footer>
     </main>

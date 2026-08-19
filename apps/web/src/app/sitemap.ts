@@ -19,15 +19,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       "zh-cn",
       "zh-hant",
     ]),
-    ...localizedSitemapEntries("/trips", { lastModified, changeFrequency }, [
-      "en",
-      "zh-hant",
-      "zh-cn",
-    ]),
-    ...localizedSitemapEntries("/trips/qinggan-family-2026", { lastModified, changeFrequency }, [
-      "en",
-      "zh-cn",
-    ]),
   ];
 
   for (const country of dataset.countries) {

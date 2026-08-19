@@ -23,6 +23,13 @@ describe("Phase 9 conversion funnel analytics", () => {
       },
       {
         ...common,
+        event: "destination_selected",
+        route_template: "/discover",
+        destination_id: "jp-tokyo",
+        position: 1,
+      },
+      {
+        ...common,
         event: "trip_created",
         route_template: "/discover",
         destination_count: 2,
@@ -105,6 +112,15 @@ describe("Phase 9 conversion funnel analytics", () => {
         event: "destination_shortlisted",
         route_template: "/discover",
         destination_id: "Tokyo / raw query",
+      }).ok,
+    ).toBe(false);
+    expect(
+      validateAnalyticsEvent({
+        ...common,
+        event: "destination_selected",
+        route_template: "/discover",
+        destination_id: "jp-tokyo",
+        position: 4,
       }).ok,
     ).toBe(false);
     expect(

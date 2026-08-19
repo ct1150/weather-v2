@@ -10,32 +10,16 @@ import {
   type ReactElement,
 } from "react";
 import { emitProductAnalytics } from "../analytics/browser-events";
-import { clearCloudMetadata } from "../trips/cloud-sync";
-import {
-  TRIP_WORKSPACE_STORAGE_KEY,
-  normalizeWorkspace,
-  type TripCityOption,
-  type TripForecastDay,
-  type TripPartyProfile,
-  type TripWorkspace,
-} from "../trips/workspace";
+import type { TripCityOption, TripForecastDay } from "../trips/workspace";
 import { toTraditionalCity, toTraditionalForecast } from "../trips/traditional";
+import { discoveryDateRange } from "../discovery/discovery-trip";
 import {
-  allocateDiscoveryDates,
-  buildDiscoveryWorkspace,
-  discoveryDateRange,
-} from "../discovery/discovery-trip";
-import { contextualizeDiscoveryResults } from "../discovery/discovery-context";
-import {
-  listDiscoveryIntents,
   parseDiscoveryPreferences,
   rankDiscoveryCities,
   serializeDiscoveryPreferences,
   type DiscoveryCityResult,
   type DiscoveryPreferences,
   type DiscoveryReasonCode,
-  type DiscoveryTheme,
-  type WeatherDiscoveryIntent,
 } from "../discovery/weather-discovery";
 import { ContextualAffiliateSurface } from "./ContextualAffiliateSurface";
 import { ExplorerMap } from "./ExplorerMap";
@@ -46,6 +30,7 @@ type LoadState = "loading" | "ready" | "error";
 interface TripCitiesResponse {
   readonly data?: { readonly items?: ReadonlyArray<TripCityOption> };
 }
+
 interface TripForecastResponse {
   readonly data?: {
     readonly snapshotId?: string;
@@ -54,230 +39,158 @@ interface TripForecastResponse {
   };
 }
 
+interface StoredDestinationSelection {
+  readonly cityId: string;
+  readonly from: string;
+  readonly to: string;
+}
+
 const API_BASE = (process.env.NEXT_PUBLIC_WEATHER_READ_URL ?? "").replace(/\/$/u, "");
 const MAX_CITIES_PER_REQUEST = 12;
-const MAX_SHORTLIST = 4;
+const MAX_RESULTS = 3;
+const MAX_SHORTLIST = 3;
+const SELECTED_DESTINATION_STORAGE_KEY = "wnr:selected-destination:v1";
 
 const COPY = {
   en: {
-    eyebrow: "Find the right destination",
-    title: "Start with the weather. Decide the destination second.",
+    eyebrow: "Least-rain destination finder",
+    title: "Where is it least likely to rain on your dates?",
     intro:
-      "Choose your dates and what matters most. We’ll show the strongest matches, the trade-offs and the daily outlook.",
+      "Choose a travel window. We rank destinations by overall rain risk and return only the three strongest matches.",
     when: "Travel dates",
     from: "From",
     to: "To",
-    intent: "What matters most?",
-    context: "Trip context",
-    party: "Travellers",
-    theme: "Trip style",
-    any: "Any",
-    adults: "Adults",
-    family: "Family",
-    senior: "Senior-friendly",
-    city: "City",
-    beach: "Beach",
-    outdoor: "Outdoor",
-    indoor: "Indoor",
-    constraints: "Optional limits",
-    advanced: "Refine for your trip",
-    advancedHelp: "Add travellers, trip style or strict limits only when they matter.",
-    rain: "Max rain chance",
+    intent: "Ranking goal",
+    intentValue: "Least rain",
+    constraints: "Optional weather limits",
+    advanced: "Optional weather limits",
+    advancedHelp:
+      "Leave every field blank for a pure least-rain ranking. A destination is excluded when it exceeds any limit you set.",
+    rain: "Max rain chance on any day",
     tempMin: "Min night temperature",
     tempMax: "Max daytime temperature",
     wind: "Max wind",
     noLimit: "No limit",
-    apply: "Update results",
+    apply: "Find 3 dry-weather destinations",
     loading: "Checking destinations…",
-    unavailable: "Weather discovery is temporarily unavailable.",
+    unavailable: "Destination weather is temporarily unavailable.",
     invalidRange: "Choose a valid range of 1–16 days.",
-    noMatches: "No destinations match every selected limit. Relax one constraint and try again.",
-    results: "Best matches",
-    checked: "destinations matched",
-    shortlist: "Shortlist",
-    shortlisted: "Shortlisted",
-    shortlistFull: "You can compare up to 4 cities.",
-    compare: "Compare shortlist",
-    compareIntro: "One weather snapshot, the same dates, side by side.",
-    emptyShortlist: "Shortlist 2–4 destinations to compare them here.",
-    score: "Match",
+    noMatches: "No destinations match every selected limit. Relax one limit and try again.",
+    results: "Top 3 least-rain destinations",
+    checked: "eligible destinations checked",
+    shortlist: "Add to comparison",
+    shortlisted: "Added to comparison",
+    shortlistFull: "You can compare up to 3 destinations.",
+    compare: "Compare the shortlist",
+    compareIntro: "The same forecast snapshot and dates, side by side.",
+    emptyShortlist: "Add 2–3 destinations to compare their daily weather here.",
+    score: "Dry score",
     rainMetric: "Peak rain",
     tempMetric: "Avg temperature",
     windMetric: "Peak wind",
     uvMetric: "Peak UV",
     forecast: "Daily outlook",
-    trip: "Turn shortlist into a trip",
-    tripIntro:
-      "We’ll create an editable city-and-date plan first. Add places yourself or continue from recommended activities.",
-    create: "Create new trip",
-    append: "Append to current trip",
-    openTrip: "Open trip",
-    created: "Trip workspace created.",
-    appended: "Cities appended to your current workspace.",
-    needCity: "Shortlist at least one destination first.",
-    needDates: "The date range needs at least one day per shortlisted city.",
-    refreshed: "Forecast updated",
-    stale: "stale snapshot",
-    apiMissing: "Weather read API is not configured.",
-    titleTrip: "Weather shortlist trip",
-    filtersShare: "Filters and shortlist are stored in the URL so this comparison can be shared.",
+    filtersShare: "Dates, limits and comparison choices stay in the URL for sharing.",
     remove: "Remove",
+    choose: "Choose this destination",
+    chosen: "Chosen destination",
+    choiceTitle: "Destination selected",
+    choiceIntro:
+      "Your choice is saved on this device. Commercial links appear only after you choose and never influence the ranking.",
+    selectionSaved: "Destination selected.",
+    details: "View city weather",
   },
   "zh-cn": {
-    eyebrow: "按天气找目的地",
-    title: "先看天气，再决定去哪里。",
-    intro: "选好日期和最在意的条件，我们会给出最匹配的目的地、主要取舍和逐日天气。",
+    eyebrow: "少雨目的地工具",
+    title: "这几天去哪里更不容易下雨？",
+    intro: "选择出行日期，系统只按整体降雨风险排序，并只给出最值得比较的 3 个目的地。",
     when: "出行日期",
     from: "开始",
     to: "结束",
-    intent: "你最在意什么？",
-    context: "出行情景",
-    party: "同行成员",
-    theme: "游玩类型",
-    any: "不限",
-    adults: "成人",
-    family: "亲子家庭",
-    senior: "含长辈",
-    city: "城市游",
-    beach: "海岛/沙滩",
-    outdoor: "户外",
-    indoor: "室内",
+    intent: "排序目标",
+    intentValue: "哪里不下雨",
     constraints: "可选限制条件",
-    advanced: "更多旅行偏好",
-    advancedHelp: "只有在确实重要时，再补充同行成员、游玩类型或严格限制。",
-    rain: "最高降雨概率",
+    advanced: "可选限制条件",
+    advancedHelp: "全部留空时只按少雨程度排序。设置任一条件后，超出限制的目的地会被直接排除。",
+    rain: "任一天最高降雨概率",
     tempMin: "最低夜间温度",
     tempMax: "最高白天气温",
     wind: "最大风速",
     noLimit: "不限",
-    apply: "更新推荐",
+    apply: "找 3 个少雨目的地",
     loading: "正在比较目的地…",
-    unavailable: "天气探索暂时不可用。",
+    unavailable: "目的地天气暂时不可用。",
     invalidRange: "请选择 1–16 天的有效日期范围。",
-    noMatches: "没有城市同时满足全部限制条件，可以放宽一个条件后再试。",
-    results: "最匹配的目的地",
-    checked: "个目的地符合条件",
+    noMatches: "没有目的地同时满足全部限制条件，可以放宽一个条件后再试。",
+    results: "最少雨的 3 个目的地",
+    checked: "个符合条件的目的地已参与排序",
     shortlist: "加入对比",
     shortlisted: "已加入对比",
-    shortlistFull: "最多同时对比 4 个城市。",
-    compare: "城市对比",
-    compareIntro: "同一份天气快照、同一组日期，直接横向比较。",
-    emptyShortlist: "先加入 2–4 个目的地，即可在这里横向比较。",
-    score: "匹配度",
+    shortlistFull: "最多同时对比 3 个目的地。",
+    compare: "候选对比",
+    compareIntro: "同一份天气快照、同一组日期，直接比较。",
+    emptyShortlist: "先加入 2–3 个目的地，即可在这里比较逐日天气。",
+    score: "少雨指数",
     rainMetric: "最高降雨",
     tempMetric: "平均气温",
     windMetric: "最大风速",
     uvMetric: "最高 UV",
     forecast: "逐日天气",
-    trip: "把对比城市变成行程",
-    tripIntro: "系统会先生成可编辑的城市与日期计划，你可以自己添加景点，也可以继续使用推荐活动。",
-    create: "创建新行程",
-    append: "追加到当前行程",
-    openTrip: "打开行程",
-    created: "已创建行程工作区。",
-    appended: "已追加到当前行程。",
-    needCity: "请先至少加入一个目的地。",
-    needDates: "日期天数必须不少于已选城市数，才能保证每城至少一天。",
-    refreshed: "天气已更新",
-    stale: "数据可能已过期",
-    apiMissing: "天气只读 API 尚未配置。",
-    titleTrip: "天气优选行程",
-    filtersShare: "筛选条件和对比城市会写入 URL，可直接分享当前结果。",
+    filtersShare: "日期、限制条件和对比选择会写入 URL，可直接分享。",
     remove: "移除",
+    choose: "选择这个目的地",
+    chosen: "已选择",
+    choiceTitle: "已选择目的地",
+    choiceIntro: "选择会保存在当前设备。商业链接只在选择后出现，并且不会影响推荐排序。",
+    selectionSaved: "已选择目的地。",
+    details: "查看城市天气",
   },
   "zh-hant": {
-    eyebrow: "按天氣找目的地",
-    title: "先看天氣，再決定去哪裡。",
-    intro: "選好日期和最在意的條件，我們會給出最匹配的目的地、主要取捨和逐日天氣。",
+    eyebrow: "少雨目的地工具",
+    title: "這幾天去哪裡更不容易下雨？",
+    intro: "選擇出行日期，系統只按整體降雨風險排序，並只給出最值得比較的 3 個目的地。",
     when: "出行日期",
     from: "開始",
     to: "結束",
-    intent: "你最在意什麼？",
-    context: "出行情境",
-    party: "同行成員",
-    theme: "遊玩類型",
-    any: "不限",
-    adults: "成人",
-    family: "親子家庭",
-    senior: "含長輩",
-    city: "城市遊",
-    beach: "海島/沙灘",
-    outdoor: "戶外",
-    indoor: "室內",
+    intent: "排序目標",
+    intentValue: "哪裡不下雨",
     constraints: "可選限制條件",
-    advanced: "更多旅行偏好",
-    advancedHelp: "只有在確實重要時，再補充同行成員、遊玩類型或嚴格限制。",
-    rain: "最高降雨機率",
+    advanced: "可選限制條件",
+    advancedHelp: "全部留空時只按少雨程度排序。設定任一條件後，超出限制的目的地會被直接排除。",
+    rain: "任一天最高降雨機率",
     tempMin: "最低夜間溫度",
     tempMax: "最高白天氣溫",
     wind: "最大風速",
     noLimit: "不限",
-    apply: "更新推薦",
+    apply: "找 3 個少雨目的地",
     loading: "正在比較目的地…",
-    unavailable: "天氣探索暫時無法使用。",
+    unavailable: "目的地天氣暫時無法使用。",
     invalidRange: "請選擇 1–16 天的有效日期範圍。",
-    noMatches: "沒有城市同時符合全部限制條件，可以放寬一個條件後再試。",
-    results: "最匹配的目的地",
-    checked: "個目的地符合條件",
+    noMatches: "沒有目的地同時符合全部限制條件，可以放寬一個條件後再試。",
+    results: "最少雨的 3 個目的地",
+    checked: "個符合條件的目的地已參與排序",
     shortlist: "加入比較",
     shortlisted: "已加入比較",
-    shortlistFull: "最多同時比較 4 個城市。",
-    compare: "城市比較",
-    compareIntro: "同一份天氣快照、同一組日期，直接橫向比較。",
-    emptyShortlist: "先加入 2–4 個目的地，即可在這裡橫向比較。",
-    score: "匹配度",
+    shortlistFull: "最多同時比較 3 個目的地。",
+    compare: "候選比較",
+    compareIntro: "同一份天氣快照、同一組日期，直接比較。",
+    emptyShortlist: "先加入 2–3 個目的地，即可在這裡比較逐日天氣。",
+    score: "少雨指數",
     rainMetric: "最高降雨",
     tempMetric: "平均氣溫",
     windMetric: "最大風速",
     uvMetric: "最高 UV",
     forecast: "逐日天氣",
-    trip: "把比較城市變成行程",
-    tripIntro: "系統會先建立可編輯的城市與日期計畫，你可以自行加入景點，也可以繼續使用推薦活動。",
-    create: "建立新行程",
-    append: "追加到目前行程",
-    openTrip: "開啟行程",
-    created: "已建立行程工作區。",
-    appended: "已追加到目前行程。",
-    needCity: "請先至少加入一個目的地。",
-    needDates: "日期天數必須不少於已選城市數，才能保證每城至少一天。",
-    refreshed: "天氣已更新",
-    stale: "資料可能已過期",
-    apiMissing: "天氣唯讀 API 尚未設定。",
-    titleTrip: "天氣優選行程",
-    filtersShare: "篩選條件和比較城市會寫入 URL，可直接分享目前結果。",
+    filtersShare: "日期、限制條件和比較選擇會寫入 URL，可直接分享。",
     remove: "移除",
+    choose: "選擇這個目的地",
+    chosen: "已選擇",
+    choiceTitle: "已選擇目的地",
+    choiceIntro: "選擇會保存在目前裝置。商業連結只在選擇後出現，並且不會影響推薦排序。",
+    selectionSaved: "已選擇目的地。",
+    details: "查看城市天氣",
   },
 } as const;
-
-const INTENT_COPY: Record<WeatherDiscoveryLocale, Record<WeatherDiscoveryIntent, string>> = {
-  en: {
-    dry: "Least rain",
-    outdoor: "Best outdoors",
-    beach: "Beach weather",
-    cool_escape: "Cool escape",
-    warm_escape: "Warm escape",
-    family_comfort: "Family comfort",
-    senior_comfort: "Senior comfort",
-  },
-  "zh-cn": {
-    dry: "哪里不下雨",
-    outdoor: "适合户外",
-    beach: "适合海岛",
-    cool_escape: "避暑",
-    warm_escape: "暖和一点",
-    family_comfort: "亲子舒适",
-    senior_comfort: "长辈友好",
-  },
-  "zh-hant": {
-    dry: "哪裡不下雨",
-    outdoor: "適合戶外",
-    beach: "適合海島",
-    cool_escape: "避暑",
-    warm_escape: "暖和一點",
-    family_comfort: "親子舒適",
-    senior_comfort: "長輩友好",
-  },
-};
 
 const REASON_COPY: Record<WeatherDiscoveryLocale, Record<DiscoveryReasonCode, string>> = {
   en: {
@@ -346,37 +259,45 @@ function initialPreferences(): DiscoveryPreferences {
 
 function chunks<T>(items: ReadonlyArray<T>, size: number): ReadonlyArray<ReadonlyArray<T>> {
   const output: T[][] = [];
-  for (let index = 0; index < items.length; index += size)
+  for (let index = 0; index < items.length; index += size) {
     output.push(items.slice(index, index + size));
+  }
   return output;
 }
+
 function numeric(value: string): number | null {
   if (value.trim() === "") return null;
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : null;
 }
-function readStoredWorkspace(): TripWorkspace | null {
-  const value = window.localStorage.getItem(TRIP_WORKSPACE_STORAGE_KEY);
-  if (value === null) return null;
-  try {
-    return normalizeWorkspace(JSON.parse(value) as unknown);
-  } catch {
-    return null;
-  }
-}
+
 function cityPath(locale: WeatherDiscoveryLocale, city: TripCityOption): string {
   const suffix = `/${city.countrySlug}/${city.citySlug}`;
   return locale === "en" ? suffix : `/${locale}${suffix}`;
 }
-function workspacePath(locale: WeatherDiscoveryLocale): string {
-  return locale === "en" ? "/trips/workspace" : `/${locale}/trips/workspace`;
-}
+
 function format(value: number | null, suffix: string): string {
   return value === null ? "—" : `${value}${suffix}`;
 }
+
 function temperature(result: DiscoveryCityResult): string {
   const { averageMinC: low, averageMaxC: high } = result.metrics;
   return low === null || high === null ? "—" : `${low}°–${high}°`;
+}
+
+function readStoredSelection(): StoredDestinationSelection | null {
+  try {
+    const raw = window.localStorage.getItem(SELECTED_DESTINATION_STORAGE_KEY);
+    if (raw === null) return null;
+    const value = JSON.parse(raw) as Partial<StoredDestinationSelection>;
+    return typeof value.cityId === "string" &&
+      typeof value.from === "string" &&
+      typeof value.to === "string"
+      ? { cityId: value.cityId, from: value.from, to: value.to }
+      : null;
+  } catch {
+    return null;
+  }
 }
 
 export function WeatherDiscoveryPlannerV2({
@@ -391,11 +312,11 @@ export function WeatherDiscoveryPlannerV2({
   const [cities, setCities] = useState<ReadonlyArray<TripCityOption>>([]);
   const [forecast, setForecast] = useState<ReadonlyArray<TripForecastDay>>([]);
   const [shortlist, setShortlist] = useState<ReadonlyArray<string>>([]);
+  const [selectedDestinationId, setSelectedDestinationId] = useState<string | null>(null);
   const [state, setState] = useState<LoadState>("loading");
   const [message, setMessage] = useState("");
   const [updatedAt, setUpdatedAt] = useState("");
   const [stale, setStale] = useState(false);
-  const [tripReady, setTripReady] = useState(false);
   const discoveryViewTracked = useRef(false);
 
   useEffect(() => {
@@ -412,15 +333,19 @@ export function WeatherDiscoveryPlannerV2({
     const fallback = initialPreferences();
     const search = new URLSearchParams(window.location.search);
     const parsed = parseDiscoveryPreferences(search, { from: fallback.from, to: fallback.to });
+    const stored = readStoredSelection();
     setDraft(parsed);
     setApplied(parsed);
     setShortlist((search.get("cities") ?? "").split(",").filter(Boolean).slice(0, MAX_SHORTLIST));
+    if (stored?.from === parsed.from && stored.to === parsed.to) {
+      setSelectedDestinationId(stored.cityId);
+    }
   }, []);
 
   useEffect(() => {
     if (API_BASE.length === 0) {
       setState("error");
-      setMessage(copy.apiMissing);
+      setMessage(copy.unavailable);
       return;
     }
     let active = true;
@@ -443,7 +368,7 @@ export function WeatherDiscoveryPlannerV2({
     return () => {
       active = false;
     };
-  }, [apiLocale, copy.apiMissing, copy.unavailable, locale]);
+  }, [apiLocale, copy.unavailable, locale]);
 
   const loadForecast = useCallback(async (): Promise<void> => {
     if (cities.length === 0 || API_BASE.length === 0) return;
@@ -471,8 +396,9 @@ export function WeatherDiscoveryPlannerV2({
         const payload = (await response.json()) as TripForecastResponse;
         const nextSnapshot = payload.data?.snapshotId;
         if (typeof nextSnapshot !== "string") throw new Error("FORECAST_SNAPSHOT_MISSING");
-        if (snapshot !== null && snapshot !== nextSnapshot)
+        if (snapshot !== null && snapshot !== nextSnapshot) {
           throw new Error("FORECAST_SNAPSHOT_CHANGED");
+        }
         snapshot = nextSnapshot;
         freshness = payload.data?.freshness?.dataUpdatedAt ?? freshness;
         anyStale ||= payload.data?.freshness?.stale === true;
@@ -493,10 +419,11 @@ export function WeatherDiscoveryPlannerV2({
     void loadForecast();
   }, [loadForecast]);
 
-  const results = useMemo(
-    () => contextualizeDiscoveryResults(rankDiscoveryCities(cities, forecast, applied), applied),
+  const rankedResults = useMemo(
+    () => rankDiscoveryCities(cities, forecast, applied),
     [applied, cities, forecast],
   );
+  const results = useMemo(() => rankedResults.slice(0, MAX_RESULTS), [rankedResults]);
   const resultIds = useMemo(() => new Set(results.map((result) => result.city.cityId)), [results]);
   const selectedResults = useMemo(
     () =>
@@ -504,6 +431,10 @@ export function WeatherDiscoveryPlannerV2({
         .map((id) => results.find((result) => result.city.cityId === id))
         .filter((result): result is DiscoveryCityResult => result !== undefined),
     [results, shortlist],
+  );
+  const selectedDestination = useMemo(
+    () => results.find((result) => result.city.cityId === selectedDestinationId) ?? null,
+    [results, selectedDestinationId],
   );
   const markers = useMemo(
     () =>
@@ -514,13 +445,14 @@ export function WeatherDiscoveryPlannerV2({
         label: result.city.cityName,
         path: cityPath(locale, result.city),
         score: result.score,
-        theme: applied.theme ?? applied.intent,
+        theme: "dry",
       })),
-    [applied.intent, applied.theme, locale, results],
+    [locale, results],
   );
 
   useEffect(() => {
-    if (state === "ready") setShortlist((current) => current.filter((id) => resultIds.has(id)));
+    if (state !== "ready") return;
+    setShortlist((current) => current.filter((id) => resultIds.has(id)).slice(0, MAX_SHORTLIST));
   }, [resultIds, state]);
 
   const updateUrl = useCallback(
@@ -537,7 +469,8 @@ export function WeatherDiscoveryPlannerV2({
       setMessage(copy.invalidRange);
       return;
     }
-    setTripReady(false);
+    setSelectedDestinationId(null);
+    window.localStorage.removeItem(SELECTED_DESTINATION_STORAGE_KEY);
     setApplied(draft);
     updateUrl(draft, shortlist);
   }, [copy.invalidRange, draft, shortlist, updateUrl]);
@@ -563,45 +496,32 @@ export function WeatherDiscoveryPlannerV2({
         return next;
       });
     },
-    [applied, copy.shortlistFull, updateUrl],
+    [applied, copy.shortlistFull, locale, updateUrl],
   );
 
-  const createTrip = useCallback(
-    (append: boolean): void => {
-      if (selectedResults.length === 0) {
-        setMessage(copy.needCity);
-        return;
-      }
-      const allocations = allocateDiscoveryDates(
-        selectedResults.map((result) => result.city),
-        discoveryDateRange(applied.from, applied.to),
+  const chooseDestination = useCallback(
+    (result: DiscoveryCityResult, position: number): void => {
+      setSelectedDestinationId(result.city.cityId);
+      window.localStorage.setItem(
+        SELECTED_DESTINATION_STORAGE_KEY,
+        JSON.stringify({
+          cityId: result.city.cityId,
+          from: applied.from,
+          to: applied.to,
+        } satisfies StoredDestinationSelection),
       );
-      if (allocations.length === 0) {
-        setMessage(copy.needDates);
-        return;
-      }
-      const next = buildDiscoveryWorkspace(readStoredWorkspace(), allocations, {
-        append,
-        title: copy.titleTrip,
+      emitProductAnalytics({
+        locale,
+        routeTemplate: "/discover",
+        fields: {
+          event: "destination_selected",
+          destination_id: result.city.cityId,
+          position,
+        },
       });
-      if (next === null) return;
-      if (!append) clearCloudMetadata();
-      window.localStorage.setItem(TRIP_WORKSPACE_STORAGE_KEY, JSON.stringify(next));
-      if (!append) {
-        emitProductAnalytics({
-          locale,
-          routeTemplate: "/discover",
-          fields: {
-            event: "trip_created",
-            destination_count: selectedResults.length,
-            source: "weather_discovery",
-          },
-        });
-      }
-      setTripReady(true);
-      setMessage(append ? copy.appended : copy.created);
+      setMessage(copy.selectionSaved);
     },
-    [applied.from, applied.to, copy, selectedResults],
+    [applied.from, applied.to, copy.selectionSaved, locale],
   );
 
   const updateNumber = (
@@ -651,20 +571,10 @@ export function WeatherDiscoveryPlannerV2({
             </div>
           </div>
 
-          <div>
+          <div data-discovery-intent="dry">
             <p className="eyebrow">{copy.intent}</p>
-            <div className="mt-3 flex flex-wrap gap-2">
-              {listDiscoveryIntents().map((intent) => (
-                <button
-                  key={intent}
-                  type="button"
-                  aria-pressed={draft.intent === intent}
-                  className={`min-h-11 rounded-full border px-3 text-sm font-semibold focus-ring ${draft.intent === intent ? "border-foreground bg-foreground text-white" : "border-border bg-white text-foreground"}`}
-                  onClick={() => setDraft((current) => ({ ...current, intent }))}
-                >
-                  {INTENT_COPY[locale][intent]}
-                </button>
-              ))}
+            <div className="mt-3 inline-flex min-h-11 items-center rounded-full border border-foreground bg-foreground px-4 text-sm font-semibold text-white">
+              {copy.intentValue}
             </div>
           </div>
         </div>
@@ -674,102 +584,57 @@ export function WeatherDiscoveryPlannerV2({
             {copy.advanced}
           </summary>
           <p className="mt-2 text-xs leading-5 text-muted">{copy.advancedHelp}</p>
-          <div className="mt-4 grid gap-6 lg:grid-cols-2">
-            <div>
-              <p className="eyebrow">{copy.context}</p>
-              <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                <label className="grid gap-1 text-xs font-semibold text-muted">
-                  {copy.party}
-                  <select
-                    className="min-h-11 rounded-xl border border-border bg-white px-3 text-sm text-foreground"
-                    value={draft.partyProfile ?? ""}
-                    onChange={(event) =>
-                      setDraft((current) => ({
-                        ...current,
-                        partyProfile: (event.target.value || null) as TripPartyProfile | null,
-                      }))
-                    }
-                  >
-                    <option value="">{copy.any}</option>
-                    <option value="adults">{copy.adults}</option>
-                    <option value="family">{copy.family}</option>
-                    <option value="senior">{copy.senior}</option>
-                  </select>
-                </label>
-                <label className="grid gap-1 text-xs font-semibold text-muted">
-                  {copy.theme}
-                  <select
-                    className="min-h-11 rounded-xl border border-border bg-white px-3 text-sm text-foreground"
-                    value={draft.theme ?? ""}
-                    onChange={(event) =>
-                      setDraft((current) => ({
-                        ...current,
-                        theme: (event.target.value || null) as DiscoveryTheme | null,
-                      }))
-                    }
-                  >
-                    <option value="">{copy.any}</option>
-                    <option value="city">{copy.city}</option>
-                    <option value="beach">{copy.beach}</option>
-                    <option value="outdoor">{copy.outdoor}</option>
-                    <option value="indoor">{copy.indoor}</option>
-                  </select>
-                </label>
-              </div>
-            </div>
-
-            <div>
-              <p className="eyebrow">{copy.constraints}</p>
-              <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                <label className="grid gap-1 text-xs font-semibold text-muted">
-                  {copy.rain} (%)
-                  <input
-                    type="number"
-                    min="0"
-                    max="100"
-                    value={draft.rainProbabilityMax ?? ""}
-                    placeholder={copy.noLimit}
-                    className="min-h-11 rounded-xl border border-border bg-white px-3 text-sm text-foreground"
-                    onChange={(event) => updateNumber("rainProbabilityMax", event)}
-                  />
-                </label>
-                <label className="grid gap-1 text-xs font-semibold text-muted">
-                  {copy.wind} (km/h)
-                  <input
-                    type="number"
-                    min="0"
-                    max="250"
-                    value={draft.windSpeedMaxKph ?? ""}
-                    placeholder={copy.noLimit}
-                    className="min-h-11 rounded-xl border border-border bg-white px-3 text-sm text-foreground"
-                    onChange={(event) => updateNumber("windSpeedMaxKph", event)}
-                  />
-                </label>
-                <label className="grid gap-1 text-xs font-semibold text-muted">
-                  {copy.tempMin} (°C)
-                  <input
-                    type="number"
-                    min="-50"
-                    max="60"
-                    value={draft.temperatureMinC ?? ""}
-                    placeholder={copy.noLimit}
-                    className="min-h-11 rounded-xl border border-border bg-white px-3 text-sm text-foreground"
-                    onChange={(event) => updateNumber("temperatureMinC", event)}
-                  />
-                </label>
-                <label className="grid gap-1 text-xs font-semibold text-muted">
-                  {copy.tempMax} (°C)
-                  <input
-                    type="number"
-                    min="-50"
-                    max="60"
-                    value={draft.temperatureMaxC ?? ""}
-                    placeholder={copy.noLimit}
-                    className="min-h-11 rounded-xl border border-border bg-white px-3 text-sm text-foreground"
-                    onChange={(event) => updateNumber("temperatureMaxC", event)}
-                  />
-                </label>
-              </div>
+          <div className="mt-4">
+            <p className="eyebrow">{copy.constraints}</p>
+            <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <label className="grid gap-1 text-xs font-semibold text-muted">
+                {copy.rain} (%)
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  value={draft.rainProbabilityMax ?? ""}
+                  placeholder={copy.noLimit}
+                  className="min-h-11 rounded-xl border border-border bg-white px-3 text-sm text-foreground"
+                  onChange={(event) => updateNumber("rainProbabilityMax", event)}
+                />
+              </label>
+              <label className="grid gap-1 text-xs font-semibold text-muted">
+                {copy.wind} (km/h)
+                <input
+                  type="number"
+                  min="0"
+                  max="250"
+                  value={draft.windSpeedMaxKph ?? ""}
+                  placeholder={copy.noLimit}
+                  className="min-h-11 rounded-xl border border-border bg-white px-3 text-sm text-foreground"
+                  onChange={(event) => updateNumber("windSpeedMaxKph", event)}
+                />
+              </label>
+              <label className="grid gap-1 text-xs font-semibold text-muted">
+                {copy.tempMin} (°C)
+                <input
+                  type="number"
+                  min="-50"
+                  max="60"
+                  value={draft.temperatureMinC ?? ""}
+                  placeholder={copy.noLimit}
+                  className="min-h-11 rounded-xl border border-border bg-white px-3 text-sm text-foreground"
+                  onChange={(event) => updateNumber("temperatureMinC", event)}
+                />
+              </label>
+              <label className="grid gap-1 text-xs font-semibold text-muted">
+                {copy.tempMax} (°C)
+                <input
+                  type="number"
+                  min="-50"
+                  max="60"
+                  value={draft.temperatureMaxC ?? ""}
+                  placeholder={copy.noLimit}
+                  className="min-h-11 rounded-xl border border-border bg-white px-3 text-sm text-foreground"
+                  onChange={(event) => updateNumber("temperatureMaxC", event)}
+                />
+              </label>
             </div>
           </div>
         </details>
@@ -791,15 +656,15 @@ export function WeatherDiscoveryPlannerV2({
           <section className="mt-10" aria-labelledby="discovery-results">
             <div className="flex flex-wrap items-end justify-between gap-3">
               <div>
-                <p className="eyebrow">{INTENT_COPY[locale][applied.intent]}</p>
+                <p className="eyebrow">{copy.intentValue}</p>
                 <h2 id="discovery-results" className="section-title mt-2">
                   {copy.results}
                 </h2>
               </div>
               <p className="text-xs text-muted">
-                {results.length} {copy.checked}
-                {updatedAt ? ` · ${copy.refreshed} ${new Date(updatedAt).toLocaleString()}` : ""}
-                {stale ? ` · ${copy.stale}` : ""}
+                {rankedResults.length} {copy.checked}
+                {updatedAt ? ` · ${new Date(updatedAt).toLocaleString()}` : ""}
+                {stale ? ` · stale` : ""}
               </p>
             </div>
             {results.length === 0 ? (
@@ -807,9 +672,10 @@ export function WeatherDiscoveryPlannerV2({
                 {copy.noMatches}
               </p>
             ) : (
-              <ul className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+              <ul className="mt-5 grid gap-4 lg:grid-cols-3">
                 {results.map((result, index) => {
-                  const selected = shortlist.includes(result.city.cityId);
+                  const shortlisted = shortlist.includes(result.city.cityId);
+                  const chosen = selectedDestinationId === result.city.cityId;
                   return (
                     <li key={result.city.cityId}>
                       <article className="destination-card h-full">
@@ -822,6 +688,18 @@ export function WeatherDiscoveryPlannerV2({
                               <a
                                 href={cityPath(locale, result.city)}
                                 className="focus-ring hover:text-primary"
+                                onClick={() => {
+                                  void emitProductAnalytics({
+                                    locale,
+                                    routeTemplate: "/discover",
+                                    fields: {
+                                      event: "search_result_clicked",
+                                      destination_id: result.city.cityId,
+                                      result_type: "city",
+                                      position: index + 1,
+                                    },
+                                  });
+                                }}
                               >
                                 {result.city.cityName}
                               </a>
@@ -870,14 +748,38 @@ export function WeatherDiscoveryPlannerV2({
                             </li>
                           ))}
                         </ul>
-                        <button
-                          type="button"
-                          className={`relative mt-5 min-h-11 w-full rounded-xl border px-4 text-sm font-bold focus-ring ${selected ? "border-foreground bg-foreground text-white" : "border-border bg-white text-foreground"}`}
-                          aria-pressed={selected}
-                          onClick={() => toggle(result.city.cityId)}
+                        <div className="relative mt-5 grid gap-2 sm:grid-cols-2">
+                          <button
+                            type="button"
+                            className={`min-h-11 rounded-xl px-4 text-sm font-bold focus-ring ${
+                              chosen
+                                ? "border border-foreground bg-foreground text-white"
+                                : "bg-primary text-white"
+                            }`}
+                            aria-pressed={chosen}
+                            onClick={() => chooseDestination(result, index + 1)}
+                          >
+                            {chosen ? copy.chosen : copy.choose}
+                          </button>
+                          <button
+                            type="button"
+                            className={`min-h-11 rounded-xl border px-4 text-sm font-bold focus-ring ${
+                              shortlisted
+                                ? "border-foreground bg-foreground text-white"
+                                : "border-border bg-white text-foreground"
+                            }`}
+                            aria-pressed={shortlisted}
+                            onClick={() => toggle(result.city.cityId)}
+                          >
+                            {shortlisted ? copy.shortlisted : copy.shortlist}
+                          </button>
+                        </div>
+                        <a
+                          className="relative mt-3 inline-flex text-xs font-semibold text-primary underline-offset-4 hover:underline focus-ring"
+                          href={cityPath(locale, result.city)}
                         >
-                          {selected ? copy.shortlisted : copy.shortlist}
-                        </button>
+                          {copy.details} →
+                        </a>
                       </article>
                     </li>
                   );
@@ -889,7 +791,7 @@ export function WeatherDiscoveryPlannerV2({
           {markers.length > 0 ? (
             <ExplorerMap
               markers={markers}
-              theme={applied.theme ?? applied.intent}
+              theme="dry"
               windowLabel={`${applied.from} – ${applied.to}`}
             />
           ) : null}
@@ -903,7 +805,7 @@ export function WeatherDiscoveryPlannerV2({
             {selectedResults.length < 2 ? (
               <p className="mt-5 text-sm text-muted">{copy.emptyShortlist}</p>
             ) : (
-              <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              <div className="mt-5 grid gap-3 md:grid-cols-2 lg:grid-cols-3">
                 {selectedResults.map((result) => (
                   <article
                     key={result.city.cityId}
@@ -939,10 +841,6 @@ export function WeatherDiscoveryPlannerV2({
                         <dt>{copy.windMetric}</dt>
                         <dd className="font-bold">{format(result.metrics.maxWindKph, " km/h")}</dd>
                       </div>
-                      <div className="flex justify-between">
-                        <dt>{copy.uvMetric}</dt>
-                        <dd className="font-bold">{format(result.metrics.maxUv, "")}</dd>
-                      </div>
                     </dl>
                     <p className="mt-4 text-xs font-bold uppercase tracking-[0.08em] text-muted">
                       {copy.forecast}
@@ -972,54 +870,34 @@ export function WeatherDiscoveryPlannerV2({
             )}
           </section>
 
-          <section className="info-panel mt-6" aria-labelledby="discovery-trip">
-            <p className="eyebrow">{copy.trip}</p>
-            <h2 id="discovery-trip" className="section-title mt-2">
-              {copy.trip}
-            </h2>
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-muted">{copy.tripIntro}</p>
-            <div className="mt-5 flex flex-wrap gap-3">
-              <button
-                type="button"
-                className="trip-primary-button"
-                disabled={selectedResults.length === 0}
-                onClick={() => createTrip(false)}
-              >
-                {copy.create}
-              </button>
-              <button
-                type="button"
-                className="trip-secondary-button"
-                disabled={selectedResults.length === 0}
-                onClick={() => createTrip(true)}
-              >
-                {copy.append}
-              </button>
-              {tripReady ? (
-                <a className="trip-secondary-button" href={workspacePath(locale)}>
-                  {copy.openTrip} →
-                </a>
-              ) : null}
-            </div>
-          </section>
-
-          {tripReady && selectedResults.length === 1 && selectedResults[0] !== undefined ? (
-            <div className="mt-4" data-commerce-after-decision="discovery-trip-created">
-              <ContextualAffiliateSurface
-                locale={locale}
-                context={{
-                  stage: "discovery_decided",
-                  destinationId: selectedResults[0].city.cityId,
-                  hasDestinationDecision: true,
-                  hasTrip: true,
-                  hasStructuredActivities: false,
-                  carDependent: false,
-                  weatherAction: "none",
-                  indoorFallbackAvailable: false,
-                  tripStartsWithinDays: null,
-                }}
-              />
-            </div>
+          {selectedDestination !== null ? (
+            <section
+              className="info-panel mt-6"
+              aria-labelledby="destination-selected"
+              data-commerce-after-decision="destination-selected"
+            >
+              <p className="eyebrow">{copy.choiceTitle}</p>
+              <h2 id="destination-selected" className="section-title mt-2">
+                {selectedDestination.city.cityName}
+              </h2>
+              <p className="mt-2 max-w-3xl text-sm leading-6 text-muted">{copy.choiceIntro}</p>
+              <div className="mt-4">
+                <ContextualAffiliateSurface
+                  locale={locale}
+                  context={{
+                    stage: "discovery_decided",
+                    destinationId: selectedDestination.city.cityId,
+                    hasDestinationDecision: true,
+                    hasTrip: false,
+                    hasStructuredActivities: false,
+                    carDependent: false,
+                    weatherAction: "none",
+                    indoorFallbackAvailable: false,
+                    tripStartsWithinDays: null,
+                  }}
+                />
+              </div>
+            </section>
           ) : null}
         </>
       ) : null}

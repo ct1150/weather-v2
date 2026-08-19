@@ -75,9 +75,9 @@ export function TravelRadarPage({
   const { cards, freshness, state } = viewModel;
   const showCards = state === "ready" || state === "stale";
   const showMap = showCards && (mapMarkers?.length ?? 0) > 0;
-  const rankedCards = [...cards].sort(
-    (left, right) => (right.score.value ?? -1) - (left.score.value ?? -1),
-  );
+  const rankedCards = [...cards]
+    .sort((left, right) => (right.score.value ?? -1) - (left.score.value ?? -1))
+    .slice(0, 3);
   const bestOption = rankedCards[0] ?? null;
   const bestRain = bestOption?.weather.rainProbability ?? null;
 
@@ -88,36 +88,29 @@ export function TravelRadarPage({
       <section className="hero-panel">
         <div className="relative z-10 grid gap-8 lg:grid-cols-[1.25fr_0.75fr] lg:items-end">
           <div>
-            <p className="eyebrow">Weather-first group destination decisions</p>
+            <p className="eyebrow">Least-rain destination finder</p>
             <h1 className="mt-5 max-w-3xl text-4xl font-bold leading-[1.02] tracking-[-0.05em] text-foreground sm:text-6xl lg:text-[4.25rem]">
               Dates fixed.
               <br />
-              Destination open?
+              Where is it least likely to rain?
             </h1>
             <p className="mt-5 max-w-2xl text-base leading-7 text-muted sm:text-lg">
-              Compare the next 14 days, keep the shortlist small, and share the same weather
-              evidence with the people travelling with you. Once everyone agrees, continue in one
-              shared trip.
+              Choose your dates, apply optional rain, temperature and wind limits, and compare only
+              the three destinations with the strongest dry-weather signal.
             </p>
             <div className="mt-6 flex flex-wrap items-center gap-3">
               <a
                 href="/discover"
                 className="rounded-full bg-foreground px-5 py-3 text-sm font-bold text-white shadow-lg shadow-foreground/15 transition hover:-translate-y-0.5 hover:bg-primary focus-ring"
               >
-                Compare destinations
-              </a>
-              <a
-                href="/trips"
-                className="rounded-full border border-border bg-white px-5 py-3 text-sm font-bold text-foreground transition hover:border-primary/30 hover:bg-surface-elevated focus-ring"
-              >
-                Continue shared planning <span aria-hidden="true">→</span>
+                Find 3 dry-weather destinations
               </a>
             </div>
             <a
               href="#recommendations"
               className="mt-3 inline-flex text-sm font-semibold text-primary underline-offset-4 hover:underline focus-ring"
             >
-              See today&apos;s weather shortlist
+              See today&apos;s weather overview
             </a>
             {searchCandidates !== undefined && searchCandidates.length > 0 ? (
               <div className="mt-6 max-w-2xl">
@@ -128,7 +121,7 @@ export function TravelRadarPage({
           {bestOption !== null ? (
             <aside className="decision-board" aria-label="Best available weather signal">
               <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/60">
-                Best weather signal today
+                Driest weather signal today
               </p>
               <div className="mt-5 flex items-end justify-between gap-4">
                 <div>
@@ -140,7 +133,7 @@ export function TravelRadarPage({
                 <div className="text-right">
                   <p className="text-3xl font-bold">{renderScore(bestOption.score)}</p>
                   <p className="text-[10px] uppercase tracking-[0.12em] text-white/55">
-                    Travel Score
+                    Weather signal
                   </p>
                 </div>
               </div>
@@ -158,19 +151,19 @@ export function TravelRadarPage({
 
       <section
         className="mt-6 grid gap-4 md:grid-cols-3"
-        aria-label="Weather-first group decision flow"
+        aria-label="Least-rain destination decision flow"
       >
         {[
-          ["01", "Set the window", "Choose dates and the weather conditions that matter most."],
+          ["01", "Choose dates", "Set the exact travel window within the forecast horizon."],
           [
             "02",
-            "Compare 3–5 places",
-            "Review the reasons, trade-offs and daily outlook together.",
+            "Add optional limits",
+            "Exclude destinations that are too wet, hot, cold or windy.",
           ],
           [
             "03",
-            "Share and plan",
-            "Send one shortlist to the group, then continue in a shared trip after the choice.",
+            "Compare the Top 3",
+            "Choose one destination or share the same shortlist externally.",
           ],
         ].map(([number, title, description]) => (
           <article key={number} className="trip-process-card">
@@ -221,8 +214,8 @@ export function TravelRadarPage({
         >
           <div className="mb-5 flex items-end justify-between gap-4">
             <div>
-              <p className="eyebrow">Weather shortlist</p>
-              <h2 className="section-title mt-3">Best available weather, ranked</h2>
+              <p className="eyebrow">Dry-weather overview</p>
+              <h2 className="section-title mt-3">Three strongest dry-weather signals</h2>
             </div>
             <p className="hidden text-sm text-muted sm:block">
               {cards.length} places checked · {freshness.updatedLabel}
@@ -406,9 +399,9 @@ export function TravelRadarPage({
       ) : null}
 
       <footer className="page-footer">
-        <span>Where Not Rain · Decide together with the weather</span>
+        <span>Where Not Rain · Find the least-rain destination</span>
         <span>
-          Forecast data by <a href="https://open-meteo.com/">Open-Meteo</a> · Derived Travel Score
+          Forecast data by <a href="https://open-meteo.com/">Open-Meteo</a> · Derived Weather signal
         </span>
       </footer>
     </main>
@@ -416,9 +409,9 @@ export function TravelRadarPage({
 }
 
 export async function generateMetadata(): Promise<Metadata> {
-  const title = "Weather-first group destination decisions | Where Not Rain";
+  const title = "Find the least-rain travel destination | Where Not Rain";
   const description =
-    "Dates fixed but destination open? Compare the next 14 days, share a small shortlist and continue planning together after the group decides.";
+    "Choose travel dates, apply optional weather limits and compare the three destinations with the lowest rain risk.";
   return {
     title: { absolute: title },
     description,
@@ -470,9 +463,9 @@ export default async function Page(): Promise<ReactElement> {
         "@type": "WebSite",
         "@id": `${localeUrl("en", "/")}#website`,
         name: "Where Not Rain",
-        alternateName: "Dates fixed. Destination open?",
+        alternateName: "Dates fixed. Where is it least likely to rain?",
         description:
-          "Weather-first destination comparisons and lightweight group trip planning for travellers deciding where to go.",
+          "A focused tool for comparing the three destinations with the lowest rain risk on fixed travel dates.",
         url: localeUrl("en", "/"),
         inLanguage: "en",
       },
@@ -485,9 +478,9 @@ export default async function Page(): Promise<ReactElement> {
       {
         "@type": "CollectionPage",
         "@id": `${localeUrl("en", "/")}#webpage`,
-        name: "Weather-first group destination decisions",
+        name: "Least-rain destination finder",
         description:
-          "Compare rain, temperature and Travel Scores before sharing a shortlist and planning together.",
+          "Compare rain risk on fixed travel dates, apply explicit limits and choose from a Top 3 shortlist.",
         url: localeUrl("en", "/"),
         dateModified: dataset.dataUpdatedAt,
         inLanguage: "en",

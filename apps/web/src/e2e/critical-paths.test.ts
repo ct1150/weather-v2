@@ -108,8 +108,8 @@ describe("critical path — Travel Radar homepage renders without JS", () => {
   it("ready: shows the recommendation and its decision fields", () => {
     const html = render("ready");
     expect(html).toContain("Dates fixed.");
-    expect(html).toContain("Destination open?");
-    expect(html).toContain("Compare destinations");
+    expect(html).toContain("Where is it least likely to rain?");
+    expect(html).toContain("Find 3 dry-weather destinations");
     expect(html).toContain("Tokyo");
     expect(html).toContain("Japan");
     expect(html).toContain("/jp/tokyo");

@@ -1,8 +1,3 @@
-// apps/web/src/app/layout.tsx
-//
-// Root layout for the App Router. Imports the global stylesheet and declares
-// site-wide metadata. The static export bakes this into every page.
-
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import { CloudflareAnalytics } from "../components/CloudflareAnalytics";
@@ -13,11 +8,11 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: {
-    default: "Where Not Rain — travel recommendations",
+    default: "Where Not Rain — least-rain destination finder",
     template: "%s — Where Not Rain",
   },
   description:
-    "Compare rain, temperature and Travel Scores across Asian destinations on one map before choosing where and when to travel.",
+    "Choose travel dates, apply optional weather limits and compare the three destinations with the lowest rain risk.",
   metadataBase: new URL("https://868656.xyz"),
   applicationName: "Where Not Rain",
   manifest: "/manifest.webmanifest",

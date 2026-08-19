@@ -29,9 +29,9 @@ describe("Trip execution PWA / offline contracts", () => {
     expect(layout).toContain("<PwaBootstrap />");
     expect(bootstrap).toContain('navigator.serviceWorker.register("/sw.js"');
     expect(manifest).toContain('"display": "standalone"');
-    expect(manifest).toContain('"start_url": "/trips"');
+    expect(manifest).toContain('"start_url": "/discover"');
     expect(manifest).toContain('"url": "/discover"');
-    expect(manifest).toContain('"url": "/trips/execution"');
+    expect(manifest).not.toContain('"url": "/trips/execution"');
   });
 
   it("uses locale-aware fail-safe navigation caching without intercepting external APIs", () => {
