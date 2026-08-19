@@ -120,7 +120,7 @@ describe("Travel Radar homepage — product scope", () => {
   });
 
   it("renders the three-step least-rain decision flow", () => {
-    expect(html).toContain("Choose dates");
+    expect(html).toContain("Set origin and dates");
     expect(html).toContain("Add optional limits");
     expect(html).toContain("Compare the Top 3");
   });

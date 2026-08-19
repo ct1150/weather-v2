@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 
 const planner = readFileSync(new URL("./WeatherDiscoveryPlannerV2.tsx", import.meta.url), "utf8");
 const engine = readFileSync(new URL("../discovery/weather-discovery.ts", import.meta.url), "utf8");
+const reachability = readFileSync(new URL("../discovery/reachability.ts", import.meta.url), "utf8");
 const trip = readFileSync(new URL("../discovery/discovery-trip.ts", import.meta.url), "utf8");
 const englishRoute = readFileSync(new URL("../app/discover/page.tsx", import.meta.url), "utf8");
 const simplifiedRoute = readFileSync(
@@ -24,7 +25,20 @@ describe("least-rain destination discovery contract", () => {
     expect(engine).not.toContain('search.set("theme"');
     expect(planner).toContain('data-discovery-intent="dry"');
     expect(planner).not.toContain("contextualizeDiscoveryResults");
-    expect(planner).not.toContain("<select");
+    expect(planner).not.toContain("Travellers");
+    expect(planner).not.toContain("Trip style");
+  });
+
+  it("filters by a bounded static reachability matrix before weather ranking", () => {
+    expect(reachability).toContain('"sg-singapore" | "hk-hong-kong" | "tw-taipei"');
+    expect(reachability).toContain("listReachableDestinations");
+    expect(reachability).toContain("rankReachableDiscoveryResults");
+    expect(reachability).toContain("Static planning estimates");
+    expect(planner).toContain("Starting city");
+    expect(planner).toContain("Max one-way planning time");
+    expect(planner).toContain("eligibleCities");
+    expect(planner).toContain("chunks(eligibleCities, MAX_CITIES_PER_REQUEST)");
+    expect(planner).toContain("rankReachableDiscoveryResults");
   });
 
   it("returns only the Top 3 and preserves four explicit hard limits", () => {
@@ -47,9 +61,11 @@ describe("least-rain destination discovery contract", () => {
     expect(trip).toContain("dates.length < 16");
   });
 
-  it("keeps dates, limits and shortlist shareable through URL state", () => {
+  it("keeps origin, transport, travel time, dates, limits and shortlist shareable", () => {
     expect(engine).toContain("parseDiscoveryPreferences");
     expect(engine).toContain("serializeDiscoveryPreferences");
+    expect(reachability).toContain("parseReachabilityPreferences");
+    expect(reachability).toContain("serializeReachabilityPreferences");
     expect(planner).toContain('search.set("cities"');
     expect(planner).toContain("window.history.replaceState");
   });

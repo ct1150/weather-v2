@@ -5,10 +5,11 @@ import { JsonLd } from "../../../components/JsonLd";
 import { WeatherDiscoveryPlannerV2 } from "../../../components/WeatherDiscoveryPlannerV2";
 import { buildAlternates, localeUrl } from "../../seo";
 
-const description = "選擇出行日期和可選天氣限制，只比較整體降雨風險最低的 3 個旅行目的地。";
+const description =
+  "選擇支援的出發地、交通方式、最長單程規劃時間和日期，只比較可達範圍內整體降雨風險最低的 3 個目的地。";
 
 export const metadata: Metadata = {
-  title: "哪裡不下雨：少雨目的地 Top 3",
+  title: "可達範圍內哪裡不下雨：Top 3",
   description,
   alternates: buildAlternates("/discover", "zh-hant", ["en", "zh-cn", "zh-hant"]),
   robots: { index: true, follow: true },

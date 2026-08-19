@@ -60,7 +60,7 @@ export default async function SimplifiedChineseHome(): Promise<ReactElement> {
             日期定了，去哪里更不容易下雨？
           </h1>
           <p className="mt-4 max-w-2xl text-base leading-7 text-muted sm:text-lg">
-            选择出行日期，按整体降雨风险筛选目的地；也可以设置温度、风速和最高降雨概率限制，只看最值得比较的
+            从新加坡、香港或台北出发，设置最长单程时间和出行日期，再在可达范围内只看整体降雨风险最低的
             3 个结果。
           </p>
           <div className="mt-6 flex flex-wrap gap-3">
@@ -76,7 +76,7 @@ export default async function SimplifiedChineseHome(): Promise<ReactElement> {
 
       <section className="mt-6 grid gap-4 md:grid-cols-3" aria-label="少雨目的地决策流程">
         {[
-          ["01", "选择准确日期", "在未来14天预报窗口内确定开始和结束日期。"],
+          ["01", "选择出发地和日期", "从首批支持枢纽出发，并确定未来14天内的旅行窗口。"],
           ["02", "设置可选限制", "需要时排除太热、太冷、风太大或某天降雨概率太高的城市。"],
           ["03", "比较并选择 Top 3", "查看统一天气依据，选择一个目的地或把候选分享给同行人。"],
         ].map(([number, title, description]) => (

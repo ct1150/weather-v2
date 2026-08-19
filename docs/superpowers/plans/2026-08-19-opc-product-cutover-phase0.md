@@ -20,17 +20,23 @@ Status: Phase 0 implemented in PR #55
 
 ## Phase 1 — origin and reachability
 
-Add a bounded, static reachability dataset:
+Status: implemented in the Phase 1 reachability change.
+
+- bounded starting hubs: Singapore, Hong Kong and Taipei;
+- static, conservative flight / drive planning estimates;
+- transport options shown only when the selected origin has maintained edges;
+- maximum one-way planning-time filter;
+- reachability applied before weather API batching and ranking;
+- transport time used only as a tie-break after dry score and forecast confidence;
+- origin, mode and travel time serialized into shareable URLs;
+- no live fare, inventory, route or schedule dependency.
 
 ```text
-origin
-+ transport mode
-+ maximum one-way travel time
+origin + transport + maximum one-way planning time
 → eligible destination set
+→ weather hard limits
 → least-rain Top 3
 ```
-
-No live fare, inventory or schedule dependency is required for the first release.
 
 ## Phase 2 — selection, monetization and retention
 

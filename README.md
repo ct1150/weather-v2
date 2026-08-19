@@ -1,13 +1,13 @@
 # Where Not Rain
 
-Automated least-rain destination decision tool for a one-person company. Users choose travel dates, optionally set explicit weather limits, and receive only the three destinations with the lowest rain risk in the supported dataset.
+Automated least-rain destination decision tool for a one-person company. Users choose a supported starting hub, travel dates, transport mode and maximum one-way planning time, then receive only the three reachable destinations with the lowest rain risk.
 
 ## Current product direction
 
 ```text
-choose dates
-→ optionally exclude places that are too wet, hot, cold or windy
-→ compare the Top 3 least-rain destinations
+choose origin, transport and maximum one-way planning time
+→ choose dates and optionally exclude places that are too wet, hot, cold or windy
+→ compare the Top 3 reachable least-rain destinations
 → choose one destination
 → continue to external booking or weather reminders
 ```

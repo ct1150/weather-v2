@@ -33,12 +33,13 @@ describe("OPC least-rain decision UX contracts", () => {
     expect(header).not.toContain("tripHref");
   });
 
-  it("returns Top 3 results with explicit limits and no context dropdowns", () => {
+  it("returns Top 3 with explicit reachability and weather limits only", () => {
     expect(discovery).toContain("const MAX_RESULTS = 3");
     expect(discovery).toContain("rankedResults.slice(0, MAX_RESULTS)");
+    expect(discovery).toContain("Starting city");
+    expect(discovery).toContain("Transport");
+    expect(discovery).toContain("Max one-way planning time");
     expect(discovery).toContain("Optional weather limits");
-    expect(discovery).toContain("可选限制条件");
-    expect(discovery).not.toContain("<select");
     expect(discovery).not.toContain("Travellers");
     expect(discovery).not.toContain("Trip style");
   });
