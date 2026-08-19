@@ -1,4 +1,4 @@
-# Temporary PR #62 completion gate. The ready-for-review event applies the
+# Temporary PR #62 completion gate. Any non-draft PR #62 update applies the
 # corrected Phase 2.5 implementation once. The resulting synchronize event uses
 # the restored standard low-frequency CI committed by this job.
 name: PR CI
@@ -21,7 +21,7 @@ env:
 
 jobs:
   apply_phase25:
-    if: github.event.action == 'ready_for_review' && github.event.pull_request.number == 62
+    if: github.event.pull_request.draft == false && github.event.pull_request.number == 62
     runs-on: ubuntu-latest
     timeout-minutes: 35
     steps:
@@ -120,9 +120,7 @@ jobs:
           git push origin HEAD:agent/opc-analytics-phase25
 
   verify:
-    if: >-
-      github.event.pull_request.draft == false &&
-      !(github.event.action == 'ready_for_review' && github.event.pull_request.number == 62)
+    if: github.event.pull_request.draft == false && github.event.pull_request.number != 62
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
