@@ -1,17 +1,29 @@
 # OPC product funnel analytics
 
-Dataset: `wnr_product_events_v1`
+D1 table: `wnr_product_events_v1`
 
 The product-analytics Worker accepts one allowlisted event per request, validates it with
-`@wnr/analytics`, rejects sensitive fields and writes a fixed Analytics Engine row. No raw URL,
-query string, free text, account, email, user ID, session ID, device ID, IP address or itinerary
-content is stored.
+`@wnr/analytics`, rejects sensitive fields and writes one fixed D1 row. The table lives in the
+existing Trip D1 database to avoid another account-level service or database, but it is isolated
+from trip records and is never joined to users, accounts or itinerary data.
+
+No raw URL, query string, free text, account, email, user ID, session ID, device ID, IP address or
+itinerary content is stored. The browser path is still best-effort, and a storage failure cannot
+block destination discovery or navigation.
+
+## Retention
+
+Migration `workers/trip-api/migrations/0006_product_analytics.sql` creates the table and indexes.
+Every 100 accepted events, a D1 trigger removes rows older than 90 days. `_sample_interval` is fixed
+to `1`, preserving the aggregate-query contract used by the original Analytics Engine projection.
 
 ## Fixed schema
 
 | Column | Meaning |
 |---|---|
-| `index1` | event name / sampling index |
+| `timestamp` | server receive time |
+| `occurred_at` | bounded client event time |
+| `index1` | event name |
 | `blob1` | locale |
 | `blob2` | route template |
 | `blob3` | origin ID |
@@ -39,6 +51,15 @@ content is stored.
 | `double10` | temperature limit set (`1`/`0`, `-1` N/A) |
 | `double11` | generic bounded count |
 | `double12` | fallback flag (`1`/`0`, `-1` N/A) |
+| `_sample_interval` | fixed event weight (`1`) |
 
-Use `SUM(_sample_interval)` for event counts. The SQL files in this directory are deliberately
-small and can be submitted to the Cloudflare Analytics Engine SQL API without a dashboard.
+Use `SUM(_sample_interval)` for event counts. Run a query against production with the existing
+product-analytics D1 binding, for example:
+
+```bash
+pnpm --filter @wnr/product-analytics exec wrangler d1 execute DB \
+  --env production --remote --file ../../tooling/analytics/funnel.sql
+```
+
+The SQL files remain deliberately small so the one-person operating model does not require a BI
+service or analytics dashboard.

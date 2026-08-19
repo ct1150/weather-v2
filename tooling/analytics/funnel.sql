@@ -2,7 +2,7 @@ SELECT
   index1 AS event,
   SUM(_sample_interval) AS events
 FROM wnr_product_events_v1
-WHERE timestamp >= NOW() - INTERVAL '14' DAY
+WHERE julianday(timestamp) >= julianday('now', '-14 days')
   AND index1 IN (
     'weather_discovery_view',
     'discovery_query_submitted',
@@ -17,5 +17,5 @@ WHERE timestamp >= NOW() - INTERVAL '14' DAY
     'calendar_reminder_downloaded',
     'affiliate_click'
   )
-GROUP BY event
+GROUP BY index1
 ORDER BY events DESC;

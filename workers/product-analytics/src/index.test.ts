@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { handleProductAnalyticsRequest } from "./index";
+import { handleProductAnalyticsRequest, type ProductAnalyticsDependencies } from "./index";
 
 const endpoint = "https://analytics.868656.xyz/api/v1/product-events";
 const allowedOrigin = "https://868656.xyz";
@@ -22,13 +22,13 @@ const event = {
 };
 
 function dependencies() {
-  const writeDataPoint = vi.fn();
+  const persistEvent = vi.fn<ProductAnalyticsDependencies["persistEvent"]>(async () => undefined);
   return {
-    writeDataPoint,
+    persistEvent,
     dependencies: {
       webOrigin: allowedOrigin,
       now: () => new Date("2026-08-19T12:01:00.000Z"),
-      writeDataPoint,
+      persistEvent,
     },
   };
 }
@@ -42,15 +42,16 @@ function post(value: unknown, origin = allowedOrigin): Request {
 }
 
 describe("product analytics Worker", () => {
-  it("accepts one validated event and writes a bounded data point", async () => {
+  it("accepts one validated event and persists the bounded projection", async () => {
     const test = dependencies();
     const response = await handleProductAnalyticsRequest(post(event), test.dependencies);
     expect(response.status).toBe(202);
     expect(response.headers.get("access-control-allow-origin")).toBe(allowedOrigin);
-    expect(test.writeDataPoint).toHaveBeenCalledTimes(1);
-    expect(test.writeDataPoint.mock.calls[0]?.[0]).toMatchObject({
-      indexes: ["discovery_results_returned"],
+    expect(test.persistEvent).toHaveBeenCalledTimes(1);
+    expect(test.persistEvent.mock.calls[0]?.[0]).toMatchObject({
+      event: "discovery_results_returned",
     });
+    expect(test.persistEvent.mock.calls[0]?.[1]).toBe("2026-08-19T12:01:00.000Z");
   });
 
   it("rejects an unapproved origin before storage", async () => {
@@ -60,7 +61,7 @@ describe("product analytics Worker", () => {
       test.dependencies,
     );
     expect(response.status).toBe(403);
-    expect(test.writeDataPoint).not.toHaveBeenCalled();
+    expect(test.persistEvent).not.toHaveBeenCalled();
   });
 
   it("rejects privacy fields, stale timestamps and oversized bodies", async () => {
@@ -73,7 +74,7 @@ describe("product analytics Worker", () => {
         )
       ).status,
     ).toBe(400);
-    expect(privacy.writeDataPoint).not.toHaveBeenCalled();
+    expect(privacy.persistEvent).not.toHaveBeenCalled();
 
     const stale = dependencies();
     expect(
@@ -101,6 +102,14 @@ describe("product analytics Worker", () => {
     expect(response.status).toBe(413);
   });
 
+  it("returns a retryable response when D1 is unavailable", async () => {
+    const test = dependencies();
+    test.persistEvent.mockRejectedValueOnce(new Error("D1 unavailable"));
+    const response = await handleProductAnalyticsRequest(post(event), test.dependencies);
+    expect(response.status).toBe(503);
+    expect(await response.json()).toMatchObject({ error: "storage_unavailable" });
+  });
+
   it("exposes health and restrictive preflight responses", async () => {
     const test = dependencies();
     const health = await handleProductAnalyticsRequest(
@@ -108,7 +117,11 @@ describe("product analytics Worker", () => {
       test.dependencies,
     );
     expect(health.status).toBe(200);
-    expect(await health.json()).toMatchObject({ ok: true, service: "product-analytics" });
+    expect(await health.json()).toMatchObject({
+      ok: true,
+      service: "product-analytics",
+      storage: "d1",
+    });
 
     const options = await handleProductAnalyticsRequest(
       new Request(endpoint, { method: "OPTIONS", headers: { origin: allowedOrigin } }),

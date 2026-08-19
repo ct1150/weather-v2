@@ -4,7 +4,7 @@ SELECT
   blob6 AS no_result_reason,
   SUM(_sample_interval) AS no_result_queries
 FROM wnr_product_events_v1
-WHERE timestamp >= NOW() - INTERVAL '30' DAY
+WHERE julianday(timestamp) >= julianday('now', '-30 days')
   AND index1 = 'discovery_no_results'
-GROUP BY origin_id, transport_mode, no_result_reason
+GROUP BY blob3, blob4, blob6
 ORDER BY no_result_queries DESC;
