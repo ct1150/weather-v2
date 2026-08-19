@@ -87,9 +87,7 @@ jobs:
             docs/superpowers/plans/2026-08-19-opc-product-analytics-phase25.md
 
       - name: Build focused dependencies
-        run: |
-          pnpm --filter @wnr/config build
-          pnpm --filter @wnr/analytics build
+        run: pnpm -r --filter '!@wnr/web' --filter '!@wnr/weather-sync' --filter '!@wnr/maintenance' build
 
       - name: Focused verification
         run: |
