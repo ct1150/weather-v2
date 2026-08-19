@@ -90,5 +90,28 @@ new_projection = '''export interface AnalyticsEngineProjection {
 if patched.count(old_projection) != 1:
     raise RuntimeError("Analytics Engine projection interface not found exactly once")
 patched = patched.replace(old_projection, new_projection, 1)
+old_dependency = '''export interface ProductAnalyticsDependencies {
+  readonly webOrigin: string;
+  readonly now: () => Date;
+  readonly writeDataPoint: (point: {
+    readonly indexes: ReadonlyArray<string>;
+    readonly blobs: ReadonlyArray<string>;
+    readonly doubles: ReadonlyArray<number>;
+  }) => void;
+}
+'''
+new_dependency = '''export interface ProductAnalyticsDependencies {
+  readonly webOrigin: string;
+  readonly now: () => Date;
+  readonly writeDataPoint: (point: {
+    indexes: string[];
+    blobs: string[];
+    doubles: number[];
+  }) => void;
+}
+'''
+if patched.count(old_dependency) != 1:
+    raise RuntimeError("Product analytics dependency type not found exactly once")
+patched = patched.replace(old_dependency, new_dependency, 1)
 path.write_text(patched, encoding="utf-8")
 print("Phase 2.5 codemod patched for current contracts and Worker bindings")
