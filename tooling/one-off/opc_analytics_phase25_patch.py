@@ -75,5 +75,20 @@ new_explicit = '''    case "search_saved": {
 if patched.count(old_grouped) != 1:
     raise RuntimeError("grouped retention event validator block not found exactly once")
 patched = patched.replace(old_grouped, new_explicit, 1)
+old_projection = '''export interface AnalyticsEngineProjection {
+  readonly indexes: readonly [string];
+  readonly blobs: ReadonlyArray<string>;
+  readonly doubles: ReadonlyArray<number>;
+}
+'''
+new_projection = '''export interface AnalyticsEngineProjection {
+  readonly indexes: [string];
+  readonly blobs: string[];
+  readonly doubles: number[];
+}
+'''
+if patched.count(old_projection) != 1:
+    raise RuntimeError("Analytics Engine projection interface not found exactly once")
+patched = patched.replace(old_projection, new_projection, 1)
 path.write_text(patched, encoding="utf-8")
-print("Phase 2.5 codemod patched for current contracts, Wrangler and explicit events")
+print("Phase 2.5 codemod patched for current contracts and Worker bindings")
