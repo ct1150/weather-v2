@@ -121,5 +121,12 @@ new_max_travel = '''    max_travel_minutes:
 if patched.count(old_max_travel) != 1:
     raise RuntimeError("discovery funnel max travel projection not found exactly once")
 patched = patched.replace(old_max_travel, new_max_travel, 1)
+old_workflow_loop = '''for workflow in [".github/workflows/pr-ci.yml", ".github/workflows/deploy.yml"]:
+'''
+new_workflow_loop = '''for workflow in [".github/workflows/deploy.yml"]:
+'''
+if patched.count(old_workflow_loop) != 1:
+    raise RuntimeError("workflow patch loop not found exactly once")
+patched = patched.replace(old_workflow_loop, new_workflow_loop, 1)
 path.write_text(patched, encoding="utf-8")
 print("Phase 2.5 codemod patched for current contracts and Worker bindings")
