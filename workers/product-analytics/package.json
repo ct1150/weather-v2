@@ -1,0 +1,33 @@
+{
+  "name": "@wnr/product-analytics",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "cf-typegen": "wrangler types --env production"
+  },
+  "dependencies": {
+    "@wnr/analytics": "workspace:*"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20260804.1",
+    "@wnr/eslint-config": "workspace:*",
+    "@wnr/tsconfig": "workspace:*",
+    "@wnr/vitest-config": "workspace:*"
+  },
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ]
+}

@@ -58,6 +58,15 @@ describe("discovery decision and retention contracts", () => {
     expect(companion).toContain("Nothing is sent to our servers.");
   });
 
+  it("tracks bounded save, reopen, share and calendar actions", () => {
+    expect(companion).toContain('event: "search_saved"');
+    expect(companion).toContain('event: "saved_search_opened"');
+    expect(companion).toContain('event: "saved_search_removed"');
+    expect(companion).toContain('event: "share_link_copied"');
+    expect(companion).toContain('event: "calendar_reminder_downloaded"');
+    expect(companion).toContain("retentionEventFields");
+  });
+
   it("does not duplicate planner result-click analytics from the retention layer", () => {
     expect(companion).not.toContain('event: "search_result_clicked"');
     expect(companion).not.toContain("article.destination-card");

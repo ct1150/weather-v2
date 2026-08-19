@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { validateAnalyticsEvent } from "./events";
+import { projectAnalyticsEvent, validateAnalyticsEvent } from "./events";
 
 const common = {
   event_version: 1,
@@ -14,6 +14,78 @@ describe("Phase 9 conversion funnel analytics", () => {
         ...common,
         event: "weather_discovery_view",
         route_template: "/discover",
+      },
+      {
+        ...common,
+        event: "discovery_query_submitted",
+        route_template: "/discover",
+        origin_id: "sg-singapore",
+        transport_mode: "flight",
+        max_travel_minutes: 360,
+        days_until_departure_bucket: "3-7d",
+        trip_length_days: 3,
+        rain_limit_set: true,
+        wind_limit_set: false,
+        temperature_limit_set: false,
+      },
+      {
+        ...common,
+        event: "discovery_results_returned",
+        route_template: "/discover",
+        origin_id: "sg-singapore",
+        transport_mode: "flight",
+        max_travel_minutes: 360,
+        days_until_departure_bucket: "3-7d",
+        trip_length_days: 3,
+        rain_limit_set: true,
+        wind_limit_set: false,
+        temperature_limit_set: false,
+        reachable_count: 12,
+        result_count: 3,
+      },
+      {
+        ...common,
+        event: "discovery_no_results",
+        route_template: "/discover",
+        origin_id: "hk-hong-kong",
+        transport_mode: "flight",
+        max_travel_minutes: 240,
+        days_until_departure_bucket: "0-2d",
+        trip_length_days: 2,
+        rain_limit_set: true,
+        wind_limit_set: true,
+        temperature_limit_set: true,
+        reachable_count: 0,
+        no_result_reason: "no_reachable",
+      },
+      {
+        ...common,
+        event: "search_saved",
+        route_template: "/discover",
+        origin_id: "tw-taipei",
+        transport_mode: "any",
+        max_travel_minutes: 480,
+        days_until_departure_bucket: "8-14d",
+        trip_length_days: 4,
+        rain_limit_set: false,
+        wind_limit_set: false,
+        temperature_limit_set: false,
+        shortlist_count: 2,
+      },
+      {
+        ...common,
+        event: "calendar_reminder_downloaded",
+        route_template: "/discover",
+        origin_id: "tw-taipei",
+        transport_mode: "any",
+        max_travel_minutes: 480,
+        days_until_departure_bucket: "8-14d",
+        trip_length_days: 4,
+        rain_limit_set: false,
+        wind_limit_set: false,
+        temperature_limit_set: false,
+        shortlist_count: 2,
+        reminder_count: 3,
       },
       {
         ...common,
@@ -59,6 +131,68 @@ describe("Phase 9 conversion funnel analytics", () => {
       const result = validateAnalyticsEvent(value);
       expect(result.ok).toBe(true);
     }
+  });
+
+  it("projects discovery events into a stable Analytics Engine schema", () => {
+    const result = validateAnalyticsEvent({
+      ...common,
+      event: "discovery_results_returned",
+      route_template: "/discover",
+      origin_id: "sg-singapore",
+      transport_mode: "flight",
+      max_travel_minutes: 360,
+      days_until_departure_bucket: "3-7d",
+      trip_length_days: 3,
+      rain_limit_set: true,
+      wind_limit_set: false,
+      temperature_limit_set: false,
+      reachable_count: 12,
+      result_count: 3,
+    });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const point = projectAnalyticsEvent(result.value);
+    expect(point.indexes).toEqual(["discovery_results_returned"]);
+    expect(point.blobs).toHaveLength(15);
+    expect(point.doubles).toHaveLength(12);
+    expect(point.blobs.slice(0, 6)).toEqual([
+      "en",
+      "/discover",
+      "sg-singapore",
+      "flight",
+      "3-7d",
+      "",
+    ]);
+    expect(point.doubles.slice(0, 4)).toEqual([360, 3, 12, 3]);
+  });
+
+  it("rejects partial discovery context and invalid retention counts", () => {
+    expect(
+      validateAnalyticsEvent({
+        ...common,
+        event: "destination_selected",
+        route_template: "/discover",
+        destination_id: "jp-tokyo",
+        position: 1,
+        origin_id: "sg-singapore",
+      }),
+    ).toMatchObject({ ok: false, error: { code: "incomplete_discovery_context" } });
+    expect(
+      validateAnalyticsEvent({
+        ...common,
+        event: "search_saved",
+        route_template: "/discover",
+        origin_id: "sg-singapore",
+        transport_mode: "flight",
+        max_travel_minutes: 360,
+        days_until_departure_bucket: "3-7d",
+        trip_length_days: 3,
+        rain_limit_set: false,
+        wind_limit_set: false,
+        temperature_limit_set: false,
+        shortlist_count: 4,
+      }),
+    ).toMatchObject({ ok: false, error: { code: "invalid_shortlist_count" } });
   });
 
   it("rejects itinerary text and sensitive user/session/location fields", () => {

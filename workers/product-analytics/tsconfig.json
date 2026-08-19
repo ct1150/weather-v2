@@ -1,0 +1,10 @@
+{
+  "extends": "@wnr/tsconfig/library.json",
+  "include": ["src/**/*.ts", "worker-configuration.d.ts"],
+  "compilerOptions": {
+    "rootDir": ".",
+    "outDir": "dist",
+    "types": ["@cloudflare/workers-types"]
+  },
+  "exclude": ["src/**/*.test.ts", "src/**/*.spec.ts", "dist", "node_modules"]
+}

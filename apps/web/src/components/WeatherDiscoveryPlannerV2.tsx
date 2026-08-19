@@ -10,6 +10,7 @@ import {
   type ReactElement,
 } from "react";
 import { emitProductAnalytics } from "../analytics/browser-events";
+import { buildDiscoveryFunnelContext } from "../analytics/discovery-funnel";
 import type { TripCityOption, TripForecastDay } from "../trips/workspace";
 import { toTraditionalCity, toTraditionalForecast } from "../trips/traditional";
 import { discoveryDateRange } from "../discovery/discovery-trip";
@@ -133,6 +134,8 @@ const COPY = {
       "Your choice is saved on this device. Commercial links appear only after you choose and never influence the ranking.",
     selectionSaved: "Destination selected.",
     details: "View city weather",
+    measurementNote:
+      "Anonymous product metrics record only bounded actions and aggregate counts — never an account, email, saved-search URL or itinerary text.",
   },
   "zh-cn": {
     eyebrow: "少雨目的地工具",
@@ -189,6 +192,7 @@ const COPY = {
     choiceIntro: "选择会保存在当前设备。商业链接只在选择后出现，并且不会影响推荐排序。",
     selectionSaved: "已选择目的地。",
     details: "查看城市天气",
+    measurementNote: "匿名产品指标只记录有限操作和聚合数量，不记录账号、邮箱、保存链接或行程正文。",
   },
   "zh-hant": {
     eyebrow: "少雨目的地工具",
@@ -245,6 +249,7 @@ const COPY = {
     choiceIntro: "選擇會保存在目前裝置。商業連結只在選擇後出現，並且不會影響推薦排序。",
     selectionSaved: "已選擇目的地。",
     details: "查看城市天氣",
+    measurementNote: "匿名產品指標只記錄有限操作和彙總數量，不記錄帳號、信箱、儲存連結或行程正文。",
   },
 } as const;
 
@@ -386,6 +391,8 @@ export function WeatherDiscoveryPlannerV2({
   const [updatedAt, setUpdatedAt] = useState("");
   const [stale, setStale] = useState(false);
   const discoveryViewTracked = useRef(false);
+  const reportedQuerySequence = useRef(0);
+  const [querySequence, setQuerySequence] = useState(0);
 
   useEffect(() => {
     if (discoveryViewTracked.current) return;
@@ -516,6 +523,7 @@ export function WeatherDiscoveryPlannerV2({
     copy.unavailable,
     eligibleCities,
     locale,
+    querySequence,
   ]);
 
   useEffect(() => {
@@ -531,6 +539,74 @@ export function WeatherDiscoveryPlannerV2({
     [reachableDestinations, weatherRankedResults],
   );
   const results = useMemo(() => rankedResults.slice(0, MAX_RESULTS), [rankedResults]);
+
+  useEffect(() => {
+    if (
+      querySequence === 0 ||
+      state === "loading" ||
+      reportedQuerySequence.current === querySequence
+    ) {
+      return;
+    }
+    const context = buildDiscoveryFunnelContext({
+      preferences: applied,
+      reachability: appliedReachability,
+    });
+    if (state === "error") {
+      emitProductAnalytics({
+        locale,
+        routeTemplate: "/discover",
+        fields: {
+          event: "discovery_no_results",
+          ...context,
+          reachable_count: eligibleCities.length,
+          no_result_reason: "forecast_unavailable",
+        },
+      });
+    } else if (eligibleCities.length === 0) {
+      emitProductAnalytics({
+        locale,
+        routeTemplate: "/discover",
+        fields: {
+          event: "discovery_no_results",
+          ...context,
+          reachable_count: 0,
+          no_result_reason: "no_reachable",
+        },
+      });
+    } else if (results.length === 0) {
+      emitProductAnalytics({
+        locale,
+        routeTemplate: "/discover",
+        fields: {
+          event: "discovery_no_results",
+          ...context,
+          reachable_count: eligibleCities.length,
+          no_result_reason: "weather_limits",
+        },
+      });
+    } else {
+      emitProductAnalytics({
+        locale,
+        routeTemplate: "/discover",
+        fields: {
+          event: "discovery_results_returned",
+          ...context,
+          reachable_count: eligibleCities.length,
+          result_count: results.length,
+        },
+      });
+    }
+    reportedQuerySequence.current = querySequence;
+  }, [
+    applied,
+    appliedReachability,
+    eligibleCities.length,
+    locale,
+    querySequence,
+    results.length,
+    state,
+  ]);
   const resultIds = useMemo(() => new Set(results.map((result) => result.city.cityId)), [results]);
   const selectedResults = useMemo(
     () =>
@@ -583,12 +659,24 @@ export function WeatherDiscoveryPlannerV2({
       setMessage(copy.invalidRange);
       return;
     }
+    const context = buildDiscoveryFunnelContext({
+      preferences: draft,
+      reachability: draftReachability,
+    });
+    emitProductAnalytics({
+      locale,
+      routeTemplate: "/discover",
+      fields: { event: "discovery_query_submitted", ...context },
+    });
     setSelectedDestinationId(null);
     window.localStorage.removeItem(SELECTED_DESTINATION_STORAGE_KEY);
+    setState("loading");
+    setMessage("");
     setApplied(draft);
     setAppliedReachability(draftReachability);
+    setQuerySequence((current) => current + 1);
     updateUrl(draft, draftReachability, shortlist);
-  }, [copy.invalidRange, draft, draftReachability, shortlist, updateUrl]);
+  }, [copy.invalidRange, draft, draftReachability, locale, shortlist, updateUrl]);
 
   const toggle = useCallback(
     (cityId: string): void => {
@@ -631,6 +719,10 @@ export function WeatherDiscoveryPlannerV2({
         routeTemplate: "/discover",
         fields: {
           event: "destination_selected",
+          ...buildDiscoveryFunnelContext({
+            preferences: applied,
+            reachability: appliedReachability,
+          }),
           destination_id: result.city.cityId,
           position,
         },
@@ -832,6 +924,7 @@ export function WeatherDiscoveryPlannerV2({
           </button>
           <p className="text-xs leading-5 text-muted">{copy.filtersShare}</p>
         </div>
+        <p className="mt-3 max-w-3xl text-[11px] leading-5 text-muted">{copy.measurementNote}</p>
       </section>
 
       {message.length > 0 ? <p className="mt-4 text-sm text-muted">{message}</p> : null}

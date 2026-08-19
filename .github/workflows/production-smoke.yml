@@ -23,6 +23,7 @@ env:
   READ_URL: "https://where-not-rain-read-production.ct1150.workers.dev"
   SYNC_URL: "https://where-not-rain-sync-production.ct1150.workers.dev"
   TRIP_URL: "https://trip.868656.xyz"
+  ANALYTICS_URL: "https://analytics.868656.xyz"
 
 jobs:
   verify:
@@ -63,7 +64,8 @@ jobs:
           for attempt in $(seq 1 30); do
             if curl --fail --silent --show-error --location "${SITE_URL}/" >/dev/null \
               && curl --fail --silent --show-error "${TRIP_URL}/health" >/tmp/trip-health.json \
-              && curl --fail --silent --show-error "${READ_URL}/health" >/tmp/read-health.json; then
+              && curl --fail --silent --show-error "${READ_URL}/health" >/tmp/read-health.json \
+              && curl --fail --silent --show-error "${ANALYTICS_URL}/health" >/tmp/analytics-health.json; then
               exit 0
             fi
             sleep 5
@@ -150,6 +152,8 @@ jobs:
             '"ok":true' '"service":"trip-api"' '"cloudTrip":true' '"cloudSharing":true' '"auth":true'
           fetch_and_match "Protected sync health" "${SYNC_URL}/health" /tmp/sync-health.json \
             '"manualTriggerProtected":true'
+          fetch_and_match "Product analytics health" "${ANALYTICS_URL}/health" /tmp/product-analytics-health.json \
+            '"ok":true' '"service":"product-analytics"' '"schemaVersion":1'
           fetch_and_match "Trip forecast API" \
             "${READ_URL}/api/v1/trip-forecast?cityIds=jp-tokyo&from=${TODAY}&to=${WEEK_END}&locale=en" \
             /tmp/forecast.json jp-tokyo temperatureMaxC
@@ -231,8 +235,10 @@ jobs:
             src/product-entitlements.test.ts
           pnpm --filter @wnr/web exec vitest run \
             src/analytics/browser-events.test.ts \
+            src/analytics/discovery-funnel.test.ts \
             src/commercial/contextual-affiliate.test.ts \
             src/components/phase9-commercial-surface-contract.test.ts
+          pnpm --filter @wnr/product-analytics test
 
       - name: Phase 9 — production zero-fill
         run: node tooling/deploy/conversion-retention-live-smoke.mjs --site-url "${SITE_URL}"

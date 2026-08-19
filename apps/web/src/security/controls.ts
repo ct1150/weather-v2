@@ -391,7 +391,7 @@ const DEFAULT_CSP = [
   "style-src 'self'",
   "img-src 'self' data:",
   "font-src 'self'",
-  "connect-src 'self'",
+  "connect-src 'self' https://analytics.868656.xyz",
   "form-action 'self'",
   "manifest-src 'self'",
 ].join("; ");

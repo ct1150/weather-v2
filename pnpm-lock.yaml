@@ -320,6 +320,25 @@ importers:
         specifier: workspace:*
         version: link:../../tooling/vitest-config
 
+  workers/product-analytics:
+    dependencies:
+      '@wnr/analytics':
+        specifier: workspace:*
+        version: link:../../packages/analytics
+    devDependencies:
+      '@cloudflare/workers-types':
+        specifier: ^5.20260804.1
+        version: 5.20260804.1
+      '@wnr/eslint-config':
+        specifier: workspace:*
+        version: link:../../tooling/eslint-config
+      '@wnr/tsconfig':
+        specifier: workspace:*
+        version: link:../../tooling/tsconfig
+      '@wnr/vitest-config':
+        specifier: workspace:*
+        version: link:../../tooling/vitest-config
+
   workers/trip-api:
     dependencies:
       better-auth:

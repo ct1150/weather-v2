@@ -1,5 +1,7 @@
-# Temporary PR #61 implementation gate. The ready-for-review event applies the
-# Phase 2.5 codemod once; the resulting synchronize event uses restored standard CI.
+# Lightweight pull-request validation.
+# Draft PR pushes do not allocate a hosted runner. Validation starts when the PR
+# is marked Ready for review, and re-runs only for subsequent non-draft updates.
+
 name: PR CI
 
 on:
@@ -7,7 +9,7 @@ on:
     types: [opened, reopened, ready_for_review, synchronize]
 
 permissions:
-  contents: write
+  contents: read
   pull-requests: read
 
 concurrency:
@@ -19,108 +21,8 @@ env:
   NODE_VERSION: "22"
 
 jobs:
-  apply_phase25:
-    if: github.event.action == 'ready_for_review' && github.event.pull_request.number == 61
-    runs-on: ubuntu-latest
-    timeout-minutes: 35
-    steps:
-      - name: Checkout PR branch
-        uses: actions/checkout@v4
-        with:
-          ref: agent/opc-analytics-phase25
-          fetch-depth: 0
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: ${{ env.PNPM_VERSION }}
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: pnpm
-
-      - name: Apply Phase 2.5 implementation
-        run: |
-          python tooling/one-off/opc_analytics_phase25_patch.py
-          python tooling/one-off/opc_analytics_phase25.py
-
-      - name: Install updated workspace
-        run: pnpm install --no-frozen-lockfile
-
-      - name: Generate Cloudflare binding types
-        run: pnpm --filter @wnr/product-analytics cf-typegen
-
-      - name: Format implementation
-        run: |
-          pnpm exec prettier --write \
-            README.md \
-            .github/workflows/deploy.yml \
-            .github/workflows/production-smoke.yml \
-            .github/workflows/refresh-weather.yml \
-            packages/analytics/src/events.ts \
-            packages/analytics/src/funnel-events.test.ts \
-            apps/web/src/analytics/browser-events.ts \
-            apps/web/src/analytics/browser-events.test.ts \
-            apps/web/src/analytics/discovery-funnel.ts \
-            apps/web/src/analytics/discovery-funnel.test.ts \
-            apps/web/src/components/WeatherDiscoveryPlannerV2.tsx \
-            apps/web/src/components/DiscoveryRetentionCompanion.tsx \
-            apps/web/src/components/discovery-retention-contract.test.ts \
-            apps/web/src/security/controls.ts \
-            apps/web/src/security/controls.test.ts \
-            workers/product-analytics/package.json \
-            workers/product-analytics/tsconfig.json \
-            workers/product-analytics/vitest.config.ts \
-            workers/product-analytics/wrangler.jsonc \
-            workers/product-analytics/src/index.ts \
-            workers/product-analytics/src/index.test.ts \
-            tooling/analytics/README.md \
-            tooling/analytics/funnel.sql \
-            tooling/analytics/origin-demand.sql \
-            tooling/analytics/zero-result.sql \
-            tooling/analytics/retention.sql \
-            tooling/analytics/commercial.sql \
-            tooling/deploy/pipeline-contract.test.mjs \
-            docs/superpowers/plans/2026-08-19-opc-product-analytics-phase25.md
-
-      - name: Build focused dependencies
-        run: |
-          pnpm --filter @wnr/config build
-          pnpm --filter @wnr/analytics build
-
-      - name: Focused verification
-        run: |
-          pnpm --filter @wnr/analytics test
-          pnpm --filter @wnr/product-analytics typecheck
-          pnpm --filter @wnr/product-analytics test
-          pnpm --filter @wnr/web typecheck
-          pnpm --filter @wnr/web exec vitest run \
-            src/analytics/browser-events.test.ts \
-            src/analytics/discovery-funnel.test.ts \
-            src/components/discovery-retention-contract.test.ts \
-            src/components/weather-discovery-phase6-contract.test.ts \
-            src/security/controls.test.ts
-          node --test tooling/deploy/pipeline-contract.test.mjs
-
-      - name: Restore standard CI and commit implementation
-        run: |
-          git show origin/main:.github/workflows/pr-ci.yml > .github/workflows/pr-ci.yml
-          git rm -f .github/workflows/apply-opc-analytics-phase25-once.yml
-          git rm -f tooling/one-off/opc_analytics_phase25.py
-          git rm -f tooling/one-off/opc_analytics_phase25_patch.py
-          git rm -f tooling/one-off/opc-analytics-phase25-trigger.txt
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
-          git commit -m "feat: add privacy-safe product funnel analytics"
-          git push origin HEAD:agent/opc-analytics-phase25
-
   verify:
-    if: >-
-      github.event.pull_request.draft == false &&
-      !(github.event.action == 'ready_for_review' && github.event.pull_request.number == 61)
+    if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
@@ -169,6 +71,7 @@ jobs:
         env:
           APP_BASE_URL: https://868656.xyz
           NEXT_PUBLIC_TRIP_API_URL: https://trip.868656.xyz
+          NEXT_PUBLIC_PRODUCT_ANALYTICS_URL: https://analytics.868656.xyz/api/v1/product-events
           NEXT_PUBLIC_CLOUDFLARE_ANALYTICS_ENABLED: "false"
         run: pnpm --filter @wnr/web build
 
@@ -177,13 +80,14 @@ jobs:
           pnpm --filter @wnr/weather-sync build
           pnpm --filter @wnr/weather-read build
           pnpm --filter @wnr/trip-api build
+          pnpm --filter @wnr/product-analytics build
 
       - name: Pipeline contract tests
         run: node --test tooling/deploy/pipeline-contract.test.mjs
 
       - name: Secret scan
         run: |
-          if grep -RIiE "WEATHERAPI_SECRET|CLOUDFLARE_API_TOKEN|BETTER_AUTH_SECRET|GOOGLE_CLIENT_SECRET|RESEND_API_KEY" apps/web/out apps/web/src workers/trip-api/src 2>/dev/null; then
+          if grep -RIiE "WEATHERAPI_SECRET|CLOUDFLARE_API_TOKEN|BETTER_AUTH_SECRET|GOOGLE_CLIENT_SECRET|RESEND_API_KEY" apps/web/out apps/web/src workers/trip-api/src workers/product-analytics/src 2>/dev/null; then
             echo "::error::Possible secret leaked into build output or source"
             exit 1
           fi

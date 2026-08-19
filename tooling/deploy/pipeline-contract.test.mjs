@@ -11,7 +11,7 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 
@@ -41,6 +41,25 @@ function makeArtifactDir(dir, files) {
     writeFileSync(p, content, "utf8");
   }
 }
+
+test("production workflows keep product analytics deployed and embedded", () => {
+  const deploy = readFileSync(
+    new URL("../../.github/workflows/deploy.yml", import.meta.url),
+    "utf8",
+  );
+  const refresh = readFileSync(
+    new URL("../../.github/workflows/refresh-weather.yml", import.meta.url),
+    "utf8",
+  );
+  const smoke = readFileSync(
+    new URL("../../.github/workflows/production-smoke.yml", import.meta.url),
+    "utf8",
+  );
+  assert.match(deploy, /Deploy product-analytics Worker/u);
+  assert.match(deploy, /NEXT_PUBLIC_PRODUCT_ANALYTICS_URL/u);
+  assert.match(refresh, /NEXT_PUBLIC_PRODUCT_ANALYTICS_URL/u);
+  assert.match(smoke, /Product analytics health/u);
+});
 
 test("artifact identity is deterministic and content-sensitive", () => {
   const dir = tempDir("art");

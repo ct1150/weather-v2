@@ -1,5 +1,9 @@
 "use client";
 
+import { emitProductAnalytics } from "../analytics/browser-events";
+import { buildDiscoveryFunnelContext } from "../analytics/discovery-funnel";
+import { parseDiscoveryPreferences } from "../discovery/weather-discovery";
+import { parseReachabilityPreferences } from "../discovery/reachability";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactElement } from "react";
 import {
   DISCOVERY_SHORTLIST_STORAGE_KEY,
@@ -139,6 +143,19 @@ function discoveryUrl(values: ReadonlyArray<string>): string {
 
 function absoluteUrl(relative: string): string {
   return new URL(relative, window.location.origin).href;
+}
+
+function retentionEventFields(search: SavedDiscoverySearch): object {
+  const url = new URL(search.url, "https://868656.xyz");
+  const preferences = parseDiscoveryPreferences(url.searchParams, {
+    from: search.from,
+    to: search.to,
+  });
+  const reachability = parseReachabilityPreferences(url.searchParams);
+  return {
+    ...buildDiscoveryFunnelContext({ preferences, reachability }),
+    shortlist_count: discoveryShortlistFromSearch(url.searchParams).length,
+  };
 }
 
 function downloadCalendar(calendar: { readonly content: string; readonly filename: string }): void {
@@ -301,22 +318,48 @@ export function DiscoveryRetentionCompanion({
     }
     const existed = savedSearches.some((item) => item.id === next.id);
     persistSavedSearches(upsertSavedDiscoverySearch(savedSearches, next));
+    emitProductAnalytics({
+      locale,
+      routeTemplate: "/discover",
+      fields: { event: "search_saved", ...retentionEventFields(next) },
+    });
     setCurrentSearch(next);
     setStatus(existed ? copy.alreadySaved : copy.savedSearch);
   }, [
     copy.alreadySaved,
     copy.currentUnavailable,
     copy.savedSearch,
+    locale,
     persistSavedSearches,
     savedSearches,
   ]);
 
   const removeSavedSearch = useCallback(
     (id: string): void => {
+      const removed = savedSearches.find((item) => item.id === id);
       persistSavedSearches(savedSearches.filter((item) => item.id !== id));
+      if (removed !== undefined) {
+        emitProductAnalytics({
+          locale,
+          routeTemplate: "/discover",
+          fields: { event: "saved_search_removed", ...retentionEventFields(removed) },
+        });
+      }
       setStatus("");
     },
-    [persistSavedSearches, savedSearches],
+    [locale, persistSavedSearches, savedSearches],
+  );
+
+  const openSavedSearch = useCallback(
+    (search: SavedDiscoverySearch): void => {
+      emitProductAnalytics({
+        locale,
+        routeTemplate: "/discover",
+        fields: { event: "saved_search_opened", ...retentionEventFields(search) },
+      });
+      window.location.assign(search.url);
+    },
+    [locale],
   );
 
   const copySavedSearch = useCallback(
@@ -324,12 +367,17 @@ export function DiscoveryRetentionCompanion({
       try {
         if (navigator.clipboard === undefined) throw new Error("CLIPBOARD_UNAVAILABLE");
         await navigator.clipboard.writeText(absoluteUrl(search.url));
+        emitProductAnalytics({
+          locale,
+          routeTemplate: "/discover",
+          fields: { event: "share_link_copied", ...retentionEventFields(search) },
+        });
         setStatus(copy.copied);
       } catch {
         setStatus(copy.copyFailed);
       }
     },
-    [copy.copied, copy.copyFailed],
+    [copy.copied, copy.copyFailed, locale],
   );
 
   const createCalendar = useCallback(
@@ -348,6 +396,15 @@ export function DiscoveryRetentionCompanion({
         return;
       }
       downloadCalendar(calendar);
+      emitProductAnalytics({
+        locale,
+        routeTemplate: "/discover",
+        fields: {
+          event: "calendar_reminder_downloaded",
+          ...retentionEventFields(search),
+          reminder_count: calendar.reminderCount,
+        },
+      });
       setStatus(copy.calendarDownloaded);
     },
     [
@@ -461,7 +518,7 @@ export function DiscoveryRetentionCompanion({
                       <button
                         type="button"
                         className="min-h-9 rounded-full bg-primary px-3 text-xs font-bold text-white focus-ring"
-                        onClick={() => window.location.assign(search.url)}
+                        onClick={() => openSavedSearch(search)}
                       >
                         {copy.open}
                       </button>

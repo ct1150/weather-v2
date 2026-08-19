@@ -24,6 +24,7 @@ env:
   CLOUDFLARE_ACCOUNT_ID: "b266970852cbc371061c94c5b1fe76a9"
   WEATHER_PRIMARY_PROVIDER: "open-meteo"
   TRIP_PRODUCTION_URL: "https://trip.868656.xyz"
+  PRODUCT_ANALYTICS_URL: "https://analytics.868656.xyz/api/v1/product-events"
 
 jobs:
   deploy:
@@ -78,6 +79,7 @@ jobs:
           NEXT_PUBLIC_TRIP_API_URL: ${{ env.TRIP_PRODUCTION_URL }}
           NEXT_PUBLIC_CLOUDFLARE_ANALYTICS_ENABLED: ${{ secrets.NEXT_PUBLIC_CLOUDFLARE_ANALYTICS_ENABLED }}
           NEXT_PUBLIC_CLOUDFLARE_ANALYTICS_TOKEN: ${{ secrets.NEXT_PUBLIC_CLOUDFLARE_ANALYTICS_TOKEN }}
+          NEXT_PUBLIC_PRODUCT_ANALYTICS_URL: ${{ env.PRODUCT_ANALYTICS_URL }}
         run: pnpm --filter @wnr/web build
 
       - name: Build Workers
@@ -85,13 +87,14 @@ jobs:
           pnpm --filter @wnr/weather-sync build
           pnpm --filter @wnr/weather-read build
           pnpm --filter @wnr/trip-api build
+          pnpm --filter @wnr/product-analytics build
 
       - name: Pipeline contract tests
         run: node --test tooling/deploy/pipeline-contract.test.mjs
 
       - name: Secret scan
         run: |
-          if grep -RIiE "WEATHERAPI_SECRET|CLOUDFLARE_API_TOKEN|BETTER_AUTH_SECRET|GOOGLE_CLIENT_SECRET|RESEND_API_KEY" apps/web/out apps/web/src workers/trip-api/src 2>/dev/null; then
+          if grep -RIiE "WEATHERAPI_SECRET|CLOUDFLARE_API_TOKEN|BETTER_AUTH_SECRET|GOOGLE_CLIENT_SECRET|RESEND_API_KEY" apps/web/out apps/web/src workers/trip-api/src workers/product-analytics/src 2>/dev/null; then
             echo "::error::Possible secret leaked into build output or source"
             exit 1
           fi
@@ -138,6 +141,11 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: pnpm --filter @wnr/weather-read exec wrangler deploy --env production
+
+      - name: Deploy product-analytics Worker
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: pnpm --filter @wnr/product-analytics exec wrangler deploy --env production
 
       - name: Apply Trip D1 migrations
         env:
