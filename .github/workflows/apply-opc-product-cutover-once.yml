@@ -1,5 +1,6 @@
 # One-time branch workflow. It applies the Phase 0 OPC cutover, validates the
 # focused surface, commits the result, then removes itself and the staging script.
+# This follow-up push ensures the workflow is registered before execution.
 name: Apply OPC product cutover once
 
 on:
