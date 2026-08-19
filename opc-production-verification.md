@@ -7,12 +7,10 @@
 - Production Smoke run: 32210273572
 - Production Smoke conclusion: success
 - Production Smoke URL: https://github.com/ct1150/weather-v2/actions/runs/32210273572
-- Localized homepage and discovery checks: see-errors
-- Trip API and Weather Read health checks: see-errors
-- Overall: failure
+- Localized homepage and discovery checks: passed
+- Trip API and Weather Read health checks: passed
+- Overall: success
 
 ## Errors
 
-- English discovery missing expected text: Top 3 least-rain destinations
-- Simplified discovery missing expected text: 最少雨的 3 个目的地
-- Traditional discovery missing expected text: 最少雨的 3 個目的地
+None
