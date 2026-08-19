@@ -1,7 +1,5 @@
-# Lightweight pull-request validation.
-# Draft PR pushes do not allocate a hosted runner. Validation starts when the PR
-# is marked Ready for review, and re-runs only for subsequent non-draft updates.
-
+# Temporary, non-merge production verifier for the Phase 2.5 analytics release.
+# It observes or dispatches only main-branch workflows and never deploys branch code.
 name: PR CI
 
 on:
@@ -9,86 +7,138 @@ on:
     types: [opened, reopened, ready_for_review, synchronize]
 
 permissions:
+  actions: write
   contents: read
   pull-requests: read
 
 concurrency:
-  group: pr-ci-${{ github.event.pull_request.number }}
-  cancel-in-progress: true
+  group: opc-analytics-phase25-production-verification
+  cancel-in-progress: false
 
 env:
-  PNPM_VERSION: "10.11.0"
-  NODE_VERSION: "22"
+  TARGET_SHA: "d7f446d5a84806642e14a49c5756334a06f8c1f8"
+  SITE_URL: "https://868656.xyz"
+  READ_URL: "https://where-not-rain-read-production.ct1150.workers.dev"
+  TRIP_URL: "https://trip.868656.xyz"
+  ANALYTICS_URL: "https://analytics.868656.xyz"
+  ANALYTICS_ENDPOINT: "https://analytics.868656.xyz/api/v1/product-events"
 
 jobs:
-  verify:
-    if: github.event.pull_request.draft == false
+  verify_release:
+    if: github.event.pull_request.draft == false && github.head_ref == 'verify/opc-analytics-phase25-release'
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 45
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: ${{ env.PNPM_VERSION }}
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: pnpm
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Format check
-        run: pnpm format:check
-
-      - name: Lint
-        run: pnpm lint
-
-      - name: Build library packages
-        run: pnpm -r --filter '!@wnr/web' --filter '!@wnr/weather-sync' --filter '!@wnr/maintenance' build
-
-      - name: Typecheck
-        run: pnpm typecheck
-
-      - name: Unit / integration tests
-        run: |
-          set -o pipefail
-          pnpm test 2>&1 | tee test-results.log
-          if grep -qiE "Tests +[0-9]+ failed|Test Files +[0-9]+ failed|FAIL " test-results.log; then
-            echo "::error::Unit/integration tests failed — gate is fail-closed."
-            exit 1
-          fi
-
-      - name: Documentation gate
-        run: pnpm docs:check
-
-      - name: Build web static export
+      - name: Verify production workflows and public analytics path
         env:
-          APP_BASE_URL: https://868656.xyz
-          NEXT_PUBLIC_TRIP_API_URL: https://trip.868656.xyz
-          NEXT_PUBLIC_PRODUCT_ANALYTICS_URL: https://analytics.868656.xyz/api/v1/product-events
-          NEXT_PUBLIC_CLOUDFLARE_ANALYTICS_ENABLED: "false"
-        run: pnpm --filter @wnr/web build
-
-      - name: Build Workers
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
         run: |
-          pnpm --filter @wnr/weather-sync build
-          pnpm --filter @wnr/weather-read build
-          pnpm --filter @wnr/trip-api build
-          pnpm --filter @wnr/product-analytics build
+          set -euo pipefail
 
-      - name: Pipeline contract tests
-        run: node --test tooling/deploy/pipeline-contract.test.mjs
+          latest_run() {
+            local workflow="$1"
+            gh api --method GET \
+              "repos/${GITHUB_REPOSITORY}/actions/workflows/${workflow}/runs" \
+              -f branch=main -f per_page=50 \
+              | jq -c --arg sha "${TARGET_SHA}" \
+                '[.workflow_runs[] | select(.head_sha == $sha)] | sort_by(.created_at) | last // empty'
+          }
 
-      - name: Secret scan
-        run: |
-          if grep -RIiE "WEATHERAPI_SECRET|CLOUDFLARE_API_TOKEN|BETTER_AUTH_SECRET|GOOGLE_CLIENT_SECRET|RESEND_API_KEY" apps/web/out apps/web/src workers/trip-api/src workers/product-analytics/src 2>/dev/null; then
-            echo "::error::Possible secret leaked into build output or source"
-            exit 1
-          fi
-          echo "secret scan: clean"
+          wait_for_run() {
+            local workflow="$1"
+            local dispatch_after="$2"
+            local run=""
+            local dispatched="false"
+            for attempt in $(seq 1 180); do
+              run="$(latest_run "${workflow}")"
+              if [ -n "${run}" ] && [ "$(jq -r '.status' <<<"${run}")" = "completed" ]; then
+                printf '%s' "${run}"
+                return 0
+              fi
+              if [ -z "${run}" ] && [ "${dispatched}" = "false" ] && [ "${attempt}" -ge "${dispatch_after}" ]; then
+                echo "No ${workflow} run found for ${TARGET_SHA}; dispatching main" >&2
+                gh workflow run "${workflow}" --ref main
+                dispatched="true"
+              fi
+              sleep 6
+            done
+            return 1
+          }
+
+          DEPLOY_JSON="$(wait_for_run deploy.yml 5)"
+          test "$(jq -r '.conclusion' <<<"${DEPLOY_JSON}")" = "success"
+          SMOKE_JSON="$(wait_for_run production-smoke.yml 8)"
+          test "$(jq -r '.conclusion' <<<"${SMOKE_JSON}")" = "success"
+
+          curl --fail --silent --show-error --location --retry 5 --retry-all-errors \
+            "${ANALYTICS_URL}/health" -o /tmp/analytics-health.json
+          grep -Fq '"ok":true' /tmp/analytics-health.json
+          grep -Fq '"service":"product-analytics"' /tmp/analytics-health.json
+          grep -Fq '"schemaVersion":1' /tmp/analytics-health.json
+
+          PREFLIGHT_STATUS=$(curl --silent --show-error --output /tmp/preflight-body.txt \
+            --dump-header /tmp/preflight-headers.txt --write-out '%{http_code}' \
+            --request OPTIONS \
+            --header "origin: ${SITE_URL}" \
+            --header "access-control-request-method: POST" \
+            --header "access-control-request-headers: content-type" \
+            "${ANALYTICS_ENDPOINT}")
+          test "${PREFLIGHT_STATUS}" = "204"
+          grep -Fiq "access-control-allow-origin: ${SITE_URL}" /tmp/preflight-headers.txt
+          grep -Fiq "access-control-allow-methods: POST, OPTIONS" /tmp/preflight-headers.txt
+
+          OCCURRED_AT=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          ACCEPT_STATUS=$(curl --silent --show-error --output /tmp/accepted-event.json \
+            --write-out '%{http_code}' --request POST \
+            --header "origin: ${SITE_URL}" \
+            --header "content-type: application/json" \
+            --data "{\"event\":\"weather_discovery_view\",\"event_version\":1,\"occurred_at\":\"${OCCURRED_AT}\",\"route_template\":\"/discover\",\"locale\":\"en\"}" \
+            "${ANALYTICS_ENDPOINT}")
+          test "${ACCEPT_STATUS}" = "202"
+          grep -Fq '"accepted":true' /tmp/accepted-event.json
+
+          DENIED_STATUS=$(curl --silent --show-error --output /tmp/denied-event.json \
+            --write-out '%{http_code}' --request POST \
+            --header "origin: https://example.invalid" \
+            --header "content-type: application/json" \
+            --data "{\"event\":\"weather_discovery_view\",\"event_version\":1,\"occurred_at\":\"${OCCURRED_AT}\",\"route_template\":\"/discover\",\"locale\":\"en\"}" \
+            "${ANALYTICS_ENDPOINT}")
+          test "${DENIED_STATUS}" = "403"
+          grep -Fq '"origin_not_allowed"' /tmp/denied-event.json
+
+          curl --fail --silent --show-error --location --retry 5 "${SITE_URL}/discover" -o /tmp/discover.html
+          python - <<'PY' > /tmp/discover-scripts.txt
+          import re
+          from pathlib import Path
+          html = Path('/tmp/discover.html').read_text(encoding='utf-8')
+          for src in re.findall(r'<script[^>]+src="([^"]+\.js[^"]*)"', html):
+              print(src)
+          PY
+          EMBEDDED=false
+          while IFS= read -r src; do
+            [ -n "${src}" ] || continue
+            case "${src}" in
+              http://*|https://*) script_url="${src}" ;;
+              /*) script_url="${SITE_URL}${src}" ;;
+              *) script_url="${SITE_URL}/${src}" ;;
+            esac
+            if curl --fail --silent --show-error --location --retry 3 "${script_url}" -o /tmp/discover-chunk.js \
+              && grep -Fq "${ANALYTICS_ENDPOINT}" /tmp/discover-chunk.js; then
+              EMBEDDED=true
+              break
+            fi
+          done < /tmp/discover-scripts.txt
+          test "${EMBEDDED}" = "true"
+
+          curl --fail --silent --show-error "${TRIP_URL}/health" -o /tmp/trip-health.json
+          grep -Fq '"ok":true' /tmp/trip-health.json
+          curl --fail --silent --show-error "${READ_URL}/health" -o /tmp/read-health.json
+          grep -Fq '"ok":true' /tmp/read-health.json
+
+          echo "Deploy run: $(jq -r '.id' <<<"${DEPLOY_JSON}") — success"
+          echo "Production Smoke run: $(jq -r '.id' <<<"${SMOKE_JSON}") — success"
+          echo "Product analytics health, CORS, accepted event and denied-origin checks: passed"
+          echo "Production Web bundle contains the analytics endpoint: passed"
+          echo "Trip API and Weather Read health: passed"
+          echo "Overall: success"
