@@ -1,8 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import {
-  handleProductAnalyticsRequest,
-  type ProductAnalyticsDependencies,
-} from "./index";
+import { handleProductAnalyticsRequest, type ProductAnalyticsDependencies } from "./index";
 
 const endpoint = "https://analytics.868656.xyz/api/v1/product-events";
 const allowedOrigin = "https://868656.xyz";
@@ -25,9 +22,7 @@ const event = {
 };
 
 function dependencies() {
-  const persistEvent = vi.fn<ProductAnalyticsDependencies["persistEvent"]>(
-    async () => undefined,
-  );
+  const persistEvent = vi.fn<ProductAnalyticsDependencies["persistEvent"]>(async () => undefined);
   return {
     persistEvent,
     dependencies: {
