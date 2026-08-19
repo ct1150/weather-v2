@@ -40,7 +40,10 @@ export async function persistProductEvent(
   if (values.length !== PRODUCT_EVENT_COLUMNS.length) {
     throw new Error("PRODUCT_EVENT_SCHEMA_MISMATCH");
   }
-  await db.prepare(INSERT_PRODUCT_EVENT_SQL).bind(...values).run();
+  await db
+    .prepare(INSERT_PRODUCT_EVENT_SQL)
+    .bind(...values)
+    .run();
 }
 
 function corsHeaders(origin: string | null, allowedOrigin: string): Headers {
