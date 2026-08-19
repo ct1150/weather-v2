@@ -5,7 +5,8 @@ Automated least-rain destination decision tool for a one-person company. Users c
 ## Current product direction
 
 Phase 2.5 adds privacy-safe aggregate funnel measurement through a dedicated Cloudflare Worker and
-Workers Analytics Engine. Major product surface stays frozen until the validation sample gate is met.
+a bounded D1 event table with 90-day retention. Major product surface stays frozen until the
+validation sample gate is met.
 
 ```text
 choose origin, transport and maximum one-way planning time
