@@ -1,8 +1,4 @@
-import {
-  projectAnalyticsEvent,
-  validateAnalyticsEvent,
-  type AnalyticsEvent,
-} from "@wnr/analytics";
+import { projectAnalyticsEvent, validateAnalyticsEvent, type AnalyticsEvent } from "@wnr/analytics";
 
 const MAX_BODY_BYTES = 8192;
 const MAX_EVENT_AGE_MS = 24 * 60 * 60 * 1000;
@@ -186,12 +182,7 @@ export async function handleProductAnalyticsRequest(
   try {
     await dependencies.persistEvent(validated.value, receivedAt.toISOString());
   } catch {
-    return json(
-      { ok: false, error: "storage_unavailable" },
-      503,
-      origin,
-      dependencies.webOrigin,
-    );
+    return json({ ok: false, error: "storage_unavailable" }, 503, origin, dependencies.webOrigin);
   }
   return json({ ok: true, accepted: true }, 202, origin, dependencies.webOrigin);
 }
