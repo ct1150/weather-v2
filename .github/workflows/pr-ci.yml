@@ -135,15 +135,15 @@ jobs:
             fetch_and_match "English homepage" "${SITE_URL}/" /tmp/opc-home-en.html \
               "Where is it least likely to rain?" "Find 3 dry-weather destinations"
             fetch_and_match "English discovery" "${SITE_URL}/discover" /tmp/opc-discover-en.html \
-              "Least-rain destination finder" "Top 3 least-rain destinations"
+              "Least-rain destination finder" "Find 3 dry-weather destinations"
             fetch_and_match "Simplified homepage" "${SITE_URL}/zh-cn" /tmp/opc-home-cn.html \
               "日期定了，去哪里更不容易下雨？" "找 3 个少雨目的地"
             fetch_and_match "Simplified discovery" "${SITE_URL}/zh-cn/discover" /tmp/opc-discover-cn.html \
-              "少雨目的地工具" "最少雨的 3 个目的地"
+              "少雨目的地工具" "找 3 个少雨目的地"
             fetch_and_match "Traditional homepage" "${SITE_URL}/zh-hant" /tmp/opc-home-hant.html \
               "日期定了，去哪裡更不容易下雨？" "找 3 個少雨目的地"
             fetch_and_match "Traditional discovery" "${SITE_URL}/zh-hant/discover" /tmp/opc-discover-hant.html \
-              "少雨目的地工具" "最少雨的 3 個目的地"
+              "少雨目的地工具" "找 3 個少雨目的地"
             fetch_and_match "Advanced trips" "${SITE_URL}/trips" /tmp/opc-trips-en.html \
               "Advanced itinerary tools" "Existing workspaces remain available."
             fetch_and_match "Trip API health" "${TRIP_URL}/health" /tmp/opc-trip-health.json \
