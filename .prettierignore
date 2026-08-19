@@ -11,6 +11,9 @@ node_modules/
 **/tsconfig.tsbuildinfo
 **/.wrangler/
 
+# Generated Cloudflare binding types
+**/worker-configuration.d.ts
+
 # OS / editor
 *.log
 
