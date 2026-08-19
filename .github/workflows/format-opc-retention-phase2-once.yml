@@ -1,0 +1,50 @@
+name: Format OPC retention Phase 2 once
+
+on:
+  push:
+    branches: [agent/opc-retention-phase2]
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    if: contains(github.event.head_commit.message, 'chore: format phase2 once')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent/opc-retention-phase2
+          fetch-depth: 0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.11.0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Format Phase 2 files
+        run: |
+          pnpm exec prettier --write \
+            apps/web/src/components/DiscoveryRetentionCompanion.tsx \
+            apps/web/src/discovery/saved-search.ts
+
+      - name: Commit formatted implementation and remove this workflow
+        run: |
+          git rm -f .github/workflows/format-opc-retention-phase2-once.yml
+          git rm -f tooling/one-off/format-opc-retention-phase2-trigger.txt
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "style: format OPC retention Phase 2"
+          git push origin HEAD:agent/opc-retention-phase2
