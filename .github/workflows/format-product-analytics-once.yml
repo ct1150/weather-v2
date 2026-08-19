@@ -1,0 +1,53 @@
+name: Format product analytics once
+
+on:
+  push:
+    branches: [fix/product-analytics-d1-storage]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: format-product-analytics-once
+  cancel-in-progress: false
+
+jobs:
+  format:
+    if: contains(github.event.head_commit.message, 'chore: format product analytics once')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: fix/product-analytics-d1-storage
+          fetch-depth: 0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.11.0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Apply repository Prettier
+        run: pnpm exec prettier --write workers/product-analytics/src/index.ts
+
+      - name: Commit formatted source
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add workers/product-analytics/src/index.ts
+          if git diff --cached --quiet; then
+            echo "No formatting changes"
+            exit 0
+          fi
+          git commit -m "style: apply Prettier to product analytics Worker"
+          git push origin HEAD:fix/product-analytics-d1-storage
