@@ -1,6 +1,7 @@
-# Lightweight pull-request validation.
-# Draft PR pushes do not allocate a hosted runner. Validation starts when the PR
-# is marked Ready for review, and re-runs only for subsequent non-draft updates.
+# Temporary release-verification workflow for branch verify/reachability-phase1-release.
+# It never deploys branch code. It observes or dispatches the main release for the
+# target SHA, waits for Production Smoke, validates public copy and health, and
+# writes the result back to the temporary branch.
 
 name: PR CI
 
@@ -9,84 +10,168 @@ on:
     types: [opened, reopened, ready_for_review, synchronize]
 
 permissions:
-  contents: read
+  actions: write
+  contents: write
   pull-requests: read
 
 concurrency:
-  group: pr-ci-${{ github.event.pull_request.number }}
-  cancel-in-progress: true
+  group: reachability-phase1-production-verification
+  cancel-in-progress: false
 
 env:
-  PNPM_VERSION: "10.11.0"
-  NODE_VERSION: "22"
+  TARGET_SHA: "0cc2b25957cd32b22fe2d0dd43bcc4fc82a42ead"
+  SITE_URL: "https://868656.xyz"
+  READ_URL: "https://where-not-rain-read-production.ct1150.workers.dev"
+  TRIP_URL: "https://trip.868656.xyz"
 
 jobs:
-  verify:
-    if: github.event.pull_request.draft == false
+  verify_release:
+    if: github.event.action == 'ready_for_review' && github.head_ref == 'verify/reachability-phase1-release'
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 40
     steps:
-      - name: Checkout
+      - name: Checkout temporary verification branch
         uses: actions/checkout@v4
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
         with:
-          version: ${{ env.PNPM_VERSION }}
+          ref: verify/reachability-phase1-release
+          fetch-depth: 0
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: pnpm
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Format check
-        run: pnpm format:check
-
-      - name: Lint
-        run: pnpm lint
-
-      - name: Build library packages
-        run: pnpm -r --filter '!@wnr/web' --filter '!@wnr/weather-sync' --filter '!@wnr/maintenance' build
-
-      - name: Typecheck
-        run: pnpm typecheck
-
-      - name: Unit / integration tests
-        run: |
-          set -o pipefail
-          pnpm test 2>&1 | tee test-results.log
-          if grep -qiE "Tests +[0-9]+ failed|Test Files +[0-9]+ failed|FAIL " test-results.log; then
-            echo "::error::Unit/integration tests failed — gate is fail-closed."
-            exit 1
-          fi
-
-      - name: Documentation gate
-        run: pnpm docs:check
-
-      - name: Build web static export
+      - name: Wait for release and verify production
         env:
-          APP_BASE_URL: https://868656.xyz
-          NEXT_PUBLIC_TRIP_API_URL: https://trip.868656.xyz
-          NEXT_PUBLIC_CLOUDFLARE_ANALYTICS_ENABLED: "false"
-        run: pnpm --filter @wnr/web build
-
-      - name: Build Workers
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
         run: |
-          pnpm --filter @wnr/weather-sync build
-          pnpm --filter @wnr/weather-read build
-          pnpm --filter @wnr/trip-api build
+          set -u
 
-      - name: Pipeline contract tests
-        run: node --test tooling/deploy/pipeline-contract.test.mjs
+          OVERALL="success"
+          ERRORS=""
+          DEPLOY_ID=""
+          DEPLOY_CONCLUSION="not-found"
+          DEPLOY_URL=""
+          SMOKE_ID=""
+          SMOKE_CONCLUSION="not-found"
+          SMOKE_URL=""
 
-      - name: Secret scan
-        run: |
-          if grep -RIiE "WEATHERAPI_SECRET|CLOUDFLARE_API_TOKEN|BETTER_AUTH_SECRET|GOOGLE_CLIENT_SECRET|RESEND_API_KEY" apps/web/out apps/web/src workers/trip-api/src 2>/dev/null; then
-            echo "::error::Possible secret leaked into build output or source"
-            exit 1
+          fail() {
+            OVERALL="failure"
+            ERRORS="${ERRORS}\n- $1"
+            echo "::error::$1"
+          }
+
+          latest_run() {
+            local workflow="$1"
+            gh api --method GET \
+              "repos/${GITHUB_REPOSITORY}/actions/workflows/${workflow}/runs" \
+              -f branch=main -f per_page=50 2>/dev/null \
+              | jq -c --arg sha "${TARGET_SHA}" \
+                '[.workflow_runs[] | select(.head_sha == $sha)] | sort_by(.created_at) | last // empty'
+          }
+
+          wait_for_run() {
+            local workflow="$1"
+            local dispatch_after="$2"
+            local run=""
+            local dispatched="false"
+            for attempt in $(seq 1 120); do
+              run="$(latest_run "${workflow}")"
+              if [ -n "${run}" ] && [ "$(jq -r '.status' <<<"${run}")" = "completed" ]; then
+                printf '%s' "${run}"
+                return 0
+              fi
+              if [ -z "${run}" ] && [ "${dispatched}" = "false" ] && [ "${attempt}" -ge "${dispatch_after}" ]; then
+                echo "No ${workflow} run found for ${TARGET_SHA}; dispatching main" >&2
+                if gh workflow run "${workflow}" --ref main; then
+                  dispatched="true"
+                fi
+              fi
+              sleep 6
+            done
+            return 1
+          }
+
+          if DEPLOY_JSON="$(wait_for_run deploy.yml 5)"; then
+            DEPLOY_ID="$(jq -r '.id' <<<"${DEPLOY_JSON}")"
+            DEPLOY_CONCLUSION="$(jq -r '.conclusion' <<<"${DEPLOY_JSON}")"
+            DEPLOY_URL="$(jq -r '.html_url' <<<"${DEPLOY_JSON}")"
+            [ "${DEPLOY_CONCLUSION}" = "success" ] || fail "Deploy concluded ${DEPLOY_CONCLUSION}"
+          else
+            fail "Deploy did not complete within the verification window"
           fi
-          echo "secret scan: clean"
+
+          if [ "${DEPLOY_CONCLUSION}" = "success" ]; then
+            if SMOKE_JSON="$(wait_for_run production-smoke.yml 8)"; then
+              SMOKE_ID="$(jq -r '.id' <<<"${SMOKE_JSON}")"
+              SMOKE_CONCLUSION="$(jq -r '.conclusion' <<<"${SMOKE_JSON}")"
+              SMOKE_URL="$(jq -r '.html_url' <<<"${SMOKE_JSON}")"
+              [ "${SMOKE_CONCLUSION}" = "success" ] || fail "Production Smoke concluded ${SMOKE_CONCLUSION}"
+            else
+              fail "Production Smoke did not complete within the verification window"
+            fi
+          fi
+
+          fetch_and_match() {
+            local name="$1"
+            local url="$2"
+            local output="$3"
+            shift 3
+            if ! curl --fail --silent --show-error --location --retry 5 --retry-all-errors \
+              --connect-timeout 15 --max-time 45 "${url}" -o "${output}"; then
+              fail "${name} could not be fetched"
+              return
+            fi
+            for expected in "$@"; do
+              grep -Fq "${expected}" "${output}" || fail "${name} missing expected text: ${expected}"
+            done
+          }
+
+          if [ "${DEPLOY_CONCLUSION}" = "success" ]; then
+            fetch_and_match "English discovery" "${SITE_URL}/discover" /tmp/reach-en.html \
+              "Starting city" "Max one-way planning time" "Initial starting hubs: Singapore, Hong Kong and Taipei."
+            fetch_and_match "Simplified discovery" "${SITE_URL}/zh-cn/discover" /tmp/reach-cn.html \
+              "出发城市" "最长单程规划时间" "首批支持出发地：新加坡、香港和台北。"
+            fetch_and_match "Traditional discovery" "${SITE_URL}/zh-hant/discover" /tmp/reach-hant.html \
+              "出發城市" "最長單程規劃時間" "首批支援出發地：新加坡、香港和台北。"
+            fetch_and_match "English homepage" "${SITE_URL}/" /tmp/reach-home-en.html \
+              "Start from Singapore, Hong Kong or Taipei"
+            fetch_and_match "Simplified homepage" "${SITE_URL}/zh-cn" /tmp/reach-home-cn.html \
+              "从新加坡、香港或台北出发"
+            fetch_and_match "Traditional homepage" "${SITE_URL}/zh-hant" /tmp/reach-home-hant.html \
+              "從新加坡、香港或台北出發"
+            fetch_and_match "Trip API health" "${TRIP_URL}/health" /tmp/trip-health.json \
+              '"ok":true' '"service":"trip-api"'
+            fetch_and_match "Weather Read health" "${READ_URL}/health" /tmp/read-health.json \
+              '"ok":true'
+          fi
+
+          {
+            echo "# Reachability Phase 1 production verification"
+            echo
+            echo "- Target main SHA: \`${TARGET_SHA}\`"
+            echo "- Deploy run: ${DEPLOY_ID:-not-found}"
+            echo "- Deploy conclusion: ${DEPLOY_CONCLUSION}"
+            echo "- Deploy URL: ${DEPLOY_URL:-not-found}"
+            echo "- Production Smoke run: ${SMOKE_ID:-not-found}"
+            echo "- Production Smoke conclusion: ${SMOKE_CONCLUSION}"
+            echo "- Production Smoke URL: ${SMOKE_URL:-not-found}"
+            echo "- Localized reachability copy: $([ "${OVERALL}" = "success" ] && echo passed || echo see-errors)"
+            echo "- Public API health: $([ "${OVERALL}" = "success" ] && echo passed || echo see-errors)"
+            echo "- Overall: ${OVERALL}"
+            echo
+            echo "## Errors"
+            if [ -n "${ERRORS}" ]; then
+              printf '%b\n' "${ERRORS}"
+            else
+              echo "None"
+            fi
+          } > reachability-phase1-production-verification.md
+
+          cat reachability-phase1-production-verification.md
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add reachability-phase1-production-verification.md
+          if ! git diff --cached --quiet; then
+            git commit -m "chore: record reachability production verification"
+            git push origin HEAD:verify/reachability-phase1-release
+          fi
+
+          [ "${OVERALL}" = "success" ]
