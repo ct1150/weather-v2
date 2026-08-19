@@ -48,7 +48,9 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Apply reachability implementation
-        run: python tooling/one-off/reachability_phase1.py
+        run: |
+          python tooling/one-off/reachability_phase1.py
+          python tooling/one-off/reachability_phase1_fix.py
 
       - name: Format changed files
         run: |
@@ -72,6 +74,9 @@ jobs:
             docs/superpowers/plans/2026-08-19-opc-product-cutover-phase0.md \
             docs/superpowers/plans/2026-08-19-opc-reachability-phase1.md
 
+      - name: Build focused dependencies
+        run: pnpm -r --filter '!@wnr/web' --filter '!@wnr/weather-sync' --filter '!@wnr/maintenance' build
+
       - name: Focused typecheck and regression tests
         run: |
           pnpm --filter @wnr/web typecheck
@@ -86,6 +91,7 @@ jobs:
       - name: Commit non-workflow implementation
         run: |
           git rm -f tooling/one-off/reachability_phase1.py
+          git rm -f tooling/one-off/reachability_phase1_fix.py
           git rm -f tooling/one-off/reachability-phase1-trigger.txt
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
