@@ -56,6 +56,7 @@ jobs:
           NEXT_PUBLIC_TRIP_API_URL: https://trip.868656.xyz
           NEXT_PUBLIC_CLOUDFLARE_ANALYTICS_ENABLED: ${{ secrets.NEXT_PUBLIC_CLOUDFLARE_ANALYTICS_ENABLED }}
           NEXT_PUBLIC_CLOUDFLARE_ANALYTICS_TOKEN: ${{ secrets.NEXT_PUBLIC_CLOUDFLARE_ANALYTICS_TOKEN }}
+          NEXT_PUBLIC_PRODUCT_ANALYTICS_URL: https://analytics.868656.xyz/api/v1/product-events
         run: pnpm --filter @wnr/web build
 
       - name: Verify weather decision artifact
