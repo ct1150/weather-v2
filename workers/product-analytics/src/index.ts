@@ -1,17 +1,50 @@
-import { projectAnalyticsEvent, validateAnalyticsEvent } from "@wnr/analytics";
+import {
+  projectAnalyticsEvent,
+  validateAnalyticsEvent,
+  type AnalyticsEvent,
+} from "@wnr/analytics";
 
 const MAX_BODY_BYTES = 8192;
 const MAX_EVENT_AGE_MS = 24 * 60 * 60 * 1000;
 const MAX_FUTURE_SKEW_MS = 5 * 60 * 1000;
 
+const PRODUCT_EVENT_COLUMNS = [
+  "timestamp",
+  "occurred_at",
+  "index1",
+  ...Array.from({ length: 15 }, (_, index) => `blob${index + 1}`),
+  ...Array.from({ length: 12 }, (_, index) => `double${index + 1}`),
+  "_sample_interval",
+];
+
+const INSERT_PRODUCT_EVENT_SQL =
+  `INSERT INTO wnr_product_events_v1 (${PRODUCT_EVENT_COLUMNS.join(", ")}) ` +
+  `VALUES (${PRODUCT_EVENT_COLUMNS.map(() => "?").join(", ")})`;
+
 export interface ProductAnalyticsDependencies {
   readonly webOrigin: string;
   readonly now: () => Date;
-  readonly writeDataPoint: (point: {
-    indexes: string[];
-    blobs: string[];
-    doubles: number[];
-  }) => void;
+  readonly persistEvent: (event: AnalyticsEvent, receivedAt: string) => Promise<void>;
+}
+
+export async function persistProductEvent(
+  db: D1Database,
+  event: AnalyticsEvent,
+  receivedAt: string,
+): Promise<void> {
+  const projection = projectAnalyticsEvent(event);
+  const values: Array<string | number> = [
+    receivedAt,
+    event.occurred_at,
+    projection.indexes[0],
+    ...projection.blobs,
+    ...projection.doubles,
+    1,
+  ];
+  if (values.length !== PRODUCT_EVENT_COLUMNS.length) {
+    throw new Error("PRODUCT_EVENT_SCHEMA_MISMATCH");
+  }
+  await db.prepare(INSERT_PRODUCT_EVENT_SQL).bind(...values).run();
 }
 
 function corsHeaders(origin: string | null, allowedOrigin: string): Headers {
@@ -86,7 +119,13 @@ export async function handleProductAnalyticsRequest(
 
   if (request.method === "GET" && url.pathname === "/health") {
     return json(
-      { ok: true, service: "product-analytics", schemaVersion: 1, binding: true },
+      {
+        ok: true,
+        service: "product-analytics",
+        schemaVersion: 1,
+        storage: "d1",
+        binding: true,
+      },
       200,
       origin,
       dependencies.webOrigin,
@@ -133,7 +172,9 @@ export async function handleProductAnalyticsRequest(
   if (!validated.ok) {
     return json({ ok: false, error: validated.error.code }, 400, origin, dependencies.webOrigin);
   }
-  if (!eventTimeIsAcceptable(validated.value.occurred_at, dependencies.now())) {
+
+  const receivedAt = dependencies.now();
+  if (!eventTimeIsAcceptable(validated.value.occurred_at, receivedAt)) {
     return json(
       { ok: false, error: "event_time_out_of_range" },
       400,
@@ -142,7 +183,16 @@ export async function handleProductAnalyticsRequest(
     );
   }
 
-  dependencies.writeDataPoint(projectAnalyticsEvent(validated.value));
+  try {
+    await dependencies.persistEvent(validated.value, receivedAt.toISOString());
+  } catch {
+    return json(
+      { ok: false, error: "storage_unavailable" },
+      503,
+      origin,
+      dependencies.webOrigin,
+    );
+  }
   return json({ ok: true, accepted: true }, 202, origin, dependencies.webOrigin);
 }
 
@@ -151,7 +201,7 @@ export default {
     return handleProductAnalyticsRequest(request, {
       webOrigin: env.WEB_ORIGIN,
       now: () => new Date(),
-      writeDataPoint: (point) => env.PRODUCT_EVENTS.writeDataPoint(point),
+      persistEvent: (event, receivedAt) => persistProductEvent(env.DB, event, receivedAt),
     });
   },
 } satisfies ExportedHandler<Env>;
