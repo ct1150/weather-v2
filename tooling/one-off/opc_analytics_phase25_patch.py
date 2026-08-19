@@ -26,5 +26,10 @@ replace_once(
 )
 
 """
-path.write_text(text[:start] + replacement + text[end:], encoding="utf-8")
-print("Phase 2.5 codemod patched for current retention contract")
+patched = text[:start] + replacement + text[end:]
+patched = patched.replace(
+    '    "traces": { "enabled": true, "head_sampling_rate": 0.01 },\n',
+    "",
+)
+path.write_text(patched, encoding="utf-8")
+print("Phase 2.5 codemod patched for current contracts and Wrangler")
