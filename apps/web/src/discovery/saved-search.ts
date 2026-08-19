@@ -101,13 +101,14 @@ function escapeIcsText(value: string): string {
 function utcStamp(value: string): string {
   const date = new Date(value);
   if (!Number.isFinite(date.getTime())) return "19700101T000000Z";
-  return date.toISOString().replaceAll("-", "").replaceAll(":", "").replace(/\.\d{3}Z$/u, "Z");
+  return date
+    .toISOString()
+    .replaceAll("-", "")
+    .replaceAll(":", "")
+    .replace(/\.\d{3}Z$/u, "Z");
 }
 
-export function buildSavedDiscoverySearch(
-  url: URL,
-  savedAt: string,
-): SavedDiscoverySearch | null {
+export function buildSavedDiscoverySearch(url: URL, savedAt: string): SavedDiscoverySearch | null {
   const from = url.searchParams.get("from");
   const to = url.searchParams.get("to");
   if (!isIsoDate(from) || !isIsoDate(to) || to < from || !validSavedAt(savedAt)) return null;
@@ -187,11 +188,9 @@ export function buildRecheckReminderCalendar(input: {
   }
 
   const candidates = RECHECK_OFFSETS.map((offset) => shiftDate(search.from, -offset)).filter(
-    (date, index, values) =>
-      date >= today && date < search.from && values.indexOf(date) === index,
+    (date, index, values) => date >= today && date < search.from && values.indexOf(date) === index,
   );
-  const reminderDates =
-    candidates.length > 0 ? candidates : today <= search.from ? [today] : [];
+  const reminderDates = candidates.length > 0 ? candidates : today <= search.from ? [today] : [];
   const dtstamp = utcStamp(generatedAt);
   const events = reminderDates.map((date) => {
     const end = shiftDate(date, 1);

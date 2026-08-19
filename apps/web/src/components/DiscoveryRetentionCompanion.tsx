@@ -1,13 +1,6 @@
 "use client";
 
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type ReactElement,
-} from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactElement } from "react";
 import {
   DISCOVERY_SHORTLIST_STORAGE_KEY,
   MAX_DISCOVERY_SHORTLIST,
@@ -148,10 +141,7 @@ function absoluteUrl(relative: string): string {
   return new URL(relative, window.location.origin).href;
 }
 
-function downloadCalendar(calendar: {
-  readonly content: string;
-  readonly filename: string;
-}): void {
+function downloadCalendar(calendar: { readonly content: string; readonly filename: string }): void {
   const blob = new Blob([calendar.content], { type: "text/calendar;charset=utf-8" });
   const href = URL.createObjectURL(blob);
   const anchor = document.createElement("a");
