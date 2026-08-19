@@ -5,7 +5,7 @@ SELECT
   blob12 AS provider_id,
   SUM(_sample_interval) AS events
 FROM wnr_product_events_v1
-WHERE timestamp >= NOW() - INTERVAL '30' DAY
+WHERE julianday(timestamp) >= julianday('now', '-30 days')
   AND index1 IN ('affiliate_impression', 'affiliate_click')
-GROUP BY commercial_event, category, placement, provider_id
+GROUP BY index1, blob10, blob11, blob12
 ORDER BY events DESC;
