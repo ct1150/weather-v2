@@ -1,5 +1,5 @@
 export const DISCOVERY_SHORTLIST_STORAGE_KEY = "wnr:discovery-shortlist:v1";
-export const MAX_DISCOVERY_SHORTLIST = 4;
+export const MAX_DISCOVERY_SHORTLIST = 3;
 
 export function normalizeDiscoveryShortlist(
   value: unknown,
