@@ -3,7 +3,7 @@ SELECT
   blob3 AS origin_id,
   SUM(_sample_interval) AS events
 FROM wnr_product_events_v1
-WHERE timestamp >= NOW() - INTERVAL '30' DAY
+WHERE julianday(timestamp) >= julianday('now', '-30 days')
   AND index1 IN (
     'search_saved',
     'saved_search_opened',
@@ -11,5 +11,5 @@ WHERE timestamp >= NOW() - INTERVAL '30' DAY
     'share_link_copied',
     'calendar_reminder_downloaded'
   )
-GROUP BY retention_event, origin_id
+GROUP BY index1, blob3
 ORDER BY events DESC;
