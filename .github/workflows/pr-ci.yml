@@ -1,5 +1,6 @@
-# Temporary PR #61 implementation gate. The ready-for-review event applies the
-# Phase 2.5 codemod once; the resulting synchronize event uses restored standard CI.
+# Temporary PR #63 completion gate. Any non-draft PR #63 update applies the
+# corrected Phase 2.5 implementation once. The resulting synchronize event uses
+# the restored standard low-frequency CI committed by this job.
 name: PR CI
 
 on:
@@ -20,14 +21,14 @@ env:
 
 jobs:
   apply_phase25:
-    if: github.event.action == 'ready_for_review' && github.event.pull_request.number == 61
+    if: github.event.pull_request.draft == false && github.event.pull_request.number == 63
     runs-on: ubuntu-latest
     timeout-minutes: 35
     steps:
       - name: Checkout PR branch
         uses: actions/checkout@v4
         with:
-          ref: agent/opc-analytics-phase25
+          ref: agent/opc-analytics-phase25-fix
           fetch-depth: 0
 
       - name: Setup pnpm
@@ -41,7 +42,7 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
 
-      - name: Apply Phase 2.5 implementation
+      - name: Apply corrected Phase 2.5 implementation
         run: |
           python tooling/one-off/opc_analytics_phase25_patch.py
           python tooling/one-off/opc_analytics_phase25.py
@@ -104,23 +105,22 @@ jobs:
             src/security/controls.test.ts
           node --test tooling/deploy/pipeline-contract.test.mjs
 
-      - name: Restore standard CI and commit implementation
+      - name: Restore standard CI and commit product implementation
         run: |
-          git show origin/main:.github/workflows/pr-ci.yml > .github/workflows/pr-ci.yml
+          cp tooling/one-off/pr-ci-standard-phase25.yml .github/workflows/pr-ci.yml
           git rm -f .github/workflows/apply-opc-analytics-phase25-once.yml
           git rm -f tooling/one-off/opc_analytics_phase25.py
           git rm -f tooling/one-off/opc_analytics_phase25_patch.py
           git rm -f tooling/one-off/opc-analytics-phase25-trigger.txt
+          git rm -f tooling/one-off/pr-ci-standard-phase25.yml
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
-          git commit -m "feat: add privacy-safe product funnel analytics"
-          git push origin HEAD:agent/opc-analytics-phase25
+          git commit -m "feat: complete privacy-safe product funnel analytics"
+          git push origin HEAD:agent/opc-analytics-phase25-fix
 
   verify:
-    if: >-
-      github.event.pull_request.draft == false &&
-      !(github.event.action == 'ready_for_review' && github.event.pull_request.number == 61)
+    if: github.event.pull_request.draft == false && github.event.pull_request.number != 63
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
