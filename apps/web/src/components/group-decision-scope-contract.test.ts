@@ -15,6 +15,13 @@ const executionPlan = readFileSync(
   ),
   "utf8",
 );
+const reachabilityPlan = readFileSync(
+  new URL(
+    "../../../../docs/superpowers/plans/2026-08-19-opc-reachability-phase1.md",
+    import.meta.url,
+  ),
+  "utf8",
+);
 
 describe("OPC least-rain product scope", () => {
   it("defines one north-star job and explicit non-goals", () => {
@@ -32,11 +39,16 @@ describe("OPC least-rain product scope", () => {
     expect(founderPrd).toContain("maximum daytime temperature");
   });
 
-  it("phases reachability, conversion and voting after the product cutover", () => {
+  it("implements reachability before conversion and voting", () => {
     expect(executionPlan).toContain("Phase 0 — OPC product cutover");
     expect(executionPlan).toContain("Phase 1 — origin and reachability");
+    expect(executionPlan).toContain("Status: implemented");
     expect(executionPlan).toContain("Phase 2 — selection, monetization and retention");
     expect(executionPlan).toContain("Phase 3 — evidence-gated lightweight voting");
+    expect(reachabilityPlan).toContain("Singapore");
+    expect(reachabilityPlan).toContain("Hong Kong");
+    expect(reachabilityPlan).toContain("Taipei");
+    expect(reachabilityPlan).toContain("Travel time never changes the dry score");
   });
 
   it("preserves provider and low-frequency CI boundaries", () => {

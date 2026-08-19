@@ -95,8 +95,8 @@ export function TravelRadarPage({
               Where is it least likely to rain?
             </h1>
             <p className="mt-5 max-w-2xl text-base leading-7 text-muted sm:text-lg">
-              Choose your dates, apply optional rain, temperature and wind limits, and compare only
-              the three destinations with the strongest dry-weather signal.
+              Start from Singapore, Hong Kong or Taipei, set a one-way travel-time limit, then
+              compare only the three reachable destinations with the strongest dry-weather signal.
             </p>
             <div className="mt-6 flex flex-wrap items-center gap-3">
               <a
@@ -154,7 +154,11 @@ export function TravelRadarPage({
         aria-label="Least-rain destination decision flow"
       >
         {[
-          ["01", "Choose dates", "Set the exact travel window within the forecast horizon."],
+          [
+            "01",
+            "Set origin and dates",
+            "Choose a supported starting hub and exact travel window.",
+          ],
           [
             "02",
             "Add optional limits",

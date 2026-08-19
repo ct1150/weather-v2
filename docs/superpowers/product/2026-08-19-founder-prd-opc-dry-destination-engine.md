@@ -36,15 +36,30 @@ A traveller planning within the next 14 days who already knows:
 ## 4. Core job
 
 ```text
-choose travel dates
-→ optionally apply explicit weather limits
-→ receive Top 3 least-rain destinations
+choose a supported starting hub, transport mode and maximum one-way planning time
+→ choose travel dates and optionally apply explicit weather limits
+→ receive Top 3 reachable least-rain destinations
 → compare daily weather
 → choose one destination
 → open booking links or enable reminders
 ```
 
-## 5. Ranking contract
+## 5. Reachability contract
+
+Reachability is an eligibility layer, not part of the weather score.
+
+The first release uses a bounded static matrix for Singapore, Hong Kong and Taipei. It supports only transport modes represented by maintained edges and a coarse maximum one-way planning time. Estimates are intentionally conservative, include a basic airport or station allowance and exclude fares, inventory and delays.
+
+```text
+origin + transport + maximum time
+→ eligible destination set
+→ weather hard limits
+→ least-rain ranking
+```
+
+Transport time may break a tie only after dry score and forecast confidence. It must never outrank a destination with a better dry score.
+
+## 6. Ranking contract
 
 **Rain is the only ranking target.**
 
@@ -65,7 +80,7 @@ The dry score must not silently include:
 - commercial value;
 - live prices.
 
-## 6. Optional hard limits
+## 7. Optional hard limits
 
 Users may explicitly exclude destinations using:
 
@@ -76,7 +91,7 @@ Users may explicitly exclude destinations using:
 
 A destination that violates any selected limit is excluded rather than receiving an opaque score penalty.
 
-## 7. Output contract
+## 8. Output contract
 
 The primary result contains no more than three destinations. Each destination shows:
 
@@ -86,15 +101,16 @@ The primary result contains no more than three destinations. Each destination sh
 - temperature range;
 - wind and UV cautions;
 - forecast freshness;
+- selected transport mode and static one-way planning estimate;
 - selection and comparison actions.
 
-## 8. Selection and commerce
+## 9. Selection and commerce
 
 Ranking and affiliate value are strictly separated.
 
 Commercial actions may appear only after the user selects a destination. The first conversion event is `destination_selected`, not trip creation or account registration.
 
-## 9. Advanced tools
+## 10. Advanced tools
 
 Existing Trips, collaboration, route optimization, execution mode and adaptive replanning remain reachable for existing users but are:
 
@@ -103,7 +119,7 @@ Existing Trips, collaboration, route optimization, execution mode and adaptive r
 - marked `noindex` at the Trips landing page;
 - frozen from new product expansion until the core decision funnel is validated.
 
-## 10. Explicit non-goals
+## 11. Explicit non-goals
 
 - general AI travel assistant;
 - full collaborative itinerary platform;
@@ -114,7 +130,7 @@ Existing Trips, collaboration, route optimization, execution mode and adaptive r
 - community, reviews or travel feed;
 - global coverage before supported regional demand is validated.
 
-## 11. North-star metric
+## 12. North-star metric
 
 **Weekly valid destination selections**:
 

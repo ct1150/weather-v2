@@ -52,9 +52,14 @@ const currentCopy = [
 ] as const;
 
 const discoveryCopy = [
-  ["Least-rain destination finder", "Where is it least likely to rain on your dates?"],
-  ["少雨目的地工具", "这几天去哪里更不容易下雨？"],
-  ["少雨目的地工具", "這幾天去哪裡更不容易下雨？"],
+  [
+    "Least-rain destination finder",
+    "Where is it least likely to rain on your dates?",
+    "Starting city",
+    "Max one-way planning time",
+  ],
+  ["少雨目的地工具", "这几天去哪里更不容易下雨？", "出发城市", "最长单程规划时间"],
+  ["少雨目的地工具", "這幾天去哪裡更不容易下雨？", "出發城市", "最長單程規劃時間"],
 ] as const;
 
 describe("production smoke copy contract", () => {

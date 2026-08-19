@@ -6,10 +6,10 @@ import { WeatherDiscoveryPlannerV2 } from "../../components/WeatherDiscoveryPlan
 import { buildAlternates, localeUrl } from "../seo";
 
 const description =
-  "Choose travel dates, apply optional rain, temperature and wind limits, then compare the three destinations with the lowest rain risk.";
+  "Choose a supported starting hub, travel dates, transport mode and maximum one-way planning time, then compare the three reachable destinations with the lowest rain risk.";
 
 export const metadata: Metadata = {
-  title: "Find the least-rain travel destination",
+  title: "Find reachable least-rain destinations",
   description,
   alternates: buildAlternates("/discover", "en", ["en", "zh-cn", "zh-hant"]),
   robots: { index: true, follow: true },

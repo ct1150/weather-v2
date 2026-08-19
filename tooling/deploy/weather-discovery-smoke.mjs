@@ -54,12 +54,18 @@ try {
     "Where is it least likely to rain on your dates?",
     "English discovery route",
   );
+  requireText(english, "Starting city", "English discovery route");
+  requireText(english, "Max one-way planning time", "English discovery route");
   const simplified = await fetchText(`${siteUrl}/zh-cn/discover`);
   requireText(simplified, "少雨目的地工具", "Simplified discovery route");
   requireText(simplified, "这几天去哪里更不容易下雨？", "Simplified discovery route");
+  requireText(simplified, "出发城市", "Simplified discovery route");
+  requireText(simplified, "最长单程规划时间", "Simplified discovery route");
   const traditional = await fetchText(`${siteUrl}/zh-hant/discover`);
   requireText(traditional, "少雨目的地工具", "Traditional discovery route");
   requireText(traditional, "這幾天去哪裡更不容易下雨？", "Traditional discovery route");
+  requireText(traditional, "出發城市", "Traditional discovery route");
+  requireText(traditional, "最長單程規劃時間", "Traditional discovery route");
 
   const citiesPayload = await fetchJson(`${readUrl}/api/v1/trip-cities?locale=en`);
   const cities = citiesPayload?.data?.items;

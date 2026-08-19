@@ -14,6 +14,24 @@ import type { TripCityOption, TripForecastDay } from "../trips/workspace";
 import { toTraditionalCity, toTraditionalForecast } from "../trips/traditional";
 import { discoveryDateRange } from "../discovery/discovery-trip";
 import {
+  DEFAULT_REACHABILITY_PREFERENCES,
+  MAX_TRAVEL_MINUTE_OPTIONS,
+  formatTravelMinutes,
+  listReachabilityModes,
+  listReachabilityOrigins,
+  listReachableDestinations,
+  normalizeReachabilityMode,
+  parseReachabilityPreferences,
+  rankReachableDiscoveryResults,
+  reachabilityModeLabel,
+  reachabilityOriginLabel,
+  reachabilityPreferenceKey,
+  serializeReachabilityPreferences,
+  type ReachabilityModeFilter,
+  type ReachabilityOriginId,
+  type ReachabilityPreferences,
+} from "../discovery/reachability";
+import {
   parseDiscoveryPreferences,
   rankDiscoveryCities,
   serializeDiscoveryPreferences,
@@ -43,6 +61,7 @@ interface StoredDestinationSelection {
   readonly cityId: string;
   readonly from: string;
   readonly to: string;
+  readonly reachabilityKey: string;
 }
 
 const API_BASE = (process.env.NEXT_PUBLIC_WEATHER_READ_URL ?? "").replace(/\/$/u, "");
@@ -60,6 +79,13 @@ const COPY = {
     when: "Travel dates",
     from: "From",
     to: "To",
+    reachability: "Reachability",
+    origin: "Starting city",
+    transport: "Transport",
+    maxTravel: "Max one-way planning time",
+    reachabilityHelp:
+      "Static planning estimates include a basic airport or station allowance and exclude fares, availability and delays.",
+    coverage: "Initial starting hubs: Singapore, Hong Kong and Taipei.",
     intent: "Ranking goal",
     intentValue: "Least rain",
     constraints: "Optional weather limits",
@@ -75,9 +101,14 @@ const COPY = {
     loading: "Checking destinations…",
     unavailable: "Destination weather is temporarily unavailable.",
     invalidRange: "Choose a valid range of 1–16 days.",
-    noMatches: "No destinations match every selected limit. Relax one limit and try again.",
+    noMatches:
+      "No reachable destinations match every weather limit. Relax one limit and try again.",
+    noReachable:
+      "No supported destination fits this travel-time limit. Increase the limit or change transport.",
     results: "Top 3 least-rain destinations",
     checked: "eligible destinations checked",
+    reachable: "reachable destinations",
+    weatherEligible: "meet weather limits",
     shortlist: "Add to comparison",
     shortlisted: "Added to comparison",
     shortlistFull: "You can compare up to 3 destinations.",
@@ -89,8 +120,11 @@ const COPY = {
     tempMetric: "Avg temperature",
     windMetric: "Peak wind",
     uvMetric: "Peak UV",
+    travelEstimate: "Typical one-way planning time",
+    estimateNote: "Static estimate — verify transport before booking",
     forecast: "Daily outlook",
-    filtersShare: "Dates, limits and comparison choices stay in the URL for sharing.",
+    filtersShare:
+      "Starting city, transport, travel-time limit, dates and weather limits stay in the URL for sharing.",
     remove: "Remove",
     choose: "Choose this destination",
     chosen: "Chosen destination",
@@ -107,6 +141,12 @@ const COPY = {
     when: "出行日期",
     from: "开始",
     to: "结束",
+    reachability: "可达范围",
+    origin: "出发城市",
+    transport: "交通方式",
+    maxTravel: "最长单程规划时间",
+    reachabilityHelp: "静态规划时间包含基础机场或车站预留，不包含价格、余票和延误。",
+    coverage: "首批支持出发地：新加坡、香港和台北。",
     intent: "排序目标",
     intentValue: "哪里不下雨",
     constraints: "可选限制条件",
@@ -121,9 +161,12 @@ const COPY = {
     loading: "正在比较目的地…",
     unavailable: "目的地天气暂时不可用。",
     invalidRange: "请选择 1–16 天的有效日期范围。",
-    noMatches: "没有目的地同时满足全部限制条件，可以放宽一个条件后再试。",
+    noMatches: "可达目的地中没有城市同时满足全部天气限制，可以放宽一个条件后再试。",
+    noReachable: "当前交通方式和单程时间内没有支持的目的地，可以增加时间或更换交通方式。",
     results: "最少雨的 3 个目的地",
     checked: "个符合条件的目的地已参与排序",
+    reachable: "个可达目的地",
+    weatherEligible: "个满足天气限制",
     shortlist: "加入对比",
     shortlisted: "已加入对比",
     shortlistFull: "最多同时对比 3 个目的地。",
@@ -135,8 +178,10 @@ const COPY = {
     tempMetric: "平均气温",
     windMetric: "最大风速",
     uvMetric: "最高 UV",
+    travelEstimate: "典型单程规划时间",
+    estimateNote: "静态估算，预订前请确认实际交通",
     forecast: "逐日天气",
-    filtersShare: "日期、限制条件和对比选择会写入 URL，可直接分享。",
+    filtersShare: "出发地、交通方式、单程时间、日期和天气限制会写入 URL，可直接分享。",
     remove: "移除",
     choose: "选择这个目的地",
     chosen: "已选择",
@@ -152,6 +197,12 @@ const COPY = {
     when: "出行日期",
     from: "開始",
     to: "結束",
+    reachability: "可達範圍",
+    origin: "出發城市",
+    transport: "交通方式",
+    maxTravel: "最長單程規劃時間",
+    reachabilityHelp: "靜態規劃時間包含基礎機場或車站預留，不包含價格、餘票和延誤。",
+    coverage: "首批支援出發地：新加坡、香港和台北。",
     intent: "排序目標",
     intentValue: "哪裡不下雨",
     constraints: "可選限制條件",
@@ -166,9 +217,12 @@ const COPY = {
     loading: "正在比較目的地…",
     unavailable: "目的地天氣暫時無法使用。",
     invalidRange: "請選擇 1–16 天的有效日期範圍。",
-    noMatches: "沒有目的地同時符合全部限制條件，可以放寬一個條件後再試。",
+    noMatches: "可達目的地中沒有城市同時符合全部天氣限制，可以放寬一個條件後再試。",
+    noReachable: "目前交通方式和單程時間內沒有支援的目的地，可以增加時間或更換交通方式。",
     results: "最少雨的 3 個目的地",
     checked: "個符合條件的目的地已參與排序",
+    reachable: "個可達目的地",
+    weatherEligible: "個符合天氣限制",
     shortlist: "加入比較",
     shortlisted: "已加入比較",
     shortlistFull: "最多同時比較 3 個目的地。",
@@ -180,8 +234,10 @@ const COPY = {
     tempMetric: "平均氣溫",
     windMetric: "最大風速",
     uvMetric: "最高 UV",
+    travelEstimate: "典型單程規劃時間",
+    estimateNote: "靜態估算，預訂前請確認實際交通",
     forecast: "逐日天氣",
-    filtersShare: "日期、限制條件和比較選擇會寫入 URL，可直接分享。",
+    filtersShare: "出發地、交通方式、單程時間、日期和天氣限制會寫入 URL，可直接分享。",
     remove: "移除",
     choose: "選擇這個目的地",
     chosen: "已選擇",
@@ -292,8 +348,14 @@ function readStoredSelection(): StoredDestinationSelection | null {
     const value = JSON.parse(raw) as Partial<StoredDestinationSelection>;
     return typeof value.cityId === "string" &&
       typeof value.from === "string" &&
-      typeof value.to === "string"
-      ? { cityId: value.cityId, from: value.from, to: value.to }
+      typeof value.to === "string" &&
+      typeof value.reachabilityKey === "string"
+      ? {
+          cityId: value.cityId,
+          from: value.from,
+          to: value.to,
+          reachabilityKey: value.reachabilityKey,
+        }
       : null;
   } catch {
     return null;
@@ -309,6 +371,12 @@ export function WeatherDiscoveryPlannerV2({
   const apiLocale = locale === "en" ? "en" : "zh-cn";
   const [draft, setDraft] = useState<DiscoveryPreferences>(initialPreferences);
   const [applied, setApplied] = useState<DiscoveryPreferences>(initialPreferences);
+  const [draftReachability, setDraftReachability] = useState<ReachabilityPreferences>(
+    DEFAULT_REACHABILITY_PREFERENCES,
+  );
+  const [appliedReachability, setAppliedReachability] = useState<ReachabilityPreferences>(
+    DEFAULT_REACHABILITY_PREFERENCES,
+  );
   const [cities, setCities] = useState<ReadonlyArray<TripCityOption>>([]);
   const [forecast, setForecast] = useState<ReadonlyArray<TripForecastDay>>([]);
   const [shortlist, setShortlist] = useState<ReadonlyArray<string>>([]);
@@ -333,11 +401,18 @@ export function WeatherDiscoveryPlannerV2({
     const fallback = initialPreferences();
     const search = new URLSearchParams(window.location.search);
     const parsed = parseDiscoveryPreferences(search, { from: fallback.from, to: fallback.to });
+    const reachability = parseReachabilityPreferences(search);
     const stored = readStoredSelection();
     setDraft(parsed);
     setApplied(parsed);
+    setDraftReachability(reachability);
+    setAppliedReachability(reachability);
     setShortlist((search.get("cities") ?? "").split(",").filter(Boolean).slice(0, MAX_SHORTLIST));
-    if (stored?.from === parsed.from && stored.to === parsed.to) {
+    if (
+      stored?.from === parsed.from &&
+      stored.to === parsed.to &&
+      stored.reachabilityKey === reachabilityPreferenceKey(reachability)
+    ) {
       setSelectedDestinationId(stored.cityId);
     }
   }, []);
@@ -370,11 +445,31 @@ export function WeatherDiscoveryPlannerV2({
     };
   }, [apiLocale, copy.unavailable, locale]);
 
+  const reachableDestinations = useMemo(
+    () => listReachableDestinations(cities, appliedReachability),
+    [appliedReachability, cities],
+  );
+  const eligibleCities = useMemo(
+    () => reachableDestinations.map((item) => item.city),
+    [reachableDestinations],
+  );
+  const reachabilityByCity = useMemo(
+    () => new Map(reachableDestinations.map((item) => [item.city.cityId, item.edge] as const)),
+    [reachableDestinations],
+  );
+
   const loadForecast = useCallback(async (): Promise<void> => {
     if (cities.length === 0 || API_BASE.length === 0) return;
     if (discoveryDateRange(applied.from, applied.to).length === 0) {
       setState("error");
       setMessage(copy.invalidRange);
+      return;
+    }
+    if (eligibleCities.length === 0) {
+      setForecast([]);
+      setUpdatedAt("");
+      setStale(false);
+      setState("ready");
       return;
     }
     setState("loading");
@@ -384,7 +479,7 @@ export function WeatherDiscoveryPlannerV2({
       let freshness = "";
       let anyStale = false;
       const items: TripForecastDay[] = [];
-      for (const batch of chunks(cities, MAX_CITIES_PER_REQUEST)) {
+      for (const batch of chunks(eligibleCities, MAX_CITIES_PER_REQUEST)) {
         const search = new URLSearchParams({
           cityIds: batch.map((city) => city.cityId).join(","),
           from: applied.from,
@@ -413,15 +508,27 @@ export function WeatherDiscoveryPlannerV2({
       setState("error");
       setMessage(copy.unavailable);
     }
-  }, [apiLocale, applied, cities, copy.invalidRange, copy.unavailable, locale]);
+  }, [
+    apiLocale,
+    applied,
+    cities.length,
+    copy.invalidRange,
+    copy.unavailable,
+    eligibleCities,
+    locale,
+  ]);
 
   useEffect(() => {
     void loadForecast();
   }, [loadForecast]);
 
+  const weatherRankedResults = useMemo(
+    () => rankDiscoveryCities(eligibleCities, forecast, applied),
+    [applied, eligibleCities, forecast],
+  );
   const rankedResults = useMemo(
-    () => rankDiscoveryCities(cities, forecast, applied),
-    [applied, cities, forecast],
+    () => rankReachableDiscoveryResults(weatherRankedResults, reachableDestinations),
+    [reachableDestinations, weatherRankedResults],
   );
   const results = useMemo(() => rankedResults.slice(0, MAX_RESULTS), [rankedResults]);
   const resultIds = useMemo(() => new Set(results.map((result) => result.city.cityId)), [results]);
@@ -456,8 +563,15 @@ export function WeatherDiscoveryPlannerV2({
   }, [resultIds, state]);
 
   const updateUrl = useCallback(
-    (preferences: DiscoveryPreferences, selected: ReadonlyArray<string>): void => {
+    (
+      preferences: DiscoveryPreferences,
+      reachability: ReachabilityPreferences,
+      selected: ReadonlyArray<string>,
+    ): void => {
       const search = serializeDiscoveryPreferences(preferences);
+      for (const [key, value] of serializeReachabilityPreferences(reachability)) {
+        search.set(key, value);
+      }
       if (selected.length > 0) search.set("cities", selected.join(","));
       window.history.replaceState({}, "", `${window.location.pathname}?${search.toString()}`);
     },
@@ -472,8 +586,9 @@ export function WeatherDiscoveryPlannerV2({
     setSelectedDestinationId(null);
     window.localStorage.removeItem(SELECTED_DESTINATION_STORAGE_KEY);
     setApplied(draft);
-    updateUrl(draft, shortlist);
-  }, [copy.invalidRange, draft, shortlist, updateUrl]);
+    setAppliedReachability(draftReachability);
+    updateUrl(draft, draftReachability, shortlist);
+  }, [copy.invalidRange, draft, draftReachability, shortlist, updateUrl]);
 
   const toggle = useCallback(
     (cityId: string): void => {
@@ -492,11 +607,11 @@ export function WeatherDiscoveryPlannerV2({
             fields: { event: "destination_shortlisted", destination_id: cityId },
           });
         }
-        updateUrl(applied, next);
+        updateUrl(applied, appliedReachability, next);
         return next;
       });
     },
-    [applied, copy.shortlistFull, locale, updateUrl],
+    [applied, appliedReachability, copy.shortlistFull, locale, updateUrl],
   );
 
   const chooseDestination = useCallback(
@@ -508,6 +623,7 @@ export function WeatherDiscoveryPlannerV2({
           cityId: result.city.cityId,
           from: applied.from,
           to: applied.to,
+          reachabilityKey: reachabilityPreferenceKey(appliedReachability),
         } satisfies StoredDestinationSelection),
       );
       emitProductAnalytics({
@@ -521,7 +637,7 @@ export function WeatherDiscoveryPlannerV2({
       });
       setMessage(copy.selectionSaved);
     },
-    [applied.from, applied.to, copy.selectionSaved, locale],
+    [applied.from, applied.to, appliedReachability, copy.selectionSaved, locale],
   );
 
   const updateNumber = (
@@ -530,6 +646,9 @@ export function WeatherDiscoveryPlannerV2({
   ): void => {
     setDraft((current) => ({ ...current, [key]: numeric(event.target.value) }));
   };
+
+  const originOptions = listReachabilityOrigins();
+  const availableModes = listReachabilityModes(draftReachability.originId);
 
   return (
     <main id="main-content" className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-10">
@@ -542,7 +661,7 @@ export function WeatherDiscoveryPlannerV2({
       </section>
 
       <section className="info-panel mt-6" aria-label={copy.when}>
-        <div className="grid gap-6 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]">
+        <div className="grid gap-6 lg:grid-cols-2">
           <div>
             <p className="eyebrow">{copy.when}</p>
             <div className="mt-3 grid gap-3 sm:grid-cols-2">
@@ -571,11 +690,79 @@ export function WeatherDiscoveryPlannerV2({
             </div>
           </div>
 
-          <div data-discovery-intent="dry">
-            <p className="eyebrow">{copy.intent}</p>
-            <div className="mt-3 inline-flex min-h-11 items-center rounded-full border border-foreground bg-foreground px-4 text-sm font-semibold text-white">
-              {copy.intentValue}
+          <div>
+            <p className="eyebrow">{copy.reachability}</p>
+            <div className="mt-3 grid gap-3 sm:grid-cols-3">
+              <label className="grid gap-1 text-sm font-semibold text-foreground">
+                {copy.origin}
+                <select
+                  value={draftReachability.originId}
+                  className="min-h-11 rounded-xl border border-border bg-white px-3"
+                  onChange={(event) => {
+                    const originId = event.target.value as ReachabilityOriginId;
+                    setDraftReachability((current) => ({
+                      ...current,
+                      originId,
+                      mode: normalizeReachabilityMode(originId, current.mode),
+                    }));
+                  }}
+                >
+                  {originOptions.map((origin) => (
+                    <option key={origin.id} value={origin.id}>
+                      {reachabilityOriginLabel(origin.id, locale)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="grid gap-1 text-sm font-semibold text-foreground">
+                {copy.transport}
+                <select
+                  value={draftReachability.mode}
+                  className="min-h-11 rounded-xl border border-border bg-white px-3"
+                  onChange={(event) =>
+                    setDraftReachability((current) => ({
+                      ...current,
+                      mode: event.target.value as ReachabilityModeFilter,
+                    }))
+                  }
+                >
+                  <option value="any">{reachabilityModeLabel("any", locale)}</option>
+                  {availableModes.map((mode) => (
+                    <option key={mode} value={mode}>
+                      {reachabilityModeLabel(mode, locale)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="grid gap-1 text-sm font-semibold text-foreground">
+                {copy.maxTravel}
+                <select
+                  value={draftReachability.maxTravelMinutes}
+                  className="min-h-11 rounded-xl border border-border bg-white px-3"
+                  onChange={(event) =>
+                    setDraftReachability((current) => ({
+                      ...current,
+                      maxTravelMinutes: Number(event.target.value),
+                    }))
+                  }
+                >
+                  {MAX_TRAVEL_MINUTE_OPTIONS.map((minutes) => (
+                    <option key={minutes} value={minutes}>
+                      {formatTravelMinutes(minutes, locale)}
+                    </option>
+                  ))}
+                </select>
+              </label>
             </div>
+            <p className="mt-3 text-xs leading-5 text-muted">{copy.reachabilityHelp}</p>
+            <p className="mt-1 text-xs font-semibold text-muted">{copy.coverage}</p>
+          </div>
+        </div>
+
+        <div className="mt-5 flex flex-wrap items-center gap-3" data-discovery-intent="dry">
+          <p className="eyebrow">{copy.intent}</p>
+          <div className="inline-flex min-h-11 items-center rounded-full border border-foreground bg-foreground px-4 text-sm font-semibold text-white">
+            {copy.intentValue}
           </div>
         </div>
 
@@ -662,20 +849,22 @@ export function WeatherDiscoveryPlannerV2({
                 </h2>
               </div>
               <p className="text-xs text-muted">
-                {rankedResults.length} {copy.checked}
+                {eligibleCities.length} {copy.reachable} · {rankedResults.length}{" "}
+                {copy.weatherEligible}
                 {updatedAt ? ` · ${new Date(updatedAt).toLocaleString()}` : ""}
                 {stale ? ` · stale` : ""}
               </p>
             </div>
             {results.length === 0 ? (
               <p className="mt-5 rounded-2xl border border-border bg-surface p-5 text-sm text-muted">
-                {copy.noMatches}
+                {eligibleCities.length === 0 ? copy.noReachable : copy.noMatches}
               </p>
             ) : (
               <ul className="mt-5 grid gap-4 lg:grid-cols-3">
                 {results.map((result, index) => {
                   const shortlisted = shortlist.includes(result.city.cityId);
                   const chosen = selectedDestinationId === result.city.cityId;
+                  const travel = reachabilityByCity.get(result.city.cityId);
                   return (
                     <li key={result.city.cityId}>
                       <article className="destination-card h-full">
@@ -738,6 +927,18 @@ export function WeatherDiscoveryPlannerV2({
                             <dd className="mt-1 font-bold">{format(result.metrics.maxUv, "")}</dd>
                           </div>
                         </dl>
+                        {travel !== undefined ? (
+                          <div className="relative mt-4 rounded-xl border border-border bg-surface-elevated p-3">
+                            <p className="text-xs text-muted">{copy.travelEstimate}</p>
+                            <p className="mt-1 font-bold text-foreground">
+                              {reachabilityModeLabel(travel.mode, locale)} ·{" "}
+                              {formatTravelMinutes(travel.typicalMinutes, locale)}
+                            </p>
+                            <p className="mt-1 text-[11px] leading-4 text-muted">
+                              {copy.estimateNote}
+                            </p>
+                          </div>
+                        ) : null}
                         <ul className="relative mt-4 flex flex-wrap gap-1.5">
                           {result.reasonCodes.slice(0, 4).map((reason) => (
                             <li
@@ -890,7 +1091,8 @@ export function WeatherDiscoveryPlannerV2({
                     hasDestinationDecision: true,
                     hasTrip: false,
                     hasStructuredActivities: false,
-                    carDependent: false,
+                    carDependent:
+                      reachabilityByCity.get(selectedDestination.city.cityId)?.mode === "drive",
                     weatherAction: "none",
                     indoorFallbackAvailable: false,
                     tripStartsWithinDays: null,
