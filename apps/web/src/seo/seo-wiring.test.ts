@@ -28,17 +28,23 @@ describe("sitemap.ts — static export sitemap", () => {
     expect(urls).toContain(`${BASE}/zh-cn`);
     expect(urls).toContain(`${BASE}/zh-hant`);
     expect(urls).toContain(`${BASE}/explore`);
-    expect(urls).toContain(`${BASE}/trips`);
-    expect(urls).toContain(`${BASE}/zh-hant/trips`);
-    expect(urls).toContain(`${BASE}/zh-cn/trips`);
-    expect(urls).toContain(`${BASE}/trips/qinggan-family-2026`);
-    expect(urls).toContain(`${BASE}/zh-cn/trips/qinggan-family-2026`);
+    expect(urls).toContain(`${BASE}/discover`);
+    expect(urls).toContain(`${BASE}/zh-cn/discover`);
+    expect(urls).toContain(`${BASE}/zh-hant/discover`);
     expect(urls).toContain(`${BASE}/jp`);
     expect(urls).toContain(`${BASE}/zh-cn/jp`);
     expect(urls).toContain(`${BASE}/zh-hant/jp`);
     expect(urls).toContain(`${BASE}/jp/tokyo`);
     expect(urls).toContain(`${BASE}/zh-cn/jp/tokyo`);
     expect(urls).toContain(`${BASE}/zh-hant/jp/tokyo`);
+
+    // Advanced itinerary tools remain reachable for existing users but are noindex
+    // and deliberately excluded from the acquisition sitemap.
+    expect(urls).not.toContain(`${BASE}/trips`);
+    expect(urls).not.toContain(`${BASE}/zh-hant/trips`);
+    expect(urls).not.toContain(`${BASE}/zh-cn/trips`);
+    expect(urls).not.toContain(`${BASE}/trips/qinggan-family-2026`);
+    expect(urls).not.toContain(`${BASE}/zh-cn/trips/qinggan-family-2026`);
     expect(new Set(urls).size).toBe(urls.length);
   });
 
@@ -47,8 +53,9 @@ describe("sitemap.ts — static export sitemap", () => {
     expect(entries.some((entry) => entry.url.endsWith("/zh-cn/"))).toBe(false);
     expect(entries.some((entry) => entry.url.endsWith("/zh-hant/"))).toBe(false);
 
-    const trips = entries.find((entry) => entry.url === `${BASE}/trips`);
-    expect(trips?.alternates?.languages?.["zh-Hant"]).toBe(`${BASE}/zh-hant/trips`);
+    const discovery = entries.find((entry) => entry.url === `${BASE}/discover`);
+    expect(discovery?.alternates?.languages?.["zh-Hant"]).toBe(`${BASE}/zh-hant/discover`);
+    expect(discovery?.alternates?.languages?.["zh-CN"]).toBe(`${BASE}/zh-cn/discover`);
   });
 
   it("advertises three-language hreflang for published weather routes", async () => {
@@ -107,6 +114,8 @@ describe("seo.ts helpers — canonical, copy and robots", () => {
     expect(alt.canonical).toBe(`${BASE}/jp/tokyo`);
     expect(alt.languages).toBeUndefined();
 
+    // The helper remains valid for noindex advanced pages even though they are
+    // intentionally absent from the public sitemap.
     const tripAlt = buildAlternates("/trips", "zh-hant", ["en", "zh-hant", "zh-cn"]);
     expect(tripAlt.canonical).toBe(`${BASE}/zh-hant/trips`);
     expect(tripAlt.languages?.en).toBe(`${BASE}/trips`);
