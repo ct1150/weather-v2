@@ -1,7 +1,7 @@
 # Lightweight pull-request validation.
 # Draft PR pushes do not allocate a hosted runner. PR #55 temporarily uses its
-# ready-for-review event to apply the OPC cutover, then restores this workflow
-# from main before the resulting synchronize event runs normal verification.
+# ready-for-review event to apply the OPC cutover. Workflow-file changes are
+# intentionally left for the GitHub connector because GITHUB_TOKEN cannot push them.
 
 name: PR CI
 
@@ -85,11 +85,11 @@ jobs:
             docs/superpowers/product/2026-08-19-founder-prd-opc-dry-destination-engine.md \
             docs/superpowers/plans/2026-08-19-opc-product-cutover-phase0.md
 
-      - name: Restore CI workflow and commit implementation
+      - name: Commit non-workflow implementation
         run: |
-          git fetch origin main --depth=1
-          git checkout origin/main -- .github/workflows/pr-ci.yml
-          git rm -f .github/workflows/apply-opc-product-cutover-once.yml
+          git checkout HEAD -- .github/workflows/pr-ci.yml
+          git checkout HEAD -- .github/workflows/production-smoke.yml
+          git checkout HEAD -- .github/workflows/apply-opc-product-cutover-once.yml
           git rm -f tooling/one-off/opc_product_cutover.py
           git rm -f tooling/one-off/opc-cutover-error.log 2>/dev/null || true
           git config user.name "github-actions[bot]"
