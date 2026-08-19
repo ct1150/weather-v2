@@ -9,16 +9,24 @@
     "logs": { "head_sampling_rate": 1 },
   },
   "vars": { "WEB_ORIGIN": "http://localhost:3000" },
-  "analytics_engine_datasets": [
-    { "binding": "PRODUCT_EVENTS", "dataset": "wnr_product_events_v1" },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "wnr-trip-production",
+      "database_id": "d8ffa28b-87dc-414e-b35c-068b1c70c39a",
+    },
   ],
   "env": {
     "preview": {
       "name": "where-not-rain-product-analytics-preview",
       "workers_dev": true,
       "vars": { "WEB_ORIGIN": "https://where-not-rain.pages.dev" },
-      "analytics_engine_datasets": [
-        { "binding": "PRODUCT_EVENTS", "dataset": "wnr_product_events_preview_v1" },
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "wnr-trip-preview",
+          "database_id": "e0fcd786-4a32-43fe-bff6-e05d6c1a922f",
+        },
       ],
     },
     "production": {
@@ -26,8 +34,12 @@
       "workers_dev": true,
       "routes": [{ "pattern": "analytics.868656.xyz", "custom_domain": true }],
       "vars": { "WEB_ORIGIN": "https://868656.xyz" },
-      "analytics_engine_datasets": [
-        { "binding": "PRODUCT_EVENTS", "dataset": "wnr_product_events_v1" },
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "wnr-trip-production",
+          "database_id": "d8ffa28b-87dc-414e-b35c-068b1c70c39a",
+        },
       ],
     },
   },
