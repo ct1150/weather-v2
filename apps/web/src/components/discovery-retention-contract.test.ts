@@ -5,8 +5,12 @@ const companion = readFileSync(
   new URL("./DiscoveryRetentionCompanion.tsx", import.meta.url),
   "utf8",
 );
-const helper = readFileSync(
+const shortlistHelper = readFileSync(
   new URL("../discovery/discovery-retention.ts", import.meta.url),
+  "utf8",
+);
+const savedSearchHelper = readFileSync(
+  new URL("../discovery/saved-search.ts", import.meta.url),
   "utf8",
 );
 const englishRoute = readFileSync(new URL("../app/discover/page.tsx", import.meta.url), "utf8");
@@ -20,43 +24,46 @@ const traditionalRoute = readFileSync(
 );
 
 describe("discovery decision and retention contracts", () => {
-  it("persists the bounded shortlist while retaining shareable URL state", () => {
-    expect(helper).toContain("wnr:discovery-shortlist:v1");
-    expect(helper).toContain("MAX_DISCOVERY_SHORTLIST = 4");
-    expect(helper).toContain('next.set("cities"');
-    expect(companion).toContain("useLayoutEffect");
+  it("persists a shareable comparison list bounded to the same Top 3 result limit", () => {
+    expect(shortlistHelper).toContain("wnr:discovery-shortlist:v1");
+    expect(shortlistHelper).toContain("MAX_DISCOVERY_SHORTLIST = 3");
+    expect(shortlistHelper).toContain('next.set("cities"');
     expect(companion).toContain("window.history.replaceState");
     expect(companion).toContain("window.localStorage.setItem");
   });
 
   it("treats a cleared URL shortlist as authoritative after initial restoration", () => {
-    expect(companion).toContain("initializedRef.current");
+    expect(companion).toContain("shortlistInitializedRef.current");
     expect(companion).toContain("window.localStorage.removeItem");
-    expect(companion).toContain("Clearing URL state remains authoritative");
+    expect(companion).toContain("discoveryShortlistFromSearch");
   });
 
-  it("uses labels that match the existing shortlist controls", () => {
-    expect(companion).toContain("Use “Shortlist”");
-    expect(companion).toContain("点击“加入对比”");
-    expect(companion).toContain("點擊「加入比較」");
-    expect(companion).not.toContain("Save & compare");
+  it("stores up to five complete queries without requiring an account or email", () => {
+    expect(savedSearchHelper).toContain("wnr:saved-discovery-searches:v1");
+    expect(savedSearchHelper).toContain("MAX_SAVED_DISCOVERY_SEARCHES = 5");
+    expect(savedSearchHelper).toContain("buildSavedDiscoverySearch");
+    expect(companion).toContain("Save current search");
+    expect(companion).toContain("保存当前查询");
+    expect(companion).toContain("儲存目前查詢");
+    expect(companion).toContain("No account, email address or notification backend is required.");
   });
 
-  it("explains recommendation value and weather trade-offs in all locales", () => {
-    expect(companion).toContain("Why it fits");
-    expect(companion).toContain("Watch-outs");
-    expect(companion).toContain("推荐理由");
-    expect(companion).toContain("需要注意");
-    expect(companion).toContain("推薦理由");
+  it("generates privacy-preserving D-7, D-3 and D-1 calendar recheck reminders", () => {
+    expect(savedSearchHelper).toContain("RECHECK_OFFSETS = [7, 3, 1]");
+    expect(savedSearchHelper).toContain("BEGIN:VCALENDAR");
+    expect(savedSearchHelper).toContain("DTSTART;VALUE=DATE");
+    expect(companion).toContain("Calendar reminders");
+    expect(companion).toContain("下载日历复查提醒");
+    expect(companion).toContain("下載日曆複查提醒");
+    expect(companion).toContain("Nothing is sent to our servers.");
   });
 
-  it("tracks destination detail opens through the existing allowlisted event", () => {
-    expect(companion).toContain('event: "search_result_clicked"');
-    expect(companion).toContain('result_type: "city"');
-    expect(companion).toContain("article.destination-card");
+  it("does not duplicate planner result-click analytics from the retention layer", () => {
+    expect(companion).not.toContain('event: "search_result_clicked"');
+    expect(companion).not.toContain("article.destination-card");
   });
 
-  it("wires the companion into every crawlable discovery locale", () => {
+  it("wires the retention companion into every crawlable discovery locale", () => {
     expect(englishRoute).toContain('<DiscoveryRetentionCompanion locale="en" />');
     expect(simplifiedRoute).toContain('<DiscoveryRetentionCompanion locale="zh-cn" />');
     expect(traditionalRoute).toContain('<DiscoveryRetentionCompanion locale="zh-hant" />');
