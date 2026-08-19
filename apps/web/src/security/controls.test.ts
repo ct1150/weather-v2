@@ -273,6 +273,9 @@ describe("buildSecurityHeaders (ENG-SECURITY-001)", () => {
     expect(h["Content-Security-Policy"]).toContain("default-src 'self'");
     expect(h["Content-Security-Policy"]).toContain("frame-ancestors 'none'");
     expect(h["Content-Security-Policy"]).toContain("object-src 'none'");
+    expect(h["Content-Security-Policy"]).toContain(
+      "connect-src 'self' https://analytics.868656.xyz",
+    );
     expect(h["Content-Security-Policy"]).not.toContain("'unsafe-inline'");
     expect(h["Strict-Transport-Security"]).toContain("max-age=");
     expect(h["Strict-Transport-Security"]).toContain("includeSubDomains");

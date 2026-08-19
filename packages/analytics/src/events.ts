@@ -58,6 +58,26 @@ export type SearchResultType = "city" | "country" | "article";
 
 export type TripCreationSource = "weather_discovery" | "workspace";
 
+export type DiscoveryOriginId = "sg-singapore" | "hk-hong-kong" | "tw-taipei";
+export type DiscoveryTransportMode = "any" | "flight" | "rail" | "drive";
+export type DaysUntilDepartureBucket = "0-2d" | "3-7d" | "8-14d" | "15d+";
+export type DiscoveryNoResultReason = "no_reachable" | "weather_limits" | "forecast_unavailable";
+
+export interface DiscoveryFunnelContext {
+  readonly origin_id: DiscoveryOriginId;
+  readonly transport_mode: DiscoveryTransportMode;
+  readonly max_travel_minutes: 180 | 240 | 360 | 480 | 720;
+  readonly days_until_departure_bucket: DaysUntilDepartureBucket;
+  readonly trip_length_days: number;
+  readonly rain_limit_set: boolean;
+  readonly wind_limit_set: boolean;
+  readonly temperature_limit_set: boolean;
+}
+
+export interface DiscoveryRetentionEventContext extends DiscoveryFunnelContext {
+  readonly shortlist_count: number;
+}
+
 export interface SearchSubmittedEvent {
   readonly event: "search_submitted";
   readonly event_version: 1;
@@ -128,6 +148,75 @@ export interface WeatherDiscoveryViewEvent {
   readonly locale: AnalyticsLocale;
 }
 
+export interface DiscoveryQuerySubmittedEvent extends DiscoveryFunnelContext {
+  readonly event: "discovery_query_submitted";
+  readonly event_version: 1;
+  readonly occurred_at: string;
+  readonly route_template: string;
+  readonly locale: AnalyticsLocale;
+}
+
+export interface DiscoveryResultsReturnedEvent extends DiscoveryFunnelContext {
+  readonly event: "discovery_results_returned";
+  readonly event_version: 1;
+  readonly occurred_at: string;
+  readonly route_template: string;
+  readonly locale: AnalyticsLocale;
+  readonly reachable_count: number;
+  readonly result_count: number;
+}
+
+export interface DiscoveryNoResultsEvent extends DiscoveryFunnelContext {
+  readonly event: "discovery_no_results";
+  readonly event_version: 1;
+  readonly occurred_at: string;
+  readonly route_template: string;
+  readonly locale: AnalyticsLocale;
+  readonly reachable_count: number;
+  readonly no_result_reason: DiscoveryNoResultReason;
+}
+
+export interface SearchSavedEvent extends DiscoveryRetentionEventContext {
+  readonly event: "search_saved";
+  readonly event_version: 1;
+  readonly occurred_at: string;
+  readonly route_template: string;
+  readonly locale: AnalyticsLocale;
+}
+
+export interface SavedSearchOpenedEvent extends DiscoveryRetentionEventContext {
+  readonly event: "saved_search_opened";
+  readonly event_version: 1;
+  readonly occurred_at: string;
+  readonly route_template: string;
+  readonly locale: AnalyticsLocale;
+}
+
+export interface SavedSearchRemovedEvent extends DiscoveryRetentionEventContext {
+  readonly event: "saved_search_removed";
+  readonly event_version: 1;
+  readonly occurred_at: string;
+  readonly route_template: string;
+  readonly locale: AnalyticsLocale;
+}
+
+export interface ShareLinkCopiedEvent extends DiscoveryRetentionEventContext {
+  readonly event: "share_link_copied";
+  readonly event_version: 1;
+  readonly occurred_at: string;
+  readonly route_template: string;
+  readonly locale: AnalyticsLocale;
+}
+
+export interface CalendarReminderDownloadedEvent extends DiscoveryRetentionEventContext {
+  readonly event: "calendar_reminder_downloaded";
+  readonly event_version: 1;
+  readonly occurred_at: string;
+  readonly route_template: string;
+  readonly locale: AnalyticsLocale;
+  readonly reminder_count: number;
+}
+
 export interface DestinationShortlistedEvent {
   readonly event: "destination_shortlisted";
   readonly event_version: 1;
@@ -137,7 +226,7 @@ export interface DestinationShortlistedEvent {
   readonly destination_id: string;
 }
 
-export interface DestinationSelectedEvent {
+export interface DestinationSelectedEvent extends Partial<DiscoveryFunnelContext> {
   readonly event: "destination_selected";
   readonly event_version: 1;
   readonly occurred_at: string;
@@ -208,6 +297,14 @@ export type AnalyticsEvent =
   | RankingViewedEvent
   | RankingCityClickedEvent
   | WeatherDiscoveryViewEvent
+  | DiscoveryQuerySubmittedEvent
+  | DiscoveryResultsReturnedEvent
+  | DiscoveryNoResultsEvent
+  | SearchSavedEvent
+  | SavedSearchOpenedEvent
+  | SavedSearchRemovedEvent
+  | ShareLinkCopiedEvent
+  | CalendarReminderDownloadedEvent
   | DestinationShortlistedEvent
   | DestinationSelectedEvent
   | TripCreatedEvent
@@ -259,6 +356,34 @@ export const SEARCH_RESULT_TYPES: ReadonlyArray<SearchResultType> = Object.freez
   "article",
 ]);
 
+export const DISCOVERY_ORIGIN_IDS: ReadonlyArray<DiscoveryOriginId> = Object.freeze([
+  "sg-singapore",
+  "hk-hong-kong",
+  "tw-taipei",
+]);
+
+export const DISCOVERY_TRANSPORT_MODES: ReadonlyArray<DiscoveryTransportMode> = Object.freeze([
+  "any",
+  "flight",
+  "rail",
+  "drive",
+]);
+
+export const DISCOVERY_MAX_TRAVEL_MINUTES = Object.freeze([180, 240, 360, 480, 720] as const);
+
+export const DAYS_UNTIL_DEPARTURE_BUCKETS: ReadonlyArray<DaysUntilDepartureBucket> = Object.freeze([
+  "0-2d",
+  "3-7d",
+  "8-14d",
+  "15d+",
+]);
+
+export const DISCOVERY_NO_RESULT_REASONS: ReadonlyArray<DiscoveryNoResultReason> = Object.freeze([
+  "no_reachable",
+  "weather_limits",
+  "forecast_unavailable",
+]);
+
 /** Bounded, known route templates (never raw URLs or query strings). */
 export const KNOWN_ROUTE_TEMPLATES: ReadonlyArray<string> = Object.freeze([
   "/",
@@ -287,6 +412,14 @@ const EVENT_NAMES: ReadonlyArray<AnalyticsEvent["event"]> = Object.freeze([
   "ranking_viewed",
   "ranking_city_clicked",
   "weather_discovery_view",
+  "discovery_query_submitted",
+  "discovery_results_returned",
+  "discovery_no_results",
+  "search_saved",
+  "saved_search_opened",
+  "saved_search_removed",
+  "share_link_copied",
+  "calendar_reminder_downloaded",
   "destination_shortlisted",
   "destination_selected",
   "trip_created",
@@ -344,8 +477,84 @@ function asBoundedPositiveInt(v: unknown, max: number): v is number {
   return asPositiveInt(v) && v <= max;
 }
 
+function asBoundedNonNegativeInt(v: unknown, max: number): v is number {
+  return asNonNegativeInt(v) && v <= max;
+}
+
 function isTripCreationSource(v: unknown): v is TripCreationSource {
   return v === "weather_discovery" || v === "workspace";
+}
+
+function parseDiscoveryFunnelContext(
+  obj: Record<string, unknown>,
+): ValidationResult<DiscoveryFunnelContext> {
+  const origin = obj.origin_id;
+  if (!DISCOVERY_ORIGIN_IDS.includes(origin as DiscoveryOriginId)) {
+    return failV("invalid_origin_id");
+  }
+  const mode = obj.transport_mode;
+  if (!DISCOVERY_TRANSPORT_MODES.includes(mode as DiscoveryTransportMode)) {
+    return failV("invalid_transport_mode");
+  }
+  const maxTravel = obj.max_travel_minutes;
+  if (!DISCOVERY_MAX_TRAVEL_MINUTES.includes(maxTravel as 180 | 240 | 360 | 480 | 720)) {
+    return failV("invalid_max_travel_minutes");
+  }
+  const departureBucket = obj.days_until_departure_bucket;
+  if (!DAYS_UNTIL_DEPARTURE_BUCKETS.includes(departureBucket as DaysUntilDepartureBucket)) {
+    return failV("invalid_days_until_departure_bucket");
+  }
+  const tripLength = obj.trip_length_days;
+  if (!asBoundedPositiveInt(tripLength, 16)) return failV("invalid_trip_length_days");
+  const rainLimit = obj.rain_limit_set;
+  const windLimit = obj.wind_limit_set;
+  const temperatureLimit = obj.temperature_limit_set;
+  if (
+    typeof rainLimit !== "boolean" ||
+    typeof windLimit !== "boolean" ||
+    typeof temperatureLimit !== "boolean"
+  ) {
+    return failV("invalid_limit_flags");
+  }
+  return okV({
+    origin_id: origin as DiscoveryOriginId,
+    transport_mode: mode as DiscoveryTransportMode,
+    max_travel_minutes: maxTravel as 180 | 240 | 360 | 480 | 720,
+    days_until_departure_bucket: departureBucket as DaysUntilDepartureBucket,
+    trip_length_days: tripLength,
+    rain_limit_set: rainLimit,
+    wind_limit_set: windLimit,
+    temperature_limit_set: temperatureLimit,
+  });
+}
+
+function parseDiscoveryRetentionContext(
+  obj: Record<string, unknown>,
+): ValidationResult<DiscoveryRetentionEventContext> {
+  const context = parseDiscoveryFunnelContext(obj);
+  if (!context.ok) return context;
+  const shortlistCount = obj.shortlist_count;
+  if (!asBoundedNonNegativeInt(shortlistCount, 3)) return failV("invalid_shortlist_count");
+  return okV({ ...context.value, shortlist_count: shortlistCount });
+}
+
+function parseOptionalDiscoveryFunnelContext(
+  obj: Record<string, unknown>,
+): ValidationResult<Partial<DiscoveryFunnelContext>> {
+  const keys = [
+    "origin_id",
+    "transport_mode",
+    "max_travel_minutes",
+    "days_until_departure_bucket",
+    "trip_length_days",
+    "rain_limit_set",
+    "wind_limit_set",
+    "temperature_limit_set",
+  ] as const;
+  const present = keys.filter((key) => obj[key] !== undefined);
+  if (present.length === 0) return okV({});
+  if (present.length !== keys.length) return failV("incomplete_discovery_context");
+  return parseDiscoveryFunnelContext(obj);
 }
 
 function asUppercaseIso2(v: unknown): v is string {
@@ -537,6 +746,97 @@ function buildPayload(
     case "weather_discovery_view":
       return okV<AnalyticsEvent>({ ...common, event: "weather_discovery_view" });
 
+    case "discovery_query_submitted": {
+      const context = parseDiscoveryFunnelContext(obj);
+      if (!context.ok) return context;
+      return okV<AnalyticsEvent>({
+        ...common,
+        ...context.value,
+        event: "discovery_query_submitted",
+      });
+    }
+
+    case "discovery_results_returned": {
+      const context = parseDiscoveryFunnelContext(obj);
+      if (!context.ok) return context;
+      const reachableCount = obj.reachable_count;
+      const resultCount = obj.result_count;
+      if (!asBoundedPositiveInt(reachableCount, 100)) return failV("invalid_reachable_count");
+      if (!asBoundedPositiveInt(resultCount, 3)) return failV("invalid_result_count");
+      return okV<AnalyticsEvent>({
+        ...common,
+        ...context.value,
+        event: "discovery_results_returned",
+        reachable_count: reachableCount,
+        result_count: resultCount,
+      });
+    }
+
+    case "discovery_no_results": {
+      const context = parseDiscoveryFunnelContext(obj);
+      if (!context.ok) return context;
+      const reachableCount = obj.reachable_count;
+      if (!asBoundedNonNegativeInt(reachableCount, 100)) {
+        return failV("invalid_reachable_count");
+      }
+      const reason = obj.no_result_reason;
+      if (!DISCOVERY_NO_RESULT_REASONS.includes(reason as DiscoveryNoResultReason)) {
+        return failV("invalid_no_result_reason");
+      }
+      return okV<AnalyticsEvent>({
+        ...common,
+        ...context.value,
+        event: "discovery_no_results",
+        reachable_count: reachableCount,
+        no_result_reason: reason as DiscoveryNoResultReason,
+      });
+    }
+
+    case "search_saved": {
+      const context = parseDiscoveryRetentionContext(obj);
+      if (!context.ok) return context;
+      return okV<AnalyticsEvent>({ ...common, ...context.value, event: "search_saved" });
+    }
+
+    case "saved_search_opened": {
+      const context = parseDiscoveryRetentionContext(obj);
+      if (!context.ok) return context;
+      return okV<AnalyticsEvent>({
+        ...common,
+        ...context.value,
+        event: "saved_search_opened",
+      });
+    }
+
+    case "saved_search_removed": {
+      const context = parseDiscoveryRetentionContext(obj);
+      if (!context.ok) return context;
+      return okV<AnalyticsEvent>({
+        ...common,
+        ...context.value,
+        event: "saved_search_removed",
+      });
+    }
+
+    case "share_link_copied": {
+      const context = parseDiscoveryRetentionContext(obj);
+      if (!context.ok) return context;
+      return okV<AnalyticsEvent>({ ...common, ...context.value, event: "share_link_copied" });
+    }
+
+    case "calendar_reminder_downloaded": {
+      const context = parseDiscoveryRetentionContext(obj);
+      if (!context.ok) return context;
+      const reminderCount = obj.reminder_count;
+      if (!asBoundedPositiveInt(reminderCount, 3)) return failV("invalid_reminder_count");
+      return okV<AnalyticsEvent>({
+        ...common,
+        ...context.value,
+        event: "calendar_reminder_downloaded",
+        reminder_count: reminderCount,
+      });
+    }
+
     case "destination_shortlisted": {
       const id = obj.destination_id;
       if (!asString(id) || !DESTINATION_KEY_RE.test(id)) return failV("invalid_destination_id");
@@ -554,8 +854,11 @@ function buildPayload(
       }
       const position = obj.position;
       if (!asBoundedPositiveInt(position, 3)) return failV("invalid_position");
+      const context = parseOptionalDiscoveryFunnelContext(obj);
+      if (!context.ok) return context;
       return okV<AnalyticsEvent>({
         ...common,
+        ...context.value,
         event: "destination_selected",
         destination_id: id,
         position,
@@ -717,8 +1020,22 @@ function boundedFields(e: AnalyticsEvent): Record<string, unknown> {
     case "weather_discovery_view":
     case "weather_insight_opened":
       return {};
+    case "discovery_query_submitted":
+      return { ...e };
+    case "discovery_results_returned":
+      return { ...e };
+    case "discovery_no_results":
+      return { ...e };
+    case "search_saved":
+    case "saved_search_opened":
+    case "saved_search_removed":
+    case "share_link_copied":
+    case "calendar_reminder_downloaded":
+      return { ...e };
     case "destination_shortlisted":
       return { destination_id: e.destination_id };
+    case "destination_selected":
+      return { ...e };
     case "trip_created":
       return { destination_count: e.destination_count, source: e.source };
     case "replan_proposed":
@@ -738,6 +1055,68 @@ function boundedFields(e: AnalyticsEvent): Record<string, unknown> {
     default:
       return {};
   }
+}
+
+export interface AnalyticsEngineProjection {
+  readonly indexes: [string];
+  readonly blobs: string[];
+  readonly doubles: number[];
+}
+
+/**
+ * Stable Analytics Engine schema. Empty strings and -1 mean “not applicable”.
+ * The schema is documented in tooling/analytics/README.md and intentionally
+ * contains no URL, account, user, session, device, email or free-text fields.
+ */
+export function projectAnalyticsEvent(event: AnalyticsEvent): AnalyticsEngineProjection {
+  const fields = boundedFields(event);
+  const text = (key: string): string =>
+    typeof fields[key] === "string" ? (fields[key] as string) : "";
+  const numeric = (key: string): number =>
+    typeof fields[key] === "number" ? (fields[key] as number) : -1;
+  const flag = (key: string): number =>
+    typeof fields[key] === "boolean" ? (fields[key] ? 1 : 0) : -1;
+  const destinationOrCity = text("destination_id") || text("city_id");
+  const providerOrNetwork = text("provider_id") || text("network_id");
+  const keyOrCountry = text("destination_key") || text("country_code");
+  const positionOrRank = numeric("position") >= 0 ? numeric("position") : numeric("rank");
+  const genericCount =
+    numeric("destination_count") >= 0 ? numeric("destination_count") : numeric("change_count");
+
+  return {
+    indexes: [event.event],
+    blobs: [
+      event.locale,
+      event.route_template,
+      text("origin_id"),
+      text("transport_mode"),
+      text("days_until_departure_bucket"),
+      text("no_result_reason"),
+      destinationOrCity,
+      text("result_type"),
+      text("source"),
+      text("category"),
+      text("placement"),
+      providerOrNetwork,
+      keyOrCountry,
+      text("window"),
+      text("theme"),
+    ],
+    doubles: [
+      numeric("max_travel_minutes"),
+      numeric("trip_length_days"),
+      numeric("reachable_count"),
+      numeric("result_count"),
+      positionOrRank,
+      numeric("shortlist_count"),
+      numeric("reminder_count"),
+      flag("rain_limit_set"),
+      flag("wind_limit_set"),
+      flag("temperature_limit_set"),
+      genericCount,
+      flag("fallback_included"),
+    ],
+  };
 }
 
 /** Project an event into a bounded, PII-free observability log. */
