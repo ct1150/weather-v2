@@ -137,6 +137,16 @@ export interface DestinationShortlistedEvent {
   readonly destination_id: string;
 }
 
+export interface DestinationSelectedEvent {
+  readonly event: "destination_selected";
+  readonly event_version: 1;
+  readonly occurred_at: string;
+  readonly route_template: string;
+  readonly locale: AnalyticsLocale;
+  readonly destination_id: string;
+  readonly position: number;
+}
+
 export interface TripCreatedEvent {
   readonly event: "trip_created";
   readonly event_version: 1;
@@ -199,6 +209,7 @@ export type AnalyticsEvent =
   | RankingCityClickedEvent
   | WeatherDiscoveryViewEvent
   | DestinationShortlistedEvent
+  | DestinationSelectedEvent
   | TripCreatedEvent
   | WeatherInsightOpenedEvent
   | ReplanProposedEvent
@@ -277,6 +288,7 @@ const EVENT_NAMES: ReadonlyArray<AnalyticsEvent["event"]> = Object.freeze([
   "ranking_city_clicked",
   "weather_discovery_view",
   "destination_shortlisted",
+  "destination_selected",
   "trip_created",
   "weather_insight_opened",
   "replan_proposed",
@@ -532,6 +544,21 @@ function buildPayload(
         ...common,
         event: "destination_shortlisted",
         destination_id: id,
+      });
+    }
+
+    case "destination_selected": {
+      const id = obj.destination_id;
+      if (!asString(id) || !DESTINATION_KEY_RE.test(id)) {
+        return failV("invalid_destination_id");
+      }
+      const position = obj.position;
+      if (!asBoundedPositiveInt(position, 3)) return failV("invalid_position");
+      return okV<AnalyticsEvent>({
+        ...common,
+        event: "destination_selected",
+        destination_id: id,
+        position,
       });
     }
 

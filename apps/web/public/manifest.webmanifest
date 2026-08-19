@@ -1,8 +1,8 @@
 {
   "name": "Where Not Rain",
   "short_name": "Where Not Rain",
-  "description": "Find destinations by weather, plan a trip and use a route-aware travel mode offline.",
-  "start_url": "/trips",
+  "description": "Choose dates and find the three destinations with the lowest rain risk.",
+  "start_url": "/discover",
   "scope": "/",
   "display": "standalone",
   "background_color": "#f7f8f3",
@@ -17,19 +17,9 @@
   ],
   "shortcuts": [
     {
-      "name": "My trips",
-      "short_name": "Trips",
-      "url": "/trips"
-    },
-    {
-      "name": "Find a destination",
-      "short_name": "Discover",
+      "name": "Find dry destinations",
+      "short_name": "Find dry",
       "url": "/discover"
-    },
-    {
-      "name": "Today's execution",
-      "short_name": "Today",
-      "url": "/trips/execution"
     }
   ]
 }

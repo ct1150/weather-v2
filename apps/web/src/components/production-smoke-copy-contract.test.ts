@@ -29,43 +29,36 @@ const traditionalTrips = readFileSync(
 const currentCopy = [
   [
     englishHome,
-    ["Dates fixed.", "Destination open?", "Compare destinations", "Continue shared planning"],
+    ["Dates fixed.", "Where is it least likely to rain?", "Find 3 dry-weather destinations"],
   ],
   [
     englishTrips,
     [
-      "Destination chosen?",
-      "Plan it together.",
-      "Choose a destination first",
-      "Advanced: import an existing itinerary",
+      "Advanced itinerary tools",
+      "Existing workspaces remain available.",
+      "Return to destination finder",
     ],
   ],
   [
     simplifiedHome,
-    ["未来14天 · 多人目的地决策", "日期定了，去哪还没定？", "开始比较目的地", "继续共同规划"],
+    ["未来14天 · 少雨目的地决策", "日期定了，去哪里更不容易下雨？", "找 3 个少雨目的地"],
   ],
-  [
-    simplifiedTrips,
-    ["去哪已经确定？", "接下来一起规划。", "先一起决定去哪", "高级功能：导入已有行程"],
-  ],
+  [simplifiedTrips, ["高级行程工具", "已有行程仍可继续使用。", "返回少雨目的地工具"]],
   [
     traditionalHome,
-    ["未來14天 · 多人目的地決策", "日期定了，去哪還沒定？", "開始比較目的地", "繼續共同規劃"],
+    ["未來14天 · 少雨目的地決策", "日期定了，去哪裡更不容易下雨？", "找 3 個少雨目的地"],
   ],
-  [
-    traditionalTrips,
-    ["去哪已經確定？", "接下來一起規劃。", "先一起決定去哪", "進階功能：匯入既有行程"],
-  ],
+  [traditionalTrips, ["進階行程工具", "既有行程仍可繼續使用。", "返回少雨目的地工具"]],
 ] as const;
 
 const discoveryCopy = [
-  ["Find the right destination", "Start with the weather. Decide the destination second."],
-  ["按天气找目的地", "先看天气，再决定去哪里。"],
-  ["按天氣找目的地", "先看天氣，再決定去哪裡。"],
+  ["Least-rain destination finder", "Where is it least likely to rain on your dates?"],
+  ["少雨目的地工具", "这几天去哪里更不容易下雨？"],
+  ["少雨目的地工具", "這幾天去哪裡更不容易下雨？"],
 ] as const;
 
 describe("production smoke copy contract", () => {
-  it("checks the same weather-first group decision copy rendered by every locale", () => {
+  it("checks the same OPC product copy rendered by every locale", () => {
     for (const [page, phrases] of currentCopy) {
       for (const phrase of phrases) {
         expect(page).toContain(phrase);
@@ -74,7 +67,7 @@ describe("production smoke copy contract", () => {
     }
   });
 
-  it("keeps the Phase 6 live smoke aligned with the destination finder", () => {
+  it("keeps the live discovery smoke aligned with the least-rain finder", () => {
     for (const phrases of discoveryCopy) {
       for (const phrase of phrases) {
         expect(discoveryPlanner).toContain(phrase);
@@ -83,18 +76,16 @@ describe("production smoke copy contract", () => {
     }
   });
 
-  it("does not retain superseded trip-planner or weather-radar landing copy", () => {
+  it("does not retain superseded group-planning acquisition copy", () => {
     for (const obsolete of [
-      "Know what to keep",
-      "天气变化时",
-      "天氣變化時",
-      "亞洲旅行天氣雷達",
-      "先看天氣，再決定去哪個城市",
+      "Continue shared planning",
+      "继续共同规划",
+      "繼續共同規劃",
+      "Plan it together.",
+      "接下来一起规划。",
+      "接下來一起規劃。",
     ]) {
       expect(productionSmoke).not.toContain(obsolete);
     }
-    expect(discoverySmoke).not.toContain('requireText(english, "Weather Discovery"');
-    expect(discoverySmoke).not.toContain('requireText(simplified, "天气探索"');
-    expect(discoverySmoke).not.toContain('requireText(traditional, "天氣探索"');
   });
 });

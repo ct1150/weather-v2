@@ -8,7 +8,6 @@ import {
   isAutoLocalizablePath,
   localeFromPath,
   localizedPath,
-  stripLocalePrefix,
   type SiteLocale,
 } from "../i18n/locale-routing";
 
@@ -34,23 +33,17 @@ function BrandMark(): ReactElement {
 export function SiteHeader(): ReactElement {
   const pathname = usePathname();
   const currentLocale = localeFromPath(pathname);
-  const basePath = stripLocalePrefix(pathname);
   const isTraditional = currentLocale === "zh-hant";
   const isSimplified = currentLocale === "zh-cn";
   const isChinese = currentLocale !== "en";
-  const isTripArea = basePath === "/trips" || basePath.startsWith("/trips/");
-  const isDecisionArea = !isTripArea;
-
   const localePrefix = isTraditional ? "/zh-hant" : isSimplified ? "/zh-cn" : "";
   const homeHref = localePrefix || "/";
   const decisionHref = `${localePrefix}/discover`;
-  const tripHref = `${localePrefix}/trips`;
 
   function chooseLocale(event: ChangeEvent<HTMLSelectElement>): void {
     const locale = event.target.value as SiteLocale;
     window.localStorage.setItem(LOCALE_STORAGE_KEY, locale);
     document.documentElement.lang = htmlLanguage(locale);
-
     const destination = isAutoLocalizablePath(pathname)
       ? localizedPath(pathname, locale)
       : locale === "en"
@@ -70,10 +63,10 @@ export function SiteHeader(): ReactElement {
           className="group flex items-center gap-2.5 rounded-lg focus-ring"
           aria-label={
             isTraditional
-              ? "Where Not Rain 一起決定旅行目的地首頁"
+              ? "Where Not Rain 少雨目的地首頁"
               : isSimplified
-                ? "Where Not Rain 一起决定旅行目的地首页"
-                : "Where Not Rain group destination decision home"
+                ? "Where Not Rain 少雨目的地首页"
+                : "Where Not Rain least-rain destination finder home"
           }
         >
           <BrandMark />
@@ -81,7 +74,7 @@ export function SiteHeader(): ReactElement {
             Where Not Rain
           </span>
           <span className="hidden rounded-full border border-border bg-surface-elevated px-2 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-muted md:inline">
-            {isTraditional ? "一起去哪" : isSimplified ? "一起去哪" : "Decide together"}
+            {isChinese ? "少雨去哪" : "Dry trip"}
           </span>
         </a>
         <nav
@@ -90,27 +83,16 @@ export function SiteHeader(): ReactElement {
         >
           <a
             href={decisionHref}
-            aria-current={isDecisionArea ? "page" : undefined}
-            className={`nav-link focus-ring ${isDecisionArea ? "bg-foreground !text-white shadow-sm" : ""}`}
+            className="nav-link bg-foreground !text-white shadow-sm focus-ring"
           >
             <span className="hidden sm:inline">
-              {isTraditional ? "一起去哪" : isSimplified ? "一起去哪" : "Decide where"}
+              {isTraditional
+                ? "找少雨目的地"
+                : isSimplified
+                  ? "找少雨目的地"
+                  : "Find dry destinations"}
             </span>
-            <span className="sm:hidden">
-              {isTraditional ? "去哪" : isSimplified ? "去哪" : "Decide"}
-            </span>
-          </a>
-          <a
-            href={tripHref}
-            aria-current={isTripArea ? "page" : undefined}
-            className={`nav-link focus-ring ${isTripArea ? "bg-foreground !text-white shadow-sm" : ""}`}
-          >
-            <span className="hidden sm:inline">
-              {isTraditional ? "共同規劃" : isSimplified ? "共同规划" : "Plan together"}
-            </span>
-            <span className="sm:hidden">
-              {isTraditional ? "規劃" : isSimplified ? "规划" : "Plan"}
-            </span>
+            <span className="sm:hidden">{isChinese ? "少雨" : "Find"}</span>
           </a>
           <label className="nav-link focus-within:ring-2 focus-within:ring-primary/30">
             <span className="sr-only">

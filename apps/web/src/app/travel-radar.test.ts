@@ -1,8 +1,8 @@
 // apps/web/src/app/travel-radar.test.ts
 //
 // Homepage journey tests. The static weather cards and their required fields
-// remain crawlable while the primary task is now a weather-first group
-// destination decision.
+// remain crawlable while the primary task is now a least-rain destination
+// decision.
 
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
@@ -112,25 +112,24 @@ describe("Travel Radar homepage — product scope", () => {
 
   it("makes weather-first destination comparison the primary action", () => {
     expect(html).toContain("Dates fixed.");
-    expect(html).toContain("Destination open?");
-    expect(html).toContain("Compare destinations");
+    expect(html).toContain("Where is it least likely to rain?");
+    expect(html).toContain("Find 3 dry-weather destinations");
     expect(html).toContain('href="/discover"');
-    expect(html).toContain("Continue shared planning");
-    expect(html).toContain('href="/trips"');
+    expect(html).not.toContain('href="/trips"');
     expect(html).not.toContain("I already have a trip");
   });
 
-  it("renders the three-step group decision flow", () => {
-    expect(html).toContain("Set the window");
-    expect(html).toContain("Compare 3–5 places");
-    expect(html).toContain("Share and plan");
+  it("renders the three-step least-rain decision flow", () => {
+    expect(html).toContain("Choose dates");
+    expect(html).toContain("Add optional limits");
+    expect(html).toContain("Compare the Top 3");
   });
 
   it("exposes every card's required fields in crawlable primary content", () => {
     expect(html).toContain("Tokyo");
     expect(html).toContain("Japan");
     expect(html).toContain("Clear");
-    expect(html).toContain("Travel Score");
+    expect(html).toContain("Weather signal");
     expect(html).toContain("82");
     expect(html).toContain("18°");
     expect(html).toContain("26°");

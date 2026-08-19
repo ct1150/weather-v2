@@ -172,7 +172,6 @@ function scoreIntent(
     penalty += rainPenalty(averageRain, 0.55);
     penalty += averagePrecipitation === null ? 0 : Math.min(averagePrecipitation * 3, 25);
     penalty += abovePenalty(peakRain, 75, 0.35, 9);
-    penalty += abovePenalty(wind, 35, 0.4, 8);
   } else if (intent === "outdoor") {
     penalty += rainPenalty(peakRain, 0.43);
     penalty += abovePenalty(wind, 22, 1.2, 25);

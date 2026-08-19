@@ -6,21 +6,21 @@ function source(relative: string): string {
 }
 
 describe("Phase 9 commercial surface separation contract", () => {
-  it("places Discovery commerce only after a single-destination trip decision", () => {
+  it("places Discovery commerce only after an explicit destination choice", () => {
     const discovery = source("components/WeatherDiscoveryPlannerV2.tsx");
     expect(discovery).toContain(
       'import { ContextualAffiliateSurface } from "./ContextualAffiliateSurface";',
     );
-    expect(discovery).toContain(
-      "tripReady && selectedResults.length === 1 && selectedResults[0] !== undefined",
-    );
+    expect(discovery).toContain("selectedDestination !== null");
+    expect(discovery).toContain('event: "destination_selected"');
     expect(discovery).toContain('stage: "discovery_decided"');
-    expect(discovery).toContain('data-commerce-after-decision="discovery-trip-created"');
+    expect(discovery).toContain('data-commerce-after-decision="destination-selected"');
+    expect(discovery).toContain("hasTrip: false");
 
-    const tripSection = discovery.indexOf('aria-labelledby="discovery-trip"');
-    const commerce = discovery.indexOf('data-commerce-after-decision="discovery-trip-created"');
-    expect(tripSection).toBeGreaterThanOrEqual(0);
-    expect(commerce).toBeGreaterThan(tripSection);
+    const choice = discovery.indexOf("chooseDestination");
+    const commerce = discovery.indexOf('data-commerce-after-decision="destination-selected"');
+    expect(choice).toBeGreaterThanOrEqual(0);
+    expect(commerce).toBeGreaterThan(choice);
   });
 
   it("places weather-replan commerce only behind an actual replacement proposal", () => {
@@ -31,7 +31,7 @@ describe("Phase 9 commercial surface separation contract", () => {
     expect(replan).toContain('data-commerce-after-decision="weather-indoor-fallback"');
   });
 
-  it("keeps commercial dependencies out of weather/discovery/risk/replan algorithms", () => {
+  it("keeps commercial dependencies out of weather and replan algorithms", () => {
     for (const file of [
       "discovery/weather-discovery.ts",
       "trips/activity-risk.ts",

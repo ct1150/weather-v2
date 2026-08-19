@@ -48,18 +48,18 @@ function addDays(date, amount) {
 
 try {
   const english = await fetchText(`${siteUrl}/discover`);
-  requireText(english, "Find the right destination", "English discovery route");
+  requireText(english, "Least-rain destination finder", "English discovery route");
   requireText(
     english,
-    "Start with the weather. Decide the destination second.",
+    "Where is it least likely to rain on your dates?",
     "English discovery route",
   );
   const simplified = await fetchText(`${siteUrl}/zh-cn/discover`);
-  requireText(simplified, "按天气找目的地", "Simplified discovery route");
-  requireText(simplified, "先看天气，再决定去哪里。", "Simplified discovery route");
+  requireText(simplified, "少雨目的地工具", "Simplified discovery route");
+  requireText(simplified, "这几天去哪里更不容易下雨？", "Simplified discovery route");
   const traditional = await fetchText(`${siteUrl}/zh-hant/discover`);
-  requireText(traditional, "按天氣找目的地", "Traditional discovery route");
-  requireText(traditional, "先看天氣，再決定去哪裡。", "Traditional discovery route");
+  requireText(traditional, "少雨目的地工具", "Traditional discovery route");
+  requireText(traditional, "這幾天去哪裡更不容易下雨？", "Traditional discovery route");
 
   const citiesPayload = await fetchJson(`${readUrl}/api/v1/trip-cities?locale=en`);
   const cities = citiesPayload?.data?.items;

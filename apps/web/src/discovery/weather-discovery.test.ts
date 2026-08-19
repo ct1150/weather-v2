@@ -113,6 +113,12 @@ describe("least-rain discovery engine", () => {
     expect(oneDay.score).toBe(fourDays.score);
   });
 
+  it("keeps the least-rain score independent from wind unless a wind limit is set", () => {
+    const calm = assessDiscoveryWeather([day({ windSpeedKph: 5 })], DEFAULT_PREFERENCES);
+    const windy = assessDiscoveryWeather([day({ windSpeedKph: 80 })], DEFAULT_PREFERENCES);
+    expect(calm.score).toBe(windy.score);
+  });
+
   it("applies optional limits as hard filters", () => {
     const tooWet = assessDiscoveryWeather([day({ rainProbability: 55 })], {
       ...DEFAULT_PREFERENCES,

@@ -1,23 +1,22 @@
 # Where Not Rain
 
-Weather-first group destination decision and lightweight trip collaboration platform. Built for travellers whose dates are fixed but destination is still open. Monorepo managed with pnpm workspaces.
+Automated least-rain destination decision tool for a one-person company. Users choose travel dates, optionally set explicit weather limits, and receive only the three destinations with the lowest rain risk in the supported dataset.
 
 ## Current product direction
 
-The product is intentionally focused on one journey:
-
 ```text
-set dates and weather priorities
-→ compare a small destination shortlist
-→ share the same evidence with the group
-→ decide where to go
-→ continue in one shared trip
-→ arrange indoor and outdoor activities around daily weather
+choose dates
+→ optionally exclude places that are too wet, hot, cold or windy
+→ compare the Top 3 least-rain destinations
+→ choose one destination
+→ continue to external booking or weather reminders
 ```
 
-Advanced route optimization, execution mode, imports and adaptive replanning remain available, but they are not the primary acquisition or navigation path.
+Rain is the only ranking target. Temperature and wind remain visible and may be used as explicit hard filters, but they do not silently alter the dry score.
 
-The approved implementation-direction drafts are stored under `docs/superpowers/product/` and `docs/superpowers/plans/`. They do not replace the active authority documents indexed by `SPEC.md` until a controlled documentation cutover is completed.
+Existing itinerary, collaboration, route and execution capabilities remain available for current users under `/trips`, but they are no longer part of primary navigation, acquisition, sitemap or product expansion.
+
+The OPC product contract is recorded in `docs/superpowers/product/2026-08-19-founder-prd-opc-dry-destination-engine.md` and its phased implementation plan in `docs/superpowers/plans/2026-08-19-opc-product-cutover-phase0.md`.
 
 ## Documentation authority
 
