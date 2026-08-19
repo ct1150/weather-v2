@@ -1,30 +1,25 @@
-# Temporary PR #61 implementation gate. The ready-for-review event applies the
-# Phase 2.5 codemod once; the resulting synchronize event uses restored standard CI.
-name: PR CI
+# One-time branch workflow. It applies Phase 2.5, generates Cloudflare binding
+# types, validates focused contracts, commits product changes, then removes itself.
+name: Apply OPC analytics Phase 2.5 once
 
 on:
-  pull_request:
-    types: [opened, reopened, ready_for_review, synchronize]
+  push:
+    branches: [agent/opc-analytics-phase25]
 
 permissions:
   contents: write
-  pull-requests: read
 
 concurrency:
-  group: pr-ci-${{ github.event.pull_request.number }}
-  cancel-in-progress: true
-
-env:
-  PNPM_VERSION: "10.11.0"
-  NODE_VERSION: "22"
+  group: apply-opc-analytics-phase25-once
+  cancel-in-progress: false
 
 jobs:
-  apply_phase25:
-    if: github.event.action == 'ready_for_review' && github.event.pull_request.number == 61
+  apply:
+    if: contains(github.event.head_commit.message, 'chore: run OPC analytics phase 2.5 once')
     runs-on: ubuntu-latest
     timeout-minutes: 35
     steps:
-      - name: Checkout PR branch
+      - name: Checkout branch
         uses: actions/checkout@v4
         with:
           ref: agent/opc-analytics-phase25
@@ -33,18 +28,16 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
-          version: ${{ env.PNPM_VERSION }}
+          version: 10.11.0
 
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: ${{ env.NODE_VERSION }}
+          node-version: 22
           cache: pnpm
 
       - name: Apply Phase 2.5 implementation
-        run: |
-          python tooling/one-off/opc_analytics_phase25_patch.py
-          python tooling/one-off/opc_analytics_phase25.py
+        run: python tooling/one-off/opc_analytics_phase25.py
 
       - name: Install updated workspace
         run: pnpm install --no-frozen-lockfile
@@ -57,6 +50,7 @@ jobs:
           pnpm exec prettier --write \
             README.md \
             .github/workflows/deploy.yml \
+            .github/workflows/pr-ci.yml \
             .github/workflows/production-smoke.yml \
             .github/workflows/refresh-weather.yml \
             packages/analytics/src/events.ts \
@@ -86,9 +80,7 @@ jobs:
             docs/superpowers/plans/2026-08-19-opc-product-analytics-phase25.md
 
       - name: Build focused dependencies
-        run: |
-          pnpm --filter @wnr/config build
-          pnpm --filter @wnr/analytics build
+        run: pnpm --filter @wnr/analytics build
 
       - name: Focused verification
         run: |
@@ -104,87 +96,13 @@ jobs:
             src/security/controls.test.ts
           node --test tooling/deploy/pipeline-contract.test.mjs
 
-      - name: Restore standard CI and commit implementation
+      - name: Commit implementation and remove one-time machinery
         run: |
-          git show origin/main:.github/workflows/pr-ci.yml > .github/workflows/pr-ci.yml
           git rm -f .github/workflows/apply-opc-analytics-phase25-once.yml
           git rm -f tooling/one-off/opc_analytics_phase25.py
-          git rm -f tooling/one-off/opc_analytics_phase25_patch.py
           git rm -f tooling/one-off/opc-analytics-phase25-trigger.txt
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
           git commit -m "feat: add privacy-safe product funnel analytics"
           git push origin HEAD:agent/opc-analytics-phase25
-
-  verify:
-    if: >-
-      github.event.pull_request.draft == false &&
-      !(github.event.action == 'ready_for_review' && github.event.pull_request.number == 61)
-    runs-on: ubuntu-latest
-    timeout-minutes: 25
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: ${{ env.PNPM_VERSION }}
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: pnpm
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Format check
-        run: pnpm format:check
-
-      - name: Lint
-        run: pnpm lint
-
-      - name: Build library packages
-        run: pnpm -r --filter '!@wnr/web' --filter '!@wnr/weather-sync' --filter '!@wnr/maintenance' build
-
-      - name: Typecheck
-        run: pnpm typecheck
-
-      - name: Unit / integration tests
-        run: |
-          set -o pipefail
-          pnpm test 2>&1 | tee test-results.log
-          if grep -qiE "Tests +[0-9]+ failed|Test Files +[0-9]+ failed|FAIL " test-results.log; then
-            echo "::error::Unit/integration tests failed — gate is fail-closed."
-            exit 1
-          fi
-
-      - name: Documentation gate
-        run: pnpm docs:check
-
-      - name: Build web static export
-        env:
-          APP_BASE_URL: https://868656.xyz
-          NEXT_PUBLIC_TRIP_API_URL: https://trip.868656.xyz
-          NEXT_PUBLIC_CLOUDFLARE_ANALYTICS_ENABLED: "false"
-        run: pnpm --filter @wnr/web build
-
-      - name: Build Workers
-        run: |
-          pnpm --filter @wnr/weather-sync build
-          pnpm --filter @wnr/weather-read build
-          pnpm --filter @wnr/trip-api build
-
-      - name: Pipeline contract tests
-        run: node --test tooling/deploy/pipeline-contract.test.mjs
-
-      - name: Secret scan
-        run: |
-          if grep -RIiE "WEATHERAPI_SECRET|CLOUDFLARE_API_TOKEN|BETTER_AUTH_SECRET|GOOGLE_CLIENT_SECRET|RESEND_API_KEY" apps/web/out apps/web/src workers/trip-api/src 2>/dev/null; then
-            echo "::error::Possible secret leaked into build output or source"
-            exit 1
-          fi
-          echo "secret scan: clean"

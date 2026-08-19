@@ -28,5 +28,8 @@ DEPLOY.md
 README.md
 SPEC.md
 
+# Versioned query files use Analytics Engine SQL, which Prettier does not parse
+*.sql
+
 # Misc top-level scaffolding (no source semantics)
 Code
