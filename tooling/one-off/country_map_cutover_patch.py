@@ -33,8 +33,8 @@ replace_once(
     '  maplibre.markerElements.length = 0;\n  Object.defineProperty(window.URL, "createObjectURL", {\n    configurable: true,\n    value: vi.fn(() => "blob:maplibre-test-worker"),\n  });\n  Object.defineProperty(window.URL, "revokeObjectURL", {\n    configurable: true,\n    value: vi.fn(),\n  });\n  Object.defineProperty(window, "matchMedia", {',
 )
 
-smoke = Path(".github/workflows/production-smoke.yml")
-text = smoke.read_text(encoding="utf-8")
+smoke_source = Path(".github/workflows/production-smoke.yml")
+text = smoke_source.read_text(encoding="utf-8")
 replacements = [
     (
         '          fetch_and_match "English homepage" "${SITE_URL}/" /tmp/home-en.html \\\n            "Dates fixed." "Where is it least likely to rain?" "Find 3 dry-weather destinations"',
@@ -65,7 +65,7 @@ for old, new in replacements:
     if old not in text:
         raise RuntimeError(f"production smoke block not found: {old[:90]!r}")
     text = text.replace(old, new, 1)
-smoke.write_text(text, encoding="utf-8")
+Path("tooling/one-off/production-smoke.country-map.yml").write_text(text, encoding="utf-8")
 
 analytics_readme = Path("tooling/analytics/README.md")
 analytics_text = analytics_readme.read_text(encoding="utf-8")
