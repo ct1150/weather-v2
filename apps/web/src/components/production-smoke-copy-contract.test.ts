@@ -21,6 +21,9 @@ const instantMapStyles = readFileSync(
   new URL("../app/instant-country-map.css", import.meta.url),
   "utf8",
 );
+const countryMapHome = readFileSync(new URL("./CountryMapHome.tsx", import.meta.url), "utf8");
+const siteHeader = readFileSync(new URL("./SiteHeader.tsx", import.meta.url), "utf8");
+const favicon = readFileSync(new URL("../../public/favicon.svg", import.meta.url), "utf8");
 const englishHome = readFileSync(new URL("../app/page.tsx", import.meta.url), "utf8");
 const simplifiedHome = readFileSync(new URL("../app/zh-cn/page.tsx", import.meta.url), "utf8");
 const traditionalHome = readFileSync(new URL("../app/zh-hant/page.tsx", import.meta.url), "utf8");
@@ -34,25 +37,25 @@ const traditionalCountry = readFileSync(
 );
 
 describe("production smoke copy contract", () => {
-  it("checks the same country-first homepage copy in all three locales", () => {
-    for (const [page, phrases] of [
-      [englishHome, ["Country travel weather maps", "CountryMapHome"]],
-      [simplifiedHome, ["国家旅行天气地图", 'locale="zh-cn"']],
-      [traditionalHome, ["國家旅行天氣地圖", 'locale="zh-hant"']],
-    ] as const) {
-      for (const phrase of phrases) expect(page).toContain(phrase);
-    }
+  it("keeps the country-first identity in all three locales", () => {
+    expect(englishHome).toContain("CountryMapHome");
+    expect(simplifiedHome).toContain("哪里不下雨 | Where Not Rain");
+    expect(traditionalHome).toContain("哪裡不下雨 | Where Not Rain");
+    expect(siteHeader).toContain("哪里不下雨");
+    expect(siteHeader).toContain("哪裡不下雨");
 
     for (const phrase of [
       "Pick a country. See where the weather looks better.",
       "选择一个国家，一张图看懂哪里天气更好。",
       "選擇一個國家，一張圖看懂哪裡天氣更好。",
+      "哪里不下雨",
+      "哪裡不下雨",
     ]) {
       expect(productionSmoke).toContain(phrase);
     }
   });
 
-  it("verifies immediate complete-map copy and seven-day controls", () => {
+  it("verifies the immediate complete map while retiring the optional-limit row", () => {
     expect(englishCountry).toContain("all ${cities.length} supported travel destinations immediately");
     expect(traditionalCountry).toContain("目前目錄全部 {cities.length}");
     for (const phrase of [
@@ -63,22 +66,44 @@ describe("production smoke copy contract", () => {
       expect(explorer).toContain(phrase);
       expect(productionSmoke).toContain(phrase);
     }
-    expect(explorer).toContain('"7d"');
-    expect(explorer).toContain("Optional weather limits");
-    expect(explorer).toContain("超出限制的目的地不会消失");
-    expect(explorer).toContain("no external map tiles delay the first result");
+    expect(explorer).toContain('useState<RangePreset>("7d")');
+    expect(instantMapStyles).toContain(".country-filter-details");
+    expect(instantMapStyles).toContain("display: none !important");
+    expect(instantMapStyles).toContain("Legacy shared URLs must not dim destinations");
   });
 
   it("renders map geometry and every supplied marker in the initial React tree", () => {
     expect(outlineMap).toContain('data-render-mode="inline-svg"');
     expect(outlineMap).toContain('data-testid="country-weather-marker"');
-    expect(outlineMap).toContain("markers={mapMarkers}");
+    expect(explorer).toContain("markers={mapMarkers}");
     expect(outlineMap).toContain("positioned.map");
     expect(instantMapStyles).toContain(".country-weather-map-instant");
-    expect(instantMapStyles).toContain(".country-static-weather-marker");
     expect(productionSmoke).toContain('data-render-mode="inline-svg"');
     expect(productionSmoke).toContain('data-city-count="8"');
     expect(productionSmoke).toContain('data-testid="country-weather-marker"');
+  });
+
+  it("maps good, mixed and wet states to explicit marker-border colors", () => {
+    expect(instantMapStyles).toContain("border: 3px solid var(--marker-risk-color)");
+    expect(instantMapStyles).toContain(".country-static-weather-marker.risk-good");
+    expect(instantMapStyles).toContain(".country-static-weather-marker.risk-mixed");
+    expect(instantMapStyles).toContain(".country-static-weather-marker.risk-wet");
+    expect(instantMapStyles).toContain("--marker-risk-tint");
+  });
+
+  it("switches countries through prefetched Next links instead of location assignment", () => {
+    expect(explorerWrapper).toContain('from "next/link"');
+    expect(explorerWrapper).toContain("onChangeCapture={switchCountry}");
+    expect(explorerWrapper).toContain("prefetch");
+    expect(explorerWrapper).not.toContain("window.location.assign");
+    expect(countryMapHome).toContain('from "next/link"');
+    expect(countryMapHome).not.toContain("window.location.assign");
+  });
+
+  it("uses a high-contrast sun favicon", () => {
+    expect(favicon).toContain('aria-label="Where Not Rain sun"');
+    expect(favicon).toContain("#fbbf24");
+    expect(favicon).not.toContain(">W<");
   });
 
   it("does not load the remote MapLibre tile stack in the active country map", () => {
