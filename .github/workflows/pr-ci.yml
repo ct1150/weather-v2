@@ -83,19 +83,19 @@ jobs:
               src/components/trip-execution-pwa-contract.test.ts \
               src/components/ux-funnel-contract.test.ts \
               src/e2e/critical-paths.test.ts
-          } 2>&1 | tee country-map-validation.log
+          } 2>&1 | tee country-map-validation.txt
           status=${PIPESTATUS[0]}
           if [ "${status}" -ne 0 ]; then
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add country-map-validation.log
+            git add country-map-validation.txt
             if ! git diff --cached --quiet; then
               git commit -m "chore: record country-map validation failure"
               git push origin HEAD:feat/country-weather-map-cutover
             fi
             exit "${status}"
           fi
-          rm -f country-map-validation.log
+          rm -f country-map-validation.txt
 
       - name: Restore standard CI and remove one-time machinery
         run: |
@@ -103,7 +103,7 @@ jobs:
           git checkout origin/main -- .github/workflows/pr-ci.yml
           rm -f .github/workflows/country-map-cutover-once.yml
           rm -f tooling/one-off/country_map_cutover_patch.py
-          rm -f country-map-validation.log
+          rm -f country-map-validation.txt
 
       - name: Commit completed cutover
         run: |
