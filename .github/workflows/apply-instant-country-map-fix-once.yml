@@ -1,16 +1,84 @@
-# Retired one-off workflow retained only because repository automation does not
-# permit deleting workflow files through the current integration.
-name: Retired country-map one-off
+name: Repair country-map formatting once
 
 on:
-  workflow_dispatch:
+  push:
+    branches: [fix/instant-complete-country-weather-map]
+    paths: [.github/workflows/apply-instant-country-map-fix-once.yml]
 
 permissions:
-  contents: read
+  contents: write
+
+concurrency:
+  group: country-map-format-repair
+  cancel-in-progress: false
 
 jobs:
-  retired:
-    if: ${{ false }}
+  format:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
-      - run: echo "This one-off workflow has been retired."
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: fix/instant-complete-country-weather-map
+          fetch-depth: 0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.11.0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Format files reported by PR CI
+        run: |
+          pnpm exec prettier --write \
+            apps/web/src/app/instant-country-map.css \
+            apps/web/src/components/country-weather-explorer.test.tsx \
+            apps/web/src/components/CountryMapHome.tsx \
+            apps/web/src/components/CountryOutlineMap.tsx \
+            apps/web/src/components/InstantCountryWeatherExplorer.tsx \
+            apps/web/src/components/production-smoke-copy-contract.test.ts \
+            apps/web/src/components/ux-funnel-contract.test.ts
+
+      - name: Restore retired workflow and publish formatting
+        run: |
+          set -euo pipefail
+          cat > .github/workflows/apply-instant-country-map-fix-once.yml <<'YAML'
+          # Retired one-off workflow retained only because repository automation does not
+          # permit deleting workflow files through the current integration.
+          name: Retired country-map one-off
+
+          on:
+            workflow_dispatch:
+
+          permissions:
+            contents: read
+
+          jobs:
+            retired:
+              if: ${{ false }}
+              runs-on: ubuntu-latest
+              steps:
+                - run: echo "This one-off workflow has been retired."
+          YAML
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- \
+            .github/workflows/apply-instant-country-map-fix-once.yml \
+            apps/web/src/app/instant-country-map.css \
+            apps/web/src/components/country-weather-explorer.test.tsx \
+            apps/web/src/components/CountryMapHome.tsx \
+            apps/web/src/components/CountryOutlineMap.tsx \
+            apps/web/src/components/InstantCountryWeatherExplorer.tsx \
+            apps/web/src/components/production-smoke-copy-contract.test.ts \
+            apps/web/src/components/ux-funnel-contract.test.ts
+          git commit -m "style: format refined country weather maps"
+          git push origin HEAD:fix/instant-complete-country-weather-map
