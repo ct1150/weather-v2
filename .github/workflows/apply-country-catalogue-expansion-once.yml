@@ -1,0 +1,409 @@
+name: Expand China Taiwan country maps once
+
+on:
+  push:
+    branches: [feat/china-taiwan-country-maps]
+    paths: [.github/workflows/apply-country-catalogue-expansion-once.yml]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: expand-country-map-catalogue-once
+  cancel-in-progress: false
+
+jobs:
+  expand:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: feat/china-taiwan-country-maps
+          fetch-depth: 0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.11.0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Expand catalogue and simplify map page
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          def read(path: str) -> str:
+              return Path(path).read_text(encoding="utf-8")
+
+          def write(path: str, text: str) -> None:
+              Path(path).write_text(text, encoding="utf-8")
+
+          seed_path = "apps/web/src/build/geography.seed.ts"
+          seed = read(seed_path)
+          if 'id: "CN"' not in seed:
+              countries = '''    {
+      id: "CN",
+      iso2: "CN",
+      slug: "cn",
+      defaultTimezone: "Asia/Shanghai",
+      name: names("China", "中国", "중국", "中国", "中國"),
+      summary: {
+        en: "Compare major city, mountain, plateau and southern-coast weather across China in one view.",
+        "zh-cn": "一张图比较北京、上海、西安、成都、云南与华南等主要旅行地天气。",
+        "zh-tw": "一張圖比較北京、上海、西安、成都、雲南與華南等主要旅行地天氣。",
+      },
+    },
+    {
+      id: "TW",
+      iso2: "TW",
+      slug: "tw",
+      defaultTimezone: "Asia/Taipei",
+      name: names("Taiwan", "台湾", "대만", "台湾", "台灣"),
+      summary: {
+        en: "Compare northern, central, southern and eastern travel weather across Taiwan in one glance.",
+        "zh-cn": "一张图比较台北、台中、台南、高雄、花莲、台东等旅行地天气。",
+        "zh-tw": "一張圖比較台北、台中、台南、高雄、花蓮、台東等旅行地天氣。",
+      },
+    },
+'''
+              anchor = "  ],\n  cities: ["
+              if anchor not in seed:
+                  raise SystemExit("country insertion anchor missing")
+              seed = seed.replace(anchor, countries + anchor, 1)
+
+          if 'id: "beijing"' not in seed:
+              cities = '''    {
+      id: "beijing",
+      countryId: "CN",
+      slug: "beijing",
+      latitude: 39.9042,
+      longitude: 116.4074,
+      timezone: "Asia/Shanghai",
+      isFeatured: false,
+      name: names("Beijing", "北京", "베이징", "北京"),
+    },
+    {
+      id: "shanghai",
+      countryId: "CN",
+      slug: "shanghai",
+      latitude: 31.2304,
+      longitude: 121.4737,
+      timezone: "Asia/Shanghai",
+      isFeatured: false,
+      name: names("Shanghai", "上海", "상하이", "上海"),
+    },
+    {
+      id: "xian",
+      countryId: "CN",
+      slug: "xian",
+      latitude: 34.3416,
+      longitude: 108.9398,
+      timezone: "Asia/Shanghai",
+      isFeatured: false,
+      name: names("Xi'an", "西安", "시안", "西安"),
+    },
+    {
+      id: "chengdu",
+      countryId: "CN",
+      slug: "chengdu",
+      latitude: 30.5728,
+      longitude: 104.0668,
+      timezone: "Asia/Shanghai",
+      isFeatured: false,
+      name: names("Chengdu", "成都", "청두", "成都"),
+    },
+    {
+      id: "chongqing",
+      countryId: "CN",
+      slug: "chongqing",
+      latitude: 29.563,
+      longitude: 106.5516,
+      timezone: "Asia/Shanghai",
+      isFeatured: false,
+      name: names("Chongqing", "重慶", "충칭", "重庆", "重慶"),
+    },
+    {
+      id: "hangzhou",
+      countryId: "CN",
+      slug: "hangzhou",
+      latitude: 30.2741,
+      longitude: 120.1551,
+      timezone: "Asia/Shanghai",
+      isFeatured: false,
+      name: names("Hangzhou", "杭州", "항저우", "杭州"),
+    },
+    {
+      id: "guilin",
+      countryId: "CN",
+      slug: "guilin",
+      latitude: 25.2736,
+      longitude: 110.29,
+      timezone: "Asia/Shanghai",
+      isFeatured: false,
+      name: names("Guilin", "桂林", "구이린", "桂林"),
+    },
+    {
+      id: "xiamen",
+      countryId: "CN",
+      slug: "xiamen",
+      latitude: 24.4798,
+      longitude: 118.0894,
+      timezone: "Asia/Shanghai",
+      isFeatured: false,
+      name: names("Xiamen", "厦門", "샤먼", "厦门", "廈門"),
+    },
+    {
+      id: "kunming",
+      countryId: "CN",
+      slug: "kunming",
+      latitude: 25.0389,
+      longitude: 102.7183,
+      timezone: "Asia/Shanghai",
+      isFeatured: false,
+      name: names("Kunming", "昆明", "쿤밍", "昆明"),
+    },
+    {
+      id: "lijiang",
+      countryId: "CN",
+      slug: "lijiang",
+      latitude: 26.8721,
+      longitude: 100.2299,
+      timezone: "Asia/Shanghai",
+      isFeatured: false,
+      name: names("Lijiang", "麗江", "리장", "丽江", "麗江"),
+    },
+    {
+      id: "sanya",
+      countryId: "CN",
+      slug: "sanya",
+      latitude: 18.2528,
+      longitude: 109.5119,
+      timezone: "Asia/Shanghai",
+      isFeatured: false,
+      name: names("Sanya", "三亜", "싼야", "三亚", "三亞"),
+    },
+    {
+      id: "guangzhou",
+      countryId: "CN",
+      slug: "guangzhou",
+      latitude: 23.1291,
+      longitude: 113.2644,
+      timezone: "Asia/Shanghai",
+      isFeatured: false,
+      name: names("Guangzhou", "広州", "광저우", "广州", "廣州"),
+    },
+
+    {
+      id: "taipei",
+      countryId: "TW",
+      slug: "taipei",
+      latitude: 25.033,
+      longitude: 121.5654,
+      timezone: "Asia/Taipei",
+      isFeatured: false,
+      name: names("Taipei", "台北", "타이베이", "台北"),
+    },
+    {
+      id: "taichung",
+      countryId: "TW",
+      slug: "taichung",
+      latitude: 24.1477,
+      longitude: 120.6736,
+      timezone: "Asia/Taipei",
+      isFeatured: false,
+      name: names("Taichung", "台中", "타이중", "台中"),
+    },
+    {
+      id: "tainan",
+      countryId: "TW",
+      slug: "tainan",
+      latitude: 22.9999,
+      longitude: 120.2269,
+      timezone: "Asia/Taipei",
+      isFeatured: false,
+      name: names("Tainan", "台南", "타이난", "台南"),
+    },
+    {
+      id: "kaohsiung",
+      countryId: "TW",
+      slug: "kaohsiung",
+      latitude: 22.6273,
+      longitude: 120.3014,
+      timezone: "Asia/Taipei",
+      isFeatured: false,
+      name: names("Kaohsiung", "高雄", "가오슝", "高雄"),
+    },
+    {
+      id: "hualien",
+      countryId: "TW",
+      slug: "hualien",
+      latitude: 23.9911,
+      longitude: 121.6112,
+      timezone: "Asia/Taipei",
+      isFeatured: false,
+      name: names("Hualien", "花蓮", "화롄", "花莲", "花蓮"),
+    },
+    {
+      id: "taitung",
+      countryId: "TW",
+      slug: "taitung",
+      latitude: 22.7554,
+      longitude: 121.15,
+      timezone: "Asia/Taipei",
+      isFeatured: false,
+      name: names("Taitung", "台東", "타이둥", "台东", "台東"),
+    },
+    {
+      id: "alishan",
+      countryId: "TW",
+      slug: "alishan",
+      latitude: 23.508,
+      longitude: 120.805,
+      timezone: "Asia/Taipei",
+      isFeatured: false,
+      name: names("Chiayi / Alishan", "嘉義・阿里山", "자이·아리산", "嘉义 / 阿里山", "嘉義 / 阿里山"),
+    },
+    {
+      id: "kenting",
+      countryId: "TW",
+      slug: "kenting",
+      latitude: 21.946,
+      longitude: 120.798,
+      timezone: "Asia/Taipei",
+      isFeatured: false,
+      name: names("Kenting", "墾丁", "컨딩", "垦丁", "墾丁"),
+    },
+
+'''
+              anchor = '''    {
+      id: "singapore",
+'''
+              if anchor not in seed:
+                  raise SystemExit("city insertion anchor missing")
+              seed = seed.replace(anchor, cities + anchor, 1)
+          write(seed_path, seed)
+
+          geometry_path = "apps/web/src/components/country-map-geometry.ts"
+          geometry = read(geometry_path)
+          if "  CN: {" not in geometry:
+              shapes = '''  CN: {
+    path: "M137,230L175,167L251,135L322,93L407,111L492,83L575,111L659,143L754,176L833,233L799,285L824,347L765,405L679,424L625,479L545,466L474,493L401,457L329,440L270,392L207,366L161,319L124,274L137,230ZM552,529L568,522L583,531L578,546L561,550L549,540L552,529Z",
+    minLongitude: 73,
+    maxLongitude: 135,
+    minLatitude: 17,
+    maxLatitude: 54.5,
+  },
+  TW: {
+    path: "M514,76C553,107 579,154 590,205C603,264 585,328 559,384C536,434 508,487 476,545C443,506 424,458 417,407C408,345 418,278 435,218C452,157 476,105 514,76Z",
+    minLongitude: 119.4,
+    maxLongitude: 122.2,
+    minLatitude: 21.4,
+    maxLatitude: 25.7,
+  },
+'''
+              anchor = "  SG: {"
+              if anchor not in geometry:
+                  raise SystemExit("geometry insertion anchor missing")
+              geometry = geometry.replace(anchor, shapes + anchor, 1)
+          write(geometry_path, geometry)
+
+          explorer_path = "apps/web/src/components/InstantCountryWeatherExplorer.tsx"
+          explorer = read(explorer_path)
+          explorer, count = re.subn(
+              r'\n      <section className="country-evidence-panel">.*?\n      </section>',
+              '',
+              explorer,
+              count=1,
+              flags=re.S,
+          )
+          if count not in (0, 1):
+              raise SystemExit(f"unexpected evidence section count: {count}")
+          write(explorer_path, explorer)
+
+          hant_path = "apps/web/src/app/zh-hant/[countrySlug]/page.tsx"
+          hant = read(hant_path)
+          if 'type CountryWeatherDataset' not in hant:
+              hant = hant.replace(
+                  'import { CountryWeatherExplorer } from "../../../components/CountryWeatherExplorer";',
+                  'import {\n  CountryWeatherExplorer,\n  type CountryWeatherDataset,\n} from "../../../components/CountryWeatherExplorer";',
+                  1,
+              )
+          if "function localizeTraditionalDataset" not in hant:
+              helper = '''\nfunction localizeTraditionalDataset(\n  dataset: Awaited<ReturnType<typeof getBakedDataset>>,\n  countrySlug: string,\n): CountryWeatherDataset {\n  const source = dataset.countries.find((item) => item.slug === countrySlug);\n  if (source === undefined) throw new Error(`Unknown country: ${countrySlug}`);\n  const countryCities = dataset.citiesByCountry.get(source.id) ?? [];\n  const slugById = new Map(countryCities.map((item) => [item.city.id, item.city.slug] as const));\n  const projected = projectCountry(dataset, source.slug, "zh-cn");\n  return {\n    path: `/zh-hant/${source.slug}`,\n    country: {\n      ...projected.country,\n      slug: `zh-hant/${projected.country.slug}`,\n      name: toTraditionalText(projected.country.name),\n      summary:\n        projected.country.summary === null ? null : toTraditionalText(projected.country.summary),\n    },\n    cities: (projected.weatherCities ?? []).map((city) => ({\n      ...city,\n      cityName: toTraditionalText(city.cityName),\n      countryName: toTraditionalText(city.countryName),\n      path: `/zh-hant/${source.slug}/${slugById.get(city.cityId) ?? city.cityId}`,\n      days: city.days.map((day) => ({\n        ...day,\n        weather: { ...day.weather, conditionLabel: toTraditionalText(day.weather.conditionLabel) },\n      })),\n    })),\n    updatedLabel: toTraditionalText(\n      (projected.dataUpdatedLabel ?? "Latest available data").replace(/^Updated /u, "更新於 "),\n    ),\n  };\n}\n'''
+              marker = "\nexport default async function TraditionalChineseCountryPage"
+              if marker not in hant:
+                  raise SystemExit("traditional helper insertion anchor missing")
+              hant = hant.replace(marker, helper + marker, 1)
+          if "const countryDatasets = dataset.countries.map" not in hant:
+              marker = "  const pageUrl = localeUrl(\"zh-hant\", `/${sourceCountry.slug}`);"
+              insert = '''  const countryDatasets = dataset.countries.map((item) =>\n    localizeTraditionalDataset(dataset, item.slug),\n  );\n'''
+              if marker not in hant:
+                  raise SystemExit("traditional dataset anchor missing")
+              hant = hant.replace(marker, insert + marker, 1)
+          if "countryDatasets={countryDatasets}" not in hant:
+              marker = '          locale="zh-hant"\n'
+              if marker not in hant:
+                  raise SystemExit("traditional prop anchor missing")
+              hant = hant.replace(marker, marker + '          countryDatasets={countryDatasets}\n', 1)
+          write(hant_path, hant)
+
+          contract_path = "apps/web/src/components/country-catalogue-expansion.test.ts"
+          write(contract_path, '''import { describe, expect, it } from "vitest";\nimport { geographySeed } from "../build/geography.seed";\nimport { countryMapGeometry } from "./country-map-geometry";\n\ndescribe("China and Taiwan country weather-map catalogue", () => {\n  it("adds both country entries with dedicated map geometry", () => {\n    expect(geographySeed.countries.some((country) => country.id === "CN" && country.slug === "cn")).toBe(true);\n    expect(geographySeed.countries.some((country) => country.id === "TW" && country.slug === "tw")).toBe(true);\n    expect(countryMapGeometry("CN")).not.toEqual(countryMapGeometry("UNKNOWN"));\n    expect(countryMapGeometry("TW")).not.toEqual(countryMapGeometry("UNKNOWN"));\n  });\n\n  it("covers the initial high-value travel destinations", () => {\n    const china = geographySeed.cities.filter((city) => city.countryId === "CN");\n    const taiwan = geographySeed.cities.filter((city) => city.countryId === "TW");\n    expect(china).toHaveLength(12);\n    expect(taiwan).toHaveLength(8);\n    for (const id of ["beijing", "shanghai", "xian", "chengdu", "sanya"]) {\n      expect(china.some((city) => city.id === id)).toBe(true);\n    }\n    for (const id of ["taipei", "taichung", "tainan", "kaohsiung", "hualien", "kenting"]) {\n      expect(taiwan.some((city) => city.id === id)).toBe(true);\n    }\n  });\n});\n''')
+
+          smoke_path = ".github/workflows/production-smoke.yml"
+          smoke = read(smoke_path)
+          if 'Simplified China weather route' not in smoke:
+              anchor = '''          fetch_and_match "Simplified country weather route" "${SITE_URL}/zh-cn/jp" /tmp/weather-cn-country.html \\\n            "一张图看懂日本哪里天气更好" "全部已收录旅行地天气一目了然" "未来 7 天"\n'''
+              addition = '''          fetch_and_match "Simplified China weather route" "${SITE_URL}/zh-cn/cn" /tmp/weather-cn-china.html \\\n            "一张图看懂中国哪里天气更好" "北京" "上海" "成都"\n          fetch_and_match "Simplified Taiwan weather route" "${SITE_URL}/zh-cn/tw" /tmp/weather-cn-taiwan.html \\\n            "一张图看懂台湾哪里天气更好" "台北" "高雄" "花莲"\n'''
+              if anchor not in smoke:
+                  raise SystemExit("production smoke China/Taiwan anchor missing")
+              smoke = smoke.replace(anchor, anchor + addition, 1)
+          write(smoke_path, smoke)
+          PY
+
+      - name: Format and validate focused changes
+        run: |
+          pnpm exec prettier --write \
+            apps/web/src/build/geography.seed.ts \
+            apps/web/src/components/country-map-geometry.ts \
+            apps/web/src/components/InstantCountryWeatherExplorer.tsx \
+            'apps/web/src/app/zh-hant/[countrySlug]/page.tsx' \
+            apps/web/src/components/CountryWeatherExplorer.tsx \
+            'apps/web/src/app/[countrySlug]/page.tsx' \
+            apps/web/src/components/country-catalogue-expansion.test.ts \
+            .github/workflows/production-smoke.yml
+          pnpm -r --filter '!@wnr/web' --filter '!@wnr/weather-sync' --filter '!@wnr/maintenance' build
+          pnpm --filter @wnr/web typecheck
+          pnpm --filter @wnr/web exec vitest run \
+            src/components/country-catalogue-expansion.test.ts \
+            src/components/country-weather-explorer.test.tsx \
+            src/components/production-smoke-copy-contract.test.ts \
+            src/app/destination-pages.test.ts
+
+      - name: Publish source changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- \
+            apps/web/src/build/geography.seed.ts \
+            apps/web/src/components/country-map-geometry.ts \
+            apps/web/src/components/InstantCountryWeatherExplorer.tsx \
+            'apps/web/src/app/zh-hant/[countrySlug]/page.tsx' \
+            apps/web/src/components/CountryWeatherExplorer.tsx \
+            'apps/web/src/app/[countrySlug]/page.tsx' \
+            apps/web/src/components/country-catalogue-expansion.test.ts \
+            .github/workflows/production-smoke.yml
+          git commit -m "feat: add China and Taiwan weather maps"
+          git push origin HEAD:feat/china-taiwan-country-maps
