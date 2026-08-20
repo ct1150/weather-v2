@@ -48,8 +48,8 @@ export function CountryPage({ viewModel, jsonLd, locale = "en" }: CountryPagePro
         </h1>
         <p>
           {isChinese
-            ? `地图直接显示 ${cities.length} 个热门旅游地的天气图标、少雨天数和气温。点击任意地点，再查看逐日预报。`
-            : `See weather icons, lower-rain days and temperatures for ${cities.length} popular destinations. Tap any place only when you want the daily detail.`}
+            ? `地图立即显示当前目录全部 ${cities.length} 个旅行地的天气图标、少雨天数和气温。点击任意地点，再查看逐日预报。`
+            : `See all ${cities.length} supported travel destinations immediately, with weather icons, lower-rain days and temperatures. Tap any place only when you want the daily detail.`}
         </p>
       </section>
 
@@ -129,7 +129,7 @@ export async function generateMetadata({
     title: copy?.title ?? "Country travel weather map",
     description:
       copy?.description ??
-      "See weather icons, lower-rain days and temperatures across popular destinations on one map.",
+      "See weather icons, lower-rain days and temperatures across popular travel destinations on one map.",
     alternates: buildAlternates(`/${params.countrySlug}`, "en", ["en", "zh-cn", "zh-hant"]),
     robots: routeRobots("country", true),
   };
