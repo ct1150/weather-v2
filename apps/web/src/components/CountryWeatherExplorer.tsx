@@ -89,7 +89,7 @@ export function CountryWeatherExplorer(props: CountryWeatherExplorerProps): Reac
         countries={props.countries}
         cities={activeDataset.cities}
         updatedLabel={activeDataset.updatedLabel}
-        locale={props.locale}
+        locale={props.locale ?? "en"}
       />
 
       {pendingHref !== null ? (
