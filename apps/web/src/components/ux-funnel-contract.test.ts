@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 const englishHome = readFileSync(new URL("../app/page.tsx", import.meta.url), "utf8");
 const simplifiedHome = readFileSync(new URL("../app/zh-cn/page.tsx", import.meta.url), "utf8");
 const traditionalHome = readFileSync(new URL("../app/zh-hant/page.tsx", import.meta.url), "utf8");
+const countryMapHome = readFileSync(new URL("./CountryMapHome.tsx", import.meta.url), "utf8");
 const header = readFileSync(new URL("./SiteHeader.tsx", import.meta.url), "utf8");
 const explorer = readFileSync(new URL("./CountryWeatherExplorer.tsx", import.meta.url), "utf8");
 const sitemap = readFileSync(new URL("../app/sitemap.ts", import.meta.url), "utf8");
@@ -36,7 +37,8 @@ describe("country-first weather-map UX contracts", () => {
     expect(explorer).toContain("Optional weather limits");
     expect(explorer).toContain("Destinations stay on the map and turn grey");
     expect(explorer).toContain("is-filtered");
-    expect(explorer).toContain("weather_discovery_view");
+    expect(countryMapHome).toContain("weather_discovery_view");
+    expect(countryMapHome).toContain("search_result_clicked");
     expect(explorer).toContain("country_viewed");
     expect(explorer).toContain("city_viewed");
     expect(explorer).not.toContain("DiscoveryTripAction");
