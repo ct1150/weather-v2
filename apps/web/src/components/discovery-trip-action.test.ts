@@ -1,7 +1,10 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
-const standard = readFileSync(new URL("./CountryWeatherExplorer.tsx", import.meta.url), "utf8");
+const standard = readFileSync(
+  new URL("./InstantCountryWeatherExplorer.tsx", import.meta.url),
+  "utf8",
+);
 const traditional = readFileSync(
   new URL("./TraditionalCountryWeatherExplorer.tsx", import.meta.url),
   "utf8",
@@ -12,7 +15,7 @@ describe("country weather map product boundary", () => {
     expect(standard).not.toContain("DiscoveryTripAction");
     expect(standard).not.toContain("/trips/workspace");
     expect(standard).toContain("Open full city forecast");
-    expect(standard).toContain("Popular destinations at a glance");
+    expect(standard).toContain("All supported travel destinations at a glance");
   });
 
   it("uses the same map implementation in Traditional Chinese without trip actions", () => {

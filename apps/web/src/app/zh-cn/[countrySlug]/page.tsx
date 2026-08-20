@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import type { ReactElement } from "react";
 import { getBakedDataset, projectCountry } from "../../../build/bake";
+import type { CountryWeatherDataset } from "../../../components/CountryWeatherExplorer";
 import { CountryPage } from "../../[countrySlug]/page";
 import { buildAlternates, countrySearchCopyZh, localeUrl, routeRobots } from "../../seo";
 
@@ -17,7 +18,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const dataset = await getBakedDataset();
   const country = dataset.countries.find((item) => item.slug === params.countrySlug);
-  if (country === undefined) return { title: "国家旅行天气地图" };
+  if (country === undefined) return { title: "哪里不下雨" };
   const cityNames = (dataset.citiesByCountry.get(country.id) ?? []).map(
     (item) => item.city.name["zh-cn"],
   );
@@ -35,6 +36,31 @@ export async function generateMetadata({
       description: searchCopy.description,
       locale: "zh_CN",
     },
+  };
+}
+
+function localizeCountryDataset(
+  dataset: Awaited<ReturnType<typeof getBakedDataset>>,
+  countrySlug: string,
+): CountryWeatherDataset {
+  const country = dataset.countries.find((item) => item.slug === countrySlug);
+  if (country === undefined) throw new Error(`Unknown country: ${countrySlug}`);
+  const countryCities = dataset.citiesByCountry.get(country.id) ?? [];
+  const citySlugById = new Map(
+    countryCities.map((item) => [item.city.id, item.city.slug] as const),
+  );
+  const projected = projectCountry(dataset, country.slug, "zh-cn");
+  return {
+    path: `/zh-cn/${country.slug}`,
+    country: { ...projected.country, slug: `zh-cn/${projected.country.slug}` },
+    cities: (projected.weatherCities ?? []).map((city) => ({
+      ...city,
+      path: `/zh-cn/${country.slug}/${citySlugById.get(city.cityId) ?? city.cityId}`,
+    })),
+    updatedLabel: (projected.dataUpdatedLabel ?? "Latest available data").replace(
+      /^Updated /u,
+      "更新于 ",
+    ),
   };
 }
 
@@ -78,6 +104,9 @@ export default async function SimplifiedChineseCountryPage({
       path: `/zh-cn/${country.slug}/${citySlugById.get(city.cityId) ?? city.cityId}`,
     })),
   };
+  const countryDatasets = dataset.countries.map((item) =>
+    localizeCountryDataset(dataset, item.slug),
+  );
   const searchCopy = countrySearchCopyZh(
     country.name["zh-cn"],
     countryCities.map((item) => item.city.name["zh-cn"]),
@@ -103,7 +132,7 @@ export default async function SimplifiedChineseCountryPage({
         "@type": "BreadcrumbList",
         "@id": breadcrumbId,
         itemListElement: [
-          { "@type": "ListItem", position: 1, name: "亚洲旅行天气", item: localeUrl("zh-cn", "/") },
+          { "@type": "ListItem", position: 1, name: "哪里不下雨", item: localeUrl("zh-cn", "/") },
           { "@type": "ListItem", position: 2, name: country.name["zh-cn"], item: pageUrl },
         ],
       },
@@ -134,5 +163,12 @@ export default async function SimplifiedChineseCountryPage({
     ],
   };
 
-  return <CountryPage viewModel={viewModel} jsonLd={jsonLd} locale="zh-cn" />;
+  return (
+    <CountryPage
+      viewModel={viewModel}
+      jsonLd={jsonLd}
+      locale="zh-cn"
+      countryDatasets={countryDatasets}
+    />
+  );
 }

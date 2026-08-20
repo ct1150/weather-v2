@@ -15,14 +15,11 @@ function BrandMark(): ReactElement {
   return (
     <span className="brand-mark" aria-hidden="true">
       <svg viewBox="0 0 36 36" fill="none">
+        <circle cx="18" cy="18" r="6.5" fill="currentColor" />
         <path
-          d="M9 22.5h16.2a5.3 5.3 0 0 0 .2-10.6 8.1 8.1 0 0 0-15.2 2.7A4 4 0 0 0 9 22.5Z"
-          fill="currentColor"
-        />
-        <path
-          d="m11.5 27.2-1.7 2.5m7.8-2.5-1.7 2.5m7.8-2.5L22 29.7"
+          d="M18 3.5v4M18 28.5v4M3.5 18h4M28.5 18h4M7.75 7.75l2.8 2.8M25.45 25.45l2.8 2.8M28.25 7.75l-2.8 2.8M10.55 25.45l-2.8 2.8"
           stroke="currentColor"
-          strokeWidth="2.2"
+          strokeWidth="2.4"
           strokeLinecap="round"
         />
       </svg>
@@ -62,10 +59,10 @@ export function SiteHeader(): ReactElement {
           className="group flex items-center gap-2.5 rounded-lg focus-ring"
           aria-label={
             isTraditional
-              ? "Where Not Rain 國家旅行天氣地圖首頁"
+              ? "Where Not Rain 哪裡不下雨首頁"
               : isSimplified
-                ? "Where Not Rain 国家旅行天气地图首页"
-                : "Where Not Rain country travel weather maps home"
+                ? "Where Not Rain 哪里不下雨首页"
+                : "Where Not Rain home"
           }
         >
           <BrandMark />
@@ -73,7 +70,7 @@ export function SiteHeader(): ReactElement {
             Where Not Rain
           </span>
           <span className="hidden rounded-full border border-border bg-surface-elevated px-2 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-muted md:inline">
-            {isTraditional ? "國家天氣圖" : isSimplified ? "国家天气图" : "Weather maps"}
+            {isTraditional ? "哪裡不下雨" : isSimplified ? "哪里不下雨" : "Weather maps"}
           </span>
         </a>
         <nav

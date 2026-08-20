@@ -2,7 +2,10 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import type { ReactElement } from "react";
 import { getBakedDataset, projectCountry } from "../../../build/bake";
-import { CountryWeatherExplorer } from "../../../components/CountryWeatherExplorer";
+import {
+  CountryWeatherExplorer,
+  type CountryWeatherDataset,
+} from "../../../components/CountryWeatherExplorer";
 import { JsonLd } from "../../../components/JsonLd";
 import { toTraditionalText } from "../../../trips/traditional";
 import { buildAlternates, countrySearchCopyZh, localeUrl, routeRobots } from "../../seo";
@@ -19,7 +22,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const dataset = await getBakedDataset();
   const country = dataset.countries.find((item) => item.slug === params.countrySlug);
-  if (country === undefined) return { title: "國家旅行天氣地圖" };
+  if (country === undefined) return { title: "哪裡不下雨" };
   const cityNames = (dataset.citiesByCountry.get(country.id) ?? []).map((item) =>
     toTraditionalText(item.city.name["zh-cn"]),
   );
@@ -39,6 +42,42 @@ export async function generateMetadata({
       description,
       locale: "zh_TW",
     },
+  };
+}
+
+function traditionalCountryDataset(
+  dataset: Awaited<ReturnType<typeof getBakedDataset>>,
+  countrySlug: string,
+): CountryWeatherDataset {
+  const sourceCountry = dataset.countries.find((item) => item.slug === countrySlug);
+  if (sourceCountry === undefined) throw new Error(`Unknown country: ${countrySlug}`);
+  const base = projectCountry(dataset, sourceCountry.slug, "zh-cn");
+  const sourceCities = dataset.citiesByCountry.get(sourceCountry.id) ?? [];
+  const slugById = new Map(sourceCities.map((item) => [item.city.id, item.city.slug] as const));
+  return {
+    path: `/zh-hant/${sourceCountry.slug}`,
+    country: {
+      ...base.country,
+      slug: `zh-hant/${base.country.slug}`,
+      name: toTraditionalText(base.country.name),
+      summary: base.country.summary === null ? null : toTraditionalText(base.country.summary),
+    },
+    cities: (base.weatherCities ?? []).map((city) => ({
+      ...city,
+      cityName: toTraditionalText(city.cityName),
+      countryName: toTraditionalText(city.countryName),
+      path: `/zh-hant/${sourceCountry.slug}/${slugById.get(city.cityId) ?? city.cityId}`,
+      days: city.days.map((day) => ({
+        ...day,
+        weather: {
+          ...day.weather,
+          conditionLabel: toTraditionalText(day.weather.conditionLabel),
+        },
+      })),
+    })),
+    updatedLabel: toTraditionalText(
+      (base.dataUpdatedLabel ?? "Latest available data").replace(/^Updated /u, "更新於 "),
+    ),
   };
 }
 
@@ -78,6 +117,9 @@ export default async function TraditionalChineseCountryPage({
       },
     })),
   }));
+  const countryDatasets = dataset.countries.map((item) =>
+    traditionalCountryDataset(dataset, item.slug),
+  );
   const pageUrl = localeUrl("zh-hant", `/${sourceCountry.slug}`);
   const description = toTraditionalText(
     countrySearchCopyZh(
@@ -105,7 +147,7 @@ export default async function TraditionalChineseCountryPage({
           {
             "@type": "ListItem",
             position: 1,
-            name: "國家天氣地圖",
+            name: "哪裡不下雨",
             item: localeUrl("zh-hant", "/"),
           },
           { "@type": "ListItem", position: 2, name: country.name, item: pageUrl },
@@ -136,7 +178,7 @@ export default async function TraditionalChineseCountryPage({
           <ol>
             <li>
               <a href="/zh-hant" className="focus-ring">
-                國家天氣地圖
+                哪裡不下雨
               </a>
             </li>
             <li aria-current="page">{country.name}</li>
@@ -145,8 +187,8 @@ export default async function TraditionalChineseCountryPage({
         <p className="eyebrow">未來 7 天旅行天氣</p>
         <h1>{`一張圖看懂${country.name}哪裡天氣更好`}</h1>
         <p>
-          地圖直接顯示 {cities.length}{" "}
-          個熱門旅遊地的天氣圖示、少雨天數和氣溫。點擊任意地點，再查看逐日預報。
+          地圖立即顯示目前目錄全部 {cities.length}{" "}
+          個旅行地的天氣圖示、少雨天數和氣溫。點擊任意地點，再查看逐日預報。
         </p>
       </section>
 
@@ -157,6 +199,7 @@ export default async function TraditionalChineseCountryPage({
           cities={cities}
           updatedLabel={updatedLabel}
           locale="zh-hant"
+          countryDatasets={countryDatasets}
         />
       ) : (
         <p className="mt-10 text-body text-muted">目前沒有可比較的城市天氣資料。</p>

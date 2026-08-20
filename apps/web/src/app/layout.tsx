@@ -6,6 +6,7 @@ import { PwaBootstrap } from "../components/PwaBootstrap";
 import { SiteHeader } from "../components/SiteHeader";
 import "./globals.css";
 import "./country-map.css";
+import "./instant-country-map.css";
 
 export const metadata: Metadata = {
   title: {

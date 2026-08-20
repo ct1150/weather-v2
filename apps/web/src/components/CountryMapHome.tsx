@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, type ReactElement } from "react";
+import Link from "next/link";
+import { useEffect, useRef, type ReactElement } from "react";
 import { emitProductAnalytics, type BrowserAnalyticsLocale } from "../analytics/browser-events";
 
 export interface CountryMapHomeItem {
@@ -41,7 +42,7 @@ const COPY = {
     footer: "Where Not Rain · One country map, less weather guesswork",
   },
   "zh-cn": {
-    eyebrow: "国家旅行天气地图",
+    eyebrow: "哪里不下雨",
     title: "选择一个国家，一张图看懂哪里天气更好。",
     description:
       "直接查看热门旅游地未来 7 天的天气图标、少雨天数和气温，不需要填写出发地、交通方式或复杂评分。",
@@ -58,7 +59,7 @@ const COPY = {
     footer: "Where Not Rain · 一张国家地图，少一点天气猜测",
   },
   "zh-hant": {
-    eyebrow: "國家旅行天氣地圖",
+    eyebrow: "哪裡不下雨",
     title: "選擇一個國家，一張圖看懂哪裡天氣更好。",
     description:
       "直接查看熱門旅遊地未來 7 天的天氣圖示、少雨天數和氣溫，不需要填寫出發地、交通方式或複雜評分。",
@@ -78,6 +79,7 @@ const COPY = {
 
 export function CountryMapHome({ countries, locale = "en" }: CountryMapHomeProps): ReactElement {
   const copy = COPY[locale];
+  const countryLinkRefs = useRef(new Map<string, HTMLAnchorElement>());
 
   useEffect(() => {
     emitProductAnalytics({
@@ -100,6 +102,10 @@ export function CountryMapHome({ countries, locale = "en" }: CountryMapHomeProps
     });
   }
 
+  function openSelectedCountry(path: string): void {
+    countryLinkRefs.current.get(path)?.click();
+  }
+
   return (
     <>
       <section className="country-map-home-hero">
@@ -116,8 +122,7 @@ export function CountryMapHome({ countries, locale = "en" }: CountryMapHomeProps
             onChange={(event) => {
               const selected = countries.find((country) => country.path === event.target.value);
               if (selected === undefined) return;
-              recordCountryOpen(selected, countries.indexOf(selected) + 1);
-              window.location.assign(selected.path);
+              openSelectedCountry(selected.path);
             }}
           >
             <option value="" disabled>
@@ -142,8 +147,13 @@ export function CountryMapHome({ countries, locale = "en" }: CountryMapHomeProps
         <ul>
           {countries.map((country, index) => (
             <li key={country.slug}>
-              <a
+              <Link
                 href={country.path}
+                prefetch
+                ref={(node) => {
+                  if (node === null) countryLinkRefs.current.delete(country.path);
+                  else countryLinkRefs.current.set(country.path, node);
+                }}
                 className="country-map-country-card focus-ring"
                 onClick={() => recordCountryOpen(country, index + 1)}
               >
@@ -156,7 +166,7 @@ export function CountryMapHome({ countries, locale = "en" }: CountryMapHomeProps
                 <strong>
                   {copy.mapAction} <span aria-hidden="true">→</span>
                 </strong>
-              </a>
+              </Link>
             </li>
           ))}
         </ul>

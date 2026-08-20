@@ -3,7 +3,10 @@ import { notFound } from "next/navigation";
 import type { ReactElement } from "react";
 import type { CountryPageViewModel } from "../view-models";
 import { getBakedDataset, projectCountry } from "../../build/bake";
-import { CountryWeatherExplorer } from "../../components/CountryWeatherExplorer";
+import {
+  CountryWeatherExplorer,
+  type CountryWeatherDataset,
+} from "../../components/CountryWeatherExplorer";
 import { JsonLd } from "../../components/JsonLd";
 import { buildAlternates, countrySearchCopy, localeUrl, routeRobots } from "../seo";
 
@@ -11,9 +14,15 @@ export interface CountryPageProps {
   readonly viewModel: CountryPageViewModel;
   readonly locale?: "en" | "zh-cn";
   readonly jsonLd?: Readonly<Record<string, unknown>>;
+  readonly countryDatasets?: ReadonlyArray<CountryWeatherDataset>;
 }
 
-export function CountryPage({ viewModel, jsonLd, locale = "en" }: CountryPageProps): ReactElement {
+export function CountryPage({
+  viewModel,
+  jsonLd,
+  locale = "en",
+  countryDatasets,
+}: CountryPageProps): ReactElement {
   const { country, cities, weatherCities, availableCountries, dataUpdatedLabel, state } = viewModel;
   const isChinese = locale === "zh-cn";
   const isReady = state === "ready" || state === "stale";
@@ -32,7 +41,7 @@ export function CountryPage({ viewModel, jsonLd, locale = "en" }: CountryPagePro
           <ol>
             <li>
               <a href={isChinese ? "/zh-cn" : "/"} className="focus-ring">
-                {isChinese ? "国家天气地图" : "Country weather maps"}
+                {isChinese ? "哪里不下雨" : "Country weather maps"}
               </a>
             </li>
             <li aria-current="page">{country.name}</li>
@@ -48,14 +57,14 @@ export function CountryPage({ viewModel, jsonLd, locale = "en" }: CountryPagePro
         </h1>
         <p>
           {isChinese
-            ? `地图直接显示 ${cities.length} 个热门旅游地的天气图标、少雨天数和气温。点击任意地点，再查看逐日预报。`
-            : `See weather icons, lower-rain days and temperatures for ${cities.length} popular destinations. Tap any place only when you want the daily detail.`}
+            ? `地图立即显示当前目录全部 ${cities.length} 个旅行地的天气图标、少雨天数和气温。点击任意地点，再查看逐日预报。`
+            : `See all ${cities.length} supported travel destinations immediately, with weather icons, lower-rain days and temperatures. Tap any place only when you want the daily detail.`}
         </p>
       </section>
 
       {state === "loading" ? (
         <p role="status" className="mt-8 text-body text-muted">
-          {isChinese ? "正在加载国家天气地图…" : "Loading the country weather map…"}
+          {isChinese ? "正在加载哪里不下雨…" : "Loading the country weather map…"}
         </p>
       ) : null}
       {state === "error" ? (
@@ -77,6 +86,7 @@ export function CountryPage({ viewModel, jsonLd, locale = "en" }: CountryPagePro
               : (dataUpdatedLabel ?? "Latest available data")
           }
           locale={locale}
+          countryDatasets={countryDatasets}
         />
       ) : isReady ? (
         <section className="mt-10 rounded-2xl border border-border bg-white p-6">
@@ -129,7 +139,7 @@ export async function generateMetadata({
     title: copy?.title ?? "Country travel weather map",
     description:
       copy?.description ??
-      "See weather icons, lower-rain days and temperatures across popular destinations on one map.",
+      "See weather icons, lower-rain days and temperatures across popular travel destinations on one map.",
     alternates: buildAlternates(`/${params.countrySlug}`, "en", ["en", "zh-cn", "zh-hant"]),
     robots: routeRobots("country", true),
   };
@@ -145,6 +155,15 @@ export default async function Page({
   if (country === undefined) notFound();
   const viewModel = projectCountry(dataset, params.countrySlug, "en");
   const countryCities = dataset.citiesByCountry.get(country.id) ?? [];
+  const countryDatasets: ReadonlyArray<CountryWeatherDataset> = dataset.countries.map((item) => {
+    const projected = projectCountry(dataset, item.slug, "en");
+    return {
+      path: `/${item.slug}`,
+      country: projected.country,
+      cities: projected.weatherCities ?? [],
+      updatedLabel: projected.dataUpdatedLabel ?? "Latest available data",
+    };
+  });
   const copy = countrySearchCopy(
     country.name.en,
     countryCities.map((item) => item.city.name.en),
@@ -188,5 +207,5 @@ export default async function Page({
     ],
   };
 
-  return <CountryPage viewModel={viewModel} jsonLd={jsonLd} />;
+  return <CountryPage viewModel={viewModel} jsonLd={jsonLd} countryDatasets={countryDatasets} />;
 }
