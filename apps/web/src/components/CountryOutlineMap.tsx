@@ -5,6 +5,7 @@ import {
   countryMapGeometry,
   projectCountryPoint,
 } from "./country-map-geometry";
+import { countryMapGeometryOverride } from "./country-map-geometry-overrides";
 
 export type CountryOutlineRisk = "good" | "mixed" | "wet" | "unknown";
 
@@ -80,11 +81,15 @@ function overlapPenalty(
   return penalty;
 }
 
+function resolveCountryGeometry(countryId: string) {
+  return countryMapGeometryOverride(countryId) ?? countryMapGeometry(countryId);
+}
+
 export function layoutCountryMarkers(
   countryId: string,
   markers: ReadonlyArray<CountryOutlineMarker>,
 ): ReadonlyArray<PositionedCountryMarker> {
-  const geometry = countryMapGeometry(countryId);
+  const geometry = resolveCountryGeometry(countryId);
   const anchored = markers.map((marker) => ({
     marker,
     ...projectCountryPoint(geometry, marker.longitude, marker.latitude),
@@ -151,7 +156,7 @@ export function CountryOutlineMap({
   markers,
   onSelect,
 }: CountryOutlineMapProps): ReactElement {
-  const geometry = countryMapGeometry(countryId);
+  const geometry = resolveCountryGeometry(countryId);
   const positioned = layoutCountryMarkers(countryId, markers);
 
   return (

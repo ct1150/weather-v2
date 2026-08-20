@@ -7,6 +7,7 @@ import { SiteHeader } from "../components/SiteHeader";
 import "./globals.css";
 import "./country-map.css";
 import "./instant-country-map.css";
+import "./country-map-refinements.css";
 
 export const metadata: Metadata = {
   title: {

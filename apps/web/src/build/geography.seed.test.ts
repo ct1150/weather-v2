@@ -3,12 +3,12 @@ import { describe, expect, it } from "vitest";
 import { geographySeed } from "./geography.seed";
 
 describe("phase-one geography catalogue", () => {
-  it("covers 36 weather-distinct destinations across eight countries", () => {
-    expect(geographySeed.countries).toHaveLength(8);
-    expect(geographySeed.cities).toHaveLength(36);
-    expect(new Set(geographySeed.cities.map((city) => city.id)).size).toBe(36);
+  it("covers 56 weather-distinct destinations across ten country map entries", () => {
+    expect(geographySeed.countries).toHaveLength(10);
+    expect(geographySeed.cities).toHaveLength(56);
+    expect(new Set(geographySeed.cities.map((city) => city.id)).size).toBe(56);
     expect(new Set(geographySeed.cities.map((city) => `${city.countryId}/${city.slug}`)).size).toBe(
-      36,
+      56,
     );
   });
 
