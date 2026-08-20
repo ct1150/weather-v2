@@ -1,13 +1,33 @@
 "use client";
 
-import Link from "next/link";
-import { useEffect, useRef, useState, type ChangeEvent, type ReactElement } from "react";
+import { useRouter } from "next/navigation";
+import {
+  startTransition,
+  useEffect,
+  useMemo,
+  useState,
+  type ChangeEvent,
+  type ReactElement,
+} from "react";
+import type {
+  CountryHeaderViewModel,
+  CountryWeatherCityViewModel,
+} from "../app/view-models";
 import {
   InstantCountryWeatherExplorer,
   type CountryWeatherExplorerProps as InstantCountryWeatherExplorerProps,
 } from "./InstantCountryWeatherExplorer";
 
-export type CountryWeatherExplorerProps = InstantCountryWeatherExplorerProps;
+export interface CountryWeatherDataset {
+  readonly path: string;
+  readonly country: CountryHeaderViewModel;
+  readonly cities: ReadonlyArray<CountryWeatherCityViewModel>;
+  readonly updatedLabel: string;
+}
+
+export interface CountryWeatherExplorerProps extends InstantCountryWeatherExplorerProps {
+  readonly countryDatasets?: ReadonlyArray<CountryWeatherDataset>;
+}
 
 const PRESERVED_COUNTRY_QUERY_KEYS = ["range", "from", "to"] as const;
 
@@ -22,49 +42,65 @@ function destinationHref(path: string): string {
 }
 
 export function CountryWeatherExplorer(props: CountryWeatherExplorerProps): ReactElement {
-  const navigationLinkRef = useRef<HTMLAnchorElement | null>(null);
-  const [pendingHref, setPendingHref] = useState<string | null>(null);
+  const router = useRouter();
+  const datasets = props.countryDatasets ?? [];
+  const [activeDataset, setActiveDataset] = useState<CountryWeatherDataset>({
+    path: props.countries.find((item) => item.slug === props.country.slug.split("/").at(-1))?.path ??
+      `/${props.country.slug}`,
+    country: props.country,
+    cities: props.cities,
+    updatedLabel: props.updatedLabel,
+  });
+
+  const datasetByPath = useMemo(
+    () => new Map(datasets.map((dataset) => [dataset.path, dataset] as const)),
+    [datasets],
+  );
 
   useEffect(() => {
-    if (pendingHref === null || navigationLinkRef.current === null) return;
-    navigationLinkRef.current.click();
-    setPendingHref(null);
-  }, [pendingHref]);
+    const currentPath =
+      props.countries.find((item) => item.slug === props.country.slug.split("/").at(-1))?.path ??
+      `/${props.country.slug}`;
+    setActiveDataset({
+      path: currentPath,
+      country: props.country,
+      cities: props.cities,
+      updatedLabel: props.updatedLabel,
+    });
+  }, [props.cities, props.countries, props.country, props.updatedLabel]);
+
+  useEffect(() => {
+    for (const country of props.countries) router.prefetch(country.path);
+  }, [props.countries, router]);
 
   function switchCountry(event: ChangeEvent<HTMLDivElement>): void {
     const target = event.target;
     if (!(target instanceof HTMLSelectElement) || !target.classList.contains("country-select")) {
       return;
     }
+
     event.preventDefault();
     event.stopPropagation();
-    setPendingHref(destinationHref(target.value));
+
+    const path = target.value;
+    const dataset = datasetByPath.get(path);
+    if (dataset !== undefined) setActiveDataset(dataset);
+
+    const href = destinationHref(path);
+    startTransition(() => {
+      router.push(href, { scroll: false });
+    });
   }
 
   return (
-    <div onChangeCapture={switchCountry}>
-      <InstantCountryWeatherExplorer {...props} />
-
-      {pendingHref !== null ? (
-        <Link
-          ref={navigationLinkRef}
-          href={pendingHref}
-          prefetch
-          tabIndex={-1}
-          aria-hidden="true"
-          className="sr-only"
-        >
-          Open selected country
-        </Link>
-      ) : null}
-
-      <nav aria-hidden="true" className="sr-only" data-testid="country-prefetch-links">
-        {props.countries.map((country) => (
-          <Link key={country.path} href={country.path} prefetch tabIndex={-1}>
-            {country.name}
-          </Link>
-        ))}
-      </nav>
+    <div onChangeCapture={switchCountry} data-country-switch-mode="optimistic-background-route">
+      <InstantCountryWeatherExplorer
+        country={activeDataset.country}
+        countries={props.countries}
+        cities={activeDataset.cities}
+        updatedLabel={activeDataset.updatedLabel}
+        locale={props.locale}
+      />
     </div>
   );
 }
