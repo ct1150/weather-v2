@@ -1,70 +1,94 @@
-name: Format country-map source once
+# Lightweight pull-request validation.
+# Draft PR pushes do not allocate a hosted runner. Validation starts when the PR
+# is marked Ready for review, and re-runs only for subsequent non-draft updates.
+
+name: PR CI
 
 on:
   pull_request:
-    types: [synchronize]
+    types: [opened, reopened, ready_for_review, synchronize]
 
 permissions:
-  contents: write
+  contents: read
   pull-requests: read
 
 concurrency:
-  group: country-map-pr-format-repair
-  cancel-in-progress: false
+  group: pr-ci-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+env:
+  PNPM_VERSION: "10.11.0"
+  NODE_VERSION: "22"
 
 jobs:
-  format:
-    if: github.event.pull_request.number == 70 && github.head_ref == 'fix/instant-complete-country-weather-map'
+  verify:
+    if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
     steps:
-      - name: Checkout branch
+      - name: Checkout
         uses: actions/checkout@v4
-        with:
-          ref: fix/instant-complete-country-weather-map
-          fetch-depth: 0
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
-          version: 10.11.0
+          version: ${{ env.PNPM_VERSION }}
 
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Format files reported by PR CI
-        run: |
-          pnpm exec prettier --write \
-            apps/web/src/app/instant-country-map.css \
-            apps/web/src/components/country-weather-explorer.test.tsx \
-            apps/web/src/components/CountryMapHome.tsx \
-            apps/web/src/components/CountryOutlineMap.tsx \
-            apps/web/src/components/InstantCountryWeatherExplorer.tsx \
-            apps/web/src/components/production-smoke-copy-contract.test.ts \
-            apps/web/src/components/ux-funnel-contract.test.ts
+      - name: Format check
+        run: pnpm format:check
 
-      - name: Publish formatted source
+      - name: Lint
+        run: pnpm lint
+
+      - name: Build library packages
+        run: pnpm -r --filter '!@wnr/web' --filter '!@wnr/weather-sync' --filter '!@wnr/maintenance' build
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Unit / integration tests
         run: |
-          set -euo pipefail
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -- \
-            apps/web/src/app/instant-country-map.css \
-            apps/web/src/components/country-weather-explorer.test.tsx \
-            apps/web/src/components/CountryMapHome.tsx \
-            apps/web/src/components/CountryOutlineMap.tsx \
-            apps/web/src/components/InstantCountryWeatherExplorer.tsx \
-            apps/web/src/components/production-smoke-copy-contract.test.ts \
-            apps/web/src/components/ux-funnel-contract.test.ts
-          if git diff --cached --quiet; then
-            echo "Formatting already clean."
-            exit 0
+          set -o pipefail
+          pnpm test 2>&1 | tee test-results.log
+          if grep -qiE "Tests +[0-9]+ failed|Test Files +[0-9]+ failed|FAIL " test-results.log; then
+            echo "::error::Unit/integration tests failed — gate is fail-closed."
+            exit 1
           fi
-          git commit -m "style: format refined country weather maps"
-          git push origin HEAD:fix/instant-complete-country-weather-map
+
+      - name: Documentation gate
+        run: pnpm docs:check
+
+      - name: Build web static export
+        env:
+          APP_BASE_URL: https://868656.xyz
+          NEXT_PUBLIC_TRIP_API_URL: https://trip.868656.xyz
+          NEXT_PUBLIC_PRODUCT_ANALYTICS_URL: https://analytics.868656.xyz/api/v1/product-events
+          NEXT_PUBLIC_CLOUDFLARE_ANALYTICS_ENABLED: "false"
+        run: pnpm --filter @wnr/web build
+
+      - name: Build Workers
+        run: |
+          pnpm --filter @wnr/weather-sync build
+          pnpm --filter @wnr/weather-read build
+          pnpm --filter @wnr/trip-api build
+          pnpm --filter @wnr/product-analytics build
+
+      - name: Pipeline contract tests
+        run: node --test tooling/deploy/pipeline-contract.test.mjs
+
+      - name: Secret scan
+        run: |
+          if grep -RIiE "WEATHERAPI_SECRET|CLOUDFLARE_API_TOKEN|BETTER_AUTH_SECRET|GOOGLE_CLIENT_SECRET|RESEND_API_KEY" apps/web/out apps/web/src workers/trip-api/src workers/product-analytics/src 2>/dev/null; then
+            echo "::error::Possible secret leaked into build output or source"
+            exit 1
+          fi
+          echo "secret scan: clean"
