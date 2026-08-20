@@ -2,7 +2,10 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import type { ReactElement } from "react";
 import { getBakedDataset, projectCountry } from "../../../build/bake";
-import { CountryWeatherExplorer } from "../../../components/CountryWeatherExplorer";
+import {
+  CountryWeatherExplorer,
+  type CountryWeatherDataset,
+} from "../../../components/CountryWeatherExplorer";
 import { JsonLd } from "../../../components/JsonLd";
 import { toTraditionalText } from "../../../trips/traditional";
 import { buildAlternates, countrySearchCopyZh, localeUrl, routeRobots } from "../../seo";
@@ -42,6 +45,42 @@ export async function generateMetadata({
   };
 }
 
+function traditionalCountryDataset(
+  dataset: Awaited<ReturnType<typeof getBakedDataset>>,
+  countrySlug: string,
+): CountryWeatherDataset {
+  const sourceCountry = dataset.countries.find((item) => item.slug === countrySlug);
+  if (sourceCountry === undefined) throw new Error(`Unknown country: ${countrySlug}`);
+  const base = projectCountry(dataset, sourceCountry.slug, "zh-cn");
+  const sourceCities = dataset.citiesByCountry.get(sourceCountry.id) ?? [];
+  const slugById = new Map(sourceCities.map((item) => [item.city.id, item.city.slug] as const));
+  return {
+    path: `/zh-hant/${sourceCountry.slug}`,
+    country: {
+      ...base.country,
+      slug: `zh-hant/${base.country.slug}`,
+      name: toTraditionalText(base.country.name),
+      summary: base.country.summary === null ? null : toTraditionalText(base.country.summary),
+    },
+    cities: (base.weatherCities ?? []).map((city) => ({
+      ...city,
+      cityName: toTraditionalText(city.cityName),
+      countryName: toTraditionalText(city.countryName),
+      path: `/zh-hant/${sourceCountry.slug}/${slugById.get(city.cityId) ?? city.cityId}`,
+      days: city.days.map((day) => ({
+        ...day,
+        weather: {
+          ...day.weather,
+          conditionLabel: toTraditionalText(day.weather.conditionLabel),
+        },
+      })),
+    })),
+    updatedLabel: toTraditionalText(
+      (base.dataUpdatedLabel ?? "Latest available data").replace(/^Updated /u, "更新於 "),
+    ),
+  };
+}
+
 export default async function TraditionalChineseCountryPage({
   params,
 }: {
@@ -78,6 +117,9 @@ export default async function TraditionalChineseCountryPage({
       },
     })),
   }));
+  const countryDatasets = dataset.countries.map((item) =>
+    traditionalCountryDataset(dataset, item.slug),
+  );
   const pageUrl = localeUrl("zh-hant", `/${sourceCountry.slug}`);
   const description = toTraditionalText(
     countrySearchCopyZh(
@@ -157,6 +199,7 @@ export default async function TraditionalChineseCountryPage({
           cities={cities}
           updatedLabel={updatedLabel}
           locale="zh-hant"
+          countryDatasets={countryDatasets}
         />
       ) : (
         <p className="mt-10 text-body text-muted">目前沒有可比較的城市天氣資料。</p>
