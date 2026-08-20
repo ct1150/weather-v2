@@ -145,8 +145,8 @@ export default async function TraditionalChineseCountryPage({
         <p className="eyebrow">未來 7 天旅行天氣</p>
         <h1>{`一張圖看懂${country.name}哪裡天氣更好`}</h1>
         <p>
-          地圖直接顯示 {cities.length}{" "}
-          個熱門旅遊地的天氣圖示、少雨天數和氣溫。點擊任意地點，再查看逐日預報。
+          地圖會立即顯示目前目錄全部 {cities.length}{" "}
+          個旅行地的天氣圖示、少雨天數和氣溫。點擊任意地點，再查看逐日預報。
         </p>
       </section>
 
