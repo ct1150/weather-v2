@@ -4,12 +4,15 @@ import { countryMapGeometryOverride } from "./country-map-geometry-overrides";
 
 describe("China and Taiwan country weather-map catalogue", () => {
   it("adds both country entries with dedicated geometry", () => {
-    expect(geographySeed.countries.some((country) => country.id === "CN" && country.slug === "cn")).toBe(
-      true,
+    const hasChina = geographySeed.countries.some(
+      (country) => country.id === "CN" && country.slug === "cn",
     );
-    expect(geographySeed.countries.some((country) => country.id === "TW" && country.slug === "tw")).toBe(
-      true,
+    const hasTaiwan = geographySeed.countries.some(
+      (country) => country.id === "TW" && country.slug === "tw",
     );
+
+    expect(hasChina).toBe(true);
+    expect(hasTaiwan).toBe(true);
     expect(countryMapGeometryOverride("CN")).not.toBeNull();
     expect(countryMapGeometryOverride("TW")).not.toBeNull();
   });
