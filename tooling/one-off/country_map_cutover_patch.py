@@ -27,6 +27,12 @@ replace_once(
     '    if (\n      scrollOnMobile &&\n      typeof window.matchMedia === "function" &&\n      window.matchMedia("(max-width: 1023px)").matches\n    ) {',
 )
 
+replace_once(
+    "apps/web/src/components/country-weather-explorer.test.tsx",
+    '  maplibre.markerElements.length = 0;\n  Object.defineProperty(window, "matchMedia", {',
+    '  maplibre.markerElements.length = 0;\n  Object.defineProperty(window.URL, "createObjectURL", {\n    configurable: true,\n    value: vi.fn(() => "blob:maplibre-test-worker"),\n  });\n  Object.defineProperty(window.URL, "revokeObjectURL", {\n    configurable: true,\n    value: vi.fn(),\n  });\n  Object.defineProperty(window, "matchMedia", {',
+)
+
 smoke = Path(".github/workflows/production-smoke.yml")
 text = smoke.read_text(encoding="utf-8")
 replacements = [
