@@ -39,7 +39,10 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Apply bounded source patches
-        run: python tooling/one-off/country_map_cutover_patch.py
+        run: |
+          if [ -f tooling/one-off/country_map_cutover_patch.py ]; then
+            python tooling/one-off/country_map_cutover_patch.py
+          fi
 
       - name: Format changed source
         run: |
@@ -97,18 +100,16 @@ jobs:
           fi
           rm -f country-map-validation.txt
 
-      - name: Restore standard CI and remove one-time machinery
-        run: |
-          git fetch origin main
-          git checkout origin/main -- .github/workflows/pr-ci.yml
-          rm -f .github/workflows/country-map-cutover-once.yml
-          rm -f tooling/one-off/country_map_cutover_patch.py
-          rm -f country-map-validation.txt
-
-      - name: Commit completed cutover
+      - name: Commit product source without workflow files
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
+          rm -f tooling/one-off/country_map_cutover_patch.py
+          rm -f country-map-validation.txt
+          git add apps/web README.md docs/superpowers tooling/analytics tooling/one-off
+          if git diff --cached --quiet; then
+            echo "Product source already committed"
+            exit 0
+          fi
           git commit -m "feat: complete country-first weather map cutover"
           git push origin HEAD:feat/country-weather-map-cutover
