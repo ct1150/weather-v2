@@ -45,9 +45,7 @@ describe("production smoke copy contract", () => {
 
   it("verifies map-first country copy and seven-day controls", () => {
     expect(englishCountry).toContain("travel weather at a glance");
-    expect(traditionalCountry).toContain(
-      '<h1>{`一張圖看懂${country.name}哪裡天氣更好`}</h1>',
-    );
+    expect(traditionalCountry).toContain("<h1>{`一張圖看懂${country.name}哪裡天氣更好`}</h1>");
     for (const phrase of [
       "Popular destinations at a glance",
       "热门旅游地天气一目了然",
