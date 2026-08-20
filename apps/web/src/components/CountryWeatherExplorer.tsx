@@ -9,103 +9,196 @@ import type {
   CountryWeatherCityViewModel,
   CountryWeatherDayViewModel,
 } from "../app/view-models";
-import type { Window } from "../api/v1/schemas";
+import { emitProductAnalytics, type BrowserAnalyticsLocale } from "../analytics/browser-events";
+import { toTraditionalText } from "../trips/traditional";
 import { windowIndicesForDates } from "../weather/window-selection";
-import { DiscoveryTripAction } from "./DiscoveryTripAction";
 import { MAPLIBRE_STYLE_URL } from "./ExplorerMap";
 
 import "maplibre-gl/dist/maplibre-gl.css";
 
-type ExplorerLocale = "en" | "zh-cn";
+type ExplorerLocale = BrowserAnalyticsLocale;
+type RangePreset = "3d" | "7d" | "weekend" | "custom";
+type Risk = "good" | "mixed" | "wet" | "unknown";
 
-const WINDOW_LABELS: Readonly<Record<ExplorerLocale, Readonly<Record<Window, string>>>> = {
-  en: { today: "Today", tomorrow: "Tomorrow", weekend: "This weekend", next_week: "Next week" },
-  "zh-cn": { today: "今天", tomorrow: "明天", weekend: "本周末", next_week: "下周" },
+interface WeatherFilters {
+  readonly rainMax: number | null;
+  readonly windMax: number | null;
+  readonly tempMin: number | null;
+  readonly tempMax: number | null;
+}
+
+interface CitySummary {
+  readonly city: CountryWeatherCityViewModel;
+  readonly days: ReadonlyArray<CountryWeatherDayViewModel>;
+  readonly dryDays: number;
+  readonly maxRain: number | null;
+  readonly totalRainMm: number | null;
+  readonly temperatureMin: number | null;
+  readonly temperatureMax: number | null;
+  readonly maxWind: number | null;
+  readonly risk: Risk;
+  readonly symbol: string;
+  readonly filtered: boolean;
+  readonly filterReasons: ReadonlyArray<string>;
+}
+
+const EMPTY_FILTERS: WeatherFilters = {
+  rainMax: null,
+  windMax: null,
+  tempMin: null,
+  tempMax: null,
 };
 
 const COPY = {
   en: {
     country: "Country",
     chooseCountry: "Choose country",
-    travelDates: "Travel dates",
-    exactDates: "Or choose exact dates",
+    period: "Weather period",
+    threeDays: "Next 3 days",
+    sevenDays: "Next 7 days",
+    weekend: "This weekend",
+    custom: "Custom dates",
     firstDate: "First travel date",
     lastDate: "Last travel date",
-    unavailable: "Dates unavailable",
-    customTrip: "Custom trip",
-    atGlance: "at a glance",
-    mapHeading: "Weather across every listed travel city",
-    lowerRain: "Lower rain",
-    mixed: "Mixed",
-    rainLikely: "Rain likely",
-    best: "Best available",
-    selected: "Selected city",
-    averageScore: "Avg score",
-    lowerRainDays: "Lower-rain days",
-    expectedRain: "Expected rain · peak chance",
+    filters: "Optional weather limits",
+    filtersHint: "Destinations stay on the map and turn grey when they exceed a limit.",
+    activeFilters: (count: number) => `${count} active`,
+    noLimit: "No limit",
+    maxRain: "Highest daily rain chance",
+    maxWind: "Maximum wind speed",
+    minTemp: "Lowest overnight temperature",
+    maxTemp: "Highest daytime temperature",
+    clearFilters: "Clear filters",
+    share: "Copy map link",
+    copied: "Link copied",
+    copyFailed: "Copy unavailable",
+    mapHeading: "Popular destinations at a glance",
+    mapHint: "Tap any weather marker to see the daily forecast.",
+    mapLegend: "Weather map legend",
+    lowerRain: "Mostly lower rain",
+    mixed: "Mixed weather",
+    rainLikely: "Rain more likely",
+    selected: "Selected destination",
+    dryDays: "Lower-rain days",
+    rain: "Expected rain · peak chance",
     temperature: "Temperature",
-    dailyWeather: "Daily weather in selected range",
-    peakRain: "peak rain",
-    detail: "Open 7-day city outlook",
-    compare: "Compare without leaving the map",
-    allCities: (country: string) => `All ${country} travel cities`,
-    sorted: "Sorted by lighter-rain days, expected amount, then score",
-    score: "Score",
-    mapRiskLegend: "Map risk legend",
-    answerEyebrow: "Weather answer",
-    answerHeading: "Best weather option for these dates",
-    methodology: "How to use this comparison",
-    rankingQuestion: "How are cities ranked?",
-    rankingAnswer:
-      "We prioritize lower-rain days, then expected rainfall, peak rain probability and Travel Score. The score is a comparison aid, not a weather guarantee.",
-    probabilityQuestion: "Does a high rain chance mean rain all day?",
-    probabilityAnswer:
-      "No. Probability describes the chance of measurable rain, not how long it lasts. Compare expected millimetres and the daily breakdown before deciding.",
-    sourceQuestion: "Where does the forecast come from?",
-    sourceAnswer:
-      "Forecasts are converted into the same city-by-city decision measures using data from",
-    cityForecast: "7-day forecast",
+    wind: "Maximum wind",
+    daily: "Daily weather",
+    peakRain: "rain",
+    detail: "Open full city forecast",
+    destinations: (country: string) => `Popular destinations in ${country}`,
+    listHint: "The list mirrors every marker on the map; no destination is hidden by a filter.",
+    outsideLimits: "Outside your limits",
+    matchesLimits: "Matches your limits",
+    unavailable: "Weather unavailable",
+    rainReason: (value: number, limit: number) => `Peak rain ${value}% exceeds ${limit}%`,
+    windReason: (value: number, limit: number) => `Wind ${value} km/h exceeds ${limit} km/h`,
+    coldReason: (value: number, limit: number) => `Night low ${value}°C is below ${limit}°C`,
+    hotReason: (value: number, limit: number) => `Day high ${value}°C exceeds ${limit}°C`,
+    sourceHeading: "How to read this map",
+    sourceText:
+      "Weather icons summarize the selected period. Lower-rain days and the daily forecast provide the detail; no opaque travel score changes the result.",
+    source: "Forecast source",
   },
   "zh-cn": {
     country: "国家",
     chooseCountry: "选择国家",
-    travelDates: "旅行日期",
-    exactDates: "或选择准确日期",
-    firstDate: "旅行开始日期",
-    lastDate: "旅行结束日期",
-    unavailable: "暂无可用日期",
-    customTrip: "自选行程",
-    atGlance: "天气概览",
-    mapHeading: "地图上比较全部旅游城市",
-    lowerRain: "少雨",
-    mixed: "天气不定",
+    period: "天气时间范围",
+    threeDays: "未来 3 天",
+    sevenDays: "未来 7 天",
+    weekend: "本周末",
+    custom: "自定义日期",
+    firstDate: "开始日期",
+    lastDate: "结束日期",
+    filters: "可选天气限制",
+    filtersHint: "超出限制的目的地不会消失，只会在地图上变灰并说明原因。",
+    activeFilters: (count: number) => `${count} 项已启用`,
+    noLimit: "不限",
+    maxRain: "任一天最高降雨概率",
+    maxWind: "最大风速",
+    minTemp: "最低夜间温度",
+    maxTemp: "最高白天气温",
+    clearFilters: "清除限制",
+    share: "复制地图链接",
+    copied: "链接已复制",
+    copyFailed: "暂时无法复制",
+    mapHeading: "热门旅游地天气一目了然",
+    mapHint: "点击任意天气图标，直接查看逐日预报。",
+    mapLegend: "地图天气图例",
+    lowerRain: "整体少雨",
+    mixed: "晴雨混合",
     rainLikely: "降雨偏多",
-    best: "当前最佳",
-    selected: "已选城市",
-    averageScore: "平均评分",
-    lowerRainDays: "少雨天数",
-    expectedRain: "预计降雨量 · 最高概率",
+    selected: "已选目的地",
+    dryDays: "少雨天数",
+    rain: "预计降雨量 · 最高概率",
     temperature: "气温",
-    dailyWeather: "所选日期的逐日天气",
-    peakRain: "最高降雨概率",
-    detail: "查看7天天气",
-    compare: "不用打开详情页，直接比较",
-    allCities: (country: string) => `${country}全部旅游城市`,
-    sorted: "按少雨天数、预计降雨量和评分排序",
-    score: "评分",
-    mapRiskLegend: "地图天气风险图例",
-    answerEyebrow: "天气结论",
-    answerHeading: "这段日期的优先目的地",
-    methodology: "如何理解这份比较",
-    rankingQuestion: "城市是如何排序的？",
-    rankingAnswer:
-      "先比较少雨天数，再比较预计降雨量、最高降雨概率和旅行评分。评分用于横向决策，不是天气保证。",
-    probabilityQuestion: "高降雨概率等于会下一整天吗？",
-    probabilityAnswer:
-      "不等于。降雨概率表示出现可测降雨的可能性，不代表持续时间；决策时应同时查看预计毫米数和逐日天气。",
-    sourceQuestion: "天气数据来自哪里？",
-    sourceAnswer: "预报数据统一换算成便于比较各城市的旅行天气指标，来源：",
-    cityForecast: "7天天气",
+    wind: "最大风速",
+    daily: "逐日天气",
+    peakRain: "降雨",
+    detail: "查看完整城市天气",
+    destinations: (country: string) => `${country}热门旅游地`,
+    listHint: "列表与地图标记完全一致；筛选不会隐藏任何目的地。",
+    outsideLimits: "超出你的限制",
+    matchesLimits: "符合你的限制",
+    unavailable: "暂无天气数据",
+    rainReason: (value: number, limit: number) => `最高降雨概率 ${value}% 超过 ${limit}%`,
+    windReason: (value: number, limit: number) => `风速 ${value} km/h 超过 ${limit} km/h`,
+    coldReason: (value: number, limit: number) => `夜间最低 ${value}°C 低于 ${limit}°C`,
+    hotReason: (value: number, limit: number) => `白天最高 ${value}°C 超过 ${limit}°C`,
+    sourceHeading: "如何理解这张地图",
+    sourceText:
+      "天气图标概括所选日期，少雨天数和逐日预报提供具体依据；页面不会用不透明的旅行评分改变结果。",
+    source: "天气数据来源",
+  },
+  "zh-hant": {
+    country: "國家",
+    chooseCountry: "選擇國家",
+    period: "天氣時間範圍",
+    threeDays: "未來 3 天",
+    sevenDays: "未來 7 天",
+    weekend: "本週末",
+    custom: "自訂日期",
+    firstDate: "開始日期",
+    lastDate: "結束日期",
+    filters: "可選天氣限制",
+    filtersHint: "超出限制的目的地不會消失，只會在地圖上變灰並說明原因。",
+    activeFilters: (count: number) => `${count} 項已啟用`,
+    noLimit: "不限",
+    maxRain: "任一天最高降雨機率",
+    maxWind: "最大風速",
+    minTemp: "最低夜間溫度",
+    maxTemp: "最高白天氣溫",
+    clearFilters: "清除限制",
+    share: "複製地圖連結",
+    copied: "連結已複製",
+    copyFailed: "暫時無法複製",
+    mapHeading: "熱門旅遊地天氣一目了然",
+    mapHint: "點擊任意天氣圖示，直接查看逐日預報。",
+    mapLegend: "地圖天氣圖例",
+    lowerRain: "整體少雨",
+    mixed: "晴雨混合",
+    rainLikely: "降雨偏多",
+    selected: "已選目的地",
+    dryDays: "少雨天數",
+    rain: "預計降雨量 · 最高機率",
+    temperature: "氣溫",
+    wind: "最大風速",
+    daily: "逐日天氣",
+    peakRain: "降雨",
+    detail: "查看完整城市天氣",
+    destinations: (country: string) => `${country}熱門旅遊地`,
+    listHint: "列表與地圖標記完全一致；篩選不會隱藏任何目的地。",
+    outsideLimits: "超出你的限制",
+    matchesLimits: "符合你的限制",
+    unavailable: "暫無天氣資料",
+    rainReason: (value: number, limit: number) => `最高降雨機率 ${value}% 超過 ${limit}%`,
+    windReason: (value: number, limit: number) => `風速 ${value} km/h 超過 ${limit} km/h`,
+    coldReason: (value: number, limit: number) => `夜間最低 ${value}°C 低於 ${limit}°C`,
+    hotReason: (value: number, limit: number) => `白天最高 ${value}°C 超過 ${limit}°C`,
+    sourceHeading: "如何理解這張地圖",
+    sourceText:
+      "天氣圖示概括所選日期，少雨天數和逐日預報提供具體依據；頁面不會用不透明的旅行評分改變結果。",
+    source: "天氣資料來源",
   },
 } as const;
 
@@ -139,22 +232,6 @@ const CONDITION_ZH: Readonly<Record<string, string>> = {
   "Thunderstorm with hail": "雷暴伴冰雹",
 };
 
-const WINDOWS: ReadonlyArray<Window> = ["today", "tomorrow", "weekend", "next_week"];
-
-type Risk = "good" | "mixed" | "wet" | "unknown";
-
-interface CitySummary {
-  readonly city: CountryWeatherCityViewModel;
-  readonly days: ReadonlyArray<CountryWeatherDayViewModel>;
-  readonly dryDays: number;
-  readonly maxRain: number | null;
-  readonly totalRainMm: number | null;
-  readonly temperatureMin: number | null;
-  readonly temperatureMax: number | null;
-  readonly score: number | null;
-  readonly risk: Risk;
-}
-
 /** Pixel nudges keep dense tourism corridors legible without hiding a destination. */
 const MARKER_OFFSETS: Readonly<Record<string, [number, number]>> = {
   osaka: [42, 62],
@@ -183,7 +260,11 @@ export interface CountryWeatherExplorerProps {
   readonly locale?: ExplorerLocale;
 }
 
-function daysForWindow(
+function numericValues(values: ReadonlyArray<number | null | undefined>): number[] {
+  return values.filter((value): value is number => typeof value === "number");
+}
+
+function daysForIndices(
   city: CountryWeatherCityViewModel,
   indices: ReadonlyArray<number>,
 ): ReadonlyArray<CountryWeatherDayViewModel> {
@@ -192,25 +273,68 @@ function daysForWindow(
     .filter((day): day is CountryWeatherDayViewModel => day !== undefined);
 }
 
-function referenceDays(
-  cities: ReadonlyArray<CountryWeatherCityViewModel>,
+function dailySymbol(condition: string): string {
+  if (/thunder|hail/i.test(condition)) return "⛈️";
+  if (/snow|sleet/i.test(condition)) return "🌨️";
+  if (/rain|drizzle|shower/i.test(condition)) return "🌧️";
+  if (/fog|mist/i.test(condition)) return "🌫️";
+  if (/partly|mainly clear/i.test(condition)) return "🌤️";
+  if (/cloud|overcast/i.test(condition)) return "☁️";
+  return "☀️";
+}
+
+function summarySymbol(days: ReadonlyArray<CountryWeatherDayViewModel>, risk: Risk): string {
+  const conditions = days.map((day) => day.weather.conditionLabel).join(" ");
+  if (/thunder|hail/i.test(conditions)) return "⛈️";
+  if (/snow|sleet/i.test(conditions)) return "🌨️";
+  if (risk === "wet") return "🌧️";
+  if (/rain|drizzle|shower/i.test(conditions)) return "🌦️";
+  const clearDays = days.filter((day) => /clear|sun/i.test(day.weather.conditionLabel)).length;
+  return clearDays >= Math.ceil(days.length / 2) ? "☀️" : "🌤️";
+}
+
+function filterReasons(
+  metrics: Pick<CitySummary, "maxRain" | "maxWind" | "temperatureMin" | "temperatureMax">,
+  filters: WeatherFilters,
+  locale: ExplorerLocale,
+): ReadonlyArray<string> {
+  const copy = COPY[locale];
+  const reasons: string[] = [];
+  if (filters.rainMax !== null && metrics.maxRain !== null && metrics.maxRain > filters.rainMax) {
+    reasons.push(copy.rainReason(metrics.maxRain, filters.rainMax));
+  }
+  if (filters.windMax !== null && metrics.maxWind !== null && metrics.maxWind > filters.windMax) {
+    reasons.push(copy.windReason(metrics.maxWind, filters.windMax));
+  }
+  if (
+    filters.tempMin !== null &&
+    metrics.temperatureMin !== null &&
+    metrics.temperatureMin < filters.tempMin
+  ) {
+    reasons.push(copy.coldReason(metrics.temperatureMin, filters.tempMin));
+  }
+  if (
+    filters.tempMax !== null &&
+    metrics.temperatureMax !== null &&
+    metrics.temperatureMax > filters.tempMax
+  ) {
+    reasons.push(copy.hotReason(metrics.temperatureMax, filters.tempMax));
+  }
+  return reasons;
+}
+
+function summarize(
+  city: CountryWeatherCityViewModel,
   indices: ReadonlyArray<number>,
-): ReadonlyArray<CountryWeatherDayViewModel> {
-  const city = cities[0];
-  return city === undefined ? [] : daysForWindow(city, indices);
-}
-
-function numericValues(values: ReadonlyArray<number | null>): number[] {
-  return values.filter((value): value is number => value !== null);
-}
-
-function summarize(city: CountryWeatherCityViewModel, indices: ReadonlyArray<number>): CitySummary {
-  const days = daysForWindow(city, indices);
+  filters: WeatherFilters,
+  locale: ExplorerLocale,
+): CitySummary {
+  const days = daysForIndices(city, indices);
   const rainValues = numericValues(days.map((day) => day.weather.rainProbability));
-  const rainAmounts = numericValues(days.map((day) => day.weather.precipitationMm ?? null));
+  const rainAmounts = numericValues(days.map((day) => day.weather.precipitationMm));
   const minimums = numericValues(days.map((day) => day.weather.temperatureMin));
   const maximums = numericValues(days.map((day) => day.weather.temperatureMax));
-  const scores = numericValues(days.map((day) => day.score.value));
+  const winds = numericValues(days.map((day) => day.weather.windSpeedMax));
   const dryDays = days.filter((day) => {
     const chance = day.weather.rainProbability;
     const amount = day.weather.precipitationMm;
@@ -225,18 +349,17 @@ function summarize(city: CountryWeatherCityViewModel, indices: ReadonlyArray<num
       : null;
   const temperatureMin = minimums.length > 0 ? Math.min(...minimums) : null;
   const temperatureMax = maximums.length > 0 ? Math.max(...maximums) : null;
-  const score =
-    scores.length > 0
-      ? Math.round(scores.reduce((total, value) => total + value, 0) / scores.length)
-      : null;
+  const maxWind = winds.length > 0 ? Math.round(Math.max(...winds)) : null;
   const risk: Risk =
-    totalRainMm === null && maxRain === null
+    days.length === 0 || (totalRainMm === null && maxRain === null)
       ? "unknown"
       : dryDays === days.length && (totalRainMm ?? 0) <= days.length * 2.5
         ? "good"
         : dryDays >= Math.ceil(days.length / 2) || (totalRainMm ?? Infinity) <= days.length * 8
           ? "mixed"
           : "wet";
+  const metrics = { maxRain, maxWind, temperatureMin, temperatureMax };
+  const reasons = filterReasons(metrics, filters, locale);
   return {
     city,
     days,
@@ -245,103 +368,64 @@ function summarize(city: CountryWeatherCityViewModel, indices: ReadonlyArray<num
     totalRainMm,
     temperatureMin,
     temperatureMax,
-    score,
+    maxWind,
     risk,
+    symbol: summarySymbol(days, risk),
+    filtered: reasons.length > 0,
+    filterReasons: reasons,
   };
 }
 
 function shortDate(value: string, locale: ExplorerLocale): string {
   const date = new Date(`${value}T00:00:00Z`);
   if (Number.isNaN(date.getTime())) return value;
-  return new Intl.DateTimeFormat(locale === "zh-cn" ? "zh-CN" : "en", {
-    month: locale === "zh-cn" ? "numeric" : "short",
+  const language = locale === "en" ? "en" : locale === "zh-cn" ? "zh-CN" : "zh-TW";
+  return new Intl.DateTimeFormat(language, {
+    month: locale === "en" ? "short" : "numeric",
     day: "numeric",
     timeZone: "UTC",
   }).format(date);
 }
 
-function rangeLabel(
-  days: ReadonlyArray<CountryWeatherDayViewModel>,
-  locale: ExplorerLocale,
-): string {
+function rangeLabel(days: ReadonlyArray<CountryWeatherDayViewModel>, locale: ExplorerLocale): string {
   if (days.length === 0) return COPY[locale].unavailable;
   if (days.length === 1) return shortDate(days[0]?.localDate ?? "", locale);
-  return `${shortDate(days[0]?.localDate ?? "", locale)}–${shortDate(days[days.length - 1]?.localDate ?? "", locale)}`;
+  return `${shortDate(days[0]?.localDate ?? "", locale)}–${shortDate(days.at(-1)?.localDate ?? "", locale)}`;
 }
 
 function rainLabel(summary: CitySummary, locale: ExplorerLocale): string {
-  if (summary.totalRainMm === null && summary.maxRain === null)
-    return locale === "zh-cn" ? "暂无降雨数据" : "Rain data unavailable";
-  if (summary.totalRainMm === null) {
-    if (locale === "zh-cn") {
-      return summary.days.length === 1
-        ? `最高降雨概率 ${summary.maxRain}%`
-        : `${summary.dryDays}/${summary.days.length}天少雨 · 最高${summary.maxRain}%`;
-    }
-    return summary.days.length === 1
-      ? `${summary.maxRain}% peak rain chance`
-      : `${summary.dryDays}/${summary.days.length} lower-rain days · max ${summary.maxRain}%`;
+  if (summary.days.length === 0) return COPY[locale].unavailable;
+  const count = `${summary.dryDays}/${summary.days.length}`;
+  if (locale === "en") {
+    return `${count} lower-rain days · ${summary.totalRainMm ?? "—"} mm total`;
   }
-  if (locale === "zh-cn") {
-    return summary.days.length === 1
-      ? `预计 ${summary.totalRainMm} mm · 最高${summary.maxRain ?? "—"}%`
-      : `${summary.dryDays}/${summary.days.length}天少雨 · 共${summary.totalRainMm ?? "—"} mm`;
-  }
-  if (summary.days.length === 1) {
-    return `${summary.totalRainMm} mm expected · ${summary.maxRain ?? "—"}% peak chance`;
-  }
-  return `${summary.dryDays}/${summary.days.length} lighter-rain days · ${summary.totalRainMm ?? "—"} mm total`;
-}
-
-function mapMarkerLabel(summary: CitySummary, locale: ExplorerLocale): string {
-  if (summary.days.length === 1) {
-    return summary.totalRainMm === null
-      ? `${summary.maxRain ?? "—"}%${locale === "zh-cn" ? "最高" : " peak"}`
-      : `${summary.totalRainMm} mm · ${summary.maxRain ?? "—"}%${locale === "zh-cn" ? "最高" : " peak"}`;
-  }
-  return `${summary.dryDays}/${summary.days.length}${locale === "zh-cn" ? "少雨" : " light"} · ${summary.totalRainMm ?? "—"} mm`;
+  return `${count}天少雨 · 共${summary.totalRainMm ?? "—"} mm`;
 }
 
 function conditionLabel(value: string, locale: ExplorerLocale): string {
-  return locale === "zh-cn" ? (CONDITION_ZH[value] ?? value) : value;
+  if (locale === "en") return value;
+  const simplified = CONDITION_ZH[value] ?? value;
+  return locale === "zh-hant" ? toTraditionalText(simplified) : simplified;
 }
 
-function WeatherIcon({ condition }: { condition: string }): ReactElement {
-  const rainy = /rain|storm|shower/i.test(condition);
-  const cloudy = /cloud|overcast|fog/i.test(condition);
-  return (
-    <span className="country-day-icon" aria-hidden="true">
-      <svg viewBox="0 0 28 28" fill="none">
-        {rainy || cloudy ? (
-          <>
-            <path
-              d="M6.5 18.5h14a4.2 4.2 0 0 0 .1-8.4A6.6 6.6 0 0 0 8.2 12.3a3.2 3.2 0 0 0-1.7 6.2Z"
-              fill="currentColor"
-              opacity=".85"
-            />
-            {rainy ? (
-              <path
-                d="m9 21.5-1 1.8m6-1.8-1 1.8m6-1.8-1 1.8"
-                stroke="currentColor"
-                strokeWidth="1.7"
-                strokeLinecap="round"
-              />
-            ) : null}
-          </>
-        ) : (
-          <>
-            <circle cx="14" cy="14" r="4.5" fill="currentColor" />
-            <path
-              d="M14 3v3m0 16v3M3 14h3m16 0h3M6.2 6.2l2.1 2.1m11.4 11.4 2.1 2.1m0-15.6-2.1 2.1M8.3 19.7l-2.1 2.1"
-              stroke="currentColor"
-              strokeWidth="1.8"
-              strokeLinecap="round"
-            />
-          </>
-        )}
-      </svg>
-    </span>
-  );
+function parseNumber(value: string | null): number | null {
+  if (value === null || value.trim() === "") return null;
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
+}
+
+function presetIndices(
+  dates: ReadonlyArray<string>,
+  preset: Exclude<RangePreset, "custom">,
+): ReadonlyArray<number> {
+  if (preset === "3d") return dates.slice(0, 3).map((_, index) => index);
+  if (preset === "7d") return dates.slice(0, 7).map((_, index) => index);
+  const weekend = windowIndicesForDates(dates, "weekend");
+  return weekend.length > 0 ? weekend : dates.slice(0, 7).map((_, index) => index);
+}
+
+function activeFilterCount(filters: WeatherFilters): number {
+  return Object.values(filters).filter((value) => value !== null).length;
 }
 
 export function CountryWeatherExplorer({
@@ -352,61 +436,91 @@ export function CountryWeatherExplorer({
   locale = "en",
 }: CountryWeatherExplorerProps): ReactElement {
   const copy = COPY[locale];
-  const [activeWindow, setActiveWindow] = useState<Window>("today");
+  const [preset, setPreset] = useState<RangePreset>("7d");
   const [customRange, setCustomRange] = useState<{ start: number; end: number } | null>(null);
+  const [filters, setFilters] = useState<WeatherFilters>(EMPTY_FILTERS);
   const [selectedCityId, setSelectedCityId] = useState("");
+  const [shareStatus, setShareStatus] = useState("");
   const [mapReady, setMapReady] = useState(false);
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
   const mapModuleRef = useRef<typeof MapLibreModule | null>(null);
   const markerRefs = useRef<MapLibreMarker[]>([]);
+  const inspectorRef = useRef<HTMLElement | null>(null);
 
+  const dates = useMemo(() => (cities[0]?.days ?? []).map((day) => day.localDate), [cities]);
   const selectedIndices = useMemo(() => {
-    if (customRange === null) {
-      return windowIndicesForDates(
-        (cities[0]?.days ?? []).map((day) => day.localDate),
-        activeWindow,
-      );
-    }
+    if (preset !== "custom") return presetIndices(dates, preset);
+    if (customRange === null) return dates.slice(0, 7).map((_, index) => index);
     return Array.from(
       { length: customRange.end - customRange.start + 1 },
       (_, index) => customRange.start + index,
     );
-  }, [activeWindow, cities, customRange]);
+  }, [customRange, dates, preset]);
   const summaries = useMemo(
-    () =>
-      selectedIndices.length === 0
-        ? []
-        : cities
-            .map((city) => summarize(city, selectedIndices))
-            .sort((left, right) => {
-              if (right.dryDays !== left.dryDays) return right.dryDays - left.dryDays;
-              if ((left.totalRainMm ?? Infinity) !== (right.totalRainMm ?? Infinity))
-                return (left.totalRainMm ?? Infinity) - (right.totalRainMm ?? Infinity);
-              if ((left.maxRain ?? 101) !== (right.maxRain ?? 101))
-                return (left.maxRain ?? 101) - (right.maxRain ?? 101);
-              return (right.score ?? -1) - (left.score ?? -1);
-            }),
-    [cities, selectedIndices],
+    () => cities.map((city) => summarize(city, selectedIndices, filters, locale)),
+    [cities, filters, locale, selectedIndices],
   );
   const selected =
-    summaries.find((summary) => summary.city.cityId === selectedCityId) ?? summaries[0] ?? null;
-  const best = summaries[0] ?? null;
-  const exactDates = rangeLabel(referenceDays(cities, selectedIndices), locale);
-  const rangeName = customRange === null ? WINDOW_LABELS[locale][activeWindow] : copy.customTrip;
-  const answer =
-    best === null
-      ? copy.unavailable
-      : locale === "zh-cn"
-        ? `${rangeName}（${exactDates}），${best.city.cityName}在${summaries.length}个城市中排名第一：${rainLabel(best, locale)}，平均旅行评分${best.score ?? "—"}。`
-        : `For ${rangeName.toLowerCase()} (${exactDates}), ${best.city.cityName} ranks first among ${summaries.length} cities with ${rainLabel(best, locale)} and an average Travel Score of ${best.score ?? "—"}.`;
+    summaries.find((summary) => summary.city.cityId === selectedCityId) ??
+    summaries.find((summary) => !summary.filtered) ??
+    summaries[0] ??
+    null;
+  const selectedReferenceDays =
+    cities[0] === undefined ? [] : daysForIndices(cities[0], selectedIndices);
+  const exactDates = rangeLabel(selectedReferenceDays, locale);
+  const filterCount = activeFilterCount(filters);
+
+  function writeUrl(
+    nextPreset: RangePreset,
+    nextCustomRange: { start: number; end: number } | null,
+    nextFilters: WeatherFilters,
+    nextCityId: string,
+  ): void {
+    const url = new URL(window.location.href);
+    for (const key of [
+      "window",
+      "origin",
+      "mode",
+      "maxTravel",
+      "intent",
+      "party",
+      "theme",
+      "cities",
+    ]) {
+      url.searchParams.delete(key);
+    }
+    if (nextPreset === "custom" && nextCustomRange !== null) {
+      url.searchParams.delete("range");
+      url.searchParams.set("from", String(nextCustomRange.start));
+      url.searchParams.set("to", String(nextCustomRange.end));
+    } else {
+      url.searchParams.delete("from");
+      url.searchParams.delete("to");
+      url.searchParams.set("range", nextPreset === "custom" ? "7d" : nextPreset);
+    }
+    const dimensions: ReadonlyArray<[keyof WeatherFilters, string]> = [
+      ["rainMax", "rainMax"],
+      ["windMax", "windMax"],
+      ["tempMin", "tempMin"],
+      ["tempMax", "tempMax"],
+    ];
+    for (const [field, query] of dimensions) {
+      const value = nextFilters[field];
+      if (value === null) url.searchParams.delete(query);
+      else url.searchParams.set(query, String(value));
+    }
+    if (nextCityId.length > 0) url.searchParams.set("city", nextCityId);
+    else url.searchParams.delete("city");
+    window.history.replaceState({}, "", url);
+  }
 
   useEffect(() => {
     const restoreUrlState = (): void => {
       const params = new URLSearchParams(window.location.search);
       const from = Number(params.get("from"));
       const to = Number(params.get("to"));
-      const finalIndex = Math.max(0, (cities[0]?.days.length ?? 1) - 1);
+      const finalIndex = Math.max(0, dates.length - 1);
       if (
         params.has("from") &&
         params.has("to") &&
@@ -416,20 +530,47 @@ export function CountryWeatherExplorer({
         to >= from &&
         to <= finalIndex
       ) {
+        setPreset("custom");
         setCustomRange({ start: from, end: to });
-        return;
+      } else {
+        const requestedRange = params.get("range");
+        const legacyWindow = params.get("window");
+        if (requestedRange === "3d" || requestedRange === "7d" || requestedRange === "weekend") {
+          setPreset(requestedRange);
+          setCustomRange(null);
+        } else if (legacyWindow === "today" || legacyWindow === "tomorrow") {
+          const index = legacyWindow === "today" ? 0 : Math.min(1, finalIndex);
+          setPreset("custom");
+          setCustomRange({ start: index, end: index });
+        } else if (legacyWindow === "weekend") {
+          setPreset("weekend");
+          setCustomRange(null);
+        } else {
+          setPreset("7d");
+          setCustomRange(null);
+        }
       }
-      const requested = params.get("window") as Window | null;
-      if (requested !== null && WINDOWS.includes(requested)) {
-        setActiveWindow(requested);
-        setCustomRange(null);
-      }
+      setFilters({
+        rainMax: parseNumber(params.get("rainMax")),
+        windMax: parseNumber(params.get("windMax")),
+        tempMin: parseNumber(params.get("tempMin")),
+        tempMax: parseNumber(params.get("tempMax")),
+      });
+      const city = params.get("city") ?? "";
+      setSelectedCityId(cities.some((item) => item.cityId === city) ? city : "");
     };
     restoreUrlState();
-    const onPopState = (): void => restoreUrlState();
-    window.addEventListener("popstate", onPopState);
-    return () => window.removeEventListener("popstate", onPopState);
-  }, [cities]);
+    window.addEventListener("popstate", restoreUrlState);
+    return () => window.removeEventListener("popstate", restoreUrlState);
+  }, [cities, dates.length]);
+
+  useEffect(() => {
+    emitProductAnalytics({
+      locale,
+      routeTemplate: "/[country]",
+      fields: { event: "country_viewed", country_code: country.countryId },
+    });
+  }, [country.countryId, locale]);
 
   useEffect(() => {
     const container = mapContainerRef.current;
@@ -453,7 +594,7 @@ export function CountryWeatherExplorer({
       map.on("load", () => {
         const bounds = new module.LngLatBounds();
         cities.forEach((city) => bounds.extend([city.longitude, city.latitude]));
-        map.fitBounds(bounds, { padding: 90, maxZoom: 6, duration: 0 });
+        map.fitBounds(bounds, { padding: 86, maxZoom: 6, duration: 0 });
         setMapReady(true);
       });
     });
@@ -467,6 +608,23 @@ export function CountryWeatherExplorer({
     };
   }, [cities]);
 
+  function selectCity(summary: CitySummary, scrollOnMobile = false): void {
+    setSelectedCityId(summary.city.cityId);
+    writeUrl(preset, customRange, filters, summary.city.cityId);
+    emitProductAnalytics({
+      locale,
+      routeTemplate: "/[country]",
+      fields: {
+        event: "city_viewed",
+        city_id: summary.city.cityId,
+        country_code: country.countryId,
+      },
+    });
+    if (scrollOnMobile && window.matchMedia("(max-width: 1023px)").matches) {
+      window.setTimeout(() => inspectorRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 0);
+    }
+  }
+
   useEffect(() => {
     const map = mapRef.current;
     const module = mapModuleRef.current;
@@ -474,81 +632,98 @@ export function CountryWeatherExplorer({
     markerRefs.current.forEach((marker) => marker.remove());
     markerRefs.current = summaries.map((summary) => {
       const shell = document.createElement("div");
-      shell.className = `country-weather-marker risk-${summary.risk}`;
+      shell.className = `country-weather-marker risk-${summary.risk}${summary.filtered ? " is-filtered" : ""}`;
       const button = document.createElement("button");
       button.type = "button";
       button.className = "country-weather-marker-button";
       button.setAttribute(
         "aria-label",
-        locale === "zh-cn"
-          ? `${summary.city.cityName}：${rainLabel(summary, locale)}。选择城市。`
-          : `${summary.city.cityName}: ${rainLabel(summary, locale)}. Select city.`,
+        `${summary.city.cityName}: ${rainLabel(summary, locale)}${summary.filtered ? `. ${copy.outsideLimits}: ${summary.filterReasons.join("; ")}` : ""}`,
       );
       if (summary.city.cityId === selected?.city.cityId) button.dataset.selected = "true";
+      const icon = document.createElement("span");
+      icon.className = "country-weather-marker-icon";
+      icon.textContent = summary.symbol;
+      icon.setAttribute("aria-hidden", "true");
+      const text = document.createElement("span");
+      text.className = "country-weather-marker-copy";
       const name = document.createElement("strong");
       name.textContent = summary.city.cityName;
       const detail = document.createElement("span");
-      detail.textContent = mapMarkerLabel(summary, locale);
-      button.append(name, detail);
-      button.addEventListener("click", () => setSelectedCityId(summary.city.cityId));
+      detail.textContent = `${summary.dryDays}/${summary.days.length} · ${summary.temperatureMin ?? "–"}–${summary.temperatureMax ?? "–"}°`;
+      text.append(name, detail);
+      button.append(icon, text);
+      button.addEventListener("click", () => selectCity(summary, true));
       shell.append(button);
       const offset = MARKER_OFFSETS[summary.city.cityId] ?? [0, 0];
       const leaderLength = Math.hypot(offset[0], offset[1]);
       shell.style.setProperty("--marker-leader-length", `${leaderLength}px`);
       shell.style.setProperty("--marker-leader-angle", `${Math.atan2(-offset[1], -offset[0])}rad`);
-      return new module.Marker({
-        element: shell,
-        anchor: "bottom",
-        offset,
-      })
+      return new module.Marker({ element: shell, anchor: "bottom", offset })
         .setLngLat([summary.city.longitude, summary.city.latitude])
         .addTo(map);
     });
-  }, [locale, mapReady, selected?.city.cityId, summaries]);
+  }, [copy.outsideLimits, locale, mapReady, selected?.city.cityId, summaries]);
 
-  function selectWindow(windowKind: Window): void {
-    setActiveWindow(windowKind);
+  function selectPreset(nextPreset: Exclude<RangePreset, "custom">): void {
+    setPreset(nextPreset);
     setCustomRange(null);
     setSelectedCityId("");
-    const url = new URL(window.location.href);
-    url.searchParams.set("window", windowKind);
-    window.history.pushState({}, "", url);
+    writeUrl(nextPreset, null, filters, "");
   }
 
-  function selectCustomRange(start: number, end: number): void {
-    const next = { start: Math.min(start, end), end: Math.max(start, end) };
+  function chooseCustomRange(start: number, end: number): void {
+    const finalIndex = Math.max(0, dates.length - 1);
+    const next = {
+      start: Math.max(0, Math.min(start, end, finalIndex)),
+      end: Math.max(0, Math.min(Math.max(start, end), finalIndex)),
+    };
+    setPreset("custom");
     setCustomRange(next);
     setSelectedCityId("");
-    const url = new URL(window.location.href);
-    url.searchParams.delete("window");
-    url.searchParams.set("from", String(next.start));
-    url.searchParams.set("to", String(next.end));
-    window.history.pushState({}, "", url);
+    writeUrl("custom", next, filters, "");
+  }
+
+  function updateFilter(field: keyof WeatherFilters, raw: string): void {
+    const next = { ...filters, [field]: parseNumber(raw) };
+    setFilters(next);
+    setSelectedCityId("");
+    writeUrl(preset, customRange, next, "");
+  }
+
+  function clearFilters(): void {
+    setFilters(EMPTY_FILTERS);
+    setSelectedCityId("");
+    writeUrl(preset, customRange, EMPTY_FILTERS, "");
+  }
+
+  async function copyShareLink(): Promise<void> {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      setShareStatus(copy.copied);
+    } catch {
+      setShareStatus(copy.copyFailed);
+    }
+    window.setTimeout(() => setShareStatus(""), 2500);
   }
 
   function cityDetailHref(path: string): string {
-    const selectedDays = referenceDays(cities, selectedIndices);
-    const start = selectedDays[0]?.localDate;
+    const start = selectedReferenceDays[0]?.localDate;
     if (start === undefined) return path;
-    const end = selectedDays.at(-1)?.localDate ?? start;
-    const params = new URLSearchParams({ start, end });
-    if (customRange === null) params.set("window", activeWindow);
-    return `${path}?${params.toString()}`;
+    const end = selectedReferenceDays.at(-1)?.localDate ?? start;
+    return `${path}?${new URLSearchParams({ start, end }).toString()}`;
   }
 
+  const currentCountryPath = countries.find((option) => option.slug === country.slug.split("/").at(-1))?.path;
+
   return (
-    <section
-      className="country-weather-console"
-      aria-label={
-        locale === "zh-cn" ? `${country.name}旅行天气地图` : `${country.name} travel weather map`
-      }
-    >
-      <div className="country-console-toolbar">
+    <section className="country-weather-console" aria-label={`${country.name} ${copy.mapHeading}`}>
+      <div className="country-console-toolbar country-map-toolbar">
         <label className="country-select-label">
           <span>{copy.country}</span>
           <select
-            value={`/${country.slug}`}
-            onChange={(event) => window.location.assign(event.target.value)}
+            value={currentCountryPath ?? `/${country.slug}`}
+            onChange={(event) => window.location.assign(`${event.target.value}${window.location.search}`)}
             className="country-select focus-ring"
             aria-label={copy.chooseCountry}
           >
@@ -559,209 +734,203 @@ export function CountryWeatherExplorer({
             ))}
           </select>
         </label>
+
         <div className="min-w-0 flex-1">
-          <p className="country-control-label">{copy.travelDates}</p>
-          <div className="country-window-tabs" role="group" aria-label={copy.travelDates}>
-            {WINDOWS.map((windowKind) => {
-              const dates = rangeLabel(
-                referenceDays(
-                  cities,
-                  windowIndicesForDates(
-                    (cities[0]?.days ?? []).map((day) => day.localDate),
-                    windowKind,
-                  ),
-                ),
-                locale,
-              );
-              return (
-                <button
-                  key={windowKind}
-                  type="button"
-                  onClick={() => selectWindow(windowKind)}
-                  aria-pressed={customRange === null && activeWindow === windowKind}
-                  className={`country-window-button focus-ring ${customRange === null && activeWindow === windowKind ? "is-active" : ""}`}
+          <p className="country-control-label">{copy.period}</p>
+          <div className="country-window-tabs" role="group" aria-label={copy.period}>
+            {([
+              ["3d", copy.threeDays],
+              ["7d", copy.sevenDays],
+              ["weekend", copy.weekend],
+            ] as const).map(([value, label]) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => selectPreset(value)}
+                aria-pressed={preset === value}
+                className={`country-window-button focus-ring ${preset === value ? "is-active" : ""}`}
+              >
+                {label}
+              </button>
+            ))}
+            <button
+              type="button"
+              onClick={() =>
+                chooseCustomRange(
+                  customRange?.start ?? selectedIndices[0] ?? 0,
+                  customRange?.end ?? selectedIndices.at(-1) ?? Math.min(6, dates.length - 1),
+                )
+              }
+              aria-pressed={preset === "custom"}
+              className={`country-window-button focus-ring ${preset === "custom" ? "is-active" : ""}`}
+            >
+              {copy.custom}
+            </button>
+          </div>
+          {preset === "custom" ? (
+            <div className="country-custom-range">
+              <label>
+                <span className="sr-only">{copy.firstDate}</span>
+                <select
+                  aria-label={copy.firstDate}
+                  value={customRange?.start ?? 0}
+                  onChange={(event) =>
+                    chooseCustomRange(Number(event.target.value), customRange?.end ?? Number(event.target.value))
+                  }
                 >
-                  <span>{WINDOW_LABELS[locale][windowKind]}</span>
-                  <small>{dates}</small>
-                </button>
-              );
-            })}
-          </div>
-          <div className="country-custom-range" aria-label={copy.exactDates}>
-            <span>{copy.exactDates}</span>
-            <label>
-              <span className="sr-only">{copy.firstDate}</span>
-              <select
-                aria-label={copy.firstDate}
-                value={customRange?.start ?? selectedIndices[0] ?? 0}
-                onChange={(event) =>
-                  selectCustomRange(
-                    Number(event.target.value),
-                    customRange?.end ?? Number(event.target.value),
-                  )
-                }
-              >
-                {(cities[0]?.days ?? []).map((day, index) => (
-                  <option key={day.localDate} value={index}>
-                    {shortDate(day.localDate, locale)}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <span aria-hidden="true">→</span>
-            <label>
-              <span className="sr-only">{copy.lastDate}</span>
-              <select
-                aria-label={copy.lastDate}
-                value={customRange?.end ?? selectedIndices[selectedIndices.length - 1] ?? 0}
-                onChange={(event) =>
-                  selectCustomRange(
-                    customRange?.start ?? Number(event.target.value),
-                    Number(event.target.value),
-                  )
-                }
-              >
-                {(cities[0]?.days ?? []).map((day, index) => (
-                  <option key={day.localDate} value={index}>
-                    {shortDate(day.localDate, locale)}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
+                  {(cities[0]?.days ?? []).map((day, index) => (
+                    <option key={day.localDate} value={index}>
+                      {shortDate(day.localDate, locale)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <span aria-hidden="true">→</span>
+              <label>
+                <span className="sr-only">{copy.lastDate}</span>
+                <select
+                  aria-label={copy.lastDate}
+                  value={customRange?.end ?? Math.min(6, dates.length - 1)}
+                  onChange={(event) =>
+                    chooseCustomRange(customRange?.start ?? Number(event.target.value), Number(event.target.value))
+                  }
+                >
+                  {(cities[0]?.days ?? []).map((day, index) => (
+                    <option key={day.localDate} value={index}>
+                      {shortDate(day.localDate, locale)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+          ) : null}
         </div>
-        <p className="country-data-age">{updatedLabel}</p>
+
+        <div className="country-map-actions">
+          <button type="button" onClick={() => void copyShareLink()} className="country-share-button focus-ring">
+            {copy.share}
+          </button>
+          <p aria-live="polite">{shareStatus || updatedLabel}</p>
+        </div>
       </div>
 
-      <section className="country-answer-brief" aria-live="polite">
-        <div>
-          <p className="country-answer-eyebrow">{copy.answerEyebrow}</p>
-          <h2>{copy.answerHeading}</h2>
+      <details className="country-filter-details">
+        <summary>
+          <span>{copy.filters}</span>
+          {filterCount > 0 ? <strong>{copy.activeFilters(filterCount)}</strong> : null}
+        </summary>
+        <p>{copy.filtersHint}</p>
+        <div className="country-filter-grid">
+          <label>
+            <span>{copy.maxRain}</span>
+            <select value={filters.rainMax ?? ""} onChange={(event) => updateFilter("rainMax", event.target.value)}>
+              <option value="">{copy.noLimit}</option>
+              {[30, 40, 50, 60, 70].map((value) => (
+                <option key={value} value={value}>{`≤ ${value}%`}</option>
+              ))}
+            </select>
+          </label>
+          <label>
+            <span>{copy.maxWind}</span>
+            <select value={filters.windMax ?? ""} onChange={(event) => updateFilter("windMax", event.target.value)}>
+              <option value="">{copy.noLimit}</option>
+              {[20, 30, 40, 50].map((value) => (
+                <option key={value} value={value}>{`≤ ${value} km/h`}</option>
+              ))}
+            </select>
+          </label>
+          <label>
+            <span>{copy.minTemp}</span>
+            <select value={filters.tempMin ?? ""} onChange={(event) => updateFilter("tempMin", event.target.value)}>
+              <option value="">{copy.noLimit}</option>
+              {[0, 10, 15, 20].map((value) => (
+                <option key={value} value={value}>{`≥ ${value}°C`}</option>
+              ))}
+            </select>
+          </label>
+          <label>
+            <span>{copy.maxTemp}</span>
+            <select value={filters.tempMax ?? ""} onChange={(event) => updateFilter("tempMax", event.target.value)}>
+              <option value="">{copy.noLimit}</option>
+              {[25, 30, 32, 35].map((value) => (
+                <option key={value} value={value}>{`≤ ${value}°C`}</option>
+              ))}
+            </select>
+          </label>
         </div>
-        <p>{answer}</p>
-      </section>
+        {filterCount > 0 ? (
+          <button type="button" onClick={clearFilters} className="country-filter-clear focus-ring">
+            {copy.clearFilters}
+          </button>
+        ) : null}
+      </details>
+
+      <div className="country-map-heading country-map-primary-heading">
+        <div>
+          <p className="eyebrow">{country.name}</p>
+          <h2>{copy.mapHeading}</h2>
+          <p>{copy.mapHint}</p>
+        </div>
+        <strong>{exactDates}</strong>
+      </div>
 
       <div className="country-map-layout">
         <div className="country-map-stage">
-          <div className="country-map-heading">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-[0.14em] text-primary">
-                {country.name} {copy.atGlance}
-              </p>
-              <h2 className="mt-1 text-xl font-bold tracking-[-0.03em] text-foreground sm:text-2xl">
-                {copy.mapHeading}
-              </h2>
-            </div>
-            <p className="text-xs font-semibold text-muted">
-              {rangeName} · {exactDates}
-            </p>
-          </div>
           <div
             ref={mapContainerRef}
-            className="country-weather-map"
+            className="country-weather-map country-weather-map-primary"
             role="region"
-            aria-label={
-              locale === "zh-cn"
-                ? `${country.name}${rangeName}城市天气地图`
-                : `${country.name} city weather map for ${rangeName}`
-            }
+            aria-label={`${country.name} ${copy.mapHeading}`}
             data-testid="country-weather-map"
           />
-          <div className="country-map-legend" aria-label={copy.mapRiskLegend}>
-            <span>
-              <i className="legend-good" /> {copy.lowerRain}
-            </span>
-            <span>
-              <i className="legend-mixed" /> {copy.mixed}
-            </span>
-            <span>
-              <i className="legend-wet" /> {copy.rainLikely}
-            </span>
+          <div className="country-map-legend" aria-label={copy.mapLegend}>
+            <span><i className="legend-good" /> {copy.lowerRain}</span>
+            <span><i className="legend-mixed" /> {copy.mixed}</span>
+            <span><i className="legend-wet" /> {copy.rainLikely}</span>
           </div>
         </div>
 
         {selected !== null ? (
-          <aside
-            className="country-city-inspector"
-            aria-label={
-              locale === "zh-cn"
-                ? `${selected.city.cityName}天气摘要`
-                : `${selected.city.cityName} weather summary`
-            }
-          >
-            <div className="flex items-start justify-between gap-4">
+          <aside ref={inspectorRef} className="country-city-inspector" aria-label={`${selected.city.cityName} weather summary`}>
+            <div className="country-inspector-title">
+              <span aria-hidden="true">{selected.symbol}</span>
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-white/55">
-                  {summaries[0]?.city.cityId === selected.city.cityId ? copy.best : copy.selected}
-                </p>
-                <h2 className="mt-2 text-3xl font-bold tracking-[-0.04em] text-white">
-                  {selected.city.cityName}
-                </h2>
-                <p className="mt-1 text-sm text-white/55">
-                  {rangeName} · {rangeLabel(selected.days, locale)}
-                </p>
-              </div>
-              <div className="text-right">
-                <p className="text-3xl font-bold text-white">{selected.score ?? "—"}</p>
-                <p className="text-[9px] uppercase tracking-[0.12em] text-white/45">
-                  {copy.averageScore}
-                </p>
+                <p>{copy.selected}</p>
+                <h2>{selected.city.cityName}</h2>
+                <small>{rangeLabel(selected.days, locale)}</small>
               </div>
             </div>
-            <div className="country-inspector-summary">
-              <div>
-                <span>{copy.lowerRainDays}</span>
-                <strong>
-                  {selected.dryDays}/{selected.days.length}
-                </strong>
-              </div>
-              <div>
-                <span>{copy.expectedRain}</span>
-                <strong>
-                  {selected.totalRainMm ?? "—"} mm · {selected.maxRain ?? "—"}%
-                </strong>
-              </div>
-              <div>
-                <span>{copy.temperature}</span>
-                <strong>
-                  {selected.temperatureMin ?? "–"}–{selected.temperatureMax ?? "–"}°C
-                </strong>
-              </div>
+            <p className={`country-filter-result ${selected.filtered ? "is-filtered" : ""}`}>
+              {selected.filtered ? copy.outsideLimits : copy.matchesLimits}
+            </p>
+            {selected.filterReasons.length > 0 ? (
+              <ul className="country-filter-reasons">
+                {selected.filterReasons.map((reason) => <li key={reason}>{reason}</li>)}
+              </ul>
+            ) : null}
+            <div className="country-inspector-summary country-map-inspector-summary">
+              <div><span>{copy.dryDays}</span><strong>{selected.dryDays}/{selected.days.length}</strong></div>
+              <div><span>{copy.rain}</span><strong>{selected.totalRainMm ?? "—"} mm · {selected.maxRain ?? "—"}%</strong></div>
+              <div><span>{copy.temperature}</span><strong>{selected.temperatureMin ?? "–"}–{selected.temperatureMax ?? "–"}°C</strong></div>
+              <div><span>{copy.wind}</span><strong>{selected.maxWind ?? "—"} km/h</strong></div>
             </div>
-            <ol className="country-daily-strip" aria-label={copy.dailyWeather}>
+            <ol className="country-daily-strip" aria-label={copy.daily}>
               {selected.days.map((day) => (
                 <li key={day.localDate}>
                   <div className="flex items-center gap-3">
-                    <WeatherIcon condition={day.weather.conditionLabel} />
+                    <span className="country-daily-emoji" aria-hidden="true">{dailySymbol(day.weather.conditionLabel)}</span>
                     <div>
-                      <time dateTime={day.localDate} className="text-xs font-bold text-white">
-                        {shortDate(day.localDate, locale)}
-                      </time>
-                      <p className="mt-0.5 text-[11px] text-white/55">
-                        {conditionLabel(day.weather.conditionLabel, locale)}
-                      </p>
+                      <time dateTime={day.localDate}>{shortDate(day.localDate, locale)}</time>
+                      <p>{conditionLabel(day.weather.conditionLabel, locale)}</p>
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="text-xs font-bold text-white">
-                      {day.weather.rainProbability ?? "—"}% {copy.peakRain}
-                    </p>
-                    <p className="mt-0.5 text-[11px] text-white/50">
-                      {day.weather.temperatureMin ?? "–"}–{day.weather.temperatureMax ?? "–"}°
-                    </p>
+                    <strong>{day.weather.rainProbability ?? "—"}% {copy.peakRain}</strong>
+                    <p>{day.weather.temperatureMin ?? "–"}–{day.weather.temperatureMax ?? "–"}°</p>
                   </div>
                 </li>
               ))}
             </ol>
-            <DiscoveryTripAction
-              locale={locale}
-              cityId={selected.city.cityId}
-              cityName={selected.city.cityName}
-              countryName={selected.city.countryName}
-              dates={selected.days.map((day) => day.localDate)}
-              workspacePath={locale === "zh-cn" ? "/zh-cn/trips/workspace" : "/trips/workspace"}
-              variant="inspector"
-            />
             <a href={cityDetailHref(selected.city.path)} className="country-detail-link focus-ring">
               {copy.detail} <span aria-hidden="true">→</span>
             </a>
@@ -769,83 +938,46 @@ export function CountryWeatherExplorer({
         ) : null}
       </div>
 
-      <div className="country-city-list-section">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+      <section className="country-city-list-section" aria-labelledby="country-destination-list">
+        <div className="country-city-list-heading">
           <div>
-            <p className="eyebrow">{copy.compare}</p>
-            <h2 className="section-title mt-3">{copy.allCities(country.name)}</h2>
+            <p className="eyebrow">{copy.destinations(country.name)}</p>
+            <h2 id="country-destination-list" className="section-title mt-3">{copy.destinations(country.name)}</h2>
           </div>
-          <p className="text-xs text-muted">{copy.sorted}</p>
+          <p>{copy.listHint}</p>
         </div>
-        <ul className="country-city-grid">
-          {summaries.map((summary, index) => (
+        <ul className="country-city-grid country-map-city-grid">
+          {summaries.map((summary) => (
             <li
               key={summary.city.cityId}
-              className={`country-city-choice risk-${summary.risk}`}
+              className={`country-city-choice risk-${summary.risk}${summary.filtered ? " is-filtered" : ""}`}
               data-selected={selected?.city.cityId === summary.city.cityId}
             >
-              <button
-                type="button"
-                onClick={() => setSelectedCityId(summary.city.cityId)}
-                aria-pressed={selected?.city.cityId === summary.city.cityId}
-                className="country-city-select focus-ring"
-              >
-                <span className="country-city-rank">#{index + 1}</span>
+              <button type="button" onClick={() => selectCity(summary)} className="country-city-select focus-ring">
+                <span className="country-list-weather-icon" aria-hidden="true">{summary.symbol}</span>
                 <span className="min-w-0 flex-1 text-left">
-                  <strong className="block truncate text-base text-foreground">
-                    {summary.city.cityName}
-                  </strong>
-                  <span className="mt-1 block text-xs text-muted">
-                    {rainLabel(summary, locale)}
-                  </span>
+                  <strong>{summary.city.cityName}</strong>
+                  <small>{rainLabel(summary, locale)}</small>
+                  {summary.filtered ? <em>{summary.filterReasons[0]}</em> : null}
                 </span>
-                <span className="text-right">
-                  <strong className="block text-lg text-foreground">{summary.score ?? "—"}</strong>
-                  <span className="text-[9px] uppercase tracking-[0.1em] text-muted">
-                    {copy.score}
-                  </span>
-                </span>
+                <span className="country-list-temperature">{summary.temperatureMin ?? "–"}–{summary.temperatureMax ?? "–"}°</span>
               </button>
-              <DiscoveryTripAction
-                locale={locale}
-                cityId={summary.city.cityId}
-                cityName={summary.city.cityName}
-                countryName={summary.city.countryName}
-                dates={summary.days.map((day) => day.localDate)}
-                workspacePath={locale === "zh-cn" ? "/zh-cn/trips/workspace" : "/trips/workspace"}
-              />
-              <a
-                href={cityDetailHref(summary.city.path)}
-                className="country-city-forecast-link focus-ring"
-                aria-label={`${summary.city.cityName} ${copy.cityForecast}`}
-              >
-                {copy.cityForecast} <span aria-hidden="true">→</span>
+              <a href={cityDetailHref(summary.city.path)} className="country-city-forecast-link focus-ring">
+                {copy.detail} <span aria-hidden="true">→</span>
               </a>
             </li>
           ))}
         </ul>
-      </div>
+      </section>
 
-      <section className="country-evidence-panel" aria-labelledby="comparison-methodology">
+      <section className="country-evidence-panel">
         <div className="country-evidence-heading">
-          <p className="eyebrow">{copy.methodology}</p>
+          <p className="eyebrow">{copy.sourceHeading}</p>
           <p>{updatedLabel}</p>
         </div>
-        <div className="country-evidence-grid">
-          <article>
-            <h2 id="comparison-methodology">{copy.rankingQuestion}</h2>
-            <p>{copy.rankingAnswer}</p>
-          </article>
-          <article>
-            <h2>{copy.probabilityQuestion}</h2>
-            <p>{copy.probabilityAnswer}</p>
-          </article>
-          <article>
-            <h2>{copy.sourceQuestion}</h2>
-            <p>
-              {copy.sourceAnswer} <a href="https://open-meteo.com/">Open-Meteo</a>
-            </p>
-          </article>
+        <div className="country-map-methodology">
+          <p>{copy.sourceText}</p>
+          <p>{copy.source}: <a href="https://open-meteo.com/">Open-Meteo</a></p>
         </div>
       </section>
     </section>

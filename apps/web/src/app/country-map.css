@@ -1,0 +1,661 @@
+.country-map-home-hero {
+  display: grid;
+  gap: 2rem;
+  align-items: end;
+  padding: clamp(1.5rem, 4vw, 3.5rem);
+  border: 1px solid rgb(var(--wnr-border) / 0.85);
+  border-radius: 2rem;
+  background:
+    radial-gradient(circle at 92% 8%, rgb(var(--wnr-primary) / 0.13), transparent 23rem),
+    linear-gradient(130deg, #fff, rgb(var(--wnr-surface-elevated) / 0.82));
+  box-shadow: 0 24px 70px rgb(18 35 62 / 0.1);
+}
+
+.country-map-home-hero h1,
+.country-map-page-intro h1 {
+  max-width: 54rem;
+  margin: 1rem 0 0;
+  color: rgb(var(--wnr-foreground));
+  font-size: clamp(2.4rem, 7vw, 4.7rem);
+  font-weight: 800;
+  letter-spacing: -0.055em;
+  line-height: 1.02;
+}
+
+.country-map-home-hero > div > p:last-child,
+.country-map-page-intro > p:last-child {
+  max-width: 44rem;
+  margin: 1.25rem 0 0;
+  color: rgb(var(--wnr-muted));
+  font-size: clamp(1rem, 2vw, 1.15rem);
+  line-height: 1.75;
+}
+
+.country-map-home-picker {
+  display: block;
+  min-width: 0;
+  padding: 1rem;
+  border: 1px solid rgb(var(--wnr-border));
+  border-radius: 1.25rem;
+  background: rgb(var(--wnr-surface));
+  box-shadow: 0 14px 36px rgb(18 35 62 / 0.1);
+}
+
+.country-map-home-picker > span {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: rgb(var(--wnr-muted));
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.country-map-home-picker select {
+  width: 100%;
+  min-height: 3.25rem;
+  padding: 0 1rem;
+  border: 1px solid rgb(var(--wnr-border));
+  border-radius: 0.9rem;
+  color: rgb(var(--wnr-foreground));
+  background: rgb(var(--wnr-surface-elevated));
+  font: inherit;
+  font-weight: 750;
+}
+
+.country-map-home-list {
+  margin-top: 3rem;
+}
+
+.country-map-home-list > ul {
+  display: grid;
+  gap: 1rem;
+  margin: 1.5rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.country-map-country-card {
+  display: flex;
+  height: 100%;
+  min-height: 17rem;
+  flex-direction: column;
+  padding: 1.35rem;
+  border: 1px solid rgb(var(--wnr-border));
+  border-radius: 1.35rem;
+  color: inherit;
+  background: #fff;
+  text-decoration: none;
+  box-shadow: 0 8px 26px rgb(18 35 62 / 0.06);
+  transition:
+    transform 180ms ease,
+    border-color 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.country-map-country-card:hover {
+  transform: translateY(-3px);
+  border-color: rgb(var(--wnr-primary) / 0.35);
+  box-shadow: 0 18px 40px rgb(18 35 62 / 0.12);
+}
+
+.country-map-country-count {
+  color: rgb(var(--wnr-primary));
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.country-map-country-card h3 {
+  margin: 0.8rem 0 0;
+  color: rgb(var(--wnr-foreground));
+  font-size: 1.65rem;
+  font-weight: 800;
+  letter-spacing: -0.035em;
+}
+
+.country-map-country-card p {
+  margin: 0.65rem 0 0;
+  color: rgb(var(--wnr-muted));
+  font-size: 0.88rem;
+  line-height: 1.65;
+}
+
+.country-map-country-card small {
+  margin-top: 1rem;
+  color: rgb(var(--wnr-body));
+  font-size: 0.72rem;
+  font-weight: 650;
+}
+
+.country-map-country-card > strong {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: auto;
+  padding-top: 1rem;
+  border-top: 1px solid rgb(var(--wnr-border));
+  color: rgb(var(--wnr-primary));
+  font-size: 0.85rem;
+}
+
+.country-map-home-steps {
+  margin-top: 3rem;
+}
+
+.country-map-home-steps > div {
+  display: grid;
+  gap: 0.8rem;
+  margin-top: 1rem;
+}
+
+.country-map-home-steps article {
+  position: relative;
+  padding: 1.25rem 1.25rem 1.25rem 4.25rem;
+  border: 1px solid rgb(var(--wnr-border));
+  border-radius: 1.15rem;
+  background: rgb(var(--wnr-surface));
+}
+
+.country-map-home-steps article > span {
+  position: absolute;
+  top: 1.1rem;
+  left: 1.1rem;
+  display: grid;
+  width: 2.25rem;
+  height: 2.25rem;
+  place-items: center;
+  border-radius: 999px;
+  color: #fff;
+  background: rgb(var(--wnr-foreground));
+  font-size: 0.7rem;
+  font-weight: 800;
+}
+
+.country-map-home-steps h3 {
+  margin: 0;
+  color: rgb(var(--wnr-foreground));
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+.country-map-home-steps p {
+  margin: 0.35rem 0 0;
+  color: rgb(var(--wnr-muted));
+  font-size: 0.82rem;
+  line-height: 1.6;
+}
+
+.country-map-page-intro {
+  padding: clamp(1.5rem, 3vw, 2.5rem) 0 1.25rem;
+}
+
+.country-map-page-intro .eyebrow {
+  margin-top: 1.5rem;
+}
+
+.country-map-page-intro h1 {
+  font-size: clamp(2.25rem, 6vw, 4.25rem);
+}
+
+.country-map-toolbar {
+  grid-template-columns: minmax(0, 190px) minmax(0, 1fr) auto;
+}
+
+.country-map-actions {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.75rem;
+  justify-content: flex-end;
+}
+
+.country-map-actions p {
+  min-width: 7rem;
+  margin: 0 0 0.7rem;
+  color: rgb(var(--wnr-muted));
+  font-size: 0.72rem;
+  text-align: right;
+}
+
+.country-share-button,
+.country-filter-clear {
+  min-height: 2.75rem;
+  padding: 0 1rem;
+  border: 1px solid rgb(var(--wnr-border));
+  border-radius: 999px;
+  color: rgb(var(--wnr-foreground));
+  background: #fff;
+  font-size: 0.78rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.country-share-button:hover,
+.country-filter-clear:hover {
+  border-color: rgb(var(--wnr-primary) / 0.35);
+  color: rgb(var(--wnr-primary));
+}
+
+.country-filter-details {
+  margin-top: 0.85rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid rgb(var(--wnr-border));
+  border-radius: 1rem;
+  background: rgb(var(--wnr-surface));
+}
+
+.country-filter-details summary {
+  display: flex;
+  min-height: 2.5rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  color: rgb(var(--wnr-foreground));
+  font-size: 0.82rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.country-filter-details summary strong {
+  color: rgb(var(--wnr-primary));
+  font-size: 0.7rem;
+}
+
+.country-filter-details > p {
+  margin: 0.35rem 0 0;
+  color: rgb(var(--wnr-muted));
+  font-size: 0.75rem;
+}
+
+.country-filter-grid {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.country-filter-grid label > span {
+  display: block;
+  margin-bottom: 0.4rem;
+  color: rgb(var(--wnr-muted));
+  font-size: 0.68rem;
+  font-weight: 750;
+}
+
+.country-filter-grid select {
+  width: 100%;
+  min-height: 2.6rem;
+  padding: 0 0.75rem;
+  border: 1px solid rgb(var(--wnr-border));
+  border-radius: 0.75rem;
+  color: rgb(var(--wnr-foreground));
+  background: rgb(var(--wnr-surface-elevated));
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.country-filter-clear {
+  margin-top: 1rem;
+}
+
+.country-map-primary-heading {
+  margin-top: 1rem;
+  border: 1px solid rgb(var(--wnr-border));
+  border-bottom: 0;
+  border-radius: 1.25rem 1.25rem 0 0;
+}
+
+.country-map-primary-heading h2 {
+  margin: 0.25rem 0 0;
+  color: rgb(var(--wnr-foreground));
+  font-size: clamp(1.35rem, 3vw, 2rem);
+  font-weight: 800;
+  letter-spacing: -0.035em;
+}
+
+.country-map-primary-heading p:last-child {
+  margin: 0.35rem 0 0;
+  color: rgb(var(--wnr-muted));
+  font-size: 0.8rem;
+}
+
+.country-map-primary-heading > strong {
+  color: rgb(var(--wnr-body));
+  font-size: 0.78rem;
+}
+
+.country-map-layout {
+  margin-top: 0;
+}
+
+.country-weather-map-primary {
+  height: clamp(30rem, 65vh, 44rem);
+}
+
+.country-weather-marker-button {
+  display: flex;
+  min-width: 7.4rem;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.48rem 0.65rem;
+  border-width: 2px;
+  border-radius: 0.85rem;
+}
+
+.country-weather-marker-icon {
+  display: block !important;
+  margin: 0 !important;
+  font-size: 1.4rem !important;
+  line-height: 1 !important;
+}
+
+.country-weather-marker-copy {
+  display: block !important;
+  margin: 0 !important;
+  color: rgb(var(--wnr-foreground));
+}
+
+.country-weather-marker-copy strong,
+.country-weather-marker-copy span {
+  display: block;
+  margin: 0;
+  color: inherit;
+  line-height: 1.2;
+}
+
+.country-weather-marker-copy strong {
+  font-size: 0.68rem;
+}
+
+.country-weather-marker-copy span {
+  margin-top: 0.18rem;
+  color: rgb(var(--wnr-muted));
+  font-size: 0.56rem;
+}
+
+.country-weather-marker.is-filtered {
+  opacity: 0.4;
+  filter: grayscale(1);
+}
+
+.country-weather-marker.is-filtered .country-weather-marker-button {
+  border-style: dashed;
+}
+
+.country-inspector-title {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.country-inspector-title > span {
+  font-size: 3rem;
+  line-height: 1;
+}
+
+.country-inspector-title p {
+  margin: 0;
+  color: rgb(255 255 255 / 0.52);
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+
+.country-inspector-title h2 {
+  margin: 0.2rem 0 0;
+  color: #fff;
+  font-size: 2rem;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+}
+
+.country-inspector-title small {
+  color: rgb(255 255 255 / 0.55);
+}
+
+.country-filter-result {
+  align-self: flex-start;
+  margin: 1rem 0 0;
+  padding: 0.35rem 0.65rem;
+  border: 1px solid rgb(255 255 255 / 0.18);
+  border-radius: 999px;
+  color: #bdf4d3;
+  background: rgb(27 126 82 / 0.2);
+  font-size: 0.67rem;
+  font-weight: 800;
+}
+
+.country-filter-result.is-filtered {
+  color: #ffd8ca;
+  background: rgb(234 101 64 / 0.18);
+}
+
+.country-filter-reasons {
+  margin: 0.75rem 0 0;
+  padding-left: 1rem;
+  color: rgb(255 255 255 / 0.7);
+  font-size: 0.72rem;
+  line-height: 1.55;
+}
+
+.country-map-inspector-summary {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.country-daily-emoji {
+  display: grid;
+  width: 2.1rem;
+  height: 2.1rem;
+  place-items: center;
+  border-radius: 0.65rem;
+  background: rgb(255 255 255 / 0.1);
+  font-size: 1.25rem;
+}
+
+.country-daily-strip time,
+.country-daily-strip strong {
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 750;
+}
+
+.country-daily-strip p {
+  margin: 0.1rem 0 0;
+  color: rgb(255 255 255 / 0.52);
+  font-size: 0.67rem;
+}
+
+.country-city-list-heading {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.country-city-list-heading > p {
+  max-width: 32rem;
+  color: rgb(var(--wnr-muted));
+  font-size: 0.75rem;
+  line-height: 1.55;
+}
+
+.country-map-city-grid .country-city-choice.is-filtered {
+  opacity: 0.52;
+  filter: grayscale(0.7);
+}
+
+.country-map-city-grid .country-city-choice.is-filtered:hover {
+  opacity: 0.82;
+}
+
+.country-list-weather-icon {
+  flex: 0 0 auto;
+  font-size: 1.75rem;
+}
+
+.country-map-city-grid .country-city-select strong {
+  display: block;
+  color: rgb(var(--wnr-foreground));
+  font-size: 0.95rem;
+  font-weight: 800;
+}
+
+.country-map-city-grid .country-city-select small,
+.country-map-city-grid .country-city-select em {
+  display: block;
+  margin-top: 0.22rem;
+  color: rgb(var(--wnr-muted));
+  font-size: 0.66rem;
+  font-style: normal;
+}
+
+.country-map-city-grid .country-city-select em {
+  color: rgb(var(--wnr-accent));
+}
+
+.country-list-temperature {
+  flex: 0 0 auto;
+  color: rgb(var(--wnr-body));
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+.country-map-methodology {
+  display: grid;
+  gap: 0.75rem;
+  padding-top: 1rem;
+  color: rgb(var(--wnr-muted));
+  font-size: 0.78rem;
+  line-height: 1.65;
+}
+
+.country-map-methodology p {
+  margin: 0;
+}
+
+.country-map-methodology a {
+  color: rgb(var(--wnr-primary));
+  font-weight: 750;
+}
+
+@media (min-width: 640px) {
+  .country-map-home-list > ul {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .country-map-home-steps > div,
+  .country-filter-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .country-city-list-heading {
+    flex-direction: row;
+    align-items: end;
+    justify-content: space-between;
+  }
+}
+
+@media (min-width: 1024px) {
+  .country-map-home-hero {
+    grid-template-columns: minmax(0, 1.35fr) minmax(18rem, 0.65fr);
+  }
+
+  .country-map-home-list > ul {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .country-map-home-steps > div {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .country-filter-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 1023px) {
+  .country-map-toolbar {
+    grid-template-columns: 1fr;
+  }
+
+  .country-map-actions {
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .country-map-actions p {
+    margin: 0;
+    text-align: right;
+  }
+
+  .country-map-primary-heading {
+    border-radius: 1.1rem 1.1rem 0 0;
+  }
+
+  .country-weather-map-primary {
+    height: min(62vh, 36rem);
+    min-height: 28rem;
+  }
+}
+
+@media (max-width: 639px) {
+  .country-map-home-hero {
+    border-radius: 1.4rem;
+  }
+
+  .country-map-home-hero h1,
+  .country-map-page-intro h1 {
+    font-size: 2.55rem;
+  }
+
+  .country-map-country-card {
+    min-height: 13rem;
+  }
+
+  .country-window-tabs {
+    margin-right: -0.5rem;
+    padding-right: 0.5rem;
+  }
+
+  .country-map-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .country-map-actions p {
+    min-width: 0;
+    text-align: left;
+  }
+
+  .country-weather-map-primary {
+    height: 64vh;
+    min-height: 27rem;
+  }
+
+  .country-map-legend {
+    right: 0.75rem;
+    left: 0.75rem;
+    justify-content: center;
+  }
+
+  .country-weather-marker-button {
+    min-width: 6.25rem;
+    gap: 0.35rem;
+    padding: 0.4rem 0.48rem;
+  }
+
+  .country-weather-marker-icon {
+    font-size: 1.15rem !important;
+  }
+
+  .country-weather-marker-copy strong {
+    max-width: 4.6rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .country-map-inspector-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

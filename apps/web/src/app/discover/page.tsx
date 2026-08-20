@@ -6,20 +6,20 @@ import { WeatherDiscoveryPlannerV2 } from "../../components/WeatherDiscoveryPlan
 import { buildAlternates, localeUrl } from "../seo";
 
 const description =
-  "Choose a supported starting hub, travel dates, transport mode and maximum one-way planning time, then compare the three reachable destinations with the lowest rain risk.";
+  "Legacy least-rain shortlist kept for existing saved links. The primary product is now the country travel weather map.";
 
 export const metadata: Metadata = {
-  title: "Find reachable least-rain destinations",
+  title: "Legacy least-rain finder",
   description,
   alternates: buildAlternates("/discover", "en", ["en", "zh-cn", "zh-hant"]),
-  robots: { index: true, follow: true },
+  robots: { index: false, follow: true },
 };
 
 export default function WeatherDiscoveryPage(): ReactElement {
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "WebApplication",
-    name: "Where Not Rain least-rain destination finder",
+    name: "Where Not Rain legacy least-rain finder",
     description,
     url: localeUrl("en", "/discover"),
     applicationCategory: "TravelApplication",

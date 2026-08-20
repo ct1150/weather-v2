@@ -1,0 +1,97 @@
+name: Apply country weather map cutover once
+
+on:
+  push:
+    branches: [feat/country-weather-map-cutover]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: country-weather-map-cutover-once
+  cancel-in-progress: false
+
+jobs:
+  apply:
+    if: contains(github.event.head_commit.message, 'chore: apply country-map cutover')
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout implementation branch
+        uses: actions/checkout@v4
+        with:
+          ref: feat/country-weather-map-cutover
+          fetch-depth: 0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.11.0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Apply bounded source patches
+        run: python tooling/one-off/country_map_cutover_patch.py
+
+      - name: Format changed source
+        run: |
+          pnpm exec prettier --write \
+            apps/web/src/app/page.tsx \
+            apps/web/src/app/zh-cn/page.tsx \
+            apps/web/src/app/zh-hant/page.tsx \
+            apps/web/src/app/[countrySlug]/page.tsx \
+            apps/web/src/app/zh-hant/[countrySlug]/page.tsx \
+            apps/web/src/app/discover/page.tsx \
+            apps/web/src/app/zh-cn/discover/page.tsx \
+            apps/web/src/app/zh-hant/discover/page.tsx \
+            apps/web/src/app/layout.tsx \
+            apps/web/src/app/seo.ts \
+            apps/web/src/app/sitemap.ts \
+            apps/web/src/app/view-models.ts \
+            apps/web/src/build/bake.ts \
+            apps/web/src/analytics/browser-events.ts \
+            apps/web/src/components/CountryMapHome.tsx \
+            apps/web/src/components/CountryWeatherExplorer.tsx \
+            apps/web/src/components/TraditionalCountryWeatherExplorer.tsx \
+            apps/web/src/components/SiteHeader.tsx \
+            apps/web/src/app/travel-radar.test.ts \
+            apps/web/src/components/country-weather-explorer.test.tsx \
+            apps/web/src/components/production-smoke-copy-contract.test.ts \
+            apps/web/src/components/trip-execution-pwa-contract.test.ts \
+            apps/web/src/components/ux-funnel-contract.test.ts \
+            apps/web/src/e2e/critical-paths.test.ts
+
+      - name: Focused type and component validation
+        run: |
+          pnpm --filter @wnr/analytics build
+          pnpm --filter @wnr/config build
+          pnpm --filter @wnr/domain build
+          pnpm --filter @wnr/seo build
+          pnpm --filter @wnr/web typecheck
+          pnpm --filter @wnr/web exec vitest run \
+            src/app/travel-radar.test.ts \
+            src/components/country-weather-explorer.test.tsx \
+            src/components/production-smoke-copy-contract.test.ts \
+            src/components/trip-execution-pwa-contract.test.ts \
+            src/components/ux-funnel-contract.test.ts \
+            src/e2e/critical-paths.test.ts
+
+      - name: Remove one-time implementation machinery
+        run: |
+          rm -f .github/workflows/country-map-cutover-once.yml
+          rm -f tooling/one-off/country_map_cutover_patch.py
+
+      - name: Commit completed implementation
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "feat: complete country-first weather map cutover"
+          git push origin HEAD:feat/country-weather-map-cutover

@@ -38,14 +38,9 @@ function transmitProductEvent(event: AnalyticsEvent, endpoint: string): void {
   }
 }
 
-/**
- * Validate a bounded analytics event first, expose it as a browser event for
- * local integrations, and best-effort forward it to the dedicated product
- * analytics Worker. The product path never depends on either sink.
- */
 export function emitProductAnalytics(input: {
   readonly locale: BrowserAnalyticsLocale;
-  readonly routeTemplate: "/discover" | "/trips/workspace";
+  readonly routeTemplate: "/" | "/[country]" | "/discover" | "/trips/workspace";
   readonly fields: object;
   readonly now?: Date;
   readonly endpoint?: string;

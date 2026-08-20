@@ -17,20 +17,18 @@ const traditionalExecution = readFileSync(
   new URL("../app/zh-hant/trips/execution/page.tsx", import.meta.url),
   "utf8",
 );
-const manifest = readFileSync(
-  new URL("../../public/manifest.webmanifest", import.meta.url),
-  "utf8",
-);
+const manifest = readFileSync(new URL("../../public/manifest.webmanifest", import.meta.url), "utf8");
 const serviceWorker = readFileSync(new URL("../../public/sw.js", import.meta.url), "utf8");
 
 describe("Trip execution PWA / offline contracts", () => {
-  it("registers an installable manifest and service worker from the static root layout", () => {
+  it("opens the country-map product while retaining the installable execution shell", () => {
     expect(layout).toContain('manifest: "/manifest.webmanifest"');
     expect(layout).toContain("<PwaBootstrap />");
     expect(bootstrap).toContain('navigator.serviceWorker.register("/sw.js"');
     expect(manifest).toContain('"display": "standalone"');
-    expect(manifest).toContain('"start_url": "/discover"');
-    expect(manifest).toContain('"url": "/discover"');
+    expect(manifest).toContain('"start_url": "/"');
+    expect(manifest).toContain('"url": "/"');
+    expect(manifest).not.toContain('"url": "/discover"');
     expect(manifest).not.toContain('"url": "/trips/execution"');
   });
 
@@ -64,6 +62,7 @@ describe("Trip execution PWA / offline contracts", () => {
     expect(simplifiedExecution).toContain('<TripExecutionUtilities locale="zh-cn" />');
     expect(traditionalExecution).toContain('<TripExecutionUtilities locale="zh-hant" />');
   });
+
   it("server-renders localized execution mode identity for empty workspaces", () => {
     const emptyStateStart = workspace.indexOf("if (workspace === null)");
     const emptyStateEnd = workspace.indexOf("const externalMaps", emptyStateStart);

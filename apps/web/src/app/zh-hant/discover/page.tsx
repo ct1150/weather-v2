@@ -5,21 +5,20 @@ import { JsonLd } from "../../../components/JsonLd";
 import { WeatherDiscoveryPlannerV2 } from "../../../components/WeatherDiscoveryPlannerV2";
 import { buildAlternates, localeUrl } from "../../seo";
 
-const description =
-  "選擇支援的出發地、交通方式、最長單程規劃時間和日期，只比較可達範圍內整體降雨風險最低的 3 個目的地。";
+const description = "為既有儲存連結保留的舊版少雨候選工具；目前主產品已切換為國家旅行天氣地圖。";
 
 export const metadata: Metadata = {
-  title: "可達範圍內哪裡不下雨：Top 3",
+  title: "舊版少雨候選工具",
   description,
   alternates: buildAlternates("/discover", "zh-hant", ["en", "zh-cn", "zh-hant"]),
-  robots: { index: true, follow: true },
+  robots: { index: false, follow: true },
 };
 
 export default function TraditionalWeatherDiscoveryPage(): ReactElement {
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "WebApplication",
-    name: "Where Not Rain 少雨目的地工具",
+    name: "Where Not Rain 舊版少雨候選工具",
     description,
     url: localeUrl("zh-hant", "/discover"),
     applicationCategory: "TravelApplication",

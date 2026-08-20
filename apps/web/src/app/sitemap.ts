@@ -1,7 +1,3 @@
-// apps/web/src/app/sitemap.ts
-//
-// Static-export sitemap. Only routes that exist in the static export are emitted.
-
 import type { MetadataRoute } from "next";
 import { getBakedDataset } from "../build/bake";
 import { localizedSitemapEntries } from "./seo";
@@ -9,16 +5,9 @@ import { localizedSitemapEntries } from "./seo";
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const dataset = await getBakedDataset();
   const lastModified = dataset.dataUpdatedAt;
-  const changeFrequency = "weekly" as const;
-
+  const changeFrequency = "daily" as const;
   const entries: MetadataRoute.Sitemap = [
     ...localizedSitemapEntries("/", { lastModified, changeFrequency }, ["en", "zh-hant", "zh-cn"]),
-    ...localizedSitemapEntries("/explore", { lastModified, changeFrequency }),
-    ...localizedSitemapEntries("/discover", { lastModified, changeFrequency }, [
-      "en",
-      "zh-cn",
-      "zh-hant",
-    ]),
   ];
 
   for (const country of dataset.countries) {
