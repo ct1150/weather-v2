@@ -2,7 +2,7 @@ name: PR CI
 
 on:
   pull_request:
-    types: [ready_for_review]
+    types: [ready_for_review, synchronize]
 
 permissions:
   contents: write
