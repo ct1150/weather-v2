@@ -1,4 +1,4 @@
-name: Format country-map branch once
+name: Format country-map source once
 
 on:
   pull_request:
@@ -49,34 +49,12 @@ jobs:
             apps/web/src/components/production-smoke-copy-contract.test.ts \
             apps/web/src/components/ux-funnel-contract.test.ts
 
-      - name: Restore standard CI and publish formatting
+      - name: Publish formatted source
         run: |
           set -euo pipefail
-          git fetch origin main --depth=1
-          git show FETCH_HEAD:.github/workflows/pr-ci.yml > .github/workflows/pr-ci.yml
-          cat > .github/workflows/apply-instant-country-map-fix-once.yml <<'YAML'
-          # Retired one-off workflow retained only because repository automation does not
-          # permit deleting workflow files through the current integration.
-          name: Retired country-map one-off
-
-          on:
-            workflow_dispatch:
-
-          permissions:
-            contents: read
-
-          jobs:
-            retired:
-              if: ${{ false }}
-              runs-on: ubuntu-latest
-              steps:
-                - run: echo "This one-off workflow has been retired."
-          YAML
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -- \
-            .github/workflows/pr-ci.yml \
-            .github/workflows/apply-instant-country-map-fix-once.yml \
             apps/web/src/app/instant-country-map.css \
             apps/web/src/components/country-weather-explorer.test.tsx \
             apps/web/src/components/CountryMapHome.tsx \
@@ -84,5 +62,9 @@ jobs:
             apps/web/src/components/InstantCountryWeatherExplorer.tsx \
             apps/web/src/components/production-smoke-copy-contract.test.ts \
             apps/web/src/components/ux-funnel-contract.test.ts
+          if git diff --cached --quiet; then
+            echo "Formatting already clean."
+            exit 0
+          fi
           git commit -m "style: format refined country weather maps"
           git push origin HEAD:fix/instant-complete-country-weather-map
