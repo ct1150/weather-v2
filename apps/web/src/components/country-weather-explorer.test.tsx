@@ -1,8 +1,12 @@
 // @vitest-environment jsdom
 
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { CountryWeatherCityViewModel, LocalDate, ScoreViewModel } from "../app/view-models";
+import type {
+  CountryWeatherCityViewModel,
+  LocalDate,
+  ScoreViewModel,
+} from "../app/view-models";
 import { CountryWeatherExplorer } from "./CountryWeatherExplorer";
 
 const maplibre = vi.hoisted(() => {
@@ -76,7 +80,14 @@ function city(
 const CITIES = [
   city("tokyo", "Tokyo", [25, 80, 20, 20, 65, 70, 75], 35.68, 139.69),
   city("osaka", "Osaka", [40, 15, 30, 25, 20, 15, 25], 34.69, 135.5),
-  city("sapporo", "Sapporo", [55, 35, 45, 40, 35, 30, 40], 43.06, 141.35, [15, 18, 20, 22, 24, 26, 28]),
+  city(
+    "sapporo",
+    "Sapporo",
+    [55, 35, 45, 40, 35, 30, 40],
+    43.06,
+    141.35,
+    [15, 18, 20, 22, 24, 26, 28],
+  ),
 ] as const;
 
 function renderExplorer(locale: "en" | "zh-cn" | "zh-hant" = "en"): ReturnType<typeof render> {
@@ -90,8 +101,16 @@ function renderExplorer(locale: "en" | "zh-cn" | "zh-hant" = "en"): ReturnType<t
         defaultTimezone: "Asia/Tokyo",
       }}
       countries={[
-        { slug: "jp", name: locale === "en" ? "Japan" : "日本", path: locale === "en" ? "/jp" : `/${locale}/jp` },
-        { slug: "kr", name: locale === "en" ? "South Korea" : "韩国", path: locale === "en" ? "/kr" : `/${locale}/kr` },
+        {
+          slug: "jp",
+          name: locale === "en" ? "Japan" : "日本",
+          path: locale === "en" ? "/jp" : `/${locale}/jp`,
+        },
+        {
+          slug: "kr",
+          name: locale === "en" ? "South Korea" : "韩国",
+          path: locale === "en" ? "/kr" : `/${locale}/kr`,
+        },
       ]}
       cities={CITIES}
       updatedLabel="Updated now"
@@ -122,9 +141,11 @@ describe("CountryWeatherExplorer country-map product", () => {
   it("defaults to seven days and renders weather-first markers for every city", async () => {
     renderExplorer();
 
-    expect(screen.getByRole("button", { name: "Next 7 days" }).getAttribute("aria-pressed")).toBe("true");
+    expect(screen.getByRole("button", { name: "Next 7 days" }).getAttribute("aria-pressed")).toBe(
+      "true",
+    );
     expect(screen.getByText("Popular destinations at a glance")).toBeTruthy();
-    expect(screen.getByText("Popular destinations in Japan")).toBeTruthy();
+    expect(screen.getAllByText("Popular destinations in Japan")).toHaveLength(2);
     expect(screen.queryByText("Travel Score")).toBeNull();
     expect(screen.queryByText("ranks first")).toBeNull();
     expect(screen.getByTestId("country-weather-map")).toBeTruthy();
@@ -132,7 +153,9 @@ describe("CountryWeatherExplorer country-map product", () => {
     await waitFor(() => expect(maplibre.Map).toHaveBeenCalledTimes(1));
     await waitFor(() => expect(maplibre.markerElements).toHaveLength(3));
     const labels = maplibre.markerElements.flatMap((element) =>
-      Array.from(element.querySelectorAll("button")).map((button) => button.getAttribute("aria-label")),
+      Array.from(element.querySelectorAll("button")).map((button) =>
+        button.getAttribute("aria-label"),
+      ),
     );
     expect(labels.some((label) => label?.includes("Tokyo") && label.includes("3/7"))).toBe(true);
     expect(labels.some((label) => label?.includes("Osaka") && label.includes("7/7"))).toBe(true);
@@ -143,8 +166,10 @@ describe("CountryWeatherExplorer country-map product", () => {
     fireEvent.click(screen.getByRole("button", { name: "Next 3 days" }));
 
     expect(window.location.search).toBe("?range=3d");
-    expect(screen.getByRole("button", { name: "Next 3 days" }).getAttribute("aria-pressed")).toBe("true");
-    expect(screen.getByLabelText("Osaka weather summary").textContent).toContain("3/3");
+    expect(screen.getByRole("button", { name: "Next 3 days" }).getAttribute("aria-pressed")).toBe(
+      "true",
+    );
+    expect(screen.getByLabelText("Tokyo weather summary").textContent).toContain("2/3");
   });
 
   it("greys destinations outside explicit limits instead of hiding them", () => {
@@ -173,12 +198,13 @@ describe("CountryWeatherExplorer country-map product", () => {
     expect(marker).toBeDefined();
     fireEvent.click(marker!);
 
-    expect(screen.getByLabelText("Sapporo weather summary")).toBeTruthy();
+    const inspector = screen.getByLabelText("Sapporo weather summary");
+    expect(inspector).toBeTruthy();
     expect(window.location.pathname).toBe("/jp");
     expect(window.location.search).toContain("city=sapporo");
-    expect(screen.getByRole("link", { name: /Open full city forecast/ }).getAttribute("href")).toContain(
-      "/jp/sapporo?start=2026-08-04&end=2026-08-10",
-    );
+    expect(
+      within(inspector).getByRole("link", { name: /Open full city forecast/ }).getAttribute("href"),
+    ).toContain("/jp/sapporo?start=2026-08-04&end=2026-08-10");
   });
 
   it("copies the full shareable country-map state", async () => {
