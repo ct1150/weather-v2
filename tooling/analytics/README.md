@@ -63,3 +63,10 @@ pnpm --filter @wnr/product-analytics exec wrangler d1 execute DB \
 
 The SQL files remain deliberately small so the one-person operating model does not require a BI
 service or analytics dashboard.
+
+## Country-map funnel
+
+`country-map-funnel.sql` is the active product query after the country-first cutover. It aggregates
+homepage map entry, country selection, country-map views and city interactions. Legacy discovery
+queries remain available for compatibility analysis, but no longer define the primary product
+funnel.

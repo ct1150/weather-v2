@@ -102,7 +102,12 @@ export default async function TraditionalChineseCountryPage({
       {
         "@type": "BreadcrumbList",
         itemListElement: [
-          { "@type": "ListItem", position: 1, name: "國家天氣地圖", item: localeUrl("zh-hant", "/") },
+          {
+            "@type": "ListItem",
+            position: 1,
+            name: "國家天氣地圖",
+            item: localeUrl("zh-hant", "/"),
+          },
           { "@type": "ListItem", position: 2, name: country.name, item: pageUrl },
         ],
       },
@@ -129,14 +134,19 @@ export default async function TraditionalChineseCountryPage({
       <section className="country-map-page-intro">
         <nav aria-label="麵包屑" className="country-breadcrumb">
           <ol>
-            <li><a href="/zh-hant" className="focus-ring">國家天氣地圖</a></li>
+            <li>
+              <a href="/zh-hant" className="focus-ring">
+                國家天氣地圖
+              </a>
+            </li>
             <li aria-current="page">{country.name}</li>
           </ol>
         </nav>
         <p className="eyebrow">未來 7 天旅行天氣</p>
         <h1>一張圖看懂{country.name}哪裡天氣更好</h1>
         <p>
-          地圖直接顯示 {cities.length} 個熱門旅遊地的天氣圖示、少雨天數和氣溫。點擊任意地點，再查看逐日預報。
+          地圖直接顯示 {cities.length}{" "}
+          個熱門旅遊地的天氣圖示、少雨天數和氣溫。點擊任意地點，再查看逐日預報。
         </p>
       </section>
 
@@ -154,7 +164,9 @@ export default async function TraditionalChineseCountryPage({
 
       <footer className="page-footer">
         <span>Where Not Rain · 一張地圖看懂熱門旅遊地天氣</span>
-        <span>天氣資料：<a href="https://open-meteo.com/">Open-Meteo</a></span>
+        <span>
+          天氣資料：<a href="https://open-meteo.com/">Open-Meteo</a>
+        </span>
       </footer>
     </main>
   );

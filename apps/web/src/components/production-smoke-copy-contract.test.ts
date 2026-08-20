@@ -15,7 +15,10 @@ const explorer = readFileSync(new URL("./CountryWeatherExplorer.tsx", import.met
 const englishHome = readFileSync(new URL("../app/page.tsx", import.meta.url), "utf8");
 const simplifiedHome = readFileSync(new URL("../app/zh-cn/page.tsx", import.meta.url), "utf8");
 const traditionalHome = readFileSync(new URL("../app/zh-hant/page.tsx", import.meta.url), "utf8");
-const englishCountry = readFileSync(new URL("../app/[countrySlug]/page.tsx", import.meta.url), "utf8");
+const englishCountry = readFileSync(
+  new URL("../app/[countrySlug]/page.tsx", import.meta.url),
+  "utf8",
+);
 const traditionalCountry = readFileSync(
   new URL("../app/zh-hant/[countrySlug]/page.tsx", import.meta.url),
   "utf8",

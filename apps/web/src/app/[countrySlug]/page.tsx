@@ -18,7 +18,10 @@ export function CountryPage({ viewModel, jsonLd, locale = "en" }: CountryPagePro
   const isChinese = locale === "zh-cn";
   const isReady = state === "ready" || state === "stale";
   const hasWeatherMap =
-    isReady && weatherCities !== undefined && weatherCities.length > 0 && availableCountries !== undefined;
+    isReady &&
+    weatherCities !== undefined &&
+    weatherCities.length > 0 &&
+    availableCountries !== undefined;
 
   return (
     <main id="main-content" className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-10">
@@ -57,7 +60,9 @@ export function CountryPage({ viewModel, jsonLd, locale = "en" }: CountryPagePro
       ) : null}
       {state === "error" ? (
         <p role="alert" className="mt-8 text-body text-danger">
-          {isChinese ? "暂时无法加载天气地图，请稍后重试。" : "The weather map is unavailable right now. Please try again."}
+          {isChinese
+            ? "暂时无法加载天气地图，请稍后重试。"
+            : "The weather map is unavailable right now. Please try again."}
         </p>
       ) : null}
 
@@ -160,7 +165,12 @@ export default async function Page({
       {
         "@type": "BreadcrumbList",
         itemListElement: [
-          { "@type": "ListItem", position: 1, name: "Country weather maps", item: localeUrl("en", "/") },
+          {
+            "@type": "ListItem",
+            position: 1,
+            name: "Country weather maps",
+            item: localeUrl("en", "/"),
+          },
           { "@type": "ListItem", position: 2, name: country.name.en, item: pageUrl },
         ],
       },

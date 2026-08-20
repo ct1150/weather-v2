@@ -46,6 +46,8 @@ export interface WeatherSummaryViewModel {
   readonly rainProbability: number | null;
   /** Expected precipitation total for the city-local day, in millimetres. */
   readonly precipitationMm?: number | null;
+  /** Maximum sustained wind during the local day, in km/h. */
+  readonly windSpeedMax?: number | null;
   readonly observedAt: string;
 }
 

@@ -76,7 +76,10 @@ export function SiteHeader(): ReactElement {
             {isTraditional ? "國家天氣圖" : isSimplified ? "国家天气图" : "Weather maps"}
           </span>
         </a>
-        <nav aria-label={isChinese ? "主導覽" : "Main navigation"} className="flex items-center gap-1">
+        <nav
+          aria-label={isChinese ? "主導覽" : "Main navigation"}
+          className="flex items-center gap-1"
+        >
           <a href={homeHref} className="nav-link bg-foreground !text-white shadow-sm focus-ring">
             <span className="hidden sm:inline">
               {isTraditional ? "選擇國家" : isSimplified ? "选择国家" : "Choose a country"}

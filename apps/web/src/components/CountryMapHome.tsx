@@ -29,10 +29,15 @@ const COPY = {
     howItWorks: "One glance, three steps",
     steps: [
       ["01", "Choose a country", "Start with the country you are already considering."],
-      ["02", "Read the map", "Weather icons, lower-rain days and temperatures appear on every destination."],
+      [
+        "02",
+        "Read the map",
+        "Weather icons, lower-rain days and temperatures appear on every destination.",
+      ],
       ["03", "Tap a place", "Open the daily forecast only when a destination catches your eye."],
     ],
-    cityCount: (count: number) => `${count} popular ${count === 1 ? "destination" : "destinations"}`,
+    cityCount: (count: number) =>
+      `${count} popular ${count === 1 ? "destination" : "destinations"}`,
     footer: "Where Not Rain · One country map, less weather guesswork",
   },
   "zh-cn": {
@@ -142,7 +147,9 @@ export function CountryMapHome({ countries, locale = "en" }: CountryMapHomeProps
                 className="country-map-country-card focus-ring"
                 onClick={() => recordCountryOpen(country, index + 1)}
               >
-                <span className="country-map-country-count">{copy.cityCount(country.cityCount)}</span>
+                <span className="country-map-country-count">
+                  {copy.cityCount(country.cityCount)}
+                </span>
                 <h3>{country.name}</h3>
                 <p>{country.summary}</p>
                 <small>{country.cityNames.join(" · ")}</small>

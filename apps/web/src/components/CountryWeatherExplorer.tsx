@@ -387,7 +387,10 @@ function shortDate(value: string, locale: ExplorerLocale): string {
   }).format(date);
 }
 
-function rangeLabel(days: ReadonlyArray<CountryWeatherDayViewModel>, locale: ExplorerLocale): string {
+function rangeLabel(
+  days: ReadonlyArray<CountryWeatherDayViewModel>,
+  locale: ExplorerLocale,
+): string {
   if (days.length === 0) return COPY[locale].unavailable;
   if (days.length === 1) return shortDate(days[0]?.localDate ?? "", locale);
   return `${shortDate(days[0]?.localDate ?? "", locale)}–${shortDate(days.at(-1)?.localDate ?? "", locale)}`;
@@ -620,8 +623,15 @@ export function CountryWeatherExplorer({
         country_code: country.countryId,
       },
     });
-    if (scrollOnMobile && window.matchMedia("(max-width: 1023px)").matches) {
-      window.setTimeout(() => inspectorRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 0);
+    if (
+      scrollOnMobile &&
+      typeof window.matchMedia === "function" &&
+      window.matchMedia("(max-width: 1023px)").matches
+    ) {
+      window.setTimeout(
+        () => inspectorRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }),
+        0,
+      );
     }
   }
 
@@ -714,7 +724,9 @@ export function CountryWeatherExplorer({
     return `${path}?${new URLSearchParams({ start, end }).toString()}`;
   }
 
-  const currentCountryPath = countries.find((option) => option.slug === country.slug.split("/").at(-1))?.path;
+  const currentCountryPath = countries.find(
+    (option) => option.slug === country.slug.split("/").at(-1),
+  )?.path;
 
   return (
     <section className="country-weather-console" aria-label={`${country.name} ${copy.mapHeading}`}>
@@ -723,7 +735,9 @@ export function CountryWeatherExplorer({
           <span>{copy.country}</span>
           <select
             value={currentCountryPath ?? `/${country.slug}`}
-            onChange={(event) => window.location.assign(`${event.target.value}${window.location.search}`)}
+            onChange={(event) =>
+              window.location.assign(`${event.target.value}${window.location.search}`)
+            }
             className="country-select focus-ring"
             aria-label={copy.chooseCountry}
           >
@@ -738,11 +752,13 @@ export function CountryWeatherExplorer({
         <div className="min-w-0 flex-1">
           <p className="country-control-label">{copy.period}</p>
           <div className="country-window-tabs" role="group" aria-label={copy.period}>
-            {([
-              ["3d", copy.threeDays],
-              ["7d", copy.sevenDays],
-              ["weekend", copy.weekend],
-            ] as const).map(([value, label]) => (
+            {(
+              [
+                ["3d", copy.threeDays],
+                ["7d", copy.sevenDays],
+                ["weekend", copy.weekend],
+              ] as const
+            ).map(([value, label]) => (
               <button
                 key={value}
                 type="button"
@@ -775,7 +791,10 @@ export function CountryWeatherExplorer({
                   aria-label={copy.firstDate}
                   value={customRange?.start ?? 0}
                   onChange={(event) =>
-                    chooseCustomRange(Number(event.target.value), customRange?.end ?? Number(event.target.value))
+                    chooseCustomRange(
+                      Number(event.target.value),
+                      customRange?.end ?? Number(event.target.value),
+                    )
                   }
                 >
                   {(cities[0]?.days ?? []).map((day, index) => (
@@ -792,7 +811,10 @@ export function CountryWeatherExplorer({
                   aria-label={copy.lastDate}
                   value={customRange?.end ?? Math.min(6, dates.length - 1)}
                   onChange={(event) =>
-                    chooseCustomRange(customRange?.start ?? Number(event.target.value), Number(event.target.value))
+                    chooseCustomRange(
+                      customRange?.start ?? Number(event.target.value),
+                      Number(event.target.value),
+                    )
                   }
                 >
                   {(cities[0]?.days ?? []).map((day, index) => (
@@ -807,7 +829,11 @@ export function CountryWeatherExplorer({
         </div>
 
         <div className="country-map-actions">
-          <button type="button" onClick={() => void copyShareLink()} className="country-share-button focus-ring">
+          <button
+            type="button"
+            onClick={() => void copyShareLink()}
+            className="country-share-button focus-ring"
+          >
             {copy.share}
           </button>
           <p aria-live="polite">{shareStatus || updatedLabel}</p>
@@ -823,7 +849,10 @@ export function CountryWeatherExplorer({
         <div className="country-filter-grid">
           <label>
             <span>{copy.maxRain}</span>
-            <select value={filters.rainMax ?? ""} onChange={(event) => updateFilter("rainMax", event.target.value)}>
+            <select
+              value={filters.rainMax ?? ""}
+              onChange={(event) => updateFilter("rainMax", event.target.value)}
+            >
               <option value="">{copy.noLimit}</option>
               {[30, 40, 50, 60, 70].map((value) => (
                 <option key={value} value={value}>{`≤ ${value}%`}</option>
@@ -832,7 +861,10 @@ export function CountryWeatherExplorer({
           </label>
           <label>
             <span>{copy.maxWind}</span>
-            <select value={filters.windMax ?? ""} onChange={(event) => updateFilter("windMax", event.target.value)}>
+            <select
+              value={filters.windMax ?? ""}
+              onChange={(event) => updateFilter("windMax", event.target.value)}
+            >
               <option value="">{copy.noLimit}</option>
               {[20, 30, 40, 50].map((value) => (
                 <option key={value} value={value}>{`≤ ${value} km/h`}</option>
@@ -841,7 +873,10 @@ export function CountryWeatherExplorer({
           </label>
           <label>
             <span>{copy.minTemp}</span>
-            <select value={filters.tempMin ?? ""} onChange={(event) => updateFilter("tempMin", event.target.value)}>
+            <select
+              value={filters.tempMin ?? ""}
+              onChange={(event) => updateFilter("tempMin", event.target.value)}
+            >
               <option value="">{copy.noLimit}</option>
               {[0, 10, 15, 20].map((value) => (
                 <option key={value} value={value}>{`≥ ${value}°C`}</option>
@@ -850,7 +885,10 @@ export function CountryWeatherExplorer({
           </label>
           <label>
             <span>{copy.maxTemp}</span>
-            <select value={filters.tempMax ?? ""} onChange={(event) => updateFilter("tempMax", event.target.value)}>
+            <select
+              value={filters.tempMax ?? ""}
+              onChange={(event) => updateFilter("tempMax", event.target.value)}
+            >
               <option value="">{copy.noLimit}</option>
               {[25, 30, 32, 35].map((value) => (
                 <option key={value} value={value}>{`≤ ${value}°C`}</option>
@@ -884,14 +922,24 @@ export function CountryWeatherExplorer({
             data-testid="country-weather-map"
           />
           <div className="country-map-legend" aria-label={copy.mapLegend}>
-            <span><i className="legend-good" /> {copy.lowerRain}</span>
-            <span><i className="legend-mixed" /> {copy.mixed}</span>
-            <span><i className="legend-wet" /> {copy.rainLikely}</span>
+            <span>
+              <i className="legend-good" /> {copy.lowerRain}
+            </span>
+            <span>
+              <i className="legend-mixed" /> {copy.mixed}
+            </span>
+            <span>
+              <i className="legend-wet" /> {copy.rainLikely}
+            </span>
           </div>
         </div>
 
         {selected !== null ? (
-          <aside ref={inspectorRef} className="country-city-inspector" aria-label={`${selected.city.cityName} weather summary`}>
+          <aside
+            ref={inspectorRef}
+            className="country-city-inspector"
+            aria-label={`${selected.city.cityName} weather summary`}
+          >
             <div className="country-inspector-title">
               <span aria-hidden="true">{selected.symbol}</span>
               <div>
@@ -905,28 +953,54 @@ export function CountryWeatherExplorer({
             </p>
             {selected.filterReasons.length > 0 ? (
               <ul className="country-filter-reasons">
-                {selected.filterReasons.map((reason) => <li key={reason}>{reason}</li>)}
+                {selected.filterReasons.map((reason) => (
+                  <li key={reason}>{reason}</li>
+                ))}
               </ul>
             ) : null}
             <div className="country-inspector-summary country-map-inspector-summary">
-              <div><span>{copy.dryDays}</span><strong>{selected.dryDays}/{selected.days.length}</strong></div>
-              <div><span>{copy.rain}</span><strong>{selected.totalRainMm ?? "—"} mm · {selected.maxRain ?? "—"}%</strong></div>
-              <div><span>{copy.temperature}</span><strong>{selected.temperatureMin ?? "–"}–{selected.temperatureMax ?? "–"}°C</strong></div>
-              <div><span>{copy.wind}</span><strong>{selected.maxWind ?? "—"} km/h</strong></div>
+              <div>
+                <span>{copy.dryDays}</span>
+                <strong>
+                  {selected.dryDays}/{selected.days.length}
+                </strong>
+              </div>
+              <div>
+                <span>{copy.rain}</span>
+                <strong>
+                  {selected.totalRainMm ?? "—"} mm · {selected.maxRain ?? "—"}%
+                </strong>
+              </div>
+              <div>
+                <span>{copy.temperature}</span>
+                <strong>
+                  {selected.temperatureMin ?? "–"}–{selected.temperatureMax ?? "–"}°C
+                </strong>
+              </div>
+              <div>
+                <span>{copy.wind}</span>
+                <strong>{selected.maxWind ?? "—"} km/h</strong>
+              </div>
             </div>
             <ol className="country-daily-strip" aria-label={copy.daily}>
               {selected.days.map((day) => (
                 <li key={day.localDate}>
                   <div className="flex items-center gap-3">
-                    <span className="country-daily-emoji" aria-hidden="true">{dailySymbol(day.weather.conditionLabel)}</span>
+                    <span className="country-daily-emoji" aria-hidden="true">
+                      {dailySymbol(day.weather.conditionLabel)}
+                    </span>
                     <div>
                       <time dateTime={day.localDate}>{shortDate(day.localDate, locale)}</time>
                       <p>{conditionLabel(day.weather.conditionLabel, locale)}</p>
                     </div>
                   </div>
                   <div className="text-right">
-                    <strong>{day.weather.rainProbability ?? "—"}% {copy.peakRain}</strong>
-                    <p>{day.weather.temperatureMin ?? "–"}–{day.weather.temperatureMax ?? "–"}°</p>
+                    <strong>
+                      {day.weather.rainProbability ?? "—"}% {copy.peakRain}
+                    </strong>
+                    <p>
+                      {day.weather.temperatureMin ?? "–"}–{day.weather.temperatureMax ?? "–"}°
+                    </p>
                   </div>
                 </li>
               ))}
@@ -942,7 +1016,9 @@ export function CountryWeatherExplorer({
         <div className="country-city-list-heading">
           <div>
             <p className="eyebrow">{copy.destinations(country.name)}</p>
-            <h2 id="country-destination-list" className="section-title mt-3">{copy.destinations(country.name)}</h2>
+            <h2 id="country-destination-list" className="section-title mt-3">
+              {copy.destinations(country.name)}
+            </h2>
           </div>
           <p>{copy.listHint}</p>
         </div>
@@ -953,16 +1029,27 @@ export function CountryWeatherExplorer({
               className={`country-city-choice risk-${summary.risk}${summary.filtered ? " is-filtered" : ""}`}
               data-selected={selected?.city.cityId === summary.city.cityId}
             >
-              <button type="button" onClick={() => selectCity(summary)} className="country-city-select focus-ring">
-                <span className="country-list-weather-icon" aria-hidden="true">{summary.symbol}</span>
+              <button
+                type="button"
+                onClick={() => selectCity(summary)}
+                className="country-city-select focus-ring"
+              >
+                <span className="country-list-weather-icon" aria-hidden="true">
+                  {summary.symbol}
+                </span>
                 <span className="min-w-0 flex-1 text-left">
                   <strong>{summary.city.cityName}</strong>
                   <small>{rainLabel(summary, locale)}</small>
                   {summary.filtered ? <em>{summary.filterReasons[0]}</em> : null}
                 </span>
-                <span className="country-list-temperature">{summary.temperatureMin ?? "–"}–{summary.temperatureMax ?? "–"}°</span>
+                <span className="country-list-temperature">
+                  {summary.temperatureMin ?? "–"}–{summary.temperatureMax ?? "–"}°
+                </span>
               </button>
-              <a href={cityDetailHref(summary.city.path)} className="country-city-forecast-link focus-ring">
+              <a
+                href={cityDetailHref(summary.city.path)}
+                className="country-city-forecast-link focus-ring"
+              >
                 {copy.detail} <span aria-hidden="true">→</span>
               </a>
             </li>
@@ -977,7 +1064,9 @@ export function CountryWeatherExplorer({
         </div>
         <div className="country-map-methodology">
           <p>{copy.sourceText}</p>
-          <p>{copy.source}: <a href="https://open-meteo.com/">Open-Meteo</a></p>
+          <p>
+            {copy.source}: <a href="https://open-meteo.com/">Open-Meteo</a>
+          </p>
         </div>
       </section>
     </section>

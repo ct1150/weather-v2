@@ -2,11 +2,7 @@
 
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type {
-  CountryWeatherCityViewModel,
-  LocalDate,
-  ScoreViewModel,
-} from "../app/view-models";
+import type { CountryWeatherCityViewModel, LocalDate, ScoreViewModel } from "../app/view-models";
 import { CountryWeatherExplorer } from "./CountryWeatherExplorer";
 
 const maplibre = vi.hoisted(() => {
@@ -122,6 +118,14 @@ function renderExplorer(locale: "en" | "zh-cn" | "zh-hant" = "en"): ReturnType<t
 beforeEach(() => {
   window.history.replaceState({}, "", "/jp");
   maplibre.markerElements.length = 0;
+  Object.defineProperty(window.URL, "createObjectURL", {
+    configurable: true,
+    value: vi.fn(() => "blob:maplibre-test-worker"),
+  });
+  Object.defineProperty(window.URL, "revokeObjectURL", {
+    configurable: true,
+    value: vi.fn(),
+  });
   Object.defineProperty(window, "matchMedia", {
     configurable: true,
     value: vi.fn().mockReturnValue({ matches: false }),
@@ -203,7 +207,9 @@ describe("CountryWeatherExplorer country-map product", () => {
     expect(window.location.pathname).toBe("/jp");
     expect(window.location.search).toContain("city=sapporo");
     expect(
-      within(inspector).getByRole("link", { name: /Open full city forecast/ }).getAttribute("href"),
+      within(inspector)
+        .getByRole("link", { name: /Open full city forecast/ })
+        .getAttribute("href"),
     ).toContain("/jp/sapporo?start=2026-08-04&end=2026-08-10");
   });
 
