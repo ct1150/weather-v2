@@ -19,7 +19,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const dataset = await getBakedDataset();
   const country = dataset.countries.find((item) => item.slug === params.countrySlug);
-  if (country === undefined) return { title: "國家旅行天氣地圖" };
+  if (country === undefined) return { title: "哪裡不下雨" };
   const cityNames = (dataset.citiesByCountry.get(country.id) ?? []).map((item) =>
     toTraditionalText(item.city.name["zh-cn"]),
   );
@@ -105,7 +105,7 @@ export default async function TraditionalChineseCountryPage({
           {
             "@type": "ListItem",
             position: 1,
-            name: "國家天氣地圖",
+            name: "哪裡不下雨",
             item: localeUrl("zh-hant", "/"),
           },
           { "@type": "ListItem", position: 2, name: country.name, item: pageUrl },
@@ -136,7 +136,7 @@ export default async function TraditionalChineseCountryPage({
           <ol>
             <li>
               <a href="/zh-hant" className="focus-ring">
-                國家天氣地圖
+                哪裡不下雨
               </a>
             </li>
             <li aria-current="page">{country.name}</li>
@@ -145,7 +145,7 @@ export default async function TraditionalChineseCountryPage({
         <p className="eyebrow">未來 7 天旅行天氣</p>
         <h1>{`一張圖看懂${country.name}哪裡天氣更好`}</h1>
         <p>
-          地圖會立即顯示目前目錄全部 {cities.length}{" "}
+          地圖立即顯示目前目錄全部 {cities.length}{" "}
           個旅行地的天氣圖示、少雨天數和氣溫。點擊任意地點，再查看逐日預報。
         </p>
       </section>
