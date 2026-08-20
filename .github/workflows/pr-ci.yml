@@ -70,16 +70,32 @@ jobs:
             apps/web/src/e2e/critical-paths.test.ts
 
       - name: Focused type and component validation
+        shell: bash
         run: |
-          pnpm -r --filter '!@wnr/web' --filter '!@wnr/weather-sync' --filter '!@wnr/maintenance' build
-          pnpm --filter @wnr/web typecheck
-          pnpm --filter @wnr/web exec vitest run \
-            src/app/travel-radar.test.ts \
-            src/components/country-weather-explorer.test.tsx \
-            src/components/production-smoke-copy-contract.test.ts \
-            src/components/trip-execution-pwa-contract.test.ts \
-            src/components/ux-funnel-contract.test.ts \
-            src/e2e/critical-paths.test.ts
+          set +e
+          {
+            pnpm -r --filter '!@wnr/web' --filter '!@wnr/weather-sync' --filter '!@wnr/maintenance' build
+            pnpm --filter @wnr/web typecheck
+            pnpm --filter @wnr/web exec vitest run \
+              src/app/travel-radar.test.ts \
+              src/components/country-weather-explorer.test.tsx \
+              src/components/production-smoke-copy-contract.test.ts \
+              src/components/trip-execution-pwa-contract.test.ts \
+              src/components/ux-funnel-contract.test.ts \
+              src/e2e/critical-paths.test.ts
+          } 2>&1 | tee country-map-validation.log
+          status=${PIPESTATUS[0]}
+          if [ "${status}" -ne 0 ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add country-map-validation.log
+            if ! git diff --cached --quiet; then
+              git commit -m "chore: record country-map validation failure"
+              git push origin HEAD:feat/country-weather-map-cutover
+            fi
+            exit "${status}"
+          fi
+          rm -f country-map-validation.log
 
       - name: Restore standard CI and remove one-time machinery
         run: |
@@ -87,6 +103,7 @@ jobs:
           git checkout origin/main -- .github/workflows/pr-ci.yml
           rm -f .github/workflows/country-map-cutover-once.yml
           rm -f tooling/one-off/country_map_cutover_patch.py
+          rm -f country-map-validation.log
 
       - name: Commit completed cutover
         run: |
