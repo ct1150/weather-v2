@@ -1,14 +1,7 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import {
-  startTransition,
-  useEffect,
-  useMemo,
-  useState,
-  type ChangeEvent,
-  type ReactElement,
-} from "react";
+import Link from "next/link";
+import { useEffect, useMemo, useRef, useState, type ChangeEvent, type ReactElement } from "react";
 import type {
   CountryHeaderViewModel,
   CountryWeatherCityViewModel,
@@ -42,10 +35,12 @@ function destinationHref(path: string): string {
 }
 
 export function CountryWeatherExplorer(props: CountryWeatherExplorerProps): ReactElement {
-  const router = useRouter();
   const datasets = props.countryDatasets ?? [];
+  const navigationLinkRef = useRef<HTMLAnchorElement | null>(null);
+  const [pendingHref, setPendingHref] = useState<string | null>(null);
   const [activeDataset, setActiveDataset] = useState<CountryWeatherDataset>({
-    path: props.countries.find((item) => item.slug === props.country.slug.split("/").at(-1))?.path ??
+    path:
+      props.countries.find((item) => item.slug === props.country.slug.split("/").at(-1))?.path ??
       `/${props.country.slug}`,
     country: props.country,
     cities: props.cities,
@@ -70,8 +65,10 @@ export function CountryWeatherExplorer(props: CountryWeatherExplorerProps): Reac
   }, [props.cities, props.countries, props.country, props.updatedLabel]);
 
   useEffect(() => {
-    for (const country of props.countries) router.prefetch(country.path);
-  }, [props.countries, router]);
+    if (pendingHref === null || navigationLinkRef.current === null) return;
+    navigationLinkRef.current.click();
+    setPendingHref(null);
+  }, [pendingHref]);
 
   function switchCountry(event: ChangeEvent<HTMLDivElement>): void {
     const target = event.target;
@@ -85,11 +82,7 @@ export function CountryWeatherExplorer(props: CountryWeatherExplorerProps): Reac
     const path = target.value;
     const dataset = datasetByPath.get(path);
     if (dataset !== undefined) setActiveDataset(dataset);
-
-    const href = destinationHref(path);
-    startTransition(() => {
-      router.push(href, { scroll: false });
-    });
+    setPendingHref(destinationHref(path));
   }
 
   return (
@@ -101,6 +94,27 @@ export function CountryWeatherExplorer(props: CountryWeatherExplorerProps): Reac
         updatedLabel={activeDataset.updatedLabel}
         locale={props.locale}
       />
+
+      {pendingHref !== null ? (
+        <Link
+          ref={navigationLinkRef}
+          href={pendingHref}
+          prefetch
+          tabIndex={-1}
+          aria-hidden="true"
+          className="sr-only"
+        >
+          Open selected country
+        </Link>
+      ) : null}
+
+      <nav aria-hidden="true" className="sr-only" data-testid="country-prefetch-links">
+        {props.countries.map((country) => (
+          <Link key={country.path} href={country.path} prefetch tabIndex={-1}>
+            {country.name}
+          </Link>
+        ))}
+      </nav>
     </div>
   );
 }
