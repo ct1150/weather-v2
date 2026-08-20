@@ -176,8 +176,8 @@ describe("Country weather-map page", () => {
   });
 
   it("lists every mapped city with links to detailed forecasts", () => {
-    expect(html).toContain('/jp/tokyo?start=2026-07-20&amp;end=2026-07-21');
-    expect(html).toContain('/jp/osaka?start=2026-07-20&amp;end=2026-07-21');
+    expect(html).toContain("/jp/tokyo?start=2026-07-20&amp;end=2026-07-21");
+    expect(html).toContain("/jp/osaka?start=2026-07-20&amp;end=2026-07-21");
     expect(html).toContain("Tokyo");
     expect(html).toContain("Osaka");
   });
