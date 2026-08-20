@@ -170,7 +170,7 @@ describe("Country weather-map page", () => {
 
   it("renders the country-first map identity as crawlable primary content", () => {
     expect(html).toContain("Japan travel weather at a glance");
-    expect(html).toContain("Popular destinations at a glance");
+    expect(html).toContain("All supported travel destinations at a glance");
     expect(html).toContain("Next 7 days");
     expect(html).toContain('data-testid="country-weather-map"');
   });
@@ -215,9 +215,9 @@ describe("Country weather-map page", () => {
         path: `/zh-cn${city.path}`,
       })),
     });
-    expect(html).toContain("国家天气地图");
+    expect(html).toContain("哪里不下雨");
     expect(html).toContain("一张图看懂日本哪里天气更好");
-    expect(html).toContain("热门旅游地天气一目了然");
+    expect(html).toContain("全部已收录旅行地天气一目了然");
     expect(html).toContain("未来 7 天");
   });
 });
