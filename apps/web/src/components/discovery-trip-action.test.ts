@@ -7,16 +7,18 @@ const traditional = readFileSync(
   "utf8",
 );
 
-describe("direct weather discovery to trip UX", () => {
-  it("exposes direct trip actions in standard country results", () => {
-    expect(standard.match(/<DiscoveryTripAction/g)?.length ?? 0).toBeGreaterThanOrEqual(2);
-    expect(standard).toContain(
-      'workspacePath={locale === "zh-cn" ? "/zh-cn/trips/workspace" : "/trips/workspace"}',
-    );
+describe("country weather map product boundary", () => {
+  it("keeps direct trip creation out of the standard country map", () => {
+    expect(standard).not.toContain("DiscoveryTripAction");
+    expect(standard).not.toContain("/trips/workspace");
+    expect(standard).toContain("Open full city forecast");
+    expect(standard).toContain("Popular destinations at a glance");
   });
 
-  it("exposes direct trip actions in Traditional Chinese results", () => {
-    expect(traditional.match(/<DiscoveryTripAction/g)?.length ?? 0).toBeGreaterThanOrEqual(2);
-    expect(traditional).toContain('workspacePath="/zh-hant/trips/workspace"');
+  it("uses the same map implementation in Traditional Chinese without trip actions", () => {
+    expect(traditional).not.toContain("DiscoveryTripAction");
+    expect(traditional).not.toContain("/zh-hant/trips/workspace");
+    expect(traditional).toContain("CountryWeatherExplorer");
+    expect(traditional).toContain('locale="zh-hant"');
   });
 });

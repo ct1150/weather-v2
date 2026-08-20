@@ -1,9 +1,3 @@
-// apps/web/src/app/seo.ts
-//
-// Small server-side SEO helpers that bridge the baked view models to `@wnr/seo`.
-// English is the unprefixed default. Simplified Chinese remains available for
-// compatibility, while Traditional Chinese is the primary overseas Chinese locale.
-
 import type { Metadata, MetadataRoute } from "next";
 import type { RouteClass } from "@wnr/seo";
 import { indexabilityForRouteClass } from "@wnr/seo";
@@ -19,15 +13,13 @@ const HREFLANG: Readonly<Record<PublishedLocale, string>> = {
   "zh-hant": "zh-Hant",
 };
 
-/** Absolute URL for a published locale. */
 export function localeUrl(locale: PublishedLocale, path: string): string {
-  const base = buildConfig().appBaseUrl.replace(/\/+$/, "");
+  const base = buildConfig().appBaseUrl.replace(/\/+$/u, "");
   if (locale === "zh-cn") return `${base}/zh-cn${path === "/" ? "" : path}`;
   if (locale === "zh-hant") return `${base}/zh-hant${path === "/" ? "" : path}`;
   return `${base}${path}`;
 }
 
-/** Build one self-referencing canonical and only advertise published translations. */
 export function buildAlternates(
   path: string,
   currentLocale: PublishedLocale = "en",
@@ -47,10 +39,10 @@ export function countrySearchCopy(
   const cityCount = cityNames.length;
   const examples = cityNames.slice(0, 3).join(", ");
   const remainder = Math.max(0, cityCount - 3);
-  const cityPreview = remainder > 0 ? `${examples} and ${remainder} more` : examples;
+  const preview = remainder > 0 ? `${examples} and ${remainder} more` : examples;
   return {
-    title: `${countryName} travel weather map: compare ${cityCount} cities`,
-    description: `Choose your travel dates and compare rain, temperature and Travel Scores for ${cityPreview} on one ${countryName} weather map.`,
+    title: `${countryName} travel weather map: ${cityCount} popular destinations`,
+    description: `See weather icons, lower-rain days and temperatures for ${preview} on one ${countryName} map, then open the daily forecast for any place.`,
   };
 }
 
@@ -59,8 +51,8 @@ export function citySearchCopy(
   countryName: string,
 ): { readonly title: string; readonly description: string } {
   return {
-    title: `${cityName} travel weather: rain, temperature & score`,
-    description: `See the 7-day ${cityName} forecast, rain risk, temperature and Travel Score, then compare other ${countryName} destinations before you book.`,
+    title: `${cityName} travel weather: rain and temperature outlook`,
+    description: `See the 7-day ${cityName} forecast, rain risk and temperature, then return to the ${countryName} weather map to compare other destinations.`,
   };
 }
 
@@ -71,10 +63,10 @@ export function countrySearchCopyZh(
   const cityCount = cityNames.length;
   const examples = cityNames.slice(0, 3).join("、");
   const remainder = Math.max(0, cityCount - 3);
-  const cityPreview = remainder > 0 ? `${examples}等${cityCount}个目的地` : examples;
+  const preview = remainder > 0 ? `${examples}等${cityCount}个目的地` : examples;
   return {
-    title: `${countryName}旅行天气地图：比较${cityCount}个城市`,
-    description: `选择旅行日期，一张地图比较${cityPreview}的预计降雨、最高降雨概率、气温和旅行评分。`,
+    title: `${countryName}旅行天气地图：${cityCount}个热门目的地`,
+    description: `一张地图查看${preview}的天气图标、少雨天数和气温，点击任意地点再查看逐日预报。`,
   };
 }
 
@@ -90,7 +82,6 @@ export function routeRobots(
   };
 }
 
-/** Convenience for `sitemap.ts`: one entry per real, canonical route. */
 export function localizedSitemapEntries(
   path: string,
   options: {

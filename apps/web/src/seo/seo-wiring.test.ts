@@ -18,8 +18,8 @@ import { indexabilityForRouteClass } from "@wnr/seo";
 
 const BASE = "https://868656.xyz";
 
-describe("sitemap.ts — static export sitemap", () => {
-  it("enumerates every published English and Chinese weather route once", async () => {
+describe("sitemap.ts — country-map acquisition sitemap", () => {
+  it("enumerates every published country and city weather route once", async () => {
     const entries = await sitemap();
     expect(entries.length).toBeGreaterThan(0);
 
@@ -27,10 +27,6 @@ describe("sitemap.ts — static export sitemap", () => {
     expect(urls).toContain(`${BASE}/`);
     expect(urls).toContain(`${BASE}/zh-cn`);
     expect(urls).toContain(`${BASE}/zh-hant`);
-    expect(urls).toContain(`${BASE}/explore`);
-    expect(urls).toContain(`${BASE}/discover`);
-    expect(urls).toContain(`${BASE}/zh-cn/discover`);
-    expect(urls).toContain(`${BASE}/zh-hant/discover`);
     expect(urls).toContain(`${BASE}/jp`);
     expect(urls).toContain(`${BASE}/zh-cn/jp`);
     expect(urls).toContain(`${BASE}/zh-hant/jp`);
@@ -38,8 +34,12 @@ describe("sitemap.ts — static export sitemap", () => {
     expect(urls).toContain(`${BASE}/zh-cn/jp/tokyo`);
     expect(urls).toContain(`${BASE}/zh-hant/jp/tokyo`);
 
-    // Advanced itinerary tools remain reachable for existing users but are noindex
-    // and deliberately excluded from the acquisition sitemap.
+    // Legacy discovery and advanced itinerary surfaces remain reachable for
+    // existing links, but no longer participate in primary acquisition.
+    expect(urls).not.toContain(`${BASE}/explore`);
+    expect(urls).not.toContain(`${BASE}/discover`);
+    expect(urls).not.toContain(`${BASE}/zh-cn/discover`);
+    expect(urls).not.toContain(`${BASE}/zh-hant/discover`);
     expect(urls).not.toContain(`${BASE}/trips`);
     expect(urls).not.toContain(`${BASE}/zh-hant/trips`);
     expect(urls).not.toContain(`${BASE}/zh-cn/trips`);
@@ -48,17 +48,17 @@ describe("sitemap.ts — static export sitemap", () => {
     expect(new Set(urls).size).toBe(urls.length);
   });
 
-  it("contains only final, non-redirecting canonical URL shapes", async () => {
+  it("contains only final canonical URL shapes", async () => {
     const entries = await sitemap();
     expect(entries.some((entry) => entry.url.endsWith("/zh-cn/"))).toBe(false);
     expect(entries.some((entry) => entry.url.endsWith("/zh-hant/"))).toBe(false);
 
-    const discovery = entries.find((entry) => entry.url === `${BASE}/discover`);
-    expect(discovery?.alternates?.languages?.["zh-Hant"]).toBe(`${BASE}/zh-hant/discover`);
-    expect(discovery?.alternates?.languages?.["zh-CN"]).toBe(`${BASE}/zh-cn/discover`);
+    const japan = entries.find((entry) => entry.url === `${BASE}/jp`);
+    expect(japan?.alternates?.languages?.["zh-Hant"]).toBe(`${BASE}/zh-hant/jp`);
+    expect(japan?.alternates?.languages?.["zh-CN"]).toBe(`${BASE}/zh-cn/jp`);
   });
 
-  it("advertises three-language hreflang for published weather routes", async () => {
+  it("advertises three-language hreflang for published country and city maps", async () => {
     const entries = await sitemap();
     const japan = entries.find((entry) => entry.url === `${BASE}/jp`);
     const tokyo = entries.find((entry) => entry.url === `${BASE}/jp/tokyo`);
@@ -98,7 +98,7 @@ describe("JsonLd.tsx — server-rendered structured data", () => {
       "@context": "https://schema.org",
       "@type": "TouristDestination",
       name: "Where Not Rain",
-      description: "Deterministic destination recommendations.",
+      description: "Country-first travel weather maps.",
       url: `${BASE}/`,
     };
     const html = renderToStaticMarkup(createElement(JsonLd, { schema }));
@@ -108,8 +108,8 @@ describe("JsonLd.tsx — server-rendered structured data", () => {
   });
 });
 
-describe("seo.ts helpers — canonical, copy and robots", () => {
-  it("resolves localized trip and weather alternates", () => {
+describe("seo.ts helpers — canonical, country-map copy and robots", () => {
+  it("resolves localized advanced and weather alternates", () => {
     const alt = buildAlternates("/jp/tokyo");
     expect(alt.canonical).toBe(`${BASE}/jp/tokyo`);
     expect(alt.languages).toBeUndefined();
@@ -130,17 +130,17 @@ describe("seo.ts helpers — canonical, copy and robots", () => {
     expect(zhCountry.languages?.["x-default"]).toBe(`${BASE}/jp`);
   });
 
-  it("generates unique, intent-led country and city search copy", () => {
+  it("generates unique, map-led country and city search copy", () => {
     expect(countrySearchCopy("Japan", ["Tokyo", "Osaka", "Sapporo", "Kyoto"])).toEqual({
-      title: "Japan travel weather map: compare 4 cities",
+      title: "Japan travel weather map: 4 popular destinations",
       description:
-        "Choose your travel dates and compare rain, temperature and Travel Scores for Tokyo, Osaka, Sapporo and 1 more on one Japan weather map.",
+        "See weather icons, lower-rain days and temperatures for Tokyo, Osaka, Sapporo and 1 more on one Japan map, then open the daily forecast for any place.",
     });
     expect(citySearchCopy("Tokyo", "Japan").title).toContain("Tokyo travel weather");
     expect(countrySearchCopyZh("日本", ["东京", "大阪", "札幌", "京都"])).toEqual({
-      title: "日本旅行天气地图：比较4个城市",
+      title: "日本旅行天气地图：4个热门目的地",
       description:
-        "选择旅行日期，一张地图比较东京、大阪、札幌等4个目的地的预计降雨、最高降雨概率、气温和旅行评分。",
+        "一张地图查看东京、大阪、札幌等4个目的地的天气图标、少雨天数和气温，点击任意地点再查看逐日预报。",
     });
   });
 

@@ -5,14 +5,15 @@ import { LocaleBootstrap } from "../components/LocaleBootstrap";
 import { PwaBootstrap } from "../components/PwaBootstrap";
 import { SiteHeader } from "../components/SiteHeader";
 import "./globals.css";
+import "./country-map.css";
 
 export const metadata: Metadata = {
   title: {
-    default: "Where Not Rain — least-rain destination finder",
+    default: "Where Not Rain — country travel weather maps",
     template: "%s — Where Not Rain",
   },
   description:
-    "Choose travel dates, apply optional weather limits and compare the three destinations with the lowest rain risk.",
+    "Choose a country and compare weather icons, lower-rain days and temperatures across popular travel destinations on one map.",
   metadataBase: new URL("https://868656.xyz"),
   applicationName: "Where Not Rain",
   manifest: "/manifest.webmanifest",

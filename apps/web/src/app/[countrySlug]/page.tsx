@@ -1,189 +1,108 @@
-// apps/web/src/app/[countrySlug]/page.tsx
-//
-// Country destination page (PRD-FR-003, UX-STATE-001). App Router page (T03):
-// bakes the dataset, resolves the country from the route `params`, and projects
-// the `CountryPageViewModel` for the pure presentational component. Statically
-// exported via `generateStaticParams`.
-
-import type { ReactElement } from "react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import type { CountryPageViewModel, DestinationLinkViewModel } from "../view-models";
-import { getBakedDataset, buildConfig, projectCountry } from "../../build/bake";
-import { JsonLd } from "../../components/JsonLd";
+import type { ReactElement } from "react";
+import type { CountryPageViewModel } from "../view-models";
+import { getBakedDataset, projectCountry } from "../../build/bake";
 import { CountryWeatherExplorer } from "../../components/CountryWeatherExplorer";
-import { buildAlternates, routeRobots, localeUrl, countrySearchCopy } from "../seo";
+import { JsonLd } from "../../components/JsonLd";
+import { buildAlternates, countrySearchCopy, localeUrl, routeRobots } from "../seo";
 
 export interface CountryPageProps {
   readonly viewModel: CountryPageViewModel;
   readonly locale?: "en" | "zh-cn";
-  /** Server-rendered JSON-LD schema.org node. */
   readonly jsonLd?: Readonly<Record<string, unknown>>;
 }
 
-function CityList({
-  items,
-  emptyLabel,
-  ranked = false,
-}: {
-  items: ReadonlyArray<DestinationLinkViewModel>;
-  emptyLabel: string;
-  ranked?: boolean;
-}) {
-  if (items.length === 0) {
-    return <p className="mt-2 text-body text-muted">{emptyLabel}</p>;
-  }
-  return (
-    <ul className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-      {items.map((dest, index) => (
-        <li key={dest.cityId}>
-          <a href={dest.path} className="destination-link focus-ring">
-            <span>
-              {ranked ? (
-                <span className="mr-3 text-xs font-bold text-muted">#{index + 1}</span>
-              ) : null}
-              <span className="font-bold text-foreground">{dest.cityName}</span>
-              <span className="ml-2 text-xs text-muted">{dest.countryName}</span>
-            </span>
-            <span aria-hidden="true" className="text-lg text-primary">
-              →
-            </span>
-          </a>
-        </li>
-      ))}
-    </ul>
-  );
-}
-
-export function CountryPage({ viewModel, jsonLd, locale = "en" }: CountryPageProps) {
-  const {
-    country,
-    cities,
-    rankings,
-    relatedLinks,
-    weatherCities,
-    availableCountries,
-    dataUpdatedLabel,
-    state,
-  } = viewModel;
+export function CountryPage({ viewModel, jsonLd, locale = "en" }: CountryPageProps): ReactElement {
+  const { country, cities, weatherCities, availableCountries, dataUpdatedLabel, state } = viewModel;
+  const isChinese = locale === "zh-cn";
   const isReady = state === "ready" || state === "stale";
-  const hasWeatherConsole =
+  const hasWeatherMap =
     isReady &&
     weatherCities !== undefined &&
     weatherCities.length > 0 &&
     availableCountries !== undefined;
-  const isChinese = locale === "zh-cn";
 
   return (
     <main id="main-content" className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-10">
       {jsonLd !== undefined ? <JsonLd schema={jsonLd} /> : null}
 
-      <section className="hero-panel !p-6 sm:!p-10">
-        <div className="relative z-10 max-w-3xl">
-          <nav aria-label={isChinese ? "面包屑" : "Breadcrumb"} className="country-breadcrumb">
-            <ol>
-              <li>
-                <a href={isChinese ? "/zh-cn" : "/"} className="focus-ring">
-                  {isChinese ? "亚洲旅行天气" : "Travel Radar"}
-                </a>
-              </li>
-              <li aria-current="page">{country.name}</li>
-            </ol>
-          </nav>
-          <p className="eyebrow mt-7">{isChinese ? "国家旅行天气地图" : "Country weather map"}</p>
-          <h1 className="mt-4 max-w-4xl text-4xl font-bold tracking-[-0.045em] text-foreground sm:text-6xl">
-            {isChinese
-              ? `比较${country.name}${cities.length}个旅游城市的天气`
-              : `Compare travel weather across ${cities.length} cities in ${country.name}`}
-          </h1>
-          <p className="mt-4 max-w-2xl text-base leading-7 text-muted sm:text-lg">
-            {country.summary ??
-              `Choose your travel dates, then compare all ${cities.length} listed cities directly on the map—no page hopping required.`}
-          </p>
-        </div>
+      <section className="country-map-page-intro">
+        <nav aria-label={isChinese ? "面包屑" : "Breadcrumb"} className="country-breadcrumb">
+          <ol>
+            <li>
+              <a href={isChinese ? "/zh-cn" : "/"} className="focus-ring">
+                {isChinese ? "国家天气地图" : "Country weather maps"}
+              </a>
+            </li>
+            <li aria-current="page">{country.name}</li>
+          </ol>
+        </nav>
+        <p className="eyebrow">
+          {isChinese ? "未来 7 天旅行天气" : "Next 7 days of travel weather"}
+        </p>
+        <h1>
+          {isChinese
+            ? `一张图看懂${country.name}哪里天气更好`
+            : `${country.name} travel weather at a glance`}
+        </h1>
+        <p>
+          {isChinese
+            ? `地图直接显示 ${cities.length} 个热门旅游地的天气图标、少雨天数和气温。点击任意地点，再查看逐日预报。`
+            : `See weather icons, lower-rain days and temperatures for ${cities.length} popular destinations. Tap any place only when you want the daily detail.`}
+        </p>
       </section>
 
       {state === "loading" ? (
         <p role="status" className="mt-8 text-body text-muted">
-          {isChinese ? "正在加载国家天气…" : "Loading country…"}
+          {isChinese ? "正在加载国家天气地图…" : "Loading the country weather map…"}
         </p>
       ) : null}
-
       {state === "error" ? (
         <p role="alert" className="mt-8 text-body text-danger">
           {isChinese
-            ? "暂时无法加载该国家的天气，请稍后重试。"
-            : "We couldn’t load this country right now. Please try again."}
+            ? "暂时无法加载天气地图，请稍后重试。"
+            : "The weather map is unavailable right now. Please try again."}
         </p>
       ) : null}
 
-      {hasWeatherConsole ? (
-        <>
-          <span className="sr-only" data-direct-trip-action="enabled">
-            Direct trip action enabled
-          </span>
-          <CountryWeatherExplorer
-            country={country}
-            countries={availableCountries}
-            cities={weatherCities}
-            updatedLabel={
-              isChinese
-                ? (dataUpdatedLabel ?? "Latest available data").replace(/^Updated /, "更新于 ")
-                : (dataUpdatedLabel ?? "Latest available data")
-            }
-            locale={locale}
-          />
-        </>
+      {hasWeatherMap ? (
+        <CountryWeatherExplorer
+          country={country}
+          countries={availableCountries}
+          cities={weatherCities}
+          updatedLabel={
+            isChinese
+              ? (dataUpdatedLabel ?? "Latest available data").replace(/^Updated /u, "更新于 ")
+              : (dataUpdatedLabel ?? "Latest available data")
+          }
+          locale={locale}
+        />
       ) : isReady ? (
-        <>
-          <section aria-label="Cities" className="mt-12">
-            <p className="eyebrow">{isChinese ? "浏览目的地" : "Browse the country"}</p>
-            <h2 className="section-title mt-3">{isChinese ? "城市" : "Cities"}</h2>
-            <CityList
-              items={cities}
-              emptyLabel={isChinese ? "暂时没有城市。" : "No cities listed yet."}
-            />
-          </section>
-
-          {rankings.map((ranking) => (
-            <section key={ranking.theme} aria-label={ranking.title} className="mt-12">
-              <p className="eyebrow">{isChinese ? "精选推荐" : "Curated picks"}</p>
-              <h2 className="section-title mt-3">{ranking.title}</h2>
-              <CityList
-                items={ranking.items}
-                emptyLabel={
-                  isChinese ? "该排名暂时没有目的地。" : "No destinations in this ranking yet."
-                }
-                ranked
-              />
-            </section>
-          ))}
-
-          {relatedLinks.length > 0 ? (
-            <section aria-label="Related destinations" className="mt-12">
-              <p className="eyebrow">{isChinese ? "继续探索" : "Keep exploring"}</p>
-              <h2 className="section-title mt-3">
-                {isChinese ? "相关目的地" : "Related destinations"}
-              </h2>
-              <CityList
-                items={relatedLinks}
-                emptyLabel={isChinese ? "暂时没有相关目的地。" : "No related destinations yet."}
-              />
-            </section>
-          ) : null}
-        </>
+        <section className="mt-10 rounded-2xl border border-border bg-white p-6">
+          <h2 className="section-title">{isChinese ? "热门旅游地" : "Popular destinations"}</h2>
+          <ul className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {cities.map((city) => (
+              <li key={city.cityId}>
+                <a href={city.path} className="destination-link focus-ring">
+                  <strong>{city.cityName}</strong>
+                  <span aria-hidden="true">→</span>
+                </a>
+              </li>
+            ))}
+          </ul>
+        </section>
       ) : null}
 
       <footer className="page-footer">
         <span>
           {isChinese
-            ? "Where Not Rain · 用天气决定去哪里"
-            : "Where Not Rain · Weather-led travel inspiration"}
+            ? "Where Not Rain · 一张地图看懂热门旅游地天气"
+            : "Where Not Rain · Popular travel weather on one map"}
         </span>
         <span>
           {isChinese ? "天气数据：" : "Forecast data by "}
           <a href="https://open-meteo.com/">Open-Meteo</a>
-          {isChinese ? " · 衍生旅行评分" : " · Derived Travel Score"}
         </span>
       </footer>
     </main>
@@ -192,7 +111,7 @@ export function CountryPage({ viewModel, jsonLd, locale = "en" }: CountryPagePro
 
 export async function generateStaticParams(): Promise<ReadonlyArray<{ countrySlug: string }>> {
   const dataset = await getBakedDataset();
-  return dataset.countries.map((c) => ({ countrySlug: c.slug }));
+  return dataset.countries.map((country) => ({ countrySlug: country.slug }));
 }
 
 export async function generateMetadata({
@@ -201,17 +120,17 @@ export async function generateMetadata({
   params: { countrySlug: string };
 }): Promise<Metadata> {
   const dataset = await getBakedDataset();
-  const country = dataset.countries.find((c) => c.slug === params.countrySlug);
+  const country = dataset.countries.find((item) => item.slug === params.countrySlug);
   const cityNames = country
     ? (dataset.citiesByCountry.get(country.id) ?? []).map((item) => item.city.name.en)
     : [];
-  const searchCopy = country ? countrySearchCopy(country.name.en, cityNames) : null;
+  const copy = country ? countrySearchCopy(country.name.en, cityNames) : null;
   return {
-    title: searchCopy?.title ?? "Country travel weather guide",
+    title: copy?.title ?? "Country travel weather map",
     description:
-      searchCopy?.description ??
-      "Compare rain, temperature and Travel Scores across destinations on one country weather map.",
-    alternates: buildAlternates(`/${params.countrySlug}`, "en", ["en", "zh-cn"]),
+      copy?.description ??
+      "See weather icons, lower-rain days and temperatures across popular destinations on one map.",
+    alternates: buildAlternates(`/${params.countrySlug}`, "en", ["en", "zh-cn", "zh-hant"]),
     robots: routeRobots("country", true),
   };
 }
@@ -222,56 +141,42 @@ export default async function Page({
   params: { countrySlug: string };
 }): Promise<ReactElement> {
   const dataset = await getBakedDataset();
-  const country = dataset.countries.find((c) => c.slug === params.countrySlug);
+  const country = dataset.countries.find((item) => item.slug === params.countrySlug);
   if (country === undefined) notFound();
-  const config = buildConfig();
-  const viewModel = projectCountry(dataset, params.countrySlug, config.defaultLocale);
-
+  const viewModel = projectCountry(dataset, params.countrySlug, "en");
   const countryCities = dataset.citiesByCountry.get(country.id) ?? [];
-  const searchCopy = countrySearchCopy(
+  const copy = countrySearchCopy(
     country.name.en,
     countryCities.map((item) => item.city.name.en),
   );
   const pageUrl = localeUrl("en", `/${country.slug}`);
-  const breadcrumbId = `${pageUrl}#breadcrumb`;
-  const destinationId = `${pageUrl}#destination`;
   const jsonLd: Record<string, unknown> = {
     "@context": "https://schema.org",
     "@graph": [
       {
         "@type": "WebPage",
         "@id": `${pageUrl}#webpage`,
-        name: searchCopy.title,
-        description: searchCopy.description,
+        name: copy.title,
+        description: copy.description,
         url: pageUrl,
         dateModified: dataset.dataUpdatedAt,
         inLanguage: "en",
-        breadcrumb: { "@id": breadcrumbId },
-        mainEntity: { "@id": destinationId },
       },
       {
         "@type": "BreadcrumbList",
-        "@id": breadcrumbId,
         itemListElement: [
-          { "@type": "ListItem", position: 1, name: "Travel Radar", item: localeUrl("en", "/") },
+          {
+            "@type": "ListItem",
+            position: 1,
+            name: "Country weather maps",
+            item: localeUrl("en", "/"),
+          },
           { "@type": "ListItem", position: 2, name: country.name.en, item: pageUrl },
         ],
       },
       {
-        "@type": "TouristDestination",
-        "@id": destinationId,
-        name: country.name.en,
-        description: searchCopy.description,
-        url: pageUrl,
-        containsPlace: countryCities.map((item) => ({
-          "@type": "City",
-          name: item.city.name.en,
-          url: localeUrl("en", `/${country.slug}/${item.city.slug}`),
-        })),
-      },
-      {
         "@type": "ItemList",
-        name: `${country.name.en} travel cities compared`,
+        name: `${country.name.en} travel weather map destinations`,
         numberOfItems: countryCities.length,
         itemListElement: countryCities.map((item, index) => ({
           "@type": "ListItem",

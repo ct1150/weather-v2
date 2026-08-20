@@ -38,7 +38,6 @@ export function SiteHeader(): ReactElement {
   const isChinese = currentLocale !== "en";
   const localePrefix = isTraditional ? "/zh-hant" : isSimplified ? "/zh-cn" : "";
   const homeHref = localePrefix || "/";
-  const decisionHref = `${localePrefix}/discover`;
 
   function chooseLocale(event: ChangeEvent<HTMLSelectElement>): void {
     const locale = event.target.value as SiteLocale;
@@ -47,8 +46,8 @@ export function SiteHeader(): ReactElement {
     const destination = isAutoLocalizablePath(pathname)
       ? localizedPath(pathname, locale)
       : locale === "en"
-        ? "/discover"
-        : `/${locale}/discover`;
+        ? "/"
+        : `/${locale}`;
     window.location.assign(`${destination}${window.location.search}${window.location.hash}`);
   }
 
@@ -63,10 +62,10 @@ export function SiteHeader(): ReactElement {
           className="group flex items-center gap-2.5 rounded-lg focus-ring"
           aria-label={
             isTraditional
-              ? "Where Not Rain 少雨目的地首頁"
+              ? "Where Not Rain 國家旅行天氣地圖首頁"
               : isSimplified
-                ? "Where Not Rain 少雨目的地首页"
-                : "Where Not Rain least-rain destination finder home"
+                ? "Where Not Rain 国家旅行天气地图首页"
+                : "Where Not Rain country travel weather maps home"
           }
         >
           <BrandMark />
@@ -74,25 +73,18 @@ export function SiteHeader(): ReactElement {
             Where Not Rain
           </span>
           <span className="hidden rounded-full border border-border bg-surface-elevated px-2 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-muted md:inline">
-            {isChinese ? "少雨去哪" : "Dry trip"}
+            {isTraditional ? "國家天氣圖" : isSimplified ? "国家天气图" : "Weather maps"}
           </span>
         </a>
         <nav
           aria-label={isChinese ? "主導覽" : "Main navigation"}
           className="flex items-center gap-1"
         >
-          <a
-            href={decisionHref}
-            className="nav-link bg-foreground !text-white shadow-sm focus-ring"
-          >
+          <a href={homeHref} className="nav-link bg-foreground !text-white shadow-sm focus-ring">
             <span className="hidden sm:inline">
-              {isTraditional
-                ? "找少雨目的地"
-                : isSimplified
-                  ? "找少雨目的地"
-                  : "Find dry destinations"}
+              {isTraditional ? "選擇國家" : isSimplified ? "选择国家" : "Choose a country"}
             </span>
-            <span className="sm:hidden">{isChinese ? "少雨" : "Find"}</span>
+            <span className="sm:hidden">{isChinese ? "國家" : "Countries"}</span>
           </a>
           <label className="nav-link focus-within:ring-2 focus-within:ring-primary/30">
             <span className="sr-only">

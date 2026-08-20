@@ -115,6 +115,7 @@ function weatherSummary(day: NormalizedDaily): WeatherSummaryViewModel {
     temperatureMax: day.tempMaxC,
     rainProbability: day.precipitationProbabilityMax,
     precipitationMm: day.precipitationMm,
+    windSpeedMax: day.windSpeedMaxKph,
     observedAt: `${day.localDate}T12:00:00Z`,
   };
 }
