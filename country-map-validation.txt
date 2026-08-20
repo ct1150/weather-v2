@@ -1,0 +1,2566 @@
+Scope: 17 of 21 workspace projects
+packages/config build$ tsc -p tsconfig.json
+packages/domain build$ tsc -p tsconfig.json
+packages/i18n build$ tsc -p tsconfig.json
+packages/test-utils build$ tsc -p tsconfig.json
+packages/domain build: Done
+packages/config build: Done
+packages/test-utils build: Done
+packages/i18n build: Done
+packages/analytics build$ tsc -p tsconfig.json
+packages/db build$ tsc -p tsconfig.json
+packages/seo build$ tsc -p tsconfig.json
+packages/ui build$ tsc -p tsconfig.json
+packages/seo build: Done
+packages/weather build$ tsc -p tsconfig.json
+packages/db build: Done
+workers/trip-api build$ tsc -p tsconfig.json
+packages/analytics build: Done
+workers/weather-read build$ tsc -p tsconfig.json
+packages/ui build: Done
+packages/weather build: Done
+workers/weather-read build: Done
+workers/trip-api build: Done
+workers/product-analytics build$ tsc -p tsconfig.json
+workers/product-analytics build: Done
+
+> @wnr/web@0.0.0 typecheck /home/runner/work/weather-v2/weather-v2/apps/web
+> tsc -p tsconfig.json --noEmit
+
+
+[1m[7m[36m RUN [39m[27m[22m [36mv2.1.9 [39m[90m/home/runner/work/weather-v2/weather-v2/apps/web[39m
+
+ [32m✓[39m src/components/trip-execution-pwa-contract.test.ts [2m([22m[2m5 tests[22m[2m)[22m[90m 10[2mms[22m[39m
+ [31m❯[39m src/components/ux-funnel-contract.test.ts [2m([22m[2m5 tests[22m[2m | [22m[31m1 failed[39m[2m)[22m[90m 24[2mms[22m[39m
+[31m   [31m×[31m country-first weather-map UX contracts[2m > [22mdefaults the country map to seven days and keeps limits explicit[90m 17[2mms[22m[31m[39m
+[31m     → expected '"use client";\n\nimport { useEffect, …' to contain 'weather_discovery_view'[39m
+ [32m✓[39m src/e2e/critical-paths.test.ts [2m([22m[2m9 tests[22m[2m)[22m[90m 14[2mms[22m[39m
+ [32m✓[39m src/components/production-smoke-copy-contract.test.ts [2m([22m[2m3 tests[22m[2m)[22m[90m 5[2mms[22m[39m
+ [32m✓[39m src/app/travel-radar.test.ts [2m([22m[2m3 tests[22m[2m)[22m[90m 3[2mms[22m[39m
+ [31m❯[39m src/components/country-weather-explorer.test.tsx [2m([22m[2m6 tests[22m[2m | [22m[31m3 failed[39m[2m)[22m[33m 569[2mms[22m[39m
+[31m   [31m×[31m CountryWeatherExplorer country-map product[2m > [22mdefaults to seven days and renders weather-first markers for every city[90m 203[2mms[22m[31m[39m
+[31m     → Found multiple elements with the text: Popular destinations in Japan
+
+Here are the matching elements:
+
+Ignored nodes: comments, script, style
+[36m<p[31m
+  [33mclass[31m=[32m"eyebrow"[31m
+[36m>[31m
+  [0mPopular destinations in Japan[0m
+[36m</p>[31m
+
+Ignored nodes: comments, script, style
+[36m<h2[31m
+  [33mclass[31m=[32m"section-title mt-3"[31m
+  [33mid[31m=[32m"country-destination-list"[31m
+[36m>[31m
+  [0mPopular destinations in Japan[0m
+[36m</h2>[31m
+
+(If this is intentional, then use the `*AllBy*` variant of the query (like `queryAllByText`, `getAllByText`, or `findAllByText`)).
+
+Ignored nodes: comments, script, style
+[36m<body>[31m
+  [36m<div>[31m
+    [36m<section[31m
+      [33maria-label[31m=[32m"Japan Popular destinations at a glance"[31m
+      [33mclass[31m=[32m"country-weather-console"[31m
+    [36m>[31m
+      [36m<div[31m
+        [33mclass[31m=[32m"country-console-toolbar country-map-toolbar"[31m
+      [36m>[31m
+        [36m<label[31m
+          [33mclass[31m=[32m"country-select-label"[31m
+        [36m>[31m
+          [36m<span>[31m
+            [0mCountry[0m
+          [36m</span>[31m
+          [36m<select[31m
+            [33maria-label[31m=[32m"Choose country"[31m
+            [33mclass[31m=[32m"country-select focus-ring"[31m
+          [36m>[31m
+            [36m<option[31m
+              [33mvalue[31m=[32m"/jp"[31m
+            [36m>[31m
+              [0mJapan[0m
+            [36m</option>[31m
+            [36m<option[31m
+              [33mvalue[31m=[32m"/kr"[31m
+            [36m>[31m
+              [0mSouth Korea[0m
+            [36m</option>[31m
+          [36m</select>[31m
+        [36m</label>[31m
+        [36m<div[31m
+          [33mclass[31m=[32m"min-w-0 flex-1"[31m
+        [36m>[31m
+          [36m<p[31m
+            [33mclass[31m=[32m"country-control-label"[31m
+          [36m>[31m
+            [0mWeather period[0m
+          [36m</p>[31m
+          [36m<div[31m
+            [33maria-label[31m=[32m"Weather period"[31m
+            [33mclass[31m=[32m"country-window-tabs"[31m
+            [33mrole[31m=[32m"group"[31m
+          [36m>[31m
+            [36m<button[31m
+              [33maria-pressed[31m=[32m"false"[31m
+              [33mclass[31m=[32m"country-window-button focus-ring "[31m
+              [33mtype[31m=[32m"button"[31m
+            [36m>[31m
+              [0mNext 3 days[0m
+            [36m</button>[31m
+            [36m<button[31m
+              [33maria-pressed[31m=[32m"true"[31m
+              [33mclass[31m=[32m"country-window-button focus-ring is-active"[31m
+              [33mtype[31m=[32m"button"[31m
+            [36m>[31m
+              [0mNext 7 days[0m
+            [36m</button>[31m
+            [36m<button[31m
+              [33maria-pressed[31m=[32m"false"[31m
+              [33mclass[31m=[32m"country-window-button focus-ring "[31m
+              [33mtype[31m=[32m"button"[31m
+            [36m>[31m
+              [0mThis weekend[0m
+            [36m</button>[31m
+            [36m<button[31m
+              [33maria-pressed[31m=[32m"false"[31m
+              [33mclass[31m=[32m"country-window-button focus-ring "[31m
+              [33mtype[31m=[32m"button"[31m
+            [36m>[31m
+              [0mCustom dates[0m
+            [36m</button>[31m
+          [36m</div>[31m
+        [36m</div>[31m
+        [36m<div[31m
+          [33mclass[31m=[32m"country-map-actions"[31m
+        [36m>[31m
+          [36m<button[31m
+            [33mclass[31m=[32m"country-share-button focus-ring"[31m
+            [33mtype[31m=[32m"button"[31m
+          [36m>[31m
+            [0mCopy map link[0m
+          [36m</button>[31m
+          [36m<p[31m
+            [33maria-live[31m=[32m"polite"[31m
+          [36m>[31m
+            [0mUpdated now[0m
+          [36m</p>[31m
+        [36m</div>[31m
+      [36m</div>[31m
+      [36m<details[31m
+        [33mclass[31m=[32m"country-filter-details"[31m
+      [36m>[31m
+        [36m<summary>[31m
+          [36m<span>[31m
+            [0mOptional weather limits[0m
+          [36m</span>[31m
+        [36m</summary>[31m
+        [36m<p>[31m
+          [0mDestinations stay on the map and turn grey when they exceed a limit.[0m
+        [36m</p>[31m
+        [36m<div[31m
+          [33mclass[31m=[32m"country-filter-grid"[31m
+        [36m>[31m
+          [36m<label>[31m
+            [36m<span>[31m
+              [0mHighest daily rain chance[0m
+            [36m</span>[31m
+            [36m<select>[31m
+              [36m<option[31m
+                [33mvalue[31m=[32m""[31m
+              [36m>[31m
+                [0mNo limit[0m
+              [36m</option>[31m
+              [36m<option[31m
+                [33mvalue[31m=[32m"30"[31m
+              [36m>[31m
+                [0m≤ 30%[0m
+              [36m</option>[31m
+              [36m<option[31m
+                [33mvalue[31m=[32m"40"[31m
+              [36m>[31m
+                [0m≤ 40%[0m
+              [36m</option>[31m
+              [36m<option[31m
+                [33mvalue[31m=[32m"50"[31m
+              [36m>[31m
+                [0m≤ 50%[0m
+              [36m</option>[31m
+              [36m<option[31m
+                [33mvalue[31m=[32m"60"[31m
+              [36m>[31m
+                [0m≤ 60%[0m
+              [36m</option>[31m
+              [36m<option[31m
+                [33mvalue[31m=[32m"70"[31m
+              [36m>[31m
+                [0m≤ 70%[0m
+              [36m</option>[31m
+            [36m</select>[31m
+          [36m</label>[31m
+          [36m<label>[31m
+            [36m<span>[31m
+              [0mMaximum wind speed[0m
+            [36m</span>[31m
+            [36m<select>[31m
+              [36m<option[31m
+                [33mvalue[31m=[32m""[31m
+              [36m>[31m
+                [0mNo limit[0m
+              [36m</option>[31m
+              [36m<option[31m
+                [33mvalue[31m=[32m"20"[31m
+              [36m>[31m
+                [0m≤ 20 km/h[0m
+              [36m</option>[31m
+              [36m<option[31m
+                [33mvalue[31m=[32m"30"[31m
+              [36m>[31m
+                [0m≤ 30 km/h[0m
+              [36m</option>[31m
+              [36m<option[31m
+                [33mvalue[31m=[32m"40"[31m
+              [36m>[31m
+                [0m≤ 40 km/h[0m
+              [36m</option>[31m
+              [36m<option[31m
+                [33mvalue[31m=[32m"50"[31m
+              [36m>[31m
+                [0m≤ 50 km/h[0m
+              [36m</option>[31m
+            [36m</select>[31m
+          [36m</label>[31m
+          [36m<label>[31m
+            [36m<span>[31m
+              [0mLowest overnight temperature[0m
+            [36m</span>[31m
+            [36m<select>[31m
+              [36m<option[31m
+                [33mvalue[31m=[32m""[31m
+              [36m>[31m
+                [0mNo limit[0m
+              [36m</option>[31m
+              [36m<option[31m
+                [33mvalue[31m=[32m"0"[31m
+              [36m>[31m
+                [0m≥ 0°C[0m
+              [36m</option>[31m
+              [36m<option[31m
+                [33mvalue[31m=[32m"10"[31m
+              [36m>[31m
+                [0m≥ 10°C[0m
+              [36m</option>[31m
+              [36m<option[31m
+                [33mvalue[31m=[32m"15"[31m
+              [36m>[31m
+                [0m≥ 15°C[0m
+              [36m</option>[...[39m
+[31m   [31m×[31m CountryWeatherExplorer country-map product[2m > [22mswitches to the three-day view without a submit button[90m 86[2mms[22m[31m[39m
+[31m     → Unable to find a label with the text of: Osaka weather summary
+
+Ignored nodes: comments, script, style
+[36m<body>[31m
+  [36m<div>[31m
+    [36m<section[31m
+      [33maria-label[31m=[32m"Japan Popular destinations at a glance"[31m
+      [33mclass[31m=[32m"country-weather-console"[31m
+    [36m>[31m
+      [36m<div[31m
+        [33mclass[31m=[32m"country-console-toolbar country-map-toolbar"[31m
+      [36m>[31m
+        [36m<label[31m
+          [33mclass[31m=[32m"country-select-label"[31m
+        [36m>[31m
+          [36m<span>[31m
+            [0mCountry[0m
+          [36m</span>[31m
+          [36m<select[31m
+            [33maria-label[31m=[32m"Choose country"[31m
+            [33mclass[31m=[32m"country-select focus-ring"[31m
+          [36m>[31m
+            [36m<option[31m
+              [33mvalue[31m=[32m"/jp"[31m
+            [36m>[31m
+              [0mJapan[0m
+            [36m</option>[31m
+            [36m<option[31m
+              [33mvalue[31m=[32m"/kr"[31m
+            [36m>[31m
+              [0mSouth Korea[0m
+            [36m</option>[31m
+          [36m</select>[31m
+        [36m</label>[31m
+        [36m<div[31m
+          [33mclass[31m=[32m"min-w-0 flex-1"[31m
+        [36m>[31m
+          [36m<p[31m
+            [33mclass[31m=[32m"country-control-label"[31m
+          [36m>[31m
+            [0mWeather period[0m
+          [36m</p>[31m
+          [36m<div[31m
+            [33maria-label[31m=[32m"Weather period"[31m
+            [33mclass[31m=[32m"country-window-tabs"[31m
+            [33mrole[31m=[32m"group"[31m
+          [36m>[31m
+            [36m<button[31m
+              [33maria-pressed[31m=[32m"true"[31m
+              [33mclass[31m=[32m"country-window-button focus-ring is-active"[31m
+              [33mtype[31m=[32m"button"[31m
+            [36m>[31m
+              [0mNext 3 days[0m
+            [36m</button>[31m
+            [36m<button[31m
+              [33maria-pressed[31m=[32m"false"[31m
+              [33mclass[31m=[32m"country-window-button focus-ring "[31m
+              [33mtype[31m=[32m"button"[31m
+            [36m>[31m
+              [0mNext 7 days[0m
+            [36m</button>[31m
+            [36m<button[31m
+              [33maria-pressed[31m=[32m"false"[31m
+              [33mclass[31m=[32m"country-window-button focus-ring "[31m
+              [33mtype[31m=[32m"button"[31m
+            [36m>[31m
+              [0mThis weekend[0m
+            [36m</button>[31m
+            [36m<button[31m
+              [33maria-pressed[31m=[32m"false"[31m
+              [33mclass[31m=[32m"country-window-button focus-ring "[31m
+              [33mtype[31m=[32m"button"[31m
+            [36m>[31m
+              [0mCustom dates[0m
+            [36m</button>[31m
+          [36m</div>[31m
+        [36m</div>[31m
+        [36m<div[31m
+          [33mclass[31m=[32m"country-map-actions"[31m
+        [36m>[31m
+          [36m<button[31m
+            [33mclass[31m=[32m"country-share-button focus-ring"[31m
+            [33mtype[31m=[32m"button"[31m
+          [36m>[31m
+            [0mCopy map link[0m
+          [36m</button>[31m
+          [36m<p[31m
+            [33maria-live[31m=[32m"polite"[31m
+          [36m>[31m
+            [0mUpdated now[0m
+          [36m</p>[31m
+        [36m</div>[31m
+      [36m</div>[31m
+      [36m<details[31m
+        [33mclass[31m=[32m"country-filter-details"[31m
+      [36m>[31m
+        [36m<summary>[31m
+          [36m<span>[31m
+            [0mOptional weather limits[0m
+          [36m</span>[31m
+        [36m</summary>[31m
+        [36m<p>[31m
+          [0mDestinations stay on the map and turn grey when they exceed a limit.[0m
+        [36m</p>[31m
+        [36m<div[31m
+          [33mclass[31m=[32m"country-filter-grid"[31m
+        [36m>[31m
+          [36m<label>[31m
+            [36m<span>[31m
+              [0mHighest daily rain chance[0m
+            [36m</span>[31m
+            [36m<select>[31m
+              [36m<option[31m
+                [33mvalue[31m=[32m""[31m
+              [36m>[31m
+                [0mNo limit[0m
+              [36m</option>[31m
+              [36m<option[31m
+                [33mvalue[31m=[32m"30"[31m
+              [36m>[31m
+                [0m≤ 30%[0m
+              [36m</option>[31m
+              [36m<option[31m
+                [33mvalue[31m=[32m"40"[31m
+              [36m>[31m
+                [0m≤ 40%[0m
+              [36m</option>[31m
+              [36m<option[31m
+                [33mvalue[31m=[32m"50"[31m
+              [36m>[31m
+                [0m≤ 50%[0m
+              [36m</option>[31m
+              [36m<option[31m
+                [33mvalue[31m=[32m"60"[31m
+              [36m>[31m
+                [0m≤ 60%[0m
+              [36m</option>[31m
+              [36m<option[31m
+                [33mvalue[31m=[32m"70"[31m
+              [36m>[31m
+                [0m≤ 70%[0m
+              [36m</option>[31m
+            [36m</select>[31m
+          [36m</label>[31m
+          [36m<label>[31m
+            [36m<span>[31m
+              [0mMaximum wind speed[0m
+            [36m</span>[31m
+            [36m<select>[31m
+              [36m<option[31m
+                [33mvalue[31m=[32m""[31m
+              [36m>[31m
+                [0mNo limit[0m
+              [36m</option>[31m
+              [36m<option[31m
+                [33mvalue[31m=[32m"20"[31m
+              [36m>[31m
+                [0m≤ 20 km/h[0m
+              [36m</option>[31m
+              [36m<option[31m
+                [33mvalue[31m=[32m"30"[31m
+              [36m>[31m
+                [0m≤ 30 km/h[0m
+              [36m</option>[31m
+              [36m<option[31m
+                [33mvalue[31m=[32m"40"[31m
+              [36m>[31m
+                [0m≤ 40 km/h[0m
+              [36m</option>[31m
+              [36m<option[31m
+                [33mvalue[31m=[32m"50"[31m
+              [36m>[31m
+                [0m≤ 50 km/h[0m
+              [36m</option>[31m
+            [36m</select>[31m
+          [36m</label>[31m
+          [36m<label>[31m
+            [36m<span>[31m
+              [0mLowest overnight temperature[0m
+            [36m</span>[31m
+            [36m<select>[31m
+              [36m<option[31m
+                [33mvalue[31m=[32m""[31m
+              [36m>[31m
+                [0mNo limit[0m
+              [36m</option>[31m
+              [36m<option[31m
+                [33mvalue[31m=[32m"0"[31m
+              [36m>[31m
+                [0m≥ 0°C[0m
+              [36m</option>[31m
+              [36m<option[31m
+                [33mvalue[31m=[32m"10"[31m
+              [36m>[31m
+                [0m≥ 10°C[0m
+              [36m</option>[31m
+              [36m<option[31m
+                [33mvalue[31m=[32m"15"[31m
+              [36m>[31m
+                [0m≥ 15°C[0m
+              [36m</option>[...[39m
+[31m   [31m×[31m CountryWeatherExplorer country-map product[2m > [22mselects a map destination inline and preserves the country page[90m 106[2mms[22m[31m[39m
+[31m     → Found multiple elements with the role "link" and name `/Open full city forecast/`
+
+Here are the matching elements:
+
+Ignored nodes: comments, script, style
+[36m<a[31m
+  [33mclass[31m=[32m"country-detail-link focus-ring"[31m
+  [33mhref[31m=[32m"/jp/sapporo?start=2026-08-04&end=2026-08-10"[31m
+[36m>[31m
+  [0mOpen full city forecast[0m
+  [0m [0m
+  [36m<span[31m
+    [33maria-hidden[31m=[32m"true"[31m
+  [36m>[31m
+    [0m→[0m
+  [36m</span>[31m
+[36m</a>[31m
+
+Ignored nodes: comments, script, style
+[36m<a[31m
+  [33mclass[31m=[32m"country-city-forecast-link focus-ring"[31m
+  [33mhref[31m=[32m"/jp/tokyo?start=2026-08-04&end=2026-08-10"[31m
+[36m>[31m
+  [0mOpen full city forecast[0m
+  [0m [0m
+  [36m<span[31m
+    [33maria-hidden[31m=[32m"true"[31m
+  [36m>[31m
+    [0m→[0m
+  [36m</span>[31m
+[36m</a>[31m
+
+Ignored nodes: comments, script, style
+[36m<a[31m
+  [33mclass[31m=[32m"country-city-forecast-link focus-ring"[31m
+  [33mhref[31m=[32m"/jp/osaka?start=2026-08-04&end=2026-08-10"[31m
+[36m>[31m
+  [0mOpen full city forecast[0m
+  [0m [0m
+  [36m<span[31m
+    [33maria-hidden[31m=[32m"true"[31m
+  [36m>[31m
+    [0m→[0m
+  [36m</span>[31m
+[36m</a>[31m
+
+Ignored nodes: comments, script, style
+[36m<a[31m
+  [33mclass[31m=[32m"country-city-forecast-link focus-ring"[31m
+  [33mhref[31m=[32m"/jp/sapporo?start=2026-08-04&end=2026-08-10"[31m
+[36m>[31m
+  [0mOpen full city forecast[0m
+  [0m [0m
+  [36m<span[31m
+    [33maria-hidden[31m=[32m"true"[31m
+  [36m>[31m
+    [0m→[0m
+  [36m</span>[31m
+[36m</a>[31m
+
+(If this is intentional, then use the `*AllBy*` variant of the query (like `queryAllByText`, `getAllByText`, or `findAllByText`)).
+
+Ignored nodes: comments, script, style
+[36m<body>[31m
+  [36m<div>[31m
+    [36m<section[31m
+      [33maria-label[31m=[32m"Japan Popular destinations at a glance"[31m
+      [33mclass[31m=[32m"country-weather-console"[31m
+    [36m>[31m
+      [36m<div[31m
+        [33mclass[31m=[32m"country-console-toolbar country-map-toolbar"[31m
+      [36m>[31m
+        [36m<label[31m
+          [33mclass[31m=[32m"country-select-label"[31m
+        [36m>[31m
+          [36m<span>[31m
+            [0mCountry[0m
+          [36m</span>[31m
+          [36m<select[31m
+            [33maria-label[31m=[32m"Choose country"[31m
+            [33mclass[31m=[32m"country-select focus-ring"[31m
+          [36m>[31m
+            [36m<option[31m
+              [33mvalue[31m=[32m"/jp"[31m
+            [36m>[31m
+              [0mJapan[0m
+            [36m</option>[31m
+            [36m<option[31m
+              [33mvalue[31m=[32m"/kr"[31m
+            [36m>[31m
+              [0mSouth Korea[0m
+            [36m</option>[31m
+          [36m</select>[31m
+        [36m</label>[31m
+        [36m<div[31m
+          [33mclass[31m=[32m"min-w-0 flex-1"[31m
+        [36m>[31m
+          [36m<p[31m
+            [33mclass[31m=[32m"country-control-label"[31m
+          [36m>[31m
+            [0mWeather period[0m
+          [36m</p>[31m
+          [36m<div[31m
+            [33maria-label[31m=[32m"Weather period"[31m
+            [33mclass[31m=[32m"country-window-tabs"[31m
+            [33mrole[31m=[32m"group"[31m
+          [36m>[31m
+            [36m<button[31m
+              [33maria-pressed[31m=[32m"false"[31m
+              [33mclass[31m=[32m"country-window-button focus-ring "[31m
+              [33mtype[31m=[32m"button"[31m
+            [36m>[31m
+              [0mNext 3 days[0m
+            [36m</button>[31m
+            [36m<button[31m
+              [33maria-pressed[31m=[32m"true"[31m
+              [33mclass[31m=[32m"country-window-button focus-ring is-active"[31m
+              [33mtype[31m=[32m"button"[31m
+            [36m>[31m
+              [0mNext 7 days[0m
+            [36m</button>[31m
+            [36m<button[31m
+              [33maria-pressed[31m=[32m"false"[31m
+              [33mclass[31m=[32m"country-window-button focus-ring "[31m
+              [33mtype[31m=[32m"button"[31m
+            [36m>[31m
+              [0mThis weekend[0m
+            [36m</button>[31m
+            [36m<button[31m
+              [33maria-pressed[31m=[32m"false"[31m
+              [33mclass[31m=[32m"country-window-button focus-ring "[31m
+              [33mtype[31m=[32m"button"[31m
+            [36m>[31m
+              [0mCustom dates[0m
+            [36m</button>[31m
+          [36m</div>[31m
+        [36m</div>[31m
+        [36m<div[31m
+          [33mclass[31m=[32m"country-map-actions"[31m
+        [36m>[31m
+          [36m<button[31m
+            [33mclass[31m=[32m"country-share-button focus-ring"[31m
+            [33mtype[31m=[32m"button"[31m
+          [36m>[31m
+            [0mCopy map link[0m
+          [36m</button>[31m
+          [36m<p[31m
+            [33maria-live[31m=[32m"polite"[31m
+          [36m>[31m
+            [0mUpdated now[0m
+          [36m</p>[31m
+        [36m</div>[31m
+      [36m</div>[31m
+      [36m<details[31m
+        [33mclass[31m=[32m"country-filter-details"[31m
+      [36m>[31m
+        [36m<summary>[31m
+          [36m<span>[31m
+            [0mOptional weather limits[0m
+          [36m</span>[31m
+        [36m</summary>[31m
+        [36m<p>[31m
+          [0mDestinations stay on the map and turn grey when they exceed a limit.[0m
+        [36m</p>[31m
+        [36m<div[31m
+          [33mclass[31m=[32m"country-filter-grid"[31m
+        [36m>[31m
+          [36m<label>[31m
+            [36m<span>[31m
+              [0mHighest daily rain chance[0m
+            [36m</span>[31m
+            [36m<select>[31m
+              [36m<option[31m
+                [33mvalue[31m=[32m""[31m
+              [36m>[31m
+                [0mNo limit[0m
+              [36m</option>[31m
+              [36m<option[31m
+                [33mvalue[31m=[32m"30"[31m
+              [36m>[31m
+                [0m≤ 30%[0m
+              [36m</option>[31m
+              [36m<option[31m
+                [33mvalue[31m=[32m"40"[31m
+              [36m>[31m
+                [0m≤ 40%[0m
+              [36m</option>[31m
+              [36m<option[31m
+                [33mvalue[31m=[32m"50"[31m
+              [36m>[31m
+                [0m≤ 50%[0m
+              [36m</option>[31m
+              [36m<option[31m
+                [33mvalue[31m=[32m"60"[31m
+              [36m>[31m
+                [0m≤ 60%[0m
+              [36m</option>[31m
+              [36m<option[31m
+                [33mvalue[31m=[32m"70"[31m
+              [36m>[31m
+                [0m≤ 70%[0m
+              [36m</option>[31m
+            [36m</select>[31m
+          [36m</label>[31m
+          [36m<label>[31m
+            [36m<span>[31m
+              [0mMaximum wind speed[0m
+            [36m</span>[31m
+            [36m<select>[31m
+              [36m<option[31m
+                [33mvalue[31m=[32m""[31m
+              [36m>[31m
+                [0mNo limit[0m
+              [36m</option>[31m
+              [36m<option[31m
+                [33mvalue[31m=[32m"20"[31m
+              [36m>[31m
+                [0m≤ 20 km/h[0m
+              [36m</option>[31m
+              [36m<option[31m
+                [33mvalue[31m=[32m"30"[31m
+              [36m>[31m
+                [0m≤ 30 km/h[0m
+              [36m</option>[31m
+              [36m<option[31m
+                [33mvalue[31m=[32m"40"[31m
+              [36m>[31m
+                [0m≤ 40 km/h[0m
+              [36m</option>[31m
+              [36m<option[31m
+                [33mvalue[31m=[32m"50"[31m
+              [36m>[31m
+                [0m≤ 50 km/h[0m
+              [36m</option>[31m
+            [36m</select>[31m
+          [36m</label>[31m
+          [36m<label>[31m
+            [36m<span>[31m
+              [0mLowest overnight temperature[0m
+            [36m</span>[31m
+            [36m<select>[31m
+              [36m<option[31m
+                [33mvalue[31m=[32m""[31m
+              [36m>[31m
+                [0mNo limit[0m
+              [36m</option>[31m
+              [36m<option[31m
+                [33mvalue[31m=[32m"0"[31m
+              [36m>[31m
+                [0m≥ 0°C[0m
+              [36m</option>[31m
+              [36m<option[31m
+                [33mvalue[31m=[32m"10"[31m
+              [36m>[31m
+                [0m≥ 10°C[0m
+              [36m</option>[31m
+              [36m<option[31m
+                [33mvalue[31m=[32m"15"[31m
+              [36m>[31m
+                [0m≥ 15°C[0m
+              [36m</option>[...[39m
+
+[31m⎯⎯⎯⎯⎯⎯⎯[1m[7m Failed Tests 4 [27m[22m⎯⎯⎯⎯⎯⎯⎯[39m
+
+[31m[1m[7m FAIL [27m[22m[39m src/components/country-weather-explorer.test.tsx[2m > [22mCountryWeatherExplorer country-map product[2m > [22mdefaults to seven days and renders weather-first markers for every city
+[31m[1mTestingLibraryElementError[22m[39m: Found multiple elements with the text: Popular destinations in Japan
+
+Here are the matching elements:
+
+Ignored nodes: comments, script, style
+[36m<p[39m
+  [33mclass[39m=[32m"eyebrow"[39m
+[36m>[39m
+  [0mPopular destinations in Japan[0m
+[36m</p>[39m
+
+Ignored nodes: comments, script, style
+[36m<h2[39m
+  [33mclass[39m=[32m"section-title mt-3"[39m
+  [33mid[39m=[32m"country-destination-list"[39m
+[36m>[39m
+  [0mPopular destinations in Japan[0m
+[36m</h2>[39m
+
+(If this is intentional, then use the `*AllBy*` variant of the query (like `queryAllByText`, `getAllByText`, or `findAllByText`)).
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<section[39m
+      [33maria-label[39m=[32m"Japan Popular destinations at a glance"[39m
+      [33mclass[39m=[32m"country-weather-console"[39m
+    [36m>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"country-console-toolbar country-map-toolbar"[39m
+      [36m>[39m
+        [36m<label[39m
+          [33mclass[39m=[32m"country-select-label"[39m
+        [36m>[39m
+          [36m<span>[39m
+            [0mCountry[0m
+          [36m</span>[39m
+          [36m<select[39m
+            [33maria-label[39m=[32m"Choose country"[39m
+            [33mclass[39m=[32m"country-select focus-ring"[39m
+          [36m>[39m
+            [36m<option[39m
+              [33mvalue[39m=[32m"/jp"[39m
+            [36m>[39m
+              [0mJapan[0m
+            [36m</option>[39m
+            [36m<option[39m
+              [33mvalue[39m=[32m"/kr"[39m
+            [36m>[39m
+              [0mSouth Korea[0m
+            [36m</option>[39m
+          [36m</select>[39m
+        [36m</label>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"min-w-0 flex-1"[39m
+        [36m>[39m
+          [36m<p[39m
+            [33mclass[39m=[32m"country-control-label"[39m
+          [36m>[39m
+            [0mWeather period[0m
+          [36m</p>[39m
+          [36m<div[39m
+            [33maria-label[39m=[32m"Weather period"[39m
+            [33mclass[39m=[32m"country-window-tabs"[39m
+            [33mrole[39m=[32m"group"[39m
+          [36m>[39m
+            [36m<button[39m
+              [33maria-pressed[39m=[32m"false"[39m
+              [33mclass[39m=[32m"country-window-button focus-ring "[39m
+              [33mtype[39m=[32m"button"[39m
+            [36m>[39m
+              [0mNext 3 days[0m
+            [36m</button>[39m
+            [36m<button[39m
+              [33maria-pressed[39m=[32m"true"[39m
+              [33mclass[39m=[32m"country-window-button focus-ring is-active"[39m
+              [33mtype[39m=[32m"button"[39m
+            [36m>[39m
+              [0mNext 7 days[0m
+            [36m</button>[39m
+            [36m<button[39m
+              [33maria-pressed[39m=[32m"false"[39m
+              [33mclass[39m=[32m"country-window-button focus-ring "[39m
+              [33mtype[39m=[32m"button"[39m
+            [36m>[39m
+              [0mThis weekend[0m
+            [36m</button>[39m
+            [36m<button[39m
+              [33maria-pressed[39m=[32m"false"[39m
+              [33mclass[39m=[32m"country-window-button focus-ring "[39m
+              [33mtype[39m=[32m"button"[39m
+            [36m>[39m
+              [0mCustom dates[0m
+            [36m</button>[39m
+          [36m</div>[39m
+        [36m</div>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"country-map-actions"[39m
+        [36m>[39m
+          [36m<button[39m
+            [33mclass[39m=[32m"country-share-button focus-ring"[39m
+            [33mtype[39m=[32m"button"[39m
+          [36m>[39m
+            [0mCopy map link[0m
+          [36m</button>[39m
+          [36m<p[39m
+            [33maria-live[39m=[32m"polite"[39m
+          [36m>[39m
+            [0mUpdated now[0m
+          [36m</p>[39m
+        [36m</div>[39m
+      [36m</div>[39m
+      [36m<details[39m
+        [33mclass[39m=[32m"country-filter-details"[39m
+      [36m>[39m
+        [36m<summary>[39m
+          [36m<span>[39m
+            [0mOptional weather limits[0m
+          [36m</span>[39m
+        [36m</summary>[39m
+        [36m<p>[39m
+          [0mDestinations stay on the map and turn grey when they exceed a limit.[0m
+        [36m</p>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"country-filter-grid"[39m
+        [36m>[39m
+          [36m<label>[39m
+            [36m<span>[39m
+              [0mHighest daily rain chance[0m
+            [36m</span>[39m
+            [36m<select>[39m
+              [36m<option[39m
+                [33mvalue[39m=[32m""[39m
+              [36m>[39m
+                [0mNo limit[0m
+              [36m</option>[39m
+              [36m<option[39m
+                [33mvalue[39m=[32m"30"[39m
+              [36m>[39m
+                [0m≤ 30%[0m
+              [36m</option>[39m
+              [36m<option[39m
+                [33mvalue[39m=[32m"40"[39m
+              [36m>[39m
+                [0m≤ 40%[0m
+              [36m</option>[39m
+              [36m<option[39m
+                [33mvalue[39m=[32m"50"[39m
+              [36m>[39m
+                [0m≤ 50%[0m
+              [36m</option>[39m
+              [36m<option[39m
+                [33mvalue[39m=[32m"60"[39m
+              [36m>[39m
+                [0m≤ 60%[0m
+              [36m</option>[39m
+              [36m<option[39m
+                [33mvalue[39m=[32m"70"[39m
+              [36m>[39m
+                [0m≤ 70%[0m
+              [36m</option>[39m
+            [36m</select>[39m
+          [36m</label>[39m
+          [36m<label>[39m
+            [36m<span>[39m
+              [0mMaximum wind speed[0m
+            [36m</span>[39m
+            [36m<select>[39m
+              [36m<option[39m
+                [33mvalue[39m=[32m""[39m
+              [36m>[39m
+                [0mNo limit[0m
+              [36m</option>[39m
+              [36m<option[39m
+                [33mvalue[39m=[32m"20"[39m
+              [36m>[39m
+                [0m≤ 20 km/h[0m
+              [36m</option>[39m
+              [36m<option[39m
+                [33mvalue[39m=[32m"30"[39m
+              [36m>[39m
+                [0m≤ 30 km/h[0m
+              [36m</option>[39m
+              [36m<option[39m
+                [33mvalue[39m=[32m"40"[39m
+              [36m>[39m
+                [0m≤ 40 km/h[0m
+              [36m</option>[39m
+              [36m<option[39m
+                [33mvalue[39m=[32m"50"[39m
+              [36m>[39m
+                [0m≤ 50 km/h[0m
+              [36m</option>[39m
+            [36m</select>[39m
+          [36m</label>[39m
+          [36m<label>[39m
+            [36m<span>[39m
+              [0mLowest overnight temperature[0m
+            [36m</span>[39m
+            [36m<select>[39m
+              [36m<option[39m
+                [33mvalue[39m=[32m""[39m
+              [36m>[39m
+                [0mNo limit[0m
+              [36m</option>[39m
+              [36m<option[39m
+                [33mvalue[39m=[32m"0"[39m
+              [36m>[39m
+                [0m≥ 0°C[0m
+              [36m</option>[39m
+              [36m<option[39m
+                [33mvalue[39m=[32m"10"[39m
+              [36m>[39m
+                [0m≥ 10°C[0m
+              [36m</option>[39m
+              [36m<option[39m
+                [33mvalue[39m=[32m"15"[39m
+              [36m>[39m
+                [0m≥ 15°C[0m
+              [36m</option>[...
+[90m [2m❯[22m Object.getElementError ../../node_modules/.pnpm/@testing-library+dom@10.4.1/node_modules/@testing-library/dom/dist/config.js:[2m37:19[22m[39m
+[90m [2m❯[22m getElementError ../../node_modules/.pnpm/@testing-library+dom@10.4.1/node_modules/@testing-library/dom/dist/query-helpers.js:[2m20:35[22m[39m
+[90m [2m❯[22m getMultipleElementsFoundError ../../node_modules/.pnpm/@testing-library+dom@10.4.1/node_modules/@testing-library/dom/dist/query-helpers.js:[2m23:10[22m[39m
+[90m [2m❯[22m ../../node_modules/.pnpm/@testing-library+dom@10.4.1/node_modules/@testing-library/dom/dist/query-helpers.js:[2m55:13[22m[39m
+[90m [2m❯[22m ../../node_modules/.pnpm/@testing-library+dom@10.4.1/node_modules/@testing-library/dom/dist/query-helpers.js:[2m95:19[22m[39m
+[36m [2m❯[22m src/components/country-weather-explorer.test.tsx:[2m144:19[22m[39m
+    [90m142| [39m    )[33m;[39m
+    [90m143| [39m    [34mexpect[39m(screen[33m.[39m[34mgetByText[39m([32m"Popular destinations at a glance"[39m))[33m.[39m[34mtoBeT[39m…
+    [90m144| [39m    [34mexpect[39m(screen[33m.[39m[34mgetByText[39m([32m"Popular destinations in Japan"[39m))[33m.[39m[34mtoBeTrut[39m…
+    [90m   | [39m                  [31m^[39m
+    [90m145| [39m    [34mexpect[39m(screen[33m.[39m[34mqueryByText[39m([32m"Travel Score"[39m))[33m.[39m[34mtoBeNull[39m()[33m;[39m
+    [90m146| [39m    [34mexpect[39m(screen[33m.[39m[34mqueryByText[39m([32m"ranks first"[39m))[33m.[39m[34mtoBeNull[39m()[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/4]⎯[22m[39m
+
+[31m[1m[7m FAIL [27m[22m[39m src/components/country-weather-explorer.test.tsx[2m > [22mCountryWeatherExplorer country-map product[2m > [22mswitches to the three-day view without a submit button
+[31m[1mTestingLibraryElementError[22m[39m: Unable to find a label with the text of: Osaka weather summary
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<section[39m
+      [33maria-label[39m=[32m"Japan Popular destinations at a glance"[39m
+      [33mclass[39m=[32m"country-weather-console"[39m
+    [36m>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"country-console-toolbar country-map-toolbar"[39m
+      [36m>[39m
+        [36m<label[39m
+          [33mclass[39m=[32m"country-select-label"[39m
+        [36m>[39m
+          [36m<span>[39m
+            [0mCountry[0m
+          [36m</span>[39m
+          [36m<select[39m
+            [33maria-label[39m=[32m"Choose country"[39m
+            [33mclass[39m=[32m"country-select focus-ring"[39m
+          [36m>[39m
+            [36m<option[39m
+              [33mvalue[39m=[32m"/jp"[39m
+            [36m>[39m
+              [0mJapan[0m
+            [36m</option>[39m
+            [36m<option[39m
+              [33mvalue[39m=[32m"/kr"[39m
+            [36m>[39m
+              [0mSouth Korea[0m
+            [36m</option>[39m
+          [36m</select>[39m
+        [36m</label>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"min-w-0 flex-1"[39m
+        [36m>[39m
+          [36m<p[39m
+            [33mclass[39m=[32m"country-control-label"[39m
+          [36m>[39m
+            [0mWeather period[0m
+          [36m</p>[39m
+          [36m<div[39m
+            [33maria-label[39m=[32m"Weather period"[39m
+            [33mclass[39m=[32m"country-window-tabs"[39m
+            [33mrole[39m=[32m"group"[39m
+          [36m>[39m
+            [36m<button[39m
+              [33maria-pressed[39m=[32m"true"[39m
+              [33mclass[39m=[32m"country-window-button focus-ring is-active"[39m
+              [33mtype[39m=[32m"button"[39m
+            [36m>[39m
+              [0mNext 3 days[0m
+            [36m</button>[39m
+            [36m<button[39m
+              [33maria-pressed[39m=[32m"false"[39m
+              [33mclass[39m=[32m"country-window-button focus-ring "[39m
+              [33mtype[39m=[32m"button"[39m
+            [36m>[39m
+              [0mNext 7 days[0m
+            [36m</button>[39m
+            [36m<button[39m
+              [33maria-pressed[39m=[32m"false"[39m
+              [33mclass[39m=[32m"country-window-button focus-ring "[39m
+              [33mtype[39m=[32m"button"[39m
+            [36m>[39m
+              [0mThis weekend[0m
+            [36m</button>[39m
+            [36m<button[39m
+              [33maria-pressed[39m=[32m"false"[39m
+              [33mclass[39m=[32m"country-window-button focus-ring "[39m
+              [33mtype[39m=[32m"button"[39m
+            [36m>[39m
+              [0mCustom dates[0m
+            [36m</button>[39m
+          [36m</div>[39m
+        [36m</div>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"country-map-actions"[39m
+        [36m>[39m
+          [36m<button[39m
+            [33mclass[39m=[32m"country-share-button focus-ring"[39m
+            [33mtype[39m=[32m"button"[39m
+          [36m>[39m
+            [0mCopy map link[0m
+          [36m</button>[39m
+          [36m<p[39m
+            [33maria-live[39m=[32m"polite"[39m
+          [36m>[39m
+            [0mUpdated now[0m
+          [36m</p>[39m
+        [36m</div>[39m
+      [36m</div>[39m
+      [36m<details[39m
+        [33mclass[39m=[32m"country-filter-details"[39m
+      [36m>[39m
+        [36m<summary>[39m
+          [36m<span>[39m
+            [0mOptional weather limits[0m
+          [36m</span>[39m
+        [36m</summary>[39m
+        [36m<p>[39m
+          [0mDestinations stay on the map and turn grey when they exceed a limit.[0m
+        [36m</p>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"country-filter-grid"[39m
+        [36m>[39m
+          [36m<label>[39m
+            [36m<span>[39m
+              [0mHighest daily rain chance[0m
+            [36m</span>[39m
+            [36m<select>[39m
+              [36m<option[39m
+                [33mvalue[39m=[32m""[39m
+              [36m>[39m
+                [0mNo limit[0m
+              [36m</option>[39m
+              [36m<option[39m
+                [33mvalue[39m=[32m"30"[39m
+              [36m>[39m
+                [0m≤ 30%[0m
+              [36m</option>[39m
+              [36m<option[39m
+                [33mvalue[39m=[32m"40"[39m
+              [36m>[39m
+                [0m≤ 40%[0m
+              [36m</option>[39m
+              [36m<option[39m
+                [33mvalue[39m=[32m"50"[39m
+              [36m>[39m
+                [0m≤ 50%[0m
+              [36m</option>[39m
+              [36m<option[39m
+                [33mvalue[39m=[32m"60"[39m
+              [36m>[39m
+                [0m≤ 60%[0m
+              [36m</option>[39m
+              [36m<option[39m
+                [33mvalue[39m=[32m"70"[39m
+              [36m>[39m
+                [0m≤ 70%[0m
+              [36m</option>[39m
+            [36m</select>[39m
+          [36m</label>[39m
+          [36m<label>[39m
+            [36m<span>[39m
+              [0mMaximum wind speed[0m
+            [36m</span>[39m
+            [36m<select>[39m
+              [36m<option[39m
+                [33mvalue[39m=[32m""[39m
+              [36m>[39m
+                [0mNo limit[0m
+              [36m</option>[39m
+              [36m<option[39m
+                [33mvalue[39m=[32m"20"[39m
+              [36m>[39m
+                [0m≤ 20 km/h[0m
+              [36m</option>[39m
+              [36m<option[39m
+                [33mvalue[39m=[32m"30"[39m
+              [36m>[39m
+                [0m≤ 30 km/h[0m
+              [36m</option>[39m
+              [36m<option[39m
+                [33mvalue[39m=[32m"40"[39m
+              [36m>[39m
+                [0m≤ 40 km/h[0m
+              [36m</option>[39m
+              [36m<option[39m
+                [33mvalue[39m=[32m"50"[39m
+              [36m>[39m
+                [0m≤ 50 km/h[0m
+              [36m</option>[39m
+            [36m</select>[39m
+          [36m</label>[39m
+          [36m<label>[39m
+            [36m<span>[39m
+              [0mLowest overnight temperature[0m
+            [36m</span>[39m
+            [36m<select>[39m
+              [36m<option[39m
+                [33mvalue[39m=[32m""[39m
+              [36m>[39m
+                [0mNo limit[0m
+              [36m</option>[39m
+              [36m<option[39m
+                [33mvalue[39m=[32m"0"[39m
+              [36m>[39m
+                [0m≥ 0°C[0m
+              [36m</option>[39m
+              [36m<option[39m
+                [33mvalue[39m=[32m"10"[39m
+              [36m>[39m
+                [0m≥ 10°C[0m
+              [36m</option>[39m
+              [36m<option[39m
+                [33mvalue[39m=[32m"15"[39m
+              [36m>[39m
+                [0m≥ 15°C[0m
+              [36m</option>[...
+[90m [2m❯[22m Object.getElementError ../../node_modules/.pnpm/@testing-library+dom@10.4.1/node_modules/@testing-library/dom/dist/config.js:[2m37:19[22m[39m
+[90m [2m❯[22m getAllByLabelText ../../node_modules/.pnpm/@testing-library+dom@10.4.1/node_modules/@testing-library/dom/dist/queries/label-text.js:[2m111:38[22m[39m
+[90m [2m❯[22m ../../node_modules/.pnpm/@testing-library+dom@10.4.1/node_modules/@testing-library/dom/dist/query-helpers.js:[2m52:17[22m[39m
+[90m [2m❯[22m ../../node_modules/.pnpm/@testing-library+dom@10.4.1/node_modules/@testing-library/dom/dist/query-helpers.js:[2m95:19[22m[39m
+[36m [2m❯[22m src/components/country-weather-explorer.test.tsx:[2m168:19[22m[39m
+    [90m166| [39m      [32m"true"[39m[33m,[39m
+    [90m167| [39m    )[33m;[39m
+    [90m168| [39m    [34mexpect[39m(screen[33m.[39m[34mgetByLabelText[39m([32m"Osaka weather summary"[39m)[33m.[39mtextContent)…
+    [90m   | [39m                  [31m^[39m
+    [90m169| [39m  })[33m;[39m
+    [90m170| [39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/4]⎯[22m[39m
+
+[31m[1m[7m FAIL [27m[22m[39m src/components/country-weather-explorer.test.tsx[2m > [22mCountryWeatherExplorer country-map product[2m > [22mselects a map destination inline and preserves the country page
+[31m[1mTestingLibraryElementError[22m[39m: Found multiple elements with the role "link" and name `/Open full city forecast/`
+
+Here are the matching elements:
+
+Ignored nodes: comments, script, style
+[36m<a[39m
+  [33mclass[39m=[32m"country-detail-link focus-ring"[39m
+  [33mhref[39m=[32m"/jp/sapporo?start=2026-08-04&end=2026-08-10"[39m
+[36m>[39m
+  [0mOpen full city forecast[0m
+  [0m [0m
+  [36m<span[39m
+    [33maria-hidden[39m=[32m"true"[39m
+  [36m>[39m
+    [0m→[0m
+  [36m</span>[39m
+[36m</a>[39m
+
+Ignored nodes: comments, script, style
+[36m<a[39m
+  [33mclass[39m=[32m"country-city-forecast-link focus-ring"[39m
+  [33mhref[39m=[32m"/jp/tokyo?start=2026-08-04&end=2026-08-10"[39m
+[36m>[39m
+  [0mOpen full city forecast[0m
+  [0m [0m
+  [36m<span[39m
+    [33maria-hidden[39m=[32m"true"[39m
+  [36m>[39m
+    [0m→[0m
+  [36m</span>[39m
+[36m</a>[39m
+
+Ignored nodes: comments, script, style
+[36m<a[39m
+  [33mclass[39m=[32m"country-city-forecast-link focus-ring"[39m
+  [33mhref[39m=[32m"/jp/osaka?start=2026-08-04&end=2026-08-10"[39m
+[36m>[39m
+  [0mOpen full city forecast[0m
+  [0m [0m
+  [36m<span[39m
+    [33maria-hidden[39m=[32m"true"[39m
+  [36m>[39m
+    [0m→[0m
+  [36m</span>[39m
+[36m</a>[39m
+
+Ignored nodes: comments, script, style
+[36m<a[39m
+  [33mclass[39m=[32m"country-city-forecast-link focus-ring"[39m
+  [33mhref[39m=[32m"/jp/sapporo?start=2026-08-04&end=2026-08-10"[39m
+[36m>[39m
+  [0mOpen full city forecast[0m
+  [0m [0m
+  [36m<span[39m
+    [33maria-hidden[39m=[32m"true"[39m
+  [36m>[39m
+    [0m→[0m
+  [36m</span>[39m
+[36m</a>[39m
+
+(If this is intentional, then use the `*AllBy*` variant of the query (like `queryAllByText`, `getAllByText`, or `findAllByText`)).
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<section[39m
+      [33maria-label[39m=[32m"Japan Popular destinations at a glance"[39m
+      [33mclass[39m=[32m"country-weather-console"[39m
+    [36m>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"country-console-toolbar country-map-toolbar"[39m
+      [36m>[39m
+        [36m<label[39m
+          [33mclass[39m=[32m"country-select-label"[39m
+        [36m>[39m
+          [36m<span>[39m
+            [0mCountry[0m
+          [36m</span>[39m
+          [36m<select[39m
+            [33maria-label[39m=[32m"Choose country"[39m
+            [33mclass[39m=[32m"country-select focus-ring"[39m
+          [36m>[39m
+            [36m<option[39m
+              [33mvalue[39m=[32m"/jp"[39m
+            [36m>[39m
+              [0mJapan[0m
+            [36m</option>[39m
+            [36m<option[39m
+              [33mvalue[39m=[32m"/kr"[39m
+            [36m>[39m
+              [0mSouth Korea[0m
+            [36m</option>[39m
+          [36m</select>[39m
+        [36m</label>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"min-w-0 flex-1"[39m
+        [36m>[39m
+          [36m<p[39m
+            [33mclass[39m=[32m"country-control-label"[39m
+          [36m>[39m
+            [0mWeather period[0m
+          [36m</p>[39m
+          [36m<div[39m
+            [33maria-label[39m=[32m"Weather period"[39m
+            [33mclass[39m=[32m"country-window-tabs"[39m
+            [33mrole[39m=[32m"group"[39m
+          [36m>[39m
+            [36m<button[39m
+              [33maria-pressed[39m=[32m"false"[39m
+              [33mclass[39m=[32m"country-window-button focus-ring "[39m
+              [33mtype[39m=[32m"button"[39m
+            [36m>[39m
+              [0mNext 3 days[0m
+            [36m</button>[39m
+            [36m<button[39m
+              [33maria-pressed[39m=[32m"true"[39m
+              [33mclass[39m=[32m"country-window-button focus-ring is-active"[39m
+              [33mtype[39m=[32m"button"[39m
+            [36m>[39m
+              [0mNext 7 days[0m
+            [36m</button>[39m
+            [36m<button[39m
+              [33maria-pressed[39m=[32m"false"[39m
+              [33mclass[39m=[32m"country-window-button focus-ring "[39m
+              [33mtype[39m=[32m"button"[39m
+            [36m>[39m
+              [0mThis weekend[0m
+            [36m</button>[39m
+            [36m<button[39m
+              [33maria-pressed[39m=[32m"false"[39m
+              [33mclass[39m=[32m"country-window-button focus-ring "[39m
+              [33mtype[39m=[32m"button"[39m
+            [36m>[39m
+              [0mCustom dates[0m
+            [36m</button>[39m
+          [36m</div>[39m
+        [36m</div>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"country-map-actions"[39m
+        [36m>[39m
+          [36m<button[39m
+            [33mclass[39m=[32m"country-share-button focus-ring"[39m
+            [33mtype[39m=[32m"button"[39m
+          [36m>[39m
+            [0mCopy map link[0m
+          [36m</button>[39m
+          [36m<p[39m
+            [33maria-live[39m=[32m"polite"[39m
+          [36m>[39m
+            [0mUpdated now[0m
+          [36m</p>[39m
+        [36m</div>[39m
+      [36m</div>[39m
+      [36m<details[39m
+        [33mclass[39m=[32m"country-filter-details"[39m
+      [36m>[39m
+        [36m<summary>[39m
+          [36m<span>[39m
+            [0mOptional weather limits[0m
+          [36m</span>[39m
+        [36m</summary>[39m
+        [36m<p>[39m
+          [0mDestinations stay on the map and turn grey when they exceed a limit.[0m
+        [36m</p>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"country-filter-grid"[39m
+        [36m>[39m
+          [36m<label>[39m
+            [36m<span>[39m
+              [0mHighest daily rain chance[0m
+            [36m</span>[39m
+            [36m<select>[39m
+              [36m<option[39m
+                [33mvalue[39m=[32m""[39m
+              [36m>[39m
+                [0mNo limit[0m
+              [36m</option>[39m
+              [36m<option[39m
+                [33mvalue[39m=[32m"30"[39m
+              [36m>[39m
+                [0m≤ 30%[0m
+              [36m</option>[39m
+              [36m<option[39m
+                [33mvalue[39m=[32m"40"[39m
+              [36m>[39m
+                [0m≤ 40%[0m
+              [36m</option>[39m
+              [36m<option[39m
+                [33mvalue[39m=[32m"50"[39m
+              [36m>[39m
+                [0m≤ 50%[0m
+              [36m</option>[39m
+              [36m<option[39m
+                [33mvalue[39m=[32m"60"[39m
+              [36m>[39m
+                [0m≤ 60%[0m
+              [36m</option>[39m
+              [36m<option[39m
+                [33mvalue[39m=[32m"70"[39m
+              [36m>[39m
+                [0m≤ 70%[0m
+              [36m</option>[39m
+            [36m</select>[39m
+          [36m</label>[39m
+          [36m<label>[39m
+            [36m<span>[39m
+              [0mMaximum wind speed[0m
+            [36m</span>[39m
+            [36m<select>[39m
+              [36m<option[39m
+                [33mvalue[39m=[32m""[39m
+              [36m>[39m
+                [0mNo limit[0m
+              [36m</option>[39m
+              [36m<option[39m
+                [33mvalue[39m=[32m"20"[39m
+              [36m>[39m
+                [0m≤ 20 km/h[0m
+              [36m</option>[39m
+              [36m<option[39m
+                [33mvalue[39m=[32m"30"[39m
+              [36m>[39m
+                [0m≤ 30 km/h[0m
+              [36m</option>[39m
+              [36m<option[39m
+                [33mvalue[39m=[32m"40"[39m
+              [36m>[39m
+                [0m≤ 40 km/h[0m
+              [36m</option>[39m
+              [36m<option[39m
+                [33mvalue[39m=[32m"50"[39m
+              [36m>[39m
+                [0m≤ 50 km/h[0m
+              [36m</option>[39m
+            [36m</select>[39m
+          [36m</label>[39m
+          [36m<label>[39m
+            [36m<span>[39m
+              [0mLowest overnight temperature[0m
+            [36m</span>[39m
+            [36m<select>[39m
+              [36m<option[39m
+                [33mvalue[39m=[32m""[39m
+              [36m>[39m
+                [0mNo limit[0m
+              [36m</option>[39m
+              [36m<option[39m
+                [33mvalue[39m=[32m"0"[39m
+              [36m>[39m
+                [0m≥ 0°C[0m
+              [36m</option>[39m
+              [36m<option[39m
+                [33mvalue[39m=[32m"10"[39m
+              [36m>[39m
+                [0m≥ 10°C[0m
+              [36m</option>[39m
+              [36m<option[39m
+                [33mvalue[39m=[32m"15"[39m
+              [36m>[39m
+                [0m≥ 15°C[0m
+              [36m</option>[...
+[90m [2m❯[22m Object.getElementError ../../node_modules/.pnpm/@testing-library+dom@10.4.1/node_modules/@testing-library/dom/dist/config.js:[2m37:19[22m[39m
+[90m [2m❯[22m getElementError ../../node_modules/.pnpm/@testing-library+dom@10.4.1/node_modules/@testing-library/dom/dist/query-helpers.js:[2m20:35[22m[39m
+[90m [2m❯[22m getMultipleElementsFoundError ../../node_modules/.pnpm/@testing-library+dom@10.4.1/node_modules/@testing-library/dom/dist/query-helpers.js:[2m23:10[22m[39m
+[90m [2m❯[22m ../../node_modules/.pnpm/@testing-library+dom@10.4.1/node_modules/@testing-library/dom/dist/query-helpers.js:[2m55:13[22m[39m
+[90m [2m❯[22m ../../node_modules/.pnpm/@testing-library+dom@10.4.1/node_modules/@testing-library/dom/dist/query-helpers.js:[2m95:19[22m[39m
+[36m [2m❯[22m src/components/country-weather-explorer.test.tsx:[2m201:14[22m[39m
+    [90m199| [39m    [34mexpect[39m(window[33m.[39mlocation[33m.[39msearch)[33m.[39m[34mtoContain[39m([32m"city=sapporo"[39m)[33m;[39m
+    [90m200| [39m    [34mexpect[39m(
+    [90m201| [39m      screen[33m.[39m[34mgetByRole[39m([32m"link"[39m[33m,[39m { name[33m:[39m [36m/Open full city forecast/[39m })[33m.[39m[34mge[39m…
+    [90m   | [39m             [31m^[39m
+    [90m202| [39m    )[33m.[39m[34mtoContain[39m([32m"/jp/sapporo?start=2026-08-04&end=2026-08-10"[39m)[33m;[39m
+    [90m203| [39m  })[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/4]⎯[22m[39m
+
+[31m[1m[7m FAIL [27m[22m[39m src/components/ux-funnel-contract.test.ts[2m > [22mcountry-first weather-map UX contracts[2m > [22mdefaults the country map to seven days and keeps limits explicit
+[31m[1mAssertionError[22m: expected '"use client";\n\nimport { useEffect, …' to contain 'weather_discovery_view'[39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- weather_discovery_view[39m
+[31m+ "use client";[39m
+[31m+[39m
+[31m+ import { useEffect, useMemo, useRef, useState, type ReactElement } from "react";[39m
+[31m+ import type * as MapLibreModule from "maplibre-gl";[39m
+[31m+ import type { Map as MapLibreMap, Marker as MapLibreMarker } from "maplibre-gl";[39m
+[31m+ import type {[39m
+[31m+   CountryHeaderViewModel,[39m
+[31m+   CountryOptionViewModel,[39m
+[31m+   CountryWeatherCityViewModel,[39m
+[31m+   CountryWeatherDayViewModel,[39m
+[31m+ } from "../app/view-models";[39m
+[31m+ import { emitProductAnalytics, type BrowserAnalyticsLocale } from "../analytics/browser-events";[39m
+[31m+ import { toTraditionalText } from "../trips/traditional";[39m
+[31m+ import { windowIndicesForDates } from "../weather/window-selection";[39m
+[31m+ import { MAPLIBRE_STYLE_URL } from "./ExplorerMap";[39m
+[31m+[39m
+[31m+ import "maplibre-gl/dist/maplibre-gl.css";[39m
+[31m+[39m
+[31m+ type ExplorerLocale = BrowserAnalyticsLocale;[39m
+[31m+ type RangePreset = "3d" | "7d" | "weekend" | "custom";[39m
+[31m+ type Risk = "good" | "mixed" | "wet" | "unknown";[39m
+[31m+[39m
+[31m+ interface WeatherFilters {[39m
+[31m+   readonly rainMax: number | null;[39m
+[31m+   readonly windMax: number | null;[39m
+[31m+   readonly tempMin: number | null;[39m
+[31m+   readonly tempMax: number | null;[39m
+[31m+ }[39m
+[31m+[39m
+[31m+ interface CitySummary {[39m
+[31m+   readonly city: CountryWeatherCityViewModel;[39m
+[31m+   readonly days: ReadonlyArray<CountryWeatherDayViewModel>;[39m
+[31m+   readonly dryDays: number;[39m
+[31m+   readonly maxRain: number | null;[39m
+[31m+   readonly totalRainMm: number | null;[39m
+[31m+   readonly temperatureMin: number | null;[39m
+[31m+   readonly temperatureMax: number | null;[39m
+[31m+   readonly maxWind: number | null;[39m
+[31m+   readonly risk: Risk;[39m
+[31m+   readonly symbol: string;[39m
+[31m+   readonly filtered: boolean;[39m
+[31m+   readonly filterReasons: ReadonlyArray<string>;[39m
+[31m+ }[39m
+[31m+[39m
+[31m+ const EMPTY_FILTERS: WeatherFilters = {[39m
+[31m+   rainMax: null,[39m
+[31m+   windMax: null,[39m
+[31m+   tempMin: null,[39m
+[31m+   tempMax: null,[39m
+[31m+ };[39m
+[31m+[39m
+[31m+ const COPY = {[39m
+[31m+   en: {[39m
+[31m+     country: "Country",[39m
+[31m+     chooseCountry: "Choose country",[39m
+[31m+     period: "Weather period",[39m
+[31m+     threeDays: "Next 3 days",[39m
+[31m+     sevenDays: "Next 7 days",[39m
+[31m+     weekend: "This weekend",[39m
+[31m+     custom: "Custom dates",[39m
+[31m+     firstDate: "First travel date",[39m
+[31m+     lastDate: "Last travel date",[39m
+[31m+     filters: "Optional weather limits",[39m
+[31m+     filtersHint: "Destinations stay on the map and turn grey when they exceed a limit.",[39m
+[31m+     activeFilters: (count: number) => `${count} active`,[39m
+[31m+     noLimit: "No limit",[39m
+[31m+     maxRain: "Highest daily rain chance",[39m
+[31m+     maxWind: "Maximum wind speed",[39m
+[31m+     minTemp: "Lowest overnight temperature",[39m
+[31m+     maxTemp: "Highest daytime temperature",[39m
+[31m+     clearFilters: "Clear filters",[39m
+[31m+     share: "Copy map link",[39m
+[31m+     copied: "Link copied",[39m
+[31m+     copyFailed: "Copy unavailable",[39m
+[31m+     mapHeading: "Popular destinations at a glance",[39m
+[31m+     mapHint: "Tap any weather marker to see the daily forecast.",[39m
+[31m+     mapLegend: "Weather map legend",[39m
+[31m+     lowerRain: "Mostly lower rain",[39m
+[31m+     mixed: "Mixed weather",[39m
+[31m+     rainLikely: "Rain more likely",[39m
+[31m+     selected: "Selected destination",[39m
+[31m+     dryDays: "Lower-rain days",[39m
+[31m+     rain: "Expected rain · peak chance",[39m
+[31m+     temperature: "Temperature",[39m
+[31m+     wind: "Maximum wind",[39m
+[31m+     daily: "Daily weather",[39m
+[31m+     peakRain: "rain",[39m
+[31m+     detail: "Open full city forecast",[39m
+[31m+     destinations: (country: string) => `Popular destinations in ${country}`,[39m
+[31m+     listHint: "The list mirrors every marker on the map; no destination is hidden by a filter.",[39m
+[31m+     outsideLimits: "Outside your limits",[39m
+[31m+     matchesLimits: "Matches your limits",[39m
+[31m+     unavailable: "Weather unavailable",[39m
+[31m+     rainReason: (value: number, limit: number) => `Peak rain ${value}% exceeds ${limit}%`,[39m
+[31m+     windReason: (value: number, limit: number) => `Wind ${value} km/h exceeds ${limit} km/h`,[39m
+[31m+     coldReason: (value: number, limit: number) => `Night low ${value}°C is below ${limit}°C`,[39m
+[31m+     hotReason: (value: number, limit: number) => `Day high ${value}°C exceeds ${limit}°C`,[39m
+[31m+     sourceHeading: "How to read this map",[39m
+[31m+     sourceText:[39m
+[31m+       "Weather icons summarize the selected period. Lower-rain days and the daily forecast provide the detail; no opaque travel score changes the result.",[39m
+[31m+     source: "Forecast source",[39m
+[31m+   },[39m
+[31m+   "zh-cn": {[39m
+[31m+     country: "国家",[39m
+[31m+     chooseCountry: "选择国家",[39m
+[31m+     period: "天气时间范围",[39m
+[31m+     threeDays: "未来 3 天",[39m
+[31m+     sevenDays: "未来 7 天",[39m
+[31m+     weekend: "本周末",[39m
+[31m+     custom: "自定义日期",[39m
+[31m+     firstDate: "开始日期",[39m
+[31m+     lastDate: "结束日期",[39m
+[31m+     filters: "可选天气限制",[39m
+[31m+     filtersHint: "超出限制的目的地不会消失，只会在地图上变灰并说明原因。",[39m
+[31m+     activeFilters: (count: number) => `${count} 项已启用`,[39m
+[31m+     noLimit: "不限",[39m
+[31m+     maxRain: "任一天最高降雨概率",[39m
+[31m+     maxWind: "最大风速",[39m
+[31m+     minTemp: "最低夜间温度",[39m
+[31m+     maxTemp: "最高白天气温",[39m
+[31m+     clearFilters: "清除限制",[39m
+[31m+     share: "复制地图链接",[39m
+[31m+     copied: "链接已复制",[39m
+[31m+     copyFailed: "暂时无法复制",[39m
+[31m+     mapHeading: "热门旅游地天气一目了然",[39m
+[31m+     mapHint: "点击任意天气图标，直接查看逐日预报。",[39m
+[31m+     mapLegend: "地图天气图例",[39m
+[31m+     lowerRain: "整体少雨",[39m
+[31m+     mixed: "晴雨混合",[39m
+[31m+     rainLikely: "降雨偏多",[39m
+[31m+     selected: "已选目的地",[39m
+[31m+     dryDays: "少雨天数",[39m
+[31m+     rain: "预计降雨量 · 最高概率",[39m
+[31m+     temperature: "气温",[39m
+[31m+     wind: "最大风速",[39m
+[31m+     daily: "逐日天气",[39m
+[31m+     peakRain: "降雨",[39m
+[31m+     detail: "查看完整城市天气",[39m
+[31m+     destinations: (country: string) => `${country}热门旅游地`,[39m
+[31m+     listHint: "列表与地图标记完全一致；筛选不会隐藏任何目的地。",[39m
+[31m+     outsideLimits: "超出你的限制",[39m
+[31m+     matchesLimits: "符合你的限制",[39m
+[31m+     unavailable: "暂无天气数据",[39m
+[31m+     rainReason: (value: number, limit: number) => `最高降雨概率 ${value}% 超过 ${limit}%`,[39m
+[31m+     windReason: (value: number, limit: number) => `风速 ${value} km/h 超过 ${limit} km/h`,[39m
+[31m+     coldReason: (value: number, limit: number) => `夜间最低 ${value}°C 低于 ${limit}°C`,[39m
+[31m+     hotReason: (value: number, limit: number) => `白天最高 ${value}°C 超过 ${limit}°C`,[39m
+[31m+     sourceHeading: "如何理解这张地图",[39m
+[31m+     sourceText:[39m
+[31m+       "天气图标概括所选日期，少雨天数和逐日预报提供具体依据；页面不会用不透明的旅行评分改变结果。",[39m
+[31m+     source: "天气数据来源",[39m
+[31m+   },[39m
+[31m+   "zh-hant": {[39m
+[31m+     country: "國家",[39m
+[31m+     chooseCountry: "選擇國家",[39m
+[31m+     period: "天氣時間範圍",[39m
+[31m+     threeDays: "未來 3 天",[39m
+[31m+     sevenDays: "未來 7 天",[39m
+[31m+     weekend: "本週末",[39m
+[31m+     custom: "自訂日期",[39m
+[31m+     firstDate: "開始日期",[39m
+[31m+     lastDate: "結束日期",[39m
+[31m+     filters: "可選天氣限制",[39m
+[31m+     filtersHint: "超出限制的目的地不會消失，只會在地圖上變灰並說明原因。",[39m
+[31m+     activeFilters: (count: number) => `${count} 項已啟用`,[39m
+[31m+     noLimit: "不限",[39m
+[31m+     maxRain: "任一天最高降雨機率",[39m
+[31m+     maxWind: "最大風速",[39m
+[31m+     minTemp: "最低夜間溫度",[39m
+[31m+     maxTemp: "最高白天氣溫",[39m
+[31m+     clearFilters: "清除限制",[39m
+[31m+     share: "複製地圖連結",[39m
+[31m+     copied: "連結已複製",[39m
+[31m+     copyFailed: "暫時無法複製",[39m
+[31m+     mapHeading: "熱門旅遊地天氣一目了然",[39m
+[31m+     mapHint: "點擊任意天氣圖示，直接查看逐日預報。",[39m
+[31m+     mapLegend: "地圖天氣圖例",[39m
+[31m+     lowerRain: "整體少雨",[39m
+[31m+     mixed: "晴雨混合",[39m
+[31m+     rainLikely: "降雨偏多",[39m
+[31m+     selected: "已選目的地",[39m
+[31m+     dryDays: "少雨天數",[39m
+[31m+     rain: "預計降雨量 · 最高機率",[39m
+[31m+     temperature: "氣溫",[39m
+[31m+     wind: "最大風速",[39m
+[31m+     daily: "逐日天氣",[39m
+[31m+     peakRain: "降雨",[39m
+[31m+     detail: "查看完整城市天氣",[39m
+[31m+     destinations: (country: string) => `${country}熱門旅遊地`,[39m
+[31m+     listHint: "列表與地圖標記完全一致；篩選不會隱藏任何目的地。",[39m
+[31m+     outsideLimits: "超出你的限制",[39m
+[31m+     matchesLimits: "符合你的限制",[39m
+[31m+     unavailable: "暫無天氣資料",[39m
+[31m+     rainReason: (value: number, limit: number) => `最高降雨機率 ${value}% 超過 ${limit}%`,[39m
+[31m+     windReason: (value: number, limit: number) => `風速 ${value} km/h 超過 ${limit} km/h`,[39m
+[31m+     coldReason: (value: number, limit: number) => `夜間最低 ${value}°C 低於 ${limit}°C`,[39m
+[31m+     hotReason: (value: number, limit: number) => `白天最高 ${value}°C 超過 ${limit}°C`,[39m
+[31m+     sourceHeading: "如何理解這張地圖",[39m
+[31m+     sourceText:[39m
+[31m+       "天氣圖示概括所選日期，少雨天數和逐日預報提供具體依據；頁面不會用不透明的旅行評分改變結果。",[39m
+[31m+     source: "天氣資料來源",[39m
+[31m+   },[39m
+[31m+ } as const;[39m
+[31m+[39m
+[31m+ const CONDITION_ZH: Readonly<Record<string, string>> = {[39m
+[31m+   Clear: "晴",[39m
+[31m+   "Mainly clear": "大致晴朗",[39m
+[31m+   "Partly cloudy": "多云间晴",[39m
+[31m+   Overcast: "阴",[39m
+[31m+   Fog: "雾",[39m
+[31m+   "Rime fog": "雾凇",[39m
+[31m+   "Light drizzle": "小毛毛雨",[39m
+[31m+   Drizzle: "毛毛雨",[39m
+[31m+   "Dense drizzle": "密集毛毛雨",[39m
+[31m+   "Light freezing drizzle": "轻微冻毛毛雨",[39m
+[31m+   "Dense freezing drizzle": "密集冻毛毛雨",[39m
+[31m+   "Light rain": "小雨",[39m
+[31m+   Rain: "雨",[39m
+[31m+   "Heavy rain": "大雨",[39m
+[31m+   "Light freezing rain": "轻微冻雨",[39m
+[31m+   "Heavy freezing rain": "强冻雨",[39m
+[31m+   "Light snow": "小雪",[39m
+[31m+   Snow: "雪",[39m
+[31m+   "Heavy snow": "大雪",[39m
+[31m+   "Snow grains": "米雪",[39m
+[31m+   "Rain showers": "阵雨",[39m
+[31m+   "Moderate rain showers": "中等阵雨",[39m
+[31m+   "Violent rain showers": "强阵雨",[39m
+[31m+   "Light snow showers": "小阵雪",[39m
+[31m+   "Heavy snow showers": "强阵雪",[39m
+[31m+   Thunderstorm: "雷暴",[39m
+[31m+   "Thunderstorm with hail": "雷暴伴冰雹",[39m
+[31m+ };[39m
+[31m+[39m
+[31m+ /** Pixel nudges keep dense tourism corridors legible without hiding a destination. */[39m
+[31m+ const MARKER_OFFSETS: Readonly<Record<string, [number, number]>> = {[39m
+[31m+   osaka: [42, 62],[39m
+[31m+   kyoto: [-30, -82],[39m
+[31m+   kanazawa: [58, -62],[39m
+[31m+   hiroshima: [-84, -34],[39m
+[31m+   fukuoka: [-72, 38],[39m
+[31m+   tokyo: [82, 16],[39m
+[31m+   gyeongju: [34, -20],[39m
+[31m+   busan: [-34, 18],[39m
+[31m+   krabi: [-32, 18],[39m
+[31m+   phuket: [34, -18],[39m
+[31m+   "da-nang": [34, -18],[39m
+[31m+   "da-lat": [50, -34],[39m
+[31m+   "ho-chi-minh": [58, 42],[39m
+[31m+   "phu-quoc": [-52, 16],[39m
+[31m+   bali: [-38, 16],[39m
+[31m+   lombok: [38, -16],[39m
+[31m+ };[39m
+[31m+[39m
+[31m+ export interface CountryWeatherExplorerProps {[39m
+[31m+   readonly country: CountryHeaderViewModel;[39m
+[31m+   readonly countries: ReadonlyArray<CountryOptionViewModel>;[39m
+[31m+   readonly cities: ReadonlyArray<CountryWeatherCityViewModel>;[39m
+[31m+   readonly updatedLabel: string;[39m
+[31m+   readonly locale?: ExplorerLocale;[39m
+[31m+ }[39m
+[31m+[39m
+[31m+ function numericValues(values: ReadonlyArray<number | null | undefined>): number[] {[39m
+[31m+   return values.filter((value): value is number => typeof value === "number");[39m
+[31m+ }[39m
+[31m+[39m
+[31m+ function daysForIndices([39m
+[31m+   city: CountryWeatherCityViewModel,[39m
+[31m+   indices: ReadonlyArray<number>,[39m
+[31m+ ): ReadonlyArray<CountryWeatherDayViewModel> {[39m
+[31m+   return indices[39m
+[31m+     .map((index) => city.days[index])[39m
+[31m+     .filter((day): day is CountryWeatherDayViewModel => day !== undefined);[39m
+[31m+ }[39m
+[31m+[39m
+[31m+ function dailySymbol(condition: string): string {[39m
+[31m+   if (/thunder|hail/i.test(condition)) return "⛈️";[39m
+[31m+   if (/snow|sleet/i.test(condition)) return "🌨️";[39m
+[31m+   if (/rain|drizzle|shower/i.test(condition)) return "🌧️";[39m
+[31m+   if (/fog|mist/i.test(condition)) return "🌫️";[39m
+[31m+   if (/partly|mainly clear/i.test(condition)) return "🌤️";[39m
+[31m+   if (/cloud|overcast/i.test(condition)) return "☁️";[39m
+[31m+   return "☀️";[39m
+[31m+ }[39m
+[31m+[39m
+[31m+ function summarySymbol(days: ReadonlyArray<CountryWeatherDayViewModel>, risk: Risk): string {[39m
+[31m+   const conditions = days.map((day) => day.weather.conditionLabel).join(" ");[39m
+[31m+   if (/thunder|hail/i.test(conditions)) return "⛈️";[39m
+[31m+   if (/snow|sleet/i.test(conditions)) return "🌨️";[39m
+[31m+   if (risk === "wet") return "🌧️";[39m
+[31m+   if (/rain|drizzle|shower/i.test(conditions)) return "🌦️";[39m
+[31m+   const clearDays = days.filter((day) => /clear|sun/i.test(day.weather.conditionLabel)).length;[39m
+[31m+   return clearDays >= Math.ceil(days.length / 2) ? "☀️" : "🌤️";[39m
+[31m+ }[39m
+[31m+[39m
+[31m+ function filterReasons([39m
+[31m+   metrics: Pick<CitySummary, "maxRain" | "maxWind" | "temperatureMin" | "temperatureMax">,[39m
+[31m+   filters: WeatherFilters,[39m
+[31m+   locale: ExplorerLocale,[39m
+[31m+ ): ReadonlyArray<string> {[39m
+[31m+   const copy = COPY[locale];[39m
+[31m+   const reasons: string[] = [];[39m
+[31m+   if (filters.rainMax !== null && metrics.maxRain !== null && metrics.maxRain > filters.rainMax) {[39m
+[31m+     reasons.push(copy.rainReason(metrics.maxRain, filters.rainMax));[39m
+[31m+   }[39m
+[31m+   if (filters.windMax !== null && metrics.maxWind !== null && metrics.maxWind > filters.windMax) {[39m
+[31m+     reasons.push(copy.windReason(metrics.maxWind, filters.windMax));[39m
+[31m+   }[39m
+[31m+   if ([39m
+[31m+     filters.tempMin !== null &&[39m
+[31m+     metrics.temperatureMin !== null &&[39m
+[31m+     metrics.temperatureMin < filters.tempMin[39m
+[31m+   ) {[39m
+[31m+     reasons.push(copy.coldReason(metrics.temperatureMin, filters.tempMin));[39m
+[31m+   }[39m
+[31m+   if ([39m
+[31m+     filters.tempMax !== null &&[39m
+[31m+     metrics.temperatureMax !== null &&[39m
+[31m+     metrics.temperatureMax > filters.tempMax[39m
+[31m+   ) {[39m
+[31m+     reasons.push(copy.hotReason(metrics.temperatureMax, filters.tempMax));[39m
+[31m+   }[39m
+[31m+   return reasons;[39m
+[31m+ }[39m
+[31m+[39m
+[31m+ function summarize([39m
+[31m+   city: CountryWeatherCityViewModel,[39m
+[31m+   indices: ReadonlyArray<number>,[39m
+[31m+   filters: WeatherFilters,[39m
+[31m+   locale: ExplorerLocale,[39m
+[31m+ ): CitySummary {[39m
+[31m+   const days = daysForIndices(city, indices);[39m
+[31m+   const rainValues = numericValues(days.map((day) => day.weather.rainProbability));[39m
+[31m+   const rainAmounts = numericValues(days.map((day) => day.weather.precipitationMm));[39m
+[31m+   const minimums = numericValues(days.map((day) => day.weather.temperatureMin));[39m
+[31m+   const maximums = numericValues(days.map((day) => day.weather.temperatureMax));[39m
+[31m+   const winds = numericValues(days.map((day) => day.weather.windSpeedMax));[39m
+[31m+   const dryDays = days.filter((day) => {[39m
+[31m+     const chance = day.weather.rainProbability;[39m
+[31m+     const amount = day.weather.precipitationMm;[39m
+[31m+     return amount !== undefined && amount !== null[39m
+[31m+       ? amount <= 2.5 || ((chance ?? 100) <= 45 && amount < 5)[39m
+[31m+       : chance !== null && chance <= 45;[39m
+[31m+   }).length;[39m
+[31m+   const maxRain = rainValues.length > 0 ? Math.max(...rainValues) : null;[39m
+[31m+   const totalRainMm =[39m
+[31m+     rainAmounts.length > 0[39m
+[31m+       ? Math.round(rainAmounts.reduce((total, value) => total + value, 0) * 10) / 10[39m
+[31m+       : null;[39m
+[31m+   const temperatureMin = minimums.length > 0 ? Math.min(...minimums) : null;[39m
+[31m+   const temperatureMax = maximums.length > 0 ? Math.max(...maximums) : null;[39m
+[31m+   const maxWind = winds.length > 0 ? Math.round(Math.max(...winds)) : null;[39m
+[31m+   const risk: Risk =[39m
+[31m+     days.length === 0 || (totalRainMm === null && maxRain === null)[39m
+[31m+       ? "unknown"[39m
+[31m+       : dryDays === days.length && (totalRainMm ?? 0) <= days.length * 2.5[39m
+[31m+         ? "good"[39m
+[31m+         : dryDays >= Math.ceil(days.length / 2) || (totalRainMm ?? Infinity) <= days.length * 8[39m
+[31m+           ? "mixed"[39m
+[31m+           : "wet";[39m
+[31m+   const metrics = { maxRain, maxWind, temperatureMin, temperatureMax };[39m
+[31m+   const reasons = filterReasons(metrics, filters, locale);[39m
+[31m+   return {[39m
+[31m+     city,[39m
+[31m+     days,[39m
+[31m+     dryDays,[39m
+[31m+     maxRain,[39m
+[31m+     totalRainMm,[39m
+[31m+     temperatureMin,[39m
+[31m+     temperatureMax,[39m
+[31m+     maxWind,[39m
+[31m+     risk,[39m
+[31m+     symbol: summarySymbol(days, risk),[39m
+[31m+     filtered: reasons.length > 0,[39m
+[31m+     filterReasons: reasons,[39m
+[31m+   };[39m
+[31m+ }[39m
+[31m+[39m
+[31m+ function shortDate(value: string, locale: ExplorerLocale): string {[39m
+[31m+   const date = new Date(`${value}T00:00:00Z`);[39m
+[31m+   if (Number.isNaN(date.getTime())) return value;[39m
+[31m+   const language = locale === "en" ? "en" : locale === "zh-cn" ? "zh-CN" : "zh-TW";[39m
+[31m+   return new Intl.DateTimeFormat(language, {[39m
+[31m+     month: locale === "en" ? "short" : "numeric",[39m
+[31m+     day: "numeric",[39m
+[31m+     timeZone: "UTC",[39m
+[31m+   }).format(date);[39m
+[31m+ }[39m
+[31m+[39m
+[31m+ function rangeLabel([39m
+[31m+   days: ReadonlyArray<CountryWeatherDayViewModel>,[39m
+[31m+   locale: ExplorerLocale,[39m
+[31m+ ): string {[39m
+[31m+   if (days.length === 0) return COPY[locale].unavailable;[39m
+[31m+   if (days.length === 1) return shortDate(days[0]?.localDate ?? "", locale);[39m
+[31m+   return `${shortDate(days[0]?.localDate ?? "", locale)}–${shortDate(days.at(-1)?.localDate ?? "", locale)}`;[39m
+[31m+ }[39m
+[31m+[39m
+[31m+ function rainLabel(summary: CitySummary, locale: ExplorerLocale): string {[39m
+[31m+   if (summary.days.length === 0) return COPY[locale].unavailable;[39m
+[31m+   const count = `${summary.dryDays}/${summary.days.length}`;[39m
+[31m+   if (locale === "en") {[39m
+[31m+     return `${count} lower-rain days · ${summary.totalRainMm ?? "—"} mm total`;[39m
+[31m+   }[39m
+[31m+   return `${count}天少雨 · 共${summary.totalRainMm ?? "—"} mm`;[39m
+[31m+ }[39m
+[31m+[39m
+[31m+ function conditionLabel(value: string, locale: ExplorerLocale): string {[39m
+[31m+   if (locale === "en") return value;[39m
+[31m+   const simplified = CONDITION_ZH[value] ?? value;[39m
+[31m+   return locale === "zh-hant" ? toTraditionalText(simplified) : simplified;[39m
+[31m+ }[39m
+[31m+[39m
+[31m+ function parseNumber(value: string | null): number | null {[39m
+[31m+   if (value === null || value.trim() === "") return null;[39m
+[31m+   const number = Number(value);[39m
+[31m+   return Number.isFinite(number) ? number : null;[39m
+[31m+ }[39m
+[31m+[39m
+[31m+ function presetIndices([39m
+[31m+   dates: ReadonlyArray<string>,[39m
+[31m+   preset: Exclude<RangePreset, "custom">,[39m
+[31m+ ): ReadonlyArray<number> {[39m
+[31m+   if (preset === "3d") return dates.slice(0, 3).map((_, index) => index);[39m
+[31m+   if (preset === "7d") return dates.slice(0, 7).map((_, index) => index);[39m
+[31m+   const weekend = windowIndicesForDates(dates, "weekend");[39m
+[31m+   return weekend.length > 0 ? weekend : dates.slice(0, 7).map((_, index) => index);[39m
+[31m+ }[39m
+[31m+[39m
+[31m+ function activeFilterCount(filters: WeatherFilters): number {[39m
+[31m+   return Object.values(filters).filter((value) => value !== null).length;[39m
+[31m+ }[39m
+[31m+[39m
+[31m+ export function CountryWeatherExplorer({[39m
+[31m+   country,[39m
+[31m+   countries,[39m
+[31m+   cities,[39m
+[31m+   updatedLabel,[39m
+[31m+   locale = "en",[39m
+[31m+ }: CountryWeatherExplorerProps): ReactElement {[39m
+[31m+   const copy = COPY[locale];[39m
+[31m+   const [preset, setPreset] = useState<RangePreset>("7d");[39m
+[31m+   const [customRange, setCustomRange] = useState<{ start: number; end: number } | null>(null);[39m
+[31m+   const [filters, setFilters] = useState<WeatherFilters>(EMPTY_FILTERS);[39m
+[31m+   const [selectedCityId, setSelectedCityId] = useState("");[39m
+[31m+   const [shareStatus, setShareStatus] = useState("");[39m
+[31m+   const [mapReady, setMapReady] = useState(false);[39m
+[31m+   const mapContainerRef = useRef<HTMLDivElement | null>(null);[39m
+[31m+   const mapRef = useRef<MapLibreMap | null>(null);[39m
+[31m+   const mapModuleRef = useRef<typeof MapLibreModule | null>(null);[39m
+[31m+   const markerRefs = useRef<MapLibreMarker[]>([]);[39m
+[31m+   const inspectorRef = useRef<HTMLElement | null>(null);[39m
+[31m+[39m
+[31m+   const dates = useMemo(() => (cities[0]?.days ?? []).map((day) => day.localDate), [cities]);[39m
+[31m+   const selectedIndices = useMemo(() => {[39m
+[31m+     if (preset !== "custom") return presetIndices(dates, preset);[39m
+[31m+     if (customRange === null) return dates.slice(0, 7).map((_, index) => index);[39m
+[31m+     return Array.from([39m
+[31m+       { length: customRange.end - customRange.start + 1 },[39m
+[31m+       (_, index) => customRange.start + index,[39m
+[31m+     );[39m
+[31m+   }, [customRange, dates, preset]);[39m
+[31m+   const summaries = useMemo([39m
+[31m+     () => cities.map((city) => summarize(city, selectedIndices, filters, locale)),[39m
+[31m+     [cities, filters, locale, selectedIndices],[39m
+[31m+   );[39m
+[31m+   const selected =[39m
+[31m+     summaries.find((summary) => summary.city.cityId === selectedCityId) ??[39m
+[31m+     summaries.find((summary) => !summary.filtered) ??[39m
+[31m+     summaries[0] ??[39m
+[31m+     null;[39m
+[31m+   const selectedReferenceDays =[39m
+[31m+     cities[0] === undefined ? [] : daysForIndices(cities[0], selectedIndices);[39m
+[31m+   const exactDates = rangeLabel(selectedReferenceDays, locale);[39m
+[31m+   const filterCount = activeFilterCount(filters);[39m
+[31m+[39m
+[31m+   function writeUrl([39m
+[31m+     nextPreset: RangePreset,[39m
+[31m+     nextCustomRange: { start: number; end: number } | null,[39m
+[31m+     nextFilters: WeatherFilters,[39m
+[31m+     nextCityId: string,[39m
+[31m+   ): void {[39m
+[31m+     const url = new URL(window.location.href);[39m
+[31m+     for (const key of [[39m
+[31m+       "window",[39m
+[31m+       "origin",[39m
+[31m+       "mode",[39m
+[31m+       "maxTravel",[39m
+[31m+       "intent",[39m
+[31m+       "party",[39m
+[31m+       "theme",[39m
+[31m+       "cities",[39m
+[31m+     ]) {[39m
+[31m+       url.searchParams.delete(key);[39m
+[31m+     }[39m
+[31m+     if (nextPreset === "custom" && nextCustomRange !== null) {[39m
+[31m+       url.searchParams.delete("range");[39m
+[31m+       url.searchParams.set("from", String(nextCustomRange.start));[39m
+[31m+       url.searchParams.set("to", String(nextCustomRange.end));[39m
+[31m+     } else {[39m
+[31m+       url.searchParams.delete("from");[39m
+[31m+       url.searchParams.delete("to");[39m
+[31m+       url.searchParams.set("range", nextPreset === "custom" ? "7d" : nextPreset);[39m
+[31m+     }[39m
+[31m+     const dimensions: ReadonlyArray<[keyof WeatherFilters, string]> = [[39m
+[31m+       ["rainMax", "rainMax"],[39m
+[31m+       ["windMax", "windMax"],[39m
+[31m+       ["tempMin", "tempMin"],[39m
+[31m+       ["tempMax", "tempMax"],[39m
+[31m+     ];[39m
+[31m+     for (const [field, query] of dimensions) {[39m
+[31m+       const value = nextFilters[field];[39m
+[31m+       if (value === null) url.searchParams.delete(query);[39m
+[31m+       else url.searchParams.set(query, String(value));[39m
+[31m+     }[39m
+[31m+     if (nextCityId.length > 0) url.searchParams.set("city", nextCityId);[39m
+[31m+     else url.searchParams.delete("city");[39m
+[31m+     window.history.replaceState({}, "", url);[39m
+[31m+   }[39m
+[31m+[39m
+[31m+   useEffect(() => {[39m
+[31m+     const restoreUrlState = (): void => {[39m
+[31m+       const params = new URLSearchParams(window.location.search);[39m
+[31m+       const from = Number(params.get("from"));[39m
+[31m+       const to = Number(params.get("to"));[39m
+[31m+       const finalIndex = Math.max(0, dates.length - 1);[39m
+[31m+       if ([39m
+[31m+         params.has("from") &&[39m
+[31m+         params.has("to") &&[39m
+[31m+         Number.isInteger(from) &&[39m
+[31m+         Number.isInteger(to) &&[39m
+[31m+         from >= 0 &&[39m
+[31m+         to >= from &&[39m
+[31m+         to <= finalIndex[39m
+[31m+       ) {[39m
+[31m+         setPreset("custom");[39m
+[31m+         setCustomRange({ start: from, end: to });[39m
+[31m+       } else {[39m
+[31m+         const requestedRange = params.get("range");[39m
+[31m+         const legacyWindow = params.get("window");[39m
+[31m+         if (requestedRange === "3d" || requestedRange === "7d" || requestedRange === "weekend") {[39m
+[31m+           setPreset(requestedRange);[39m
+[31m+           setCustomRange(null);[39m
+[31m+         } else if (legacyWindow === "today" || legacyWindow === "tomorrow") {[39m
+[31m+           const index = legacyWindow === "today" ? 0 : Math.min(1, finalIndex);[39m
+[31m+           setPreset("custom");[39m
+[31m+           setCustomRange({ start: index, end: index });[39m
+[31m+         } else if (legacyWindow === "weekend") {[39m
+[31m+           setPreset("weekend");[39m
+[31m+           setCustomRange(null);[39m
+[31m+         } else {[39m
+[31m+           setPreset("7d");[39m
+[31m+           setCustomRange(null);[39m
+[31m+         }[39m
+[31m+       }[39m
+[31m+       setFilters({[39m
+[31m+         rainMax: parseNumber(params.get("rainMax")),[39m
+[31m+         windMax: parseNumber(params.get("windMax")),[39m
+[31m+         tempMin: parseNumber(params.get("tempMin")),[39m
+[31m+         tempMax: parseNumber(params.get("tempMax")),[39m
+[31m+       });[39m
+[31m+       const city = params.get("city") ?? "";[39m
+[31m+       setSelectedCityId(cities.some((item) => item.cityId === city) ? city : "");[39m
+[31m+     };[39m
+[31m+     restoreUrlState();[39m
+[31m+     window.addEventListener("popstate", restoreUrlState);[39m
+[31m+     return () => window.removeEventListener("popstate", restoreUrlState);[39m
+[31m+   }, [cities, dates.length]);[39m
+[31m+[39m
+[31m+   useEffect(() => {[39m
+[31m+     emitProductAnalytics({[39m
+[31m+       locale,[39m
+[31m+       routeTemplate: "/[country]",[39m
+[31m+       fields: { event: "country_viewed", country_code: country.countryId },[39m
+[31m+     });[39m
+[31m+   }, [country.countryId, locale]);[39m
+[31m+[39m
+[31m+   useEffect(() => {[39m
+[31m+     const container = mapContainerRef.current;[39m
+[31m+     if (container === null || cities.length === 0) return;[39m
+[31m+     let cancelled = false;[39m
+[31m+     void import("maplibre-gl").then((module) => {[39m
+[31m+       if (cancelled || mapContainerRef.current === null) return;[39m
+[31m+       mapModuleRef.current = module;[39m
+[31m+       const longitude = cities.reduce((sum, city) => sum + city.longitude, 0) / cities.length;[39m
+[31m+       const latitude = cities.reduce((sum, city) => sum + city.latitude, 0) / cities.length;[39m
+[31m+       const map = new module.Map({[39m
+[31m+         container: mapContainerRef.current,[39m
+[31m+         style: MAPLIBRE_STYLE_URL,[39m
+[31m+         center: [longitude, latitude],[39m
+[31m+         zoom: 4,[39m
+[31m+         attributionControl: { compact: true },[39m
+[31m+         cooperativeGestures: false,[39m
+[31m+       });[39m
+[31m+       mapRef.current = map;[39m
+[31m+       map.addControl(new module.NavigationControl({ showCompass: false }), "top-right");[39m
+[31m+       map.on("load", () => {[39m
+[31m+         const bounds = new module.LngLatBounds();[39m
+[31m+         cities.forEach((city) => bounds.extend([city.longitude, city.latitude]));[39m
+[31m+         map.fitBounds(bounds, { padding: 86, maxZoom: 6, duration: 0 });[39m
+[31m+         setMapReady(true);[39m
+[31m+       });[39m
+[31m+     });[39m
+[31m+     return () => {[39m
+[31m+       cancelled = true;[39m
+[31m+       markerRefs.current.forEach((marker) => marker.remove());[39m
+[31m+       markerRefs.current = [];[39m
+[31m+       mapRef.current?.remove();[39m
+[31m+       mapRef.current = null;[39m
+[31m+       mapModuleRef.current = null;[39m
+[31m+     };[39m
+[31m+   }, [cities]);[39m
+[31m+[39m
+[31m+   function selectCity(summary: CitySummary, scrollOnMobile = false): void {[39m
+[31m+     setSelectedCityId(summary.city.cityId);[39m
+[31m+     writeUrl(preset, customRange, filters, summary.city.cityId);[39m
+[31m+     emitProductAnalytics({[39m
+[31m+       locale,[39m
+[31m+       routeTemplate: "/[country]",[39m
+[31m+       fields: {[39m
+[31m+         event: "city_viewed",[39m
+[31m+         city_id: summary.city.cityId,[39m
+[31m+         country_code: country.countryId,[39m
+[31m+       },[39m
+[31m+     });[39m
+[31m+     if ([39m
+[31m+       scrollOnMobile &&[39m
+[31m+       typeof window.matchMedia === "function" &&[39m
+[31m+       window.matchMedia("(max-width: 1023px)").matches[39m
+[31m+     ) {[39m
+[31m+       window.setTimeout([39m
+[31m+         () => inspectorRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }),[39m
+[31m+         0,[39m
+[31m+       );[39m
+[31m+     }[39m
+[31m+   }[39m
+[31m+[39m
+[31m+   useEffect(() => {[39m
+[31m+     const map = mapRef.current;[39m
+[31m+     const module = mapModuleRef.current;[39m
+[31m+     if (!mapReady || map === null || module === null) return;[39m
+[31m+     markerRefs.current.forEach((marker) => marker.remove());[39m
+[31m+     markerRefs.current = summaries.map((summary) => {[39m
+[31m+       const shell = document.createElement("div");[39m
+[31m+       shell.className = `country-weather-marker risk-${summary.risk}${summary.filtered ? " is-filtered" : ""}`;[39m
+[31m+       const button = document.createElement("button");[39m
+[31m+       button.type = "button";[39m
+[31m+       button.className = "country-weather-marker-button";[39m
+[31m+       button.setAttribute([39m
+[31m+         "aria-label",[39m
+[31m+         `${summary.city.cityName}: ${rainLabel(summary, locale)}${summary.filtered ? `. ${copy.outsideLimits}: ${summary.filterReasons.join("; ")}` : ""}`,[39m
+[31m+       );[39m
+[31m+       if (summary.city.cityId === selected?.city.cityId) button.dataset.selected = "true";[39m
+[31m+       const icon = document.createElement("span");[39m
+[31m+       icon.className = "country-weather-marker-icon";[39m
+[31m+       icon.textContent = summary.symbol;[39m
+[31m+       icon.setAttribute("aria-hidden", "true");[39m
+[31m+       const text = document.createElement("span");[39m
+[31m+       text.className = "country-weather-marker-copy";[39m
+[31m+       const name = document.createElement("strong");[39m
+[31m+       name.textContent = summary.city.cityName;[39m
+[31m+       const detail = document.createElement("span");[39m
+[31m+       detail.textContent = `${summary.dryDays}/${summary.days.length} · ${summary.temperatureMin ?? "–"}–${summary.temperatureMax ?? "–"}°`;[39m
+[31m+       text.append(name, detail);[39m
+[31m+       button.append(icon, text);[39m
+[31m+       button.addEventListener("click", () => selectCity(summary, true));[39m
+[31m+       shell.append(button);[39m
+[31m+       const offset = MARKER_OFFSETS[summary.city.cityId] ?? [0, 0];[39m
+[31m+       const leaderLength = Math.hypot(offset[0], offset[1]);[39m
+[31m+       shell.style.setProperty("--marker-leader-length", `${leaderLength}px`);[39m
+[31m+       shell.style.setProperty("--marker-leader-angle", `${Math.atan2(-offset[1], -offset[0])}rad`);[39m
+[31m+       return new module.Marker({ element: shell, anchor: "bottom", offset })[39m
+[31m+         .setLngLat([summary.city.longitude, summary.city.latitude])[39m
+[31m+         .addTo(map);[39m
+[31m+     });[39m
+[31m+   }, [copy.outsideLimits, locale, mapReady, selected?.city.cityId, summaries]);[39m
+[31m+[39m
+[31m+   function selectPreset(nextPreset: Exclude<RangePreset, "custom">): void {[39m
+[31m+     setPreset(nextPreset);[39m
+[31m+     setCustomRange(null);[39m
+[31m+     setSelectedCityId("");[39m
+[31m+     writeUrl(nextPreset, null, filters, "");[39m
+[31m+   }[39m
+[31m+[39m
+[31m+   function chooseCustomRange(start: number, end: number): void {[39m
+[31m+     const finalIndex = Math.max(0, dates.length - 1);[39m
+[31m+     const next = {[39m
+[31m+       start: Math.max(0, Math.min(start, end, finalIndex)),[39m
+[31m+       end: Math.max(0, Math.min(Math.max(start, end), finalIndex)),[39m
+[31m+     };[39m
+[31m+     setPreset("custom");[39m
+[31m+     setCustomRange(next);[39m
+[31m+     setSelectedCityId("");[39m
+[31m+     writeUrl("custom", next, filters, "");[39m
+[31m+   }[39m
+[31m+[39m
+[31m+   function updateFilter(field: keyof WeatherFilters, raw: string): void {[39m
+[31m+     const next = { ...filters, [field]: parseNumber(raw) };[39m
+[31m+     setFilters(next);[39m
+[31m+     setSelectedCityId("");[39m
+[31m+     writeUrl(preset, customRange, next, "");[39m
+[31m+   }[39m
+[31m+[39m
+[31m+   function clearFilters(): void {[39m
+[31m+     setFilters(EMPTY_FILTERS);[39m
+[31m+     setSelectedCityId("");[39m
+[31m+     writeUrl(preset, customRange, EMPTY_FILTERS, "");[39m
+[31m+   }[39m
+[31m+[39m
+[31m+   async function copyShareLink(): Promise<void> {[39m
+[31m+     try {[39m
+[31m+       await navigator.clipboard.writeText(window.location.href);[39m
+[31m+       setShareStatus(copy.copied);[39m
+[31m+     } catch {[39m
+[31m+       setShareStatus(copy.copyFailed);[39m
+[31m+     }[39m
+[31m+     window.setTimeout(() => setShareStatus(""), 2500);[39m
+[31m+   }[39m
+[31m+[39m
+[31m+   function cityDetailHref(path: string): string {[39m
+[31m+     const start = selectedReferenceDays[0]?.localDate;[39m
+[31m+     if (start === undefined) return path;[39m
+[31m+     const end = selectedReferenceDays.at(-1)?.localDate ?? start;[39m
+[31m+     return `${path}?${new URLSearchParams({ start, end }).toString()}`;[39m
+[31m+   }[39m
+[31m+[39m
+[31m+   const currentCountryPath = countries.find([39m
+[31m+     (option) => option.slug === country.slug.split("/").at(-1),[39m
+[31m+   )?.path;[39m
+[31m+[39m
+[31m+   return ([39m
+[31m+     <section className="country-weather-console" aria-label={`${country.name} ${copy.mapHeading}`}>[39m
+[31m+       <div className="country-console-toolbar country-map-toolbar">[39m
+[31m+         <label className="country-select-label">[39m
+[31m+           <span>{copy.country}</span>[39m
+[31m+           <select[39m
+[31m+             value={currentCountryPath ?? `/${country.slug}`}[39m
+[31m+             onChange={(event) =>[39m
+[31m+               window.location.assign(`${event.target.value}${window.location.search}`)[39m
+[31m+             }[39m
+[31m+             className="country-select focus-ring"[39m
+[31m+             aria-label={copy.chooseCountry}[39m
+[31m+           >[39m
+[31m+             {countries.map((option) => ([39m
+[31m+               <option key={option.slug} value={option.path}>[39m
+[31m+                 {option.name}[39m
+[31m+               </option>[39m
+[31m+             ))}[39m
+[31m+           </select>[39m
+[31m+         </label>[39m
+[31m+[39m
+[31m+         <div className="min-w-0 flex-1">[39m
+[31m+           <p className="country-control-label">{copy.period}</p>[39m
+[31m+           <div className="country-window-tabs" role="group" aria-label={copy.period}>[39m
+[31m+             {([39m
+[31m+               [[39m
+[31m+                 ["3d", copy.threeDays],[39m
+[31m+                 ["7d", copy.sevenDays],[39m
+[31m+                 ["weekend", copy.weekend],[39m
+[31m+               ] as const[39m
+[31m+             ).map(([value, label]) => ([39m
+[31m+               <button[39m
+[31m+                 key={value}[39m
+[31m+                 type="button"[39m
+[31m+                 onClick={() => selectPreset(value)}[39m
+[31m+                 aria-pressed={preset === value}[39m
+[31m+                 className={`country-window-button focus-ring ${preset === value ? "is-active" : ""}`}[39m
+[31m+               >[39m
+[31m+                 {label}[39m
+[31m+               </button>[39m
+[31m+             ))}[39m
+[31m+             <button[39m
+[31m+               type="button"[39m
+[31m+               onClick={() =>[39m
+[31m+                 chooseCustomRange([39m
+[31m+                   customRange?.start ?? selectedIndices[0] ?? 0,[39m
+[31m+                   customRange?.end ?? selectedIndices.at(-1) ?? Math.min(6, dates.length - 1),[39m
+[31m+                 )[39m
+[31m+               }[39m
+[31m+               aria-pressed={preset === "custom"}[39m
+[31m+               className={`country-window-button focus-ring ${preset === "custom" ? "is-active" : ""}`}[39m
+[31m+             >[39m
+[31m+               {copy.custom}[39m
+[31m+             </button>[39m
+[31m+           </div>[39m
+[31m+           {preset === "custom" ? ([39m
+[31m+             <div className="country-custom-range">[39m
+[31m+               <label>[39m
+[31m+                 <span className="sr-only">{copy.firstDate}</span>[39m
+[31m+                 <select[39m
+[31m+                   aria-label={copy.firstDate}[39m
+[31m+                   value={customRange?.start ?? 0}[39m
+[31m+                   onChange={(event) =>[39m
+[31m+                     chooseCustomRange([39m
+[31m+                       Number(event.target.value),[39m
+[31m+                       customRange?.end ?? Number(event.target.value),[39m
+[31m+                     )[39m
+[31m+                   }[39m
+[31m+                 >[39m
+[31m+                   {(cities[0]?.days ?? []).map((day, index) => ([39m
+[31m+                     <option key={day.localDate} value={index}>[39m
+[31m+                       {shortDate(day.localDate, locale)}[39m
+[31m+                     </option>[39m
+[31m+                   ))}[39m
+[31m+                 </select>[39m
+[31m+               </label>[39m
+[31m+               <span aria-hidden="true">→</span>[39m
+[31m+               <label>[39m
+[31m+                 <span className="sr-only">{copy.lastDate}</span>[39m
+[31m+                 <select[39m
+[31m+                   aria-label={copy.lastDate}[39m
+[31m+                   value={customRange?.end ?? Math.min(6, dates.length - 1)}[39m
+[31m+                   onChange={(event) =>[39m
+[31m+                     chooseCustomRange([39m
+[31m+                       customRange?.start ?? Number(event.target.value),[39m
+[31m+                       Number(event.target.value),[39m
+[31m+                     )[39m
+[31m+                   }[39m
+[31m+                 >[39m
+[31m+                   {(cities[0]?.days ?? []).map((day, index) => ([39m
+[31m+                     <option key={day.localDate} value={index}>[39m
+[31m+                       {shortDate(day.localDate, locale)}[39m
+[31m+                     </option>[39m
+[31m+                   ))}[39m
+[31m+                 </select>[39m
+[31m+               </label>[39m
+[31m+             </div>[39m
+[31m+           ) : null}[39m
+[31m+         </div>[39m
+[31m+[39m
+[31m+         <div className="country-map-actions">[39m
+[31m+           <button[39m
+[31m+             type="button"[39m
+[31m+             onClick={() => void copyShareLink()}[39m
+[31m+             className="country-share-button focus-ring"[39m
+[31m+           >[39m
+[31m+             {copy.share}[39m
+[31m+           </button>[39m
+[31m+           <p aria-live="polite">{shareStatus || updatedLabel}</p>[39m
+[31m+         </div>[39m
+[31m+       </div>[39m
+[31m+[39m
+[31m+       <details className="country-filter-details">[39m
+[31m+         <summary>[39m
+[31m+           <span>{copy.filters}</span>[39m
+[31m+           {filterCount > 0 ? <strong>{copy.activeFilters(filterCount)}</strong> : null}[39m
+[31m+         </summary>[39m
+[31m+         <p>{copy.filtersHint}</p>[39m
+[31m+         <div className="country-filter-grid">[39m
+[31m+           <label>[39m
+[31m+             <span>{copy.maxRain}</span>[39m
+[31m+             <select[39m
+[31m+               value={filters.rainMax ?? ""}[39m
+[31m+               onChange={(event) => updateFilter("rainMax", event.target.value)}[39m
+[31m+             >[39m
+[31m+               <option value="">{copy.noLimit}</option>[39m
+[31m+               {[30, 40, 50, 60, 70].map((value) => ([39m
+[31m+                 <option key={value} value={value}>{`≤ ${value}%`}</option>[39m
+[31m+               ))}[39m
+[31m+             </select>[39m
+[31m+           </label>[39m
+[31m+           <label>[39m
+[31m+             <span>{copy.maxWind}</span>[39m
+[31m+             <select[39m
+[31m+               value={filters.windMax ?? ""}[39m
+[31m+               onChange={(event) => updateFilter("windMax", event.target.value)}[39m
+[31m+             >[39m
+[31m+               <option value="">{copy.noLimit}</option>[39m
+[31m+               {[20, 30, 40, 50].map((value) => ([39m
+[31m+                 <option key={value} value={value}>{`≤ ${value} km/h`}</option>[39m
+[31m+               ))}[39m
+[31m+             </select>[39m
+[31m+           </label>[39m
+[31m+           <label>[39m
+[31m+             <span>{copy.minTemp}</span>[39m
+[31m+             <select[39m
+[31m+               value={filters.tempMin ?? ""}[39m
+[31m+               onChange={(event) => updateFilter("tempMin", event.target.value)}[39m
+[31m+             >[39m
+[31m+               <option value="">{copy.noLimit}</option>[39m
+[31m+               {[0, 10, 15, 20].map((value) => ([39m
+[31m+                 <option key={value} value={value}>{`≥ ${value}°C`}</option>[39m
+[31m+               ))}[39m
+[31m+             </select>[39m
+[31m+           </label>[39m
+[31m+           <label>[39m
+[31m+             <span>{copy.maxTemp}</span>[39m
+[31m+             <select[39m
+[31m+               value={filters.tempMax ?? ""}[39m
+[31m+               onChange={(event) => updateFilter("tempMax", event.target.value)}[39m
+[31m+             >[39m
+[31m+               <option value="">{copy.noLimit}</option>[39m
+[31m+               {[25, 30, 32, 35].map((value) => ([39m
+[31m+                 <option key={value} value={value}>{`≤ ${value}°C`}</option>[39m
+[31m+               ))}[39m
+[31m+             </select>[39m
+[31m+           </label>[39m
+[31m+         </div>[39m
+[31m+         {filterCount > 0 ? ([39m
+[31m+           <button type="button" onClick={clearFilters} className="country-filter-clear focus-ring">[39m
+[31m+             {copy.clearFilters}[39m
+[31m+           </button>[39m
+[31m+         ) : null}[39m
+[31m+       </details>[39m
+[31m+[39m
+[31m+       <div className="country-map-heading country-map-primary-heading">[39m
+[31m+         <div>[39m
+[31m+           <p className="eyebrow">{country.name}</p>[39m
+[31m+           <h2>{copy.mapHeading}</h2>[39m
+[31m+           <p>{copy.mapHint}</p>[39m
+[31m+         </div>[39m
+[31m+         <strong>{exactDates}</strong>[39m
+[31m+       </div>[39m
+[31m+[39m
+[31m+       <div className="country-map-layout">[39m
+[31m+         <div className="country-map-stage">[39m
+[31m+           <div[39m
+[31m+             ref={mapContainerRef}[39m
+[31m+             className="country-weather-map country-weather-map-primary"[39m
+[31m+             role="region"[39m
+[31m+             aria-label={`${country.name} ${copy.mapHeading}`}[39m
+[31m+             data-testid="country-weather-map"[39m
+[31m+           />[39m
+[31m+           <div className="country-map-legend" aria-label={copy.mapLegend}>[39m
+[31m+             <span>[39m
+[31m+               <i className="legend-good" /> {copy.lowerRain}[39m
+[31m+             </span>[39m
+[31m+             <span>[39m
+[31m+               <i className="legend-mixed" /> {copy.mixed}[39m
+[31m+             </span>[39m
+[31m+             <span>[39m
+[31m+               <i className="legend-wet" /> {copy.rainLikely}[39m
+[31m+             </span>[39m
+[31m+           </div>[39m
+[31m+         </div>[39m
+[31m+[39m
+[31m+         {selected !== null ? ([39m
+[31m+           <aside[39m
+[31m+             ref={inspectorRef}[39m
+[31m+             className="country-city-inspector"[39m
+[31m+             aria-label={`${selected.city.cityName} weather summary`}[39m
+[31m+           >[39m
+[31m+             <div className="country-inspector-title">[39m
+[31m+               <span aria-hidden="true">{selected.symbol}</span>[39m
+[31m+               <div>[39m
+[31m+                 <p>{copy.selected}</p>[39m
+[31m+                 <h2>{selected.city.cityName}</h2>[39m
+[31m+                 <small>{rangeLabel(selected.days, locale)}</small>[39m
+[31m+               </div>[39m
+[31m+             </div>[39m
+[31m+             <p className={`country-filter-result ${selected.filtered ? "is-filtered" : ""}`}>[39m
+[31m+               {selected.filtered ? copy.outsideLimits : copy.matchesLimits}[39m
+[31m+             </p>[39m
+[31m+             {selected.filterReasons.length > 0 ? ([39m
+[31m+               <ul className="country-filter-reasons">[39m
+[31m+                 {selected.filterReasons.map((reason) => ([39m
+[31m+                   <li key={reason}>{reason}</li>[39m
+[31m+                 ))}[39m
+[31m+               </ul>[39m
+[31m+             ) : null}[39m
+[31m+             <div className="country-inspector-summary country-map-inspector-summary">[39m
+[31m+               <div>[39m
+[31m+                 <span>{copy.dryDays}</span>[39m
+[31m+                 <strong>[39m
+[31m+                   {selected.dryDays}/{selected.days.length}[39m
+[31m+                 </strong>[39m
+[31m+               </div>[39m
+[31m+               <div>[39m
+[31m+                 <span>{copy.rain}</span>[39m
+[31m+                 <strong>[39m
+[31m+                   {selected.totalRainMm ?? "—"} mm · {selected.maxRain ?? "—"}%[39m
+[31m+                 </strong>[39m
+[31m+               </div>[39m
+[31m+               <div>[39m
+[31m+                 <span>{copy.temperature}</span>[39m
+[31m+                 <strong>[39m
+[31m+                   {selected.temperatureMin ?? "–"}–{selected.temperatureMax ?? "–"}°C[39m
+[31m+                 </strong>[39m
+[31m+               </div>[39m
+[31m+               <div>[39m
+[31m+                 <span>{copy.wind}</span>[39m
+[31m+                 <strong>{selected.maxWind ?? "—"} km/h</strong>[39m
+[31m+               </div>[39m
+[31m+             </div>[39m
+[31m+             <ol className="country-daily-strip" aria-label={copy.daily}>[39m
+[31m+               {selected.days.map((day) => ([39m
+[31m+                 <li key={day.localDate}>[39m
+[31m+                   <div className="flex items-center gap-3">[39m
+[31m+                     <span className="country-daily-emoji" aria-hidden="true">[39m
+[31m+                       {dailySymbol(day.weather.conditionLabel)}[39m
+[31m+                     </span>[39m
+[31m+                     <div>[39m
+[31m+                       <time dateTime={day.localDate}>{shortDate(day.localDate, locale)}</time>[39m
+[31m+                       <p>{conditionLabel(day.weather.conditionLabel, locale)}</p>[39m
+[31m+                     </div>[39m
+[31m+                   </div>[39m
+[31m+                   <div className="text-right">[39m
+[31m+                     <strong>[39m
+[31m+                       {day.weather.rainProbability ?? "—"}% {copy.peakRain}[39m
+[31m+                     </strong>[39m
+[31m+                     <p>[39m
+[31m+                       {day.weather.temperatureMin ?? "–"}–{day.weather.temperatureMax ?? "–"}°[39m
+[31m+                     </p>[39m
+[31m+                   </div>[39m
+[31m+                 </li>[39m
+[31m+               ))}[39m
+[31m+             </ol>[39m
+[31m+             <a href={cityDetailHref(selected.city.path)} className="country-detail-link focus-ring">[39m
+[31m+               {copy.detail} <span aria-hidden="true">→</span>[39m
+[31m+             </a>[39m
+[31m+           </aside>[39m
+[31m+         ) : null}[39m
+[31m+       </div>[39m
+[31m+[39m
+[31m+       <section className="country-city-list-section" aria-labelledby="country-destination-list">[39m
+[31m+         <div className="country-city-list-heading">[39m
+[31m+           <div>[39m
+[31m+             <p className="eyebrow">{copy.destinations(country.name)}</p>[39m
+[31m+             <h2 id="country-destination-list" className="section-title mt-3">[39m
+[31m+               {copy.destinations(country.name)}[39m
+[31m+             </h2>[39m
+[31m+           </div>[39m
+[31m+           <p>{copy.listHint}</p>[39m
+[31m+         </div>[39m
+[31m+         <ul className="country-city-grid country-map-city-grid">[39m
+[31m+           {summaries.map((summary) => ([39m
+[31m+             <li[39m
+[31m+               key={summary.city.cityId}[39m
+[31m+               className={`country-city-choice risk-${summary.risk}${summary.filtered ? " is-filtered" : ""}`}[39m
+[31m+               data-selected={selected?.city.cityId === summary.city.cityId}[39m
+[31m+             >[39m
+[31m+               <button[39m
+[31m+                 type="button"[39m
+[31m+                 onClick={() => selectCity(summary)}[39m
+[31m+                 className="country-city-select focus-ring"[39m
+[31m+               >[39m
+[31m+                 <span className="country-list-weather-icon" aria-hidden="true">[39m
+[31m+                   {summary.symbol}[39m
+[31m+                 </span>[39m
+[31m+                 <span className="min-w-0 flex-1 text-left">[39m
+[31m+                   <strong>{summary.city.cityName}</strong>[39m
+[31m+                   <small>{rainLabel(summary, locale)}</small>[39m
+[31m+                   {summary.filtered ? <em>{summary.filterReasons[0]}</em> : null}[39m
+[31m+                 </span>[39m
+[31m+                 <span className="country-list-temperature">[39m
+[31m+                   {summary.temperatureMin ?? "–"}–{summary.temperatureMax ?? "–"}°[39m
+[31m+                 </span>[39m
+[31m+               </button>[39m
+[31m+               <a[39m
+[31m+                 href={cityDetailHref(summary.city.path)}[39m
+[31m+                 className="country-city-forecast-link focus-ring"[39m
+[31m+               >[39m
+[31m+                 {copy.detail} <span aria-hidden="true">→</span>[39m
+[31m+               </a>[39m
+[31m+             </li>[39m
+[31m+           ))}[39m
+[31m+         </ul>[39m
+[31m+       </section>[39m
+[31m+[39m
+[31m+       <section className="country-evidence-panel">[39m
+[31m+         <div className="country-evidence-heading">[39m
+[31m+           <p className="eyebrow">{copy.sourceHeading}</p>[39m
+[31m+           <p>{updatedLabel}</p>[39m
+[31m+         </div>[39m
+[31m+         <div className="country-map-methodology">[39m
+[31m+           <p>{copy.sourceText}</p>[39m
+[31m+           <p>[39m
+[31m+             {copy.source}: <a href="https://open-meteo.com/">Open-Meteo</a>[39m
+[31m+           </p>[39m
+[31m+         </div>[39m
+[31m+       </section>[39m
+[31m+     </section>[39m
+[31m+   );[39m
+[31m+ }[39m
+[31m+[39m
+
+[36m [2m❯[22m src/components/ux-funnel-contract.test.ts:[2m39:22[22m[39m
+    [90m 37| [39m    [34mexpect[39m(explorer)[33m.[39m[34mtoContain[39m([32m"Destinations stay on the map and turn [39m…
+    [90m 38| [39m    [34mexpect[39m(explorer)[33m.[39m[34mtoContain[39m([32m"is-filtered"[39m)[33m;[39m
+    [90m 39| [39m    [34mexpect[39m(explorer)[33m.[39m[34mtoContain[39m([32m"weather_discovery_view"[39m)[33m;[39m
+    [90m   | [39m                     [31m^[39m
+    [90m 40| [39m    [34mexpect[39m(explorer)[33m.[39m[34mtoContain[39m([32m"country_viewed"[39m)[33m;[39m
+    [90m 41| [39m    [34mexpect[39m(explorer)[33m.[39m[34mtoContain[39m([32m"city_viewed"[39m)[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/4]⎯[22m[39m
+
+[2m Test Files [22m [1m[31m2 failed[39m[22m[2m | [22m[1m[32m4 passed[39m[22m[90m (6)[39m
+[2m      Tests [22m [1m[31m4 failed[39m[22m[2m | [22m[1m[32m27 passed[39m[22m[90m (31)[39m
+[2m   Start at [22m 03:56:10
+[2m   Duration [22m 2.43s[2m (transform 928ms, setup 0ms, collect 1.67s, tests 624ms, environment 649ms, prepare 758ms)[22m
+
+
+::error file=/home/runner/work/weather-v2/weather-v2/apps/web/src/components/country-weather-explorer.test.tsx,title=src/components/country-weather-explorer.test.tsx > CountryWeatherExplorer country-map product > defaults to seven days and renders weather-first markers for every city,line=144,column=19::TestingLibraryElementError: Found multiple elements with the text: Popular destinations in Japan%0A%0AHere are the matching elements:%0A%0AIgnored nodes: comments, script, style%0A<p%0A  class="eyebrow"%0A>%0A  Popular destinations in Japan%0A</p>%0A%0AIgnored nodes: comments, script, style%0A<h2%0A  class="section-title mt-3"%0A  id="country-destination-list"%0A>%0A  Popular destinations in Japan%0A</h2>%0A%0A(If this is intentional, then use the `*AllBy*` variant of the query (like `queryAllByText`, `getAllByText`, or `findAllByText`)).%0A%0AIgnored nodes: comments, script, style%0A<body>%0A  <div>%0A    <section%0A      aria-label="Japan Popular destinations at a glance"%0A      class="country-weather-console"%0A    >%0A      <div%0A        class="country-console-toolbar country-map-toolbar"%0A      >%0A        <label%0A          class="country-select-label"%0A        >%0A          <span>%0A            Country%0A          </span>%0A          <select%0A            aria-label="Choose country"%0A            class="country-select focus-ring"%0A          >%0A            <option%0A              value="/jp"%0A            >%0A              Japan%0A            </option>%0A            <option%0A              value="/kr"%0A            >%0A              South Korea%0A            </option>%0A          </select>%0A        </label>%0A        <div%0A          class="min-w-0 flex-1"%0A        >%0A          <p%0A            class="country-control-label"%0A          >%0A            Weather period%0A          </p>%0A          <div%0A            aria-label="Weather period"%0A            class="country-window-tabs"%0A            role="group"%0A          >%0A            <button%0A              aria-pressed="false"%0A              class="country-window-button focus-ring "%0A              type="button"%0A            >%0A              Next 3 days%0A            </button>%0A            <button%0A              aria-pressed="true"%0A              class="country-window-button focus-ring is-active"%0A              type="button"%0A            >%0A              Next 7 days%0A            </button>%0A            <button%0A              aria-pressed="false"%0A              class="country-window-button focus-ring "%0A              type="button"%0A            >%0A              This weekend%0A            </button>%0A            <button%0A              aria-pressed="false"%0A              class="country-window-button focus-ring "%0A              type="button"%0A            >%0A              Custom dates%0A            </button>%0A          </div>%0A        </div>%0A        <div%0A          class="country-map-actions"%0A        >%0A          <button%0A            class="country-share-button focus-ring"%0A            type="button"%0A          >%0A            Copy map link%0A          </button>%0A          <p%0A            aria-live="polite"%0A          >%0A            Updated now%0A          </p>%0A        </div>%0A      </div>%0A      <details%0A        class="country-filter-details"%0A      >%0A        <summary>%0A          <span>%0A            Optional weather limits%0A          </span>%0A        </summary>%0A        <p>%0A          Destinations stay on the map and turn grey when they exceed a limit.%0A        </p>%0A        <div%0A          class="country-filter-grid"%0A        >%0A          <label>%0A            <span>%0A              Highest daily rain chance%0A            </span>%0A            <select>%0A              <option%0A                value=""%0A              >%0A                No limit%0A              </option>%0A              <option%0A                value="30"%0A              >%0A                ≤ 30%25%0A              </option>%0A              <option%0A                value="40"%0A              >%0A                ≤ 40%25%0A              </option>%0A              <option%0A                value="50"%0A              >%0A                ≤ 50%25%0A              </option>%0A              <option%0A                value="60"%0A              >%0A                ≤ 60%25%0A              </option>%0A              <option%0A                value="70"%0A              >%0A                ≤ 70%25%0A              </option>%0A            </select>%0A          </label>%0A          <label>%0A            <span>%0A              Maximum wind speed%0A            </span>%0A            <select>%0A              <option%0A                value=""%0A              >%0A                No limit%0A              </option>%0A              <option%0A                value="20"%0A              >%0A                ≤ 20 km/h%0A              </option>%0A              <option%0A                value="30"%0A              >%0A                ≤ 30 km/h%0A              </option>%0A              <option%0A                value="40"%0A              >%0A                ≤ 40 km/h%0A              </option>%0A              <option%0A                value="50"%0A              >%0A                ≤ 50 km/h%0A              </option>%0A            </select>%0A          </label>%0A          <label>%0A            <span>%0A              Lowest overnight temperature%0A            </span>%0A            <select>%0A              <option%0A                value=""%0A              >%0A                No limit%0A              </option>%0A              <option%0A                value="0"%0A              >%0A                ≥ 0°C%0A              </option>%0A              <option%0A                value="10"%0A              >%0A                ≥ 10°C%0A              </option>%0A              <option%0A                value="15"%0A              >%0A                ≥ 15°C%0A              </option>[...%0A ❯ Object.getElementError ../../node_modules/.pnpm/@testing-library+dom@10.4.1/node_modules/@testing-library/dom/dist/config.js:37:19%0A ❯ getElementError ../../node_modules/.pnpm/@testing-library+dom@10.4.1/node_modules/@testing-library/dom/dist/query-helpers.js:20:35%0A ❯ getMultipleElementsFoundError ../../node_modules/.pnpm/@testing-library+dom@10.4.1/node_modules/@testing-library/dom/dist/query-helpers.js:23:10%0A ❯ ../../node_modules/.pnpm/@testing-library+dom@10.4.1/node_modules/@testing-library/dom/dist/query-helpers.js:55:13%0A ❯ ../../node_modules/.pnpm/@testing-library+dom@10.4.1/node_modules/@testing-library/dom/dist/query-helpers.js:95:19%0A ❯ src/components/country-weather-explorer.test.tsx:144:19%0A%0A
+
+::error file=/home/runner/work/weather-v2/weather-v2/apps/web/src/components/country-weather-explorer.test.tsx,title=src/components/country-weather-explorer.test.tsx > CountryWeatherExplorer country-map product > switches to the three-day view without a submit button,line=168,column=19::TestingLibraryElementError: Unable to find a label with the text of: Osaka weather summary%0A%0AIgnored nodes: comments, script, style%0A<body>%0A  <div>%0A    <section%0A      aria-label="Japan Popular destinations at a glance"%0A      class="country-weather-console"%0A    >%0A      <div%0A        class="country-console-toolbar country-map-toolbar"%0A      >%0A        <label%0A          class="country-select-label"%0A        >%0A          <span>%0A            Country%0A          </span>%0A          <select%0A            aria-label="Choose country"%0A            class="country-select focus-ring"%0A          >%0A            <option%0A              value="/jp"%0A            >%0A              Japan%0A            </option>%0A            <option%0A              value="/kr"%0A            >%0A              South Korea%0A            </option>%0A          </select>%0A        </label>%0A        <div%0A          class="min-w-0 flex-1"%0A        >%0A          <p%0A            class="country-control-label"%0A          >%0A            Weather period%0A          </p>%0A          <div%0A            aria-label="Weather period"%0A            class="country-window-tabs"%0A            role="group"%0A          >%0A            <button%0A              aria-pressed="true"%0A              class="country-window-button focus-ring is-active"%0A              type="button"%0A            >%0A              Next 3 days%0A            </button>%0A            <button%0A              aria-pressed="false"%0A              class="country-window-button focus-ring "%0A              type="button"%0A            >%0A              Next 7 days%0A            </button>%0A            <button%0A              aria-pressed="false"%0A              class="country-window-button focus-ring "%0A              type="button"%0A            >%0A              This weekend%0A            </button>%0A            <button%0A              aria-pressed="false"%0A              class="country-window-button focus-ring "%0A              type="button"%0A            >%0A              Custom dates%0A            </button>%0A          </div>%0A        </div>%0A        <div%0A          class="country-map-actions"%0A        >%0A          <button%0A            class="country-share-button focus-ring"%0A            type="button"%0A          >%0A            Copy map link%0A          </button>%0A          <p%0A            aria-live="polite"%0A          >%0A            Updated now%0A          </p>%0A        </div>%0A      </div>%0A      <details%0A        class="country-filter-details"%0A      >%0A        <summary>%0A          <span>%0A            Optional weather limits%0A          </span>%0A        </summary>%0A        <p>%0A          Destinations stay on the map and turn grey when they exceed a limit.%0A        </p>%0A        <div%0A          class="country-filter-grid"%0A        >%0A          <label>%0A            <span>%0A              Highest daily rain chance%0A            </span>%0A            <select>%0A              <option%0A                value=""%0A              >%0A                No limit%0A              </option>%0A              <option%0A                value="30"%0A              >%0A                ≤ 30%25%0A              </option>%0A              <option%0A                value="40"%0A              >%0A                ≤ 40%25%0A              </option>%0A              <option%0A                value="50"%0A              >%0A                ≤ 50%25%0A              </option>%0A              <option%0A                value="60"%0A              >%0A                ≤ 60%25%0A              </option>%0A              <option%0A                value="70"%0A              >%0A                ≤ 70%25%0A              </option>%0A            </select>%0A          </label>%0A          <label>%0A            <span>%0A              Maximum wind speed%0A            </span>%0A            <select>%0A              <option%0A                value=""%0A              >%0A                No limit%0A              </option>%0A              <option%0A                value="20"%0A              >%0A                ≤ 20 km/h%0A              </option>%0A              <option%0A                value="30"%0A              >%0A                ≤ 30 km/h%0A              </option>%0A              <option%0A                value="40"%0A              >%0A                ≤ 40 km/h%0A              </option>%0A              <option%0A                value="50"%0A              >%0A                ≤ 50 km/h%0A              </option>%0A            </select>%0A          </label>%0A          <label>%0A            <span>%0A              Lowest overnight temperature%0A            </span>%0A            <select>%0A              <option%0A                value=""%0A              >%0A                No limit%0A              </option>%0A              <option%0A                value="0"%0A              >%0A                ≥ 0°C%0A              </option>%0A              <option%0A                value="10"%0A              >%0A                ≥ 10°C%0A              </option>%0A              <option%0A                value="15"%0A              >%0A                ≥ 15°C%0A              </option>[...%0A ❯ Object.getElementError ../../node_modules/.pnpm/@testing-library+dom@10.4.1/node_modules/@testing-library/dom/dist/config.js:37:19%0A ❯ getAllByLabelText ../../node_modules/.pnpm/@testing-library+dom@10.4.1/node_modules/@testing-library/dom/dist/queries/label-text.js:111:38%0A ❯ ../../node_modules/.pnpm/@testing-library+dom@10.4.1/node_modules/@testing-library/dom/dist/query-helpers.js:52:17%0A ❯ ../../node_modules/.pnpm/@testing-library+dom@10.4.1/node_modules/@testing-library/dom/dist/query-helpers.js:95:19%0A ❯ src/components/country-weather-explorer.test.tsx:168:19%0A%0A
+
+::error file=/home/runner/work/weather-v2/weather-v2/apps/web/src/components/country-weather-explorer.test.tsx,title=src/components/country-weather-explorer.test.tsx > CountryWeatherExplorer country-map product > selects a map destination inline and preserves the country page,line=201,column=14::TestingLibraryElementError: Found multiple elements with the role "link" and name `/Open full city forecast/`%0A%0AHere are the matching elements:%0A%0AIgnored nodes: comments, script, style%0A<a%0A  class="country-detail-link focus-ring"%0A  href="/jp/sapporo?start=2026-08-04&end=2026-08-10"%0A>%0A  Open full city forecast%0A   %0A  <span%0A    aria-hidden="true"%0A  >%0A    →%0A  </span>%0A</a>%0A%0AIgnored nodes: comments, script, style%0A<a%0A  class="country-city-forecast-link focus-ring"%0A  href="/jp/tokyo?start=2026-08-04&end=2026-08-10"%0A>%0A  Open full city forecast%0A   %0A  <span%0A    aria-hidden="true"%0A  >%0A    →%0A  </span>%0A</a>%0A%0AIgnored nodes: comments, script, style%0A<a%0A  class="country-city-forecast-link focus-ring"%0A  href="/jp/osaka?start=2026-08-04&end=2026-08-10"%0A>%0A  Open full city forecast%0A   %0A  <span%0A    aria-hidden="true"%0A  >%0A    →%0A  </span>%0A</a>%0A%0AIgnored nodes: comments, script, style%0A<a%0A  class="country-city-forecast-link focus-ring"%0A  href="/jp/sapporo?start=2026-08-04&end=2026-08-10"%0A>%0A  Open full city forecast%0A   %0A  <span%0A    aria-hidden="true"%0A  >%0A    →%0A  </span>%0A</a>%0A%0A(If this is intentional, then use the `*AllBy*` variant of the query (like `queryAllByText`, `getAllByText`, or `findAllByText`)).%0A%0AIgnored nodes: comments, script, style%0A<body>%0A  <div>%0A    <section%0A      aria-label="Japan Popular destinations at a glance"%0A      class="country-weather-console"%0A    >%0A      <div%0A        class="country-console-toolbar country-map-toolbar"%0A      >%0A        <label%0A          class="country-select-label"%0A        >%0A          <span>%0A            Country%0A          </span>%0A          <select%0A            aria-label="Choose country"%0A            class="country-select focus-ring"%0A          >%0A            <option%0A              value="/jp"%0A            >%0A              Japan%0A            </option>%0A            <option%0A              value="/kr"%0A            >%0A              South Korea%0A            </option>%0A          </select>%0A        </label>%0A        <div%0A          class="min-w-0 flex-1"%0A        >%0A          <p%0A            class="country-control-label"%0A          >%0A            Weather period%0A          </p>%0A          <div%0A            aria-label="Weather period"%0A            class="country-window-tabs"%0A            role="group"%0A          >%0A            <button%0A              aria-pressed="false"%0A              class="country-window-button focus-ring "%0A              type="button"%0A            >%0A              Next 3 days%0A            </button>%0A            <button%0A              aria-pressed="true"%0A              class="country-window-button focus-ring is-active"%0A              type="button"%0A            >%0A              Next 7 days%0A            </button>%0A            <button%0A              aria-pressed="false"%0A              class="country-window-button focus-ring "%0A              type="button"%0A            >%0A              This weekend%0A            </button>%0A            <button%0A              aria-pressed="false"%0A              class="country-window-button focus-ring "%0A              type="button"%0A            >%0A              Custom dates%0A            </button>%0A          </div>%0A        </div>%0A        <div%0A          class="country-map-actions"%0A        >%0A          <button%0A            class="country-share-button focus-ring"%0A            type="button"%0A          >%0A            Copy map link%0A          </button>%0A          <p%0A            aria-live="polite"%0A          >%0A            Updated now%0A          </p>%0A        </div>%0A      </div>%0A      <details%0A        class="country-filter-details"%0A      >%0A        <summary>%0A          <span>%0A            Optional weather limits%0A          </span>%0A        </summary>%0A        <p>%0A          Destinations stay on the map and turn grey when they exceed a limit.%0A        </p>%0A        <div%0A          class="country-filter-grid"%0A        >%0A          <label>%0A            <span>%0A              Highest daily rain chance%0A            </span>%0A            <select>%0A              <option%0A                value=""%0A              >%0A                No limit%0A              </option>%0A              <option%0A                value="30"%0A              >%0A                ≤ 30%25%0A              </option>%0A              <option%0A                value="40"%0A              >%0A                ≤ 40%25%0A              </option>%0A              <option%0A                value="50"%0A              >%0A                ≤ 50%25%0A              </option>%0A              <option%0A                value="60"%0A              >%0A                ≤ 60%25%0A              </option>%0A              <option%0A                value="70"%0A              >%0A                ≤ 70%25%0A              </option>%0A            </select>%0A          </label>%0A          <label>%0A            <span>%0A              Maximum wind speed%0A            </span>%0A            <select>%0A              <option%0A                value=""%0A              >%0A                No limit%0A              </option>%0A              <option%0A                value="20"%0A              >%0A                ≤ 20 km/h%0A              </option>%0A              <option%0A                value="30"%0A              >%0A                ≤ 30 km/h%0A              </option>%0A              <option%0A                value="40"%0A              >%0A                ≤ 40 km/h%0A              </option>%0A              <option%0A                value="50"%0A              >%0A                ≤ 50 km/h%0A              </option>%0A            </select>%0A          </label>%0A          <label>%0A            <span>%0A              Lowest overnight temperature%0A            </span>%0A            <select>%0A              <option%0A                value=""%0A              >%0A                No limit%0A              </option>%0A              <option%0A                value="0"%0A              >%0A                ≥ 0°C%0A              </option>%0A              <option%0A                value="10"%0A              >%0A                ≥ 10°C%0A              </option>%0A              <option%0A                value="15"%0A              >%0A                ≥ 15°C%0A              </option>[...%0A ❯ Object.getElementError ../../node_modules/.pnpm/@testing-library+dom@10.4.1/node_modules/@testing-library/dom/dist/config.js:37:19%0A ❯ getElementError ../../node_modules/.pnpm/@testing-library+dom@10.4.1/node_modules/@testing-library/dom/dist/query-helpers.js:20:35%0A ❯ getMultipleElementsFoundError ../../node_modules/.pnpm/@testing-library+dom@10.4.1/node_modules/@testing-library/dom/dist/query-helpers.js:23:10%0A ❯ ../../node_modules/.pnpm/@testing-library+dom@10.4.1/node_modules/@testing-library/dom/dist/query-helpers.js:55:13%0A ❯ ../../node_modules/.pnpm/@testing-library+dom@10.4.1/node_modules/@testing-library/dom/dist/query-helpers.js:95:19%0A ❯ src/components/country-weather-explorer.test.tsx:201:14%0A%0A
+
+::error file=/home/runner/work/weather-v2/weather-v2/apps/web/src/components/ux-funnel-contract.test.ts,title=src/components/ux-funnel-contract.test.ts > country-first weather-map UX contracts > defaults the country map to seven days and keeps limits explicit,line=39,column=22::AssertionError: expected '"use client";\n\nimport { useEffect, …' to contain 'weather_discovery_view'%0A%0A- Expected%0A+ Received%0A%0A- weather_discovery_view%0A+ "use client";%0A+%0A+ import { useEffect, useMemo, useRef, useState, type ReactElement } from "react";%0A+ import type * as MapLibreModule from "maplibre-gl";%0A+ import type { Map as MapLibreMap, Marker as MapLibreMarker } from "maplibre-gl";%0A+ import type {%0A+   CountryHeaderViewModel,%0A+   CountryOptionViewModel,%0A+   CountryWeatherCityViewModel,%0A+   CountryWeatherDayViewModel,%0A+ } from "../app/view-models";%0A+ import { emitProductAnalytics, type BrowserAnalyticsLocale } from "../analytics/browser-events";%0A+ import { toTraditionalText } from "../trips/traditional";%0A+ import { windowIndicesForDates } from "../weather/window-selection";%0A+ import { MAPLIBRE_STYLE_URL } from "./ExplorerMap";%0A+%0A+ import "maplibre-gl/dist/maplibre-gl.css";%0A+%0A+ type ExplorerLocale = BrowserAnalyticsLocale;%0A+ type RangePreset = "3d" | "7d" | "weekend" | "custom";%0A+ type Risk = "good" | "mixed" | "wet" | "unknown";%0A+%0A+ interface WeatherFilters {%0A+   readonly rainMax: number | null;%0A+   readonly windMax: number | null;%0A+   readonly tempMin: number | null;%0A+   readonly tempMax: number | null;%0A+ }%0A+%0A+ interface CitySummary {%0A+   readonly city: CountryWeatherCityViewModel;%0A+   readonly days: ReadonlyArray<CountryWeatherDayViewModel>;%0A+   readonly dryDays: number;%0A+   readonly maxRain: number | null;%0A+   readonly totalRainMm: number | null;%0A+   readonly temperatureMin: number | null;%0A+   readonly temperatureMax: number | null;%0A+   readonly maxWind: number | null;%0A+   readonly risk: Risk;%0A+   readonly symbol: string;%0A+   readonly filtered: boolean;%0A+   readonly filterReasons: ReadonlyArray<string>;%0A+ }%0A+%0A+ const EMPTY_FILTERS: WeatherFilters = {%0A+   rainMax: null,%0A+   windMax: null,%0A+   tempMin: null,%0A+   tempMax: null,%0A+ };%0A+%0A+ const COPY = {%0A+   en: {%0A+     country: "Country",%0A+     chooseCountry: "Choose country",%0A+     period: "Weather period",%0A+     threeDays: "Next 3 days",%0A+     sevenDays: "Next 7 days",%0A+     weekend: "This weekend",%0A+     custom: "Custom dates",%0A+     firstDate: "First travel date",%0A+     lastDate: "Last travel date",%0A+     filters: "Optional weather limits",%0A+     filtersHint: "Destinations stay on the map and turn grey when they exceed a limit.",%0A+     activeFilters: (count: number) => `${count} active`,%0A+     noLimit: "No limit",%0A+     maxRain: "Highest daily rain chance",%0A+     maxWind: "Maximum wind speed",%0A+     minTemp: "Lowest overnight temperature",%0A+     maxTemp: "Highest daytime temperature",%0A+     clearFilters: "Clear filters",%0A+     share: "Copy map link",%0A+     copied: "Link copied",%0A+     copyFailed: "Copy unavailable",%0A+     mapHeading: "Popular destinations at a glance",%0A+     mapHint: "Tap any weather marker to see the daily forecast.",%0A+     mapLegend: "Weather map legend",%0A+     lowerRain: "Mostly lower rain",%0A+     mixed: "Mixed weather",%0A+     rainLikely: "Rain more likely",%0A+     selected: "Selected destination",%0A+     dryDays: "Lower-rain days",%0A+     rain: "Expected rain · peak chance",%0A+     temperature: "Temperature",%0A+     wind: "Maximum wind",%0A+     daily: "Daily weather",%0A+     peakRain: "rain",%0A+     detail: "Open full city forecast",%0A+     destinations: (country: string) => `Popular destinations in ${country}`,%0A+     listHint: "The list mirrors every marker on the map; no destination is hidden by a filter.",%0A+     outsideLimits: "Outside your limits",%0A+     matchesLimits: "Matches your limits",%0A+     unavailable: "Weather unavailable",%0A+     rainReason: (value: number, limit: number) => `Peak rain ${value}%25 exceeds ${limit}%25`,%0A+     windReason: (value: number, limit: number) => `Wind ${value} km/h exceeds ${limit} km/h`,%0A+     coldReason: (value: number, limit: number) => `Night low ${value}°C is below ${limit}°C`,%0A+     hotReason: (value: number, limit: number) => `Day high ${value}°C exceeds ${limit}°C`,%0A+     sourceHeading: "How to read this map",%0A+     sourceText:%0A+       "Weather icons summarize the selected period. Lower-rain days and the daily forecast provide the detail; no opaque travel score changes the result.",%0A+     source: "Forecast source",%0A+   },%0A+   "zh-cn": {%0A+     country: "国家",%0A+     chooseCountry: "选择国家",%0A+     period: "天气时间范围",%0A+     threeDays: "未来 3 天",%0A+     sevenDays: "未来 7 天",%0A+     weekend: "本周末",%0A+     custom: "自定义日期",%0A+     firstDate: "开始日期",%0A+     lastDate: "结束日期",%0A+     filters: "可选天气限制",%0A+     filtersHint: "超出限制的目的地不会消失，只会在地图上变灰并说明原因。",%0A+     activeFilters: (count: number) => `${count} 项已启用`,%0A+     noLimit: "不限",%0A+     maxRain: "任一天最高降雨概率",%0A+     maxWind: "最大风速",%0A+     minTemp: "最低夜间温度",%0A+     maxTemp: "最高白天气温",%0A+     clearFilters: "清除限制",%0A+     share: "复制地图链接",%0A+     copied: "链接已复制",%0A+     copyFailed: "暂时无法复制",%0A+     mapHeading: "热门旅游地天气一目了然",%0A+     mapHint: "点击任意天气图标，直接查看逐日预报。",%0A+     mapLegend: "地图天气图例",%0A+     lowerRain: "整体少雨",%0A+     mixed: "晴雨混合",%0A+     rainLikely: "降雨偏多",%0A+     selected: "已选目的地",%0A+     dryDays: "少雨天数",%0A+     rain: "预计降雨量 · 最高概率",%0A+     temperature: "气温",%0A+     wind: "最大风速",%0A+     daily: "逐日天气",%0A+     peakRain: "降雨",%0A+     detail: "查看完整城市天气",%0A+     destinations: (country: string) => `${country}热门旅游地`,%0A+     listHint: "列表与地图标记完全一致；筛选不会隐藏任何目的地。",%0A+     outsideLimits: "超出你的限制",%0A+     matchesLimits: "符合你的限制",%0A+     unavailable: "暂无天气数据",%0A+     rainReason: (value: number, limit: number) => `最高降雨概率 ${value}%25 超过 ${limit}%25`,%0A+     windReason: (value: number, limit: number) => `风速 ${value} km/h 超过 ${limit} km/h`,%0A+     coldReason: (value: number, limit: number) => `夜间最低 ${value}°C 低于 ${limit}°C`,%0A+     hotReason: (value: number, limit: number) => `白天最高 ${value}°C 超过 ${limit}°C`,%0A+     sourceHeading: "如何理解这张地图",%0A+     sourceText:%0A+       "天气图标概括所选日期，少雨天数和逐日预报提供具体依据；页面不会用不透明的旅行评分改变结果。",%0A+     source: "天气数据来源",%0A+   },%0A+   "zh-hant": {%0A+     country: "國家",%0A+     chooseCountry: "選擇國家",%0A+     period: "天氣時間範圍",%0A+     threeDays: "未來 3 天",%0A+     sevenDays: "未來 7 天",%0A+     weekend: "本週末",%0A+     custom: "自訂日期",%0A+     firstDate: "開始日期",%0A+     lastDate: "結束日期",%0A+     filters: "可選天氣限制",%0A+     filtersHint: "超出限制的目的地不會消失，只會在地圖上變灰並說明原因。",%0A+     activeFilters: (count: number) => `${count} 項已啟用`,%0A+     noLimit: "不限",%0A+     maxRain: "任一天最高降雨機率",%0A+     maxWind: "最大風速",%0A+     minTemp: "最低夜間溫度",%0A+     maxTemp: "最高白天氣溫",%0A+     clearFilters: "清除限制",%0A+     share: "複製地圖連結",%0A+     copied: "連結已複製",%0A+     copyFailed: "暫時無法複製",%0A+     mapHeading: "熱門旅遊地天氣一目了然",%0A+     mapHint: "點擊任意天氣圖示，直接查看逐日預報。",%0A+     mapLegend: "地圖天氣圖例",%0A+     lowerRain: "整體少雨",%0A+     mixed: "晴雨混合",%0A+     rainLikely: "降雨偏多",%0A+     selected: "已選目的地",%0A+     dryDays: "少雨天數",%0A+     rain: "預計降雨量 · 最高機率",%0A+     temperature: "氣溫",%0A+     wind: "最大風速",%0A+     daily: "逐日天氣",%0A+     peakRain: "降雨",%0A+     detail: "查看完整城市天氣",%0A+     destinations: (country: string) => `${country}熱門旅遊地`,%0A+     listHint: "列表與地圖標記完全一致；篩選不會隱藏任何目的地。",%0A+     outsideLimits: "超出你的限制",%0A+     matchesLimits: "符合你的限制",%0A+     unavailable: "暫無天氣資料",%0A+     rainReason: (value: number, limit: number) => `最高降雨機率 ${value}%25 超過 ${limit}%25`,%0A+     windReason: (value: number, limit: number) => `風速 ${value} km/h 超過 ${limit} km/h`,%0A+     coldReason: (value: number, limit: number) => `夜間最低 ${value}°C 低於 ${limit}°C`,%0A+     hotReason: (value: number, limit: number) => `白天最高 ${value}°C 超過 ${limit}°C`,%0A+     sourceHeading: "如何理解這張地圖",%0A+     sourceText:%0A+       "天氣圖示概括所選日期，少雨天數和逐日預報提供具體依據；頁面不會用不透明的旅行評分改變結果。",%0A+     source: "天氣資料來源",%0A+   },%0A+ } as const;%0A+%0A+ const CONDITION_ZH: Readonly<Record<string, string>> = {%0A+   Clear: "晴",%0A+   "Mainly clear": "大致晴朗",%0A+   "Partly cloudy": "多云间晴",%0A+   Overcast: "阴",%0A+   Fog: "雾",%0A+   "Rime fog": "雾凇",%0A+   "Light drizzle": "小毛毛雨",%0A+   Drizzle: "毛毛雨",%0A+   "Dense drizzle": "密集毛毛雨",%0A+   "Light freezing drizzle": "轻微冻毛毛雨",%0A+   "Dense freezing drizzle": "密集冻毛毛雨",%0A+   "Light rain": "小雨",%0A+   Rain: "雨",%0A+   "Heavy rain": "大雨",%0A+   "Light freezing rain": "轻微冻雨",%0A+   "Heavy freezing rain": "强冻雨",%0A+   "Light snow": "小雪",%0A+   Snow: "雪",%0A+   "Heavy snow": "大雪",%0A+   "Snow grains": "米雪",%0A+   "Rain showers": "阵雨",%0A+   "Moderate rain showers": "中等阵雨",%0A+   "Violent rain showers": "强阵雨",%0A+   "Light snow showers": "小阵雪",%0A+   "Heavy snow showers": "强阵雪",%0A+   Thunderstorm: "雷暴",%0A+   "Thunderstorm with hail": "雷暴伴冰雹",%0A+ };%0A+%0A+ /** Pixel nudges keep dense tourism corridors legible without hiding a destination. */%0A+ const MARKER_OFFSETS: Readonly<Record<string, [number, number]>> = {%0A+   osaka: [42, 62],%0A+   kyoto: [-30, -82],%0A+   kanazawa: [58, -62],%0A+   hiroshima: [-84, -34],%0A+   fukuoka: [-72, 38],%0A+   tokyo: [82, 16],%0A+   gyeongju: [34, -20],%0A+   busan: [-34, 18],%0A+   krabi: [-32, 18],%0A+   phuket: [34, -18],%0A+   "da-nang": [34, -18],%0A+   "da-lat": [50, -34],%0A+   "ho-chi-minh": [58, 42],%0A+   "phu-quoc": [-52, 16],%0A+   bali: [-38, 16],%0A+   lombok: [38, -16],%0A+ };%0A+%0A+ export interface CountryWeatherExplorerProps {%0A+   readonly country: CountryHeaderViewModel;%0A+   readonly countries: ReadonlyArray<CountryOptionViewModel>;%0A+   readonly cities: ReadonlyArray<CountryWeatherCityViewModel>;%0A+   readonly updatedLabel: string;%0A+   readonly locale?: ExplorerLocale;%0A+ }%0A+%0A+ function numericValues(values: ReadonlyArray<number | null | undefined>): number[] {%0A+   return values.filter((value): value is number => typeof value === "number");%0A+ }%0A+%0A+ function daysForIndices(%0A+   city: CountryWeatherCityViewModel,%0A+   indices: ReadonlyArray<number>,%0A+ ): ReadonlyArray<CountryWeatherDayViewModel> {%0A+   return indices%0A+     .map((index) => city.days[index])%0A+     .filter((day): day is CountryWeatherDayViewModel => day !== undefined);%0A+ }%0A+%0A+ function dailySymbol(condition: string): string {%0A+   if (/thunder|hail/i.test(condition)) return "⛈️";%0A+   if (/snow|sleet/i.test(condition)) return "🌨️";%0A+   if (/rain|drizzle|shower/i.test(condition)) return "🌧️";%0A+   if (/fog|mist/i.test(condition)) return "🌫️";%0A+   if (/partly|mainly clear/i.test(condition)) return "🌤️";%0A+   if (/cloud|overcast/i.test(condition)) return "☁️";%0A+   return "☀️";%0A+ }%0A+%0A+ function summarySymbol(days: ReadonlyArray<CountryWeatherDayViewModel>, risk: Risk): string {%0A+   const conditions = days.map((day) => day.weather.conditionLabel).join(" ");%0A+   if (/thunder|hail/i.test(conditions)) return "⛈️";%0A+   if (/snow|sleet/i.test(conditions)) return "🌨️";%0A+   if (risk === "wet") return "🌧️";%0A+   if (/rain|drizzle|shower/i.test(conditions)) return "🌦️";%0A+   const clearDays = days.filter((day) => /clear|sun/i.test(day.weather.conditionLabel)).length;%0A+   return clearDays >= Math.ceil(days.length / 2) ? "☀️" : "🌤️";%0A+ }%0A+%0A+ function filterReasons(%0A+   metrics: Pick<CitySummary, "maxRain" | "maxWind" | "temperatureMin" | "temperatureMax">,%0A+   filters: WeatherFilters,%0A+   locale: ExplorerLocale,%0A+ ): ReadonlyArray<string> {%0A+   const copy = COPY[locale];%0A+   const reasons: string[] = [];%0A+   if (filters.rainMax !== null && metrics.maxRain !== null && metrics.maxRain > filters.rainMax) {%0A+     reasons.push(copy.rainReason(metrics.maxRain, filters.rainMax));%0A+   }%0A+   if (filters.windMax !== null && metrics.maxWind !== null && metrics.maxWind > filters.windMax) {%0A+     reasons.push(copy.windReason(metrics.maxWind, filters.windMax));%0A+   }%0A+   if (%0A+     filters.tempMin !== null &&%0A+     metrics.temperatureMin !== null &&%0A+     metrics.temperatureMin < filters.tempMin%0A+   ) {%0A+     reasons.push(copy.coldReason(metrics.temperatureMin, filters.tempMin));%0A+   }%0A+   if (%0A+     filters.tempMax !== null &&%0A+     metrics.temperatureMax !== null &&%0A+     metrics.temperatureMax > filters.tempMax%0A+   ) {%0A+     reasons.push(copy.hotReason(metrics.temperatureMax, filters.tempMax));%0A+   }%0A+   return reasons;%0A+ }%0A+%0A+ function summarize(%0A+   city: CountryWeatherCityViewModel,%0A+   indices: ReadonlyArray<number>,%0A+   filters: WeatherFilters,%0A+   locale: ExplorerLocale,%0A+ ): CitySummary {%0A+   const days = daysForIndices(city, indices);%0A+   const rainValues = numericValues(days.map((day) => day.weather.rainProbability));%0A+   const rainAmounts = numericValues(days.map((day) => day.weather.precipitationMm));%0A+   const minimums = numericValues(days.map((day) => day.weather.temperatureMin));%0A+   const maximums = numericValues(days.map((day) => day.weather.temperatureMax));%0A+   const winds = numericValues(days.map((day) => day.weather.windSpeedMax));%0A+   const dryDays = days.filter((day) => {%0A+     const chance = day.weather.rainProbability;%0A+     const amount = day.weather.precipitationMm;%0A+     return amount !== undefined && amount !== null%0A+       ? amount <= 2.5 || ((chance ?? 100) <= 45 && amount < 5)%0A+       : chance !== null && chance <= 45;%0A+   }).length;%0A+   const maxRain = rainValues.length > 0 ? Math.max(...rainValues) : null;%0A+   const totalRainMm =%0A+     rainAmounts.length > 0%0A+       ? Math.round(rainAmounts.reduce((total, value) => total + value, 0) * 10) / 10%0A+       : null;%0A+   const temperatureMin = minimums.length > 0 ? Math.min(...minimums) : null;%0A+   const temperatureMax = maximums.length > 0 ? Math.max(...maximums) : null;%0A+   const maxWind = winds.length > 0 ? Math.round(Math.max(...winds)) : null;%0A+   const risk: Risk =%0A+     days.length === 0 || (totalRainMm === null && maxRain === null)%0A+       ? "unknown"%0A+       : dryDays === days.length && (totalRainMm ?? 0) <= days.length * 2.5%0A+         ? "good"%0A+         : dryDays >= Math.ceil(days.length / 2) || (totalRainMm ?? Infinity) <= days.length * 8%0A+           ? "mixed"%0A+           : "wet";%0A+   const metrics = { maxRain, maxWind, temperatureMin, temperatureMax };%0A+   const reasons = filterReasons(metrics, filters, locale);%0A+   return {%0A+     city,%0A+     days,%0A+     dryDays,%0A+     maxRain,%0A+     totalRainMm,%0A+     temperatureMin,%0A+     temperatureMax,%0A+     maxWind,%0A+     risk,%0A+     symbol: summarySymbol(days, risk),%0A+     filtered: reasons.length > 0,%0A+     filterReasons: reasons,%0A+   };%0A+ }%0A+%0A+ function shortDate(value: string, locale: ExplorerLocale): string {%0A+   const date = new Date(`${value}T00:00:00Z`);%0A+   if (Number.isNaN(date.getTime())) return value;%0A+   const language = locale === "en" ? "en" : locale === "zh-cn" ? "zh-CN" : "zh-TW";%0A+   return new Intl.DateTimeFormat(language, {%0A+     month: locale === "en" ? "short" : "numeric",%0A+     day: "numeric",%0A+     timeZone: "UTC",%0A+   }).format(date);%0A+ }%0A+%0A+ function rangeLabel(%0A+   days: ReadonlyArray<CountryWeatherDayViewModel>,%0A+   locale: ExplorerLocale,%0A+ ): string {%0A+   if (days.length === 0) return COPY[locale].unavailable;%0A+   if (days.length === 1) return shortDate(days[0]?.localDate ?? "", locale);%0A+   return `${shortDate(days[0]?.localDate ?? "", locale)}–${shortDate(days.at(-1)?.localDate ?? "", locale)}`;%0A+ }%0A+%0A+ function rainLabel(summary: CitySummary, locale: ExplorerLocale): string {%0A+   if (summary.days.length === 0) return COPY[locale].unavailable;%0A+   const count = `${summary.dryDays}/${summary.days.length}`;%0A+   if (locale === "en") {%0A+     return `${count} lower-rain days · ${summary.totalRainMm ?? "—"} mm total`;%0A+   }%0A+   return `${count}天少雨 · 共${summary.totalRainMm ?? "—"} mm`;%0A+ }%0A+%0A+ function conditionLabel(value: string, locale: ExplorerLocale): string {%0A+   if (locale === "en") return value;%0A+   const simplified = CONDITION_ZH[value] ?? value;%0A+   return locale === "zh-hant" ? toTraditionalText(simplified) : simplified;%0A+ }%0A+%0A+ function parseNumber(value: string | null): number | null {%0A+   if (value === null || value.trim() === "") return null;%0A+   const number = Number(value);%0A+   return Number.isFinite(number) ? number : null;%0A+ }%0A+%0A+ function presetIndices(%0A+   dates: ReadonlyArray<string>,%0A+   preset: Exclude<RangePreset, "custom">,%0A+ ): ReadonlyArray<number> {%0A+   if (preset === "3d") return dates.slice(0, 3).map((_, index) => index);%0A+   if (preset === "7d") return dates.slice(0, 7).map((_, index) => index);%0A+   const weekend = windowIndicesForDates(dates, "weekend");%0A+   return weekend.length > 0 ? weekend : dates.slice(0, 7).map((_, index) => index);%0A+ }%0A+%0A+ function activeFilterCount(filters: WeatherFilters): number {%0A+   return Object.values(filters).filter((value) => value !== null).length;%0A+ }%0A+%0A+ export function CountryWeatherExplorer({%0A+   country,%0A+   countries,%0A+   cities,%0A+   updatedLabel,%0A+   locale = "en",%0A+ }: CountryWeatherExplorerProps): ReactElement {%0A+   const copy = COPY[locale];%0A+   const [preset, setPreset] = useState<RangePreset>("7d");%0A+   const [customRange, setCustomRange] = useState<{ start: number; end: number } | null>(null);%0A+   const [filters, setFilters] = useState<WeatherFilters>(EMPTY_FILTERS);%0A+   const [selectedCityId, setSelectedCityId] = useState("");%0A+   const [shareStatus, setShareStatus] = useState("");%0A+   const [mapReady, setMapReady] = useState(false);%0A+   const mapContainerRef = useRef<HTMLDivElement | null>(null);%0A+   const mapRef = useRef<MapLibreMap | null>(null);%0A+   const mapModuleRef = useRef<typeof MapLibreModule | null>(null);%0A+   const markerRefs = useRef<MapLibreMarker[]>([]);%0A+   const inspectorRef = useRef<HTMLElement | null>(null);%0A+%0A+   const dates = useMemo(() => (cities[0]?.days ?? []).map((day) => day.localDate), [cities]);%0A+   const selectedIndices = useMemo(() => {%0A+     if (preset !== "custom") return presetIndices(dates, preset);%0A+     if (customRange === null) return dates.slice(0, 7).map((_, index) => index);%0A+     return Array.from(%0A+       { length: customRange.end - customRange.start + 1 },%0A+       (_, index) => customRange.start + index,%0A+     );%0A+   }, [customRange, dates, preset]);%0A+   const summaries = useMemo(%0A+     () => cities.map((city) => summarize(city, selectedIndices, filters, locale)),%0A+     [cities, filters, locale, selectedIndices],%0A+   );%0A+   const selected =%0A+     summaries.find((summary) => summary.city.cityId === selectedCityId) ??%0A+     summaries.find((summary) => !summary.filtered) ??%0A+     summaries[0] ??%0A+     null;%0A+   const selectedReferenceDays =%0A+     cities[0] === undefined ? [] : daysForIndices(cities[0], selectedIndices);%0A+   const exactDates = rangeLabel(selectedReferenceDays, locale);%0A+   const filterCount = activeFilterCount(filters);%0A+%0A+   function writeUrl(%0A+     nextPreset: RangePreset,%0A+     nextCustomRange: { start: number; end: number } | null,%0A+     nextFilters: WeatherFilters,%0A+     nextCityId: string,%0A+   ): void {%0A+     const url = new URL(window.location.href);%0A+     for (const key of [%0A+       "window",%0A+       "origin",%0A+       "mode",%0A+       "maxTravel",%0A+       "intent",%0A+       "party",%0A+       "theme",%0A+       "cities",%0A+     ]) {%0A+       url.searchParams.delete(key);%0A+     }%0A+     if (nextPreset === "custom" && nextCustomRange !== null) {%0A+       url.searchParams.delete("range");%0A+       url.searchParams.set("from", String(nextCustomRange.start));%0A+       url.searchParams.set("to", String(nextCustomRange.end));%0A+     } else {%0A+       url.searchParams.delete("from");%0A+       url.searchParams.delete("to");%0A+       url.searchParams.set("range", nextPreset === "custom" ? "7d" : nextPreset);%0A+     }%0A+     const dimensions: ReadonlyArray<[keyof WeatherFilters, string]> = [%0A+       ["rainMax", "rainMax"],%0A+       ["windMax", "windMax"],%0A+       ["tempMin", "tempMin"],%0A+       ["tempMax", "tempMax"],%0A+     ];%0A+     for (const [field, query] of dimensions) {%0A+       const value = nextFilters[field];%0A+       if (value === null) url.searchParams.delete(query);%0A+       else url.searchParams.set(query, String(value));%0A+     }%0A+     if (nextCityId.length > 0) url.searchParams.set("city", nextCityId);%0A+     else url.searchParams.delete("city");%0A+     window.history.replaceState({}, "", url);%0A+   }%0A+%0A+   useEffect(() => {%0A+     const restoreUrlState = (): void => {%0A+       const params = new URLSearchParams(window.location.search);%0A+       const from = Number(params.get("from"));%0A+       const to = Number(params.get("to"));%0A+       const finalIndex = Math.max(0, dates.length - 1);%0A+       if (%0A+         params.has("from") &&%0A+         params.has("to") &&%0A+         Number.isInteger(from) &&%0A+         Number.isInteger(to) &&%0A+         from >= 0 &&%0A+         to >= from &&%0A+         to <= finalIndex%0A+       ) {%0A+         setPreset("custom");%0A+         setCustomRange({ start: from, end: to });%0A+       } else {%0A+         const requestedRange = params.get("range");%0A+         const legacyWindow = params.get("window");%0A+         if (requestedRange === "3d" || requestedRange === "7d" || requestedRange === "weekend") {%0A+           setPreset(requestedRange);%0A+           setCustomRange(null);%0A+         } else if (legacyWindow === "today" || legacyWindow === "tomorrow") {%0A+           const index = legacyWindow === "today" ? 0 : Math.min(1, finalIndex);%0A+           setPreset("custom");%0A+           setCustomRange({ start: index, end: index });%0A+         } else if (legacyWindow === "weekend") {%0A+           setPreset("weekend");%0A+           setCustomRange(null);%0A+         } else {%0A+           setPreset("7d");%0A+           setCustomRange(null);%0A+         }%0A+       }%0A+       setFilters({%0A+         rainMax: parseNumber(params.get("rainMax")),%0A+         windMax: parseNumber(params.get("windMax")),%0A+         tempMin: parseNumber(params.get("tempMin")),%0A+         tempMax: parseNumber(params.get("tempMax")),%0A+       });%0A+       const city = params.get("city") ?? "";%0A+       setSelectedCityId(cities.some((item) => item.cityId === city) ? city : "");%0A+     };%0A+     restoreUrlState();%0A+     window.addEventListener("popstate", restoreUrlState);%0A+     return () => window.removeEventListener("popstate", restoreUrlState);%0A+   }, [cities, dates.length]);%0A+%0A+   useEffect(() => {%0A+     emitProductAnalytics({%0A+       locale,%0A+       routeTemplate: "/[country]",%0A+       fields: { event: "country_viewed", country_code: country.countryId },%0A+     });%0A+   }, [country.countryId, locale]);%0A+%0A+   useEffect(() => {%0A+     const container = mapContainerRef.current;%0A+     if (container === null || cities.length === 0) return;%0A+     let cancelled = false;%0A+     void import("maplibre-gl").then((module) => {%0A+       if (cancelled || mapContainerRef.current === null) return;%0A+       mapModuleRef.current = module;%0A+       const longitude = cities.reduce((sum, city) => sum + city.longitude, 0) / cities.length;%0A+       const latitude = cities.reduce((sum, city) => sum + city.latitude, 0) / cities.length;%0A+       const map = new module.Map({%0A+         container: mapContainerRef.current,%0A+         style: MAPLIBRE_STYLE_URL,%0A+         center: [longitude, latitude],%0A+         zoom: 4,%0A+         attributionControl: { compact: true },%0A+         cooperativeGestures: false,%0A+       });%0A+       mapRef.current = map;%0A+       map.addControl(new module.NavigationControl({ showCompass: false }), "top-right");%0A+       map.on("load", () => {%0A+         const bounds = new module.LngLatBounds();%0A+         cities.forEach((city) => bounds.extend([city.longitude, city.latitude]));%0A+         map.fitBounds(bounds, { padding: 86, maxZoom: 6, duration: 0 });%0A+         setMapReady(true);%0A+       });%0A+     });%0A+     return () => {%0A+       cancelled = true;%0A+       markerRefs.current.forEach((marker) => marker.remove());%0A+       markerRefs.current = [];%0A+       mapRef.current?.remove();%0A+       mapRef.current = null;%0A+       mapModuleRef.current = null;%0A+     };%0A+   }, [cities]);%0A+%0A+   function selectCity(summary: CitySummary, scrollOnMobile = false): void {%0A+     setSelectedCityId(summary.city.cityId);%0A+     writeUrl(preset, customRange, filters, summary.city.cityId);%0A+     emitProductAnalytics({%0A+       locale,%0A+       routeTemplate: "/[country]",%0A+       fields: {%0A+         event: "city_viewed",%0A+         city_id: summary.city.cityId,%0A+         country_code: country.countryId,%0A+       },%0A+     });%0A+     if (%0A+       scrollOnMobile &&%0A+       typeof window.matchMedia === "function" &&%0A+       window.matchMedia("(max-width: 1023px)").matches%0A+     ) {%0A+       window.setTimeout(%0A+         () => inspectorRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }),%0A+         0,%0A+       );%0A+     }%0A+   }%0A+%0A+   useEffect(() => {%0A+     const map = mapRef.current;%0A+     const module = mapModuleRef.current;%0A+     if (!mapReady || map === null || module === null) return;%0A+     markerRefs.current.forEach((marker) => marker.remove());%0A+     markerRefs.current = summaries.map((summary) => {%0A+       const shell = document.createElement("div");%0A+       shell.className = `country-weather-marker risk-${summary.risk}${summary.filtered ? " is-filtered" : ""}`;%0A+       const button = document.createElement("button");%0A+       button.type = "button";%0A+       button.className = "country-weather-marker-button";%0A+       button.setAttribute(%0A+         "aria-label",%0A+         `${summary.city.cityName}: ${rainLabel(summary, locale)}${summary.filtered ? `. ${copy.outsideLimits}: ${summary.filterReasons.join("; ")}` : ""}`,%0A+       );%0A+       if (summary.city.cityId === selected?.city.cityId) button.dataset.selected = "true";%0A+       const icon = document.createElement("span");%0A+       icon.className = "country-weather-marker-icon";%0A+       icon.textContent = summary.symbol;%0A+       icon.setAttribute("aria-hidden", "true");%0A+       const text = document.createElement("span");%0A+       text.className = "country-weather-marker-copy";%0A+       const name = document.createElement("strong");%0A+       name.textContent = summary.city.cityName;%0A+       const detail = document.createElement("span");%0A+       detail.textContent = `${summary.dryDays}/${summary.days.length} · ${summary.temperatureMin ?? "–"}–${summary.temperatureMax ?? "–"}°`;%0A+       text.append(name, detail);%0A+       button.append(icon, text);%0A+       button.addEventListener("click", () => selectCity(summary, true));%0A+       shell.append(button);%0A+       const offset = MARKER_OFFSETS[summary.city.cityId] ?? [0, 0];%0A+       const leaderLength = Math.hypot(offset[0], offset[1]);%0A+       shell.style.setProperty("--marker-leader-length", `${leaderLength}px`);%0A+       shell.style.setProperty("--marker-leader-angle", `${Math.atan2(-offset[1], -offset[0])}rad`);%0A+       return new module.Marker({ element: shell, anchor: "bottom", offset })%0A+         .setLngLat([summary.city.longitude, summary.city.latitude])%0A+         .addTo(map);%0A+     });%0A+   }, [copy.outsideLimits, locale, mapReady, selected?.city.cityId, summaries]);%0A+%0A+   function selectPreset(nextPreset: Exclude<RangePreset, "custom">): void {%0A+     setPreset(nextPreset);%0A+     setCustomRange(null);%0A+     setSelectedCityId("");%0A+     writeUrl(nextPreset, null, filters, "");%0A+   }%0A+%0A+   function chooseCustomRange(start: number, end: number): void {%0A+     const finalIndex = Math.max(0, dates.length - 1);%0A+     const next = {%0A+       start: Math.max(0, Math.min(start, end, finalIndex)),%0A+       end: Math.max(0, Math.min(Math.max(start, end), finalIndex)),%0A+     };%0A+     setPreset("custom");%0A+     setCustomRange(next);%0A+     setSelectedCityId("");%0A+     writeUrl("custom", next, filters, "");%0A+   }%0A+%0A+   function updateFilter(field: keyof WeatherFilters, raw: string): void {%0A+     const next = { ...filters, [field]: parseNumber(raw) };%0A+     setFilters(next);%0A+     setSelectedCityId("");%0A+     writeUrl(preset, customRange, next, "");%0A+   }%0A+%0A+   function clearFilters(): void {%0A+     setFilters(EMPTY_FILTERS);%0A+     setSelectedCityId("");%0A+     writeUrl(preset, customRange, EMPTY_FILTERS, "");%0A+   }%0A+%0A+   async function copyShareLink(): Promise<void> {%0A+     try {%0A+       await navigator.clipboard.writeText(window.location.href);%0A+       setShareStatus(copy.copied);%0A+     } catch {%0A+       setShareStatus(copy.copyFailed);%0A+     }%0A+     window.setTimeout(() => setShareStatus(""), 2500);%0A+   }%0A+%0A+   function cityDetailHref(path: string): string {%0A+     const start = selectedReferenceDays[0]?.localDate;%0A+     if (start === undefined) return path;%0A+     const end = selectedReferenceDays.at(-1)?.localDate ?? start;%0A+     return `${path}?${new URLSearchParams({ start, end }).toString()}`;%0A+   }%0A+%0A+   const currentCountryPath = countries.find(%0A+     (option) => option.slug === country.slug.split("/").at(-1),%0A+   )?.path;%0A+%0A+   return (%0A+     <section className="country-weather-console" aria-label={`${country.name} ${copy.mapHeading}`}>%0A+       <div className="country-console-toolbar country-map-toolbar">%0A+         <label className="country-select-label">%0A+           <span>{copy.country}</span>%0A+           <select%0A+             value={currentCountryPath ?? `/${country.slug}`}%0A+             onChange={(event) =>%0A+               window.location.assign(`${event.target.value}${window.location.search}`)%0A+             }%0A+             className="country-select focus-ring"%0A+             aria-label={copy.chooseCountry}%0A+           >%0A+             {countries.map((option) => (%0A+               <option key={option.slug} value={option.path}>%0A+                 {option.name}%0A+               </option>%0A+             ))}%0A+           </select>%0A+         </label>%0A+%0A+         <div className="min-w-0 flex-1">%0A+           <p className="country-control-label">{copy.period}</p>%0A+           <div className="country-window-tabs" role="group" aria-label={copy.period}>%0A+             {(%0A+               [%0A+                 ["3d", copy.threeDays],%0A+                 ["7d", copy.sevenDays],%0A+                 ["weekend", copy.weekend],%0A+               ] as const%0A+             ).map(([value, label]) => (%0A+               <button%0A+                 key={value}%0A+                 type="button"%0A+                 onClick={() => selectPreset(value)}%0A+                 aria-pressed={preset === value}%0A+                 className={`country-window-button focus-ring ${preset === value ? "is-active" : ""}`}%0A+               >%0A+                 {label}%0A+               </button>%0A+             ))}%0A+             <button%0A+               type="button"%0A+               onClick={() =>%0A+                 chooseCustomRange(%0A+                   customRange?.start ?? selectedIndices[0] ?? 0,%0A+                   customRange?.end ?? selectedIndices.at(-1) ?? Math.min(6, dates.length - 1),%0A+                 )%0A+               }%0A+               aria-pressed={preset === "custom"}%0A+               className={`country-window-button focus-ring ${preset === "custom" ? "is-active" : ""}`}%0A+             >%0A+               {copy.custom}%0A+             </button>%0A+           </div>%0A+           {preset === "custom" ? (%0A+             <div className="country-custom-range">%0A+               <label>%0A+                 <span className="sr-only">{copy.firstDate}</span>%0A+                 <select%0A+                   aria-label={copy.firstDate}%0A+                   value={customRange?.start ?? 0}%0A+                   onChange={(event) =>%0A+                     chooseCustomRange(%0A+                       Number(event.target.value),%0A+                       customRange?.end ?? Number(event.target.value),%0A+                     )%0A+                   }%0A+                 >%0A+                   {(cities[0]?.days ?? []).map((day, index) => (%0A+                     <option key={day.localDate} value={index}>%0A+                       {shortDate(day.localDate, locale)}%0A+                     </option>%0A+                   ))}%0A+                 </select>%0A+               </label>%0A+               <span aria-hidden="true">→</span>%0A+               <label>%0A+                 <span className="sr-only">{copy.lastDate}</span>%0A+                 <select%0A+                   aria-label={copy.lastDate}%0A+                   value={customRange?.end ?? Math.min(6, dates.length - 1)}%0A+                   onChange={(event) =>%0A+                     chooseCustomRange(%0A+                       customRange?.start ?? Number(event.target.value),%0A+                       Number(event.target.value),%0A+                     )%0A+                   }%0A+                 >%0A+                   {(cities[0]?.days ?? []).map((day, index) => (%0A+                     <option key={day.localDate} value={index}>%0A+                       {shortDate(day.localDate, locale)}%0A+                     </option>%0A+                   ))}%0A+                 </select>%0A+               </label>%0A+             </div>%0A+           ) : null}%0A+         </div>%0A+%0A+         <div className="country-map-actions">%0A+           <button%0A+             type="button"%0A+             onClick={() => void copyShareLink()}%0A+             className="country-share-button focus-ring"%0A+           >%0A+             {copy.share}%0A+           </button>%0A+           <p aria-live="polite">{shareStatus || updatedLabel}</p>%0A+         </div>%0A+       </div>%0A+%0A+       <details className="country-filter-details">%0A+         <summary>%0A+           <span>{copy.filters}</span>%0A+           {filterCount > 0 ? <strong>{copy.activeFilters(filterCount)}</strong> : null}%0A+         </summary>%0A+         <p>{copy.filtersHint}</p>%0A+         <div className="country-filter-grid">%0A+           <label>%0A+             <span>{copy.maxRain}</span>%0A+             <select%0A+               value={filters.rainMax ?? ""}%0A+               onChange={(event) => updateFilter("rainMax", event.target.value)}%0A+             >%0A+               <option value="">{copy.noLimit}</option>%0A+               {[30, 40, 50, 60, 70].map((value) => (%0A+                 <option key={value} value={value}>{`≤ ${value}%25`}</option>%0A+               ))}%0A+             </select>%0A+           </label>%0A+           <label>%0A+             <span>{copy.maxWind}</span>%0A+             <select%0A+               value={filters.windMax ?? ""}%0A+               onChange={(event) => updateFilter("windMax", event.target.value)}%0A+             >%0A+               <option value="">{copy.noLimit}</option>%0A+               {[20, 30, 40, 50].map((value) => (%0A+                 <option key={value} value={value}>{`≤ ${value} km/h`}</option>%0A+               ))}%0A+             </select>%0A+           </label>%0A+           <label>%0A+             <span>{copy.minTemp}</span>%0A+             <select%0A+               value={filters.tempMin ?? ""}%0A+               onChange={(event) => updateFilter("tempMin", event.target.value)}%0A+             >%0A+               <option value="">{copy.noLimit}</option>%0A+               {[0, 10, 15, 20].map((value) => (%0A+                 <option key={value} value={value}>{`≥ ${value}°C`}</option>%0A+               ))}%0A+             </select>%0A+           </label>%0A+           <label>%0A+             <span>{copy.maxTemp}</span>%0A+             <select%0A+               value={filters.tempMax ?? ""}%0A+               onChange={(event) => updateFilter("tempMax", event.target.value)}%0A+             >%0A+               <option value="">{copy.noLimit}</option>%0A+               {[25, 30, 32, 35].map((value) => (%0A+                 <option key={value} value={value}>{`≤ ${value}°C`}</option>%0A+               ))}%0A+             </select>%0A+           </label>%0A+         </div>%0A+         {filterCount > 0 ? (%0A+           <button type="button" onClick={clearFilters} className="country-filter-clear focus-ring">%0A+             {copy.clearFilters}%0A+           </button>%0A+         ) : null}%0A+       </details>%0A+%0A+       <div className="country-map-heading country-map-primary-heading">%0A+         <div>%0A+           <p className="eyebrow">{country.name}</p>%0A+           <h2>{copy.mapHeading}</h2>%0A+           <p>{copy.mapHint}</p>%0A+         </div>%0A+         <strong>{exactDates}</strong>%0A+       </div>%0A+%0A+       <div className="country-map-layout">%0A+         <div className="country-map-stage">%0A+           <div%0A+             ref={mapContainerRef}%0A+             className="country-weather-map country-weather-map-primary"%0A+             role="region"%0A+             aria-label={`${country.name} ${copy.mapHeading}`}%0A+             data-testid="country-weather-map"%0A+           />%0A+           <div className="country-map-legend" aria-label={copy.mapLegend}>%0A+             <span>%0A+               <i className="legend-good" /> {copy.lowerRain}%0A+             </span>%0A+             <span>%0A+               <i className="legend-mixed" /> {copy.mixed}%0A+             </span>%0A+             <span>%0A+               <i className="legend-wet" /> {copy.rainLikely}%0A+             </span>%0A+           </div>%0A+         </div>%0A+%0A+         {selected !== null ? (%0A+           <aside%0A+             ref={inspectorRef}%0A+             className="country-city-inspector"%0A+             aria-label={`${selected.city.cityName} weather summary`}%0A+           >%0A+             <div className="country-inspector-title">%0A+               <span aria-hidden="true">{selected.symbol}</span>%0A+               <div>%0A+                 <p>{copy.selected}</p>%0A+                 <h2>{selected.city.cityName}</h2>%0A+                 <small>{rangeLabel(selected.days, locale)}</small>%0A+               </div>%0A+             </div>%0A+             <p className={`country-filter-result ${selected.filtered ? "is-filtered" : ""}`}>%0A+               {selected.filtered ? copy.outsideLimits : copy.matchesLimits}%0A+             </p>%0A+             {selected.filterReasons.length > 0 ? (%0A+               <ul className="country-filter-reasons">%0A+                 {selected.filterReasons.map((reason) => (%0A+                   <li key={reason}>{reason}</li>%0A+                 ))}%0A+               </ul>%0A+             ) : null}%0A+             <div className="country-inspector-summary country-map-inspector-summary">%0A+               <div>%0A+                 <span>{copy.dryDays}</span>%0A+                 <strong>%0A+                   {selected.dryDays}/{selected.days.length}%0A+                 </strong>%0A+               </div>%0A+               <div>%0A+                 <span>{copy.rain}</span>%0A+                 <strong>%0A+                   {selected.totalRainMm ?? "—"} mm · {selected.maxRain ?? "—"}%25%0A+                 </strong>%0A+               </div>%0A+               <div>%0A+                 <span>{copy.temperature}</span>%0A+                 <strong>%0A+                   {selected.temperatureMin ?? "–"}–{selected.temperatureMax ?? "–"}°C%0A+                 </strong>%0A+               </div>%0A+               <div>%0A+                 <span>{copy.wind}</span>%0A+                 <strong>{selected.maxWind ?? "—"} km/h</strong>%0A+               </div>%0A+             </div>%0A+             <ol className="country-daily-strip" aria-label={copy.daily}>%0A+               {selected.days.map((day) => (%0A+                 <li key={day.localDate}>%0A+                   <div className="flex items-center gap-3">%0A+                     <span className="country-daily-emoji" aria-hidden="true">%0A+                       {dailySymbol(day.weather.conditionLabel)}%0A+                     </span>%0A+                     <div>%0A+                       <time dateTime={day.localDate}>{shortDate(day.localDate, locale)}</time>%0A+                       <p>{conditionLabel(day.weather.conditionLabel, locale)}</p>%0A+                     </div>%0A+                   </div>%0A+                   <div className="text-right">%0A+                     <strong>%0A+                       {day.weather.rainProbability ?? "—"}%25 {copy.peakRain}%0A+                     </strong>%0A+                     <p>%0A+                       {day.weather.temperatureMin ?? "–"}–{day.weather.temperatureMax ?? "–"}°%0A+                     </p>%0A+                   </div>%0A+                 </li>%0A+               ))}%0A+             </ol>%0A+             <a href={cityDetailHref(selected.city.path)} className="country-detail-link focus-ring">%0A+               {copy.detail} <span aria-hidden="true">→</span>%0A+             </a>%0A+           </aside>%0A+         ) : null}%0A+       </div>%0A+%0A+       <section className="country-city-list-section" aria-labelledby="country-destination-list">%0A+         <div className="country-city-list-heading">%0A+           <div>%0A+             <p className="eyebrow">{copy.destinations(country.name)}</p>%0A+             <h2 id="country-destination-list" className="section-title mt-3">%0A+               {copy.destinations(country.name)}%0A+             </h2>%0A+           </div>%0A+           <p>{copy.listHint}</p>%0A+         </div>%0A+         <ul className="country-city-grid country-map-city-grid">%0A+           {summaries.map((summary) => (%0A+             <li%0A+               key={summary.city.cityId}%0A+               className={`country-city-choice risk-${summary.risk}${summary.filtered ? " is-filtered" : ""}`}%0A+               data-selected={selected?.city.cityId === summary.city.cityId}%0A+             >%0A+               <button%0A+                 type="button"%0A+                 onClick={() => selectCity(summary)}%0A+                 className="country-city-select focus-ring"%0A+               >%0A+                 <span className="country-list-weather-icon" aria-hidden="true">%0A+                   {summary.symbol}%0A+                 </span>%0A+                 <span className="min-w-0 flex-1 text-left">%0A+                   <strong>{summary.city.cityName}</strong>%0A+                   <small>{rainLabel(summary, locale)}</small>%0A+                   {summary.filtered ? <em>{summary.filterReasons[0]}</em> : null}%0A+                 </span>%0A+                 <span className="country-list-temperature">%0A+                   {summary.temperatureMin ?? "–"}–{summary.temperatureMax ?? "–"}°%0A+                 </span>%0A+               </button>%0A+               <a%0A+                 href={cityDetailHref(summary.city.path)}%0A+                 className="country-city-forecast-link focus-ring"%0A+               >%0A+                 {copy.detail} <span aria-hidden="true">→</span>%0A+               </a>%0A+             </li>%0A+           ))}%0A+         </ul>%0A+       </section>%0A+%0A+       <section className="country-evidence-panel">%0A+         <div className="country-evidence-heading">%0A+           <p className="eyebrow">{copy.sourceHeading}</p>%0A+           <p>{updatedLabel}</p>%0A+         </div>%0A+         <div className="country-map-methodology">%0A+           <p>{copy.sourceText}</p>%0A+           <p>%0A+             {copy.source}: <a href="https://open-meteo.com/">Open-Meteo</a>%0A+           </p>%0A+         </div>%0A+       </section>%0A+     </section>%0A+   );%0A+ }%0A+%0A%0A ❯ src/components/ux-funnel-contract.test.ts:39:22%0A%0A
+undefined
+/home/runner/work/weather-v2/weather-v2/apps/web:
+ ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL  Command failed with exit code 1: vitest run src/app/travel-radar.test.ts src/components/country-weather-explorer.test.tsx src/components/production-smoke-copy-contract.test.ts src/components/trip-execution-pwa-contract.test.ts src/components/ux-funnel-contract.test.ts src/e2e/critical-paths.test.ts
