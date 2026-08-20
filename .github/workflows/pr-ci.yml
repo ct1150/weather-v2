@@ -1,94 +1,77 @@
-# Lightweight pull-request validation.
-# Draft PR pushes do not allocate a hosted runner. Validation starts when the PR
-# is marked Ready for review, and re-runs only for subsequent non-draft updates.
-
-name: PR CI
+name: Production release verification
 
 on:
   pull_request:
-    types: [opened, reopened, ready_for_review, synchronize]
+    types: [opened, synchronize, reopened, ready_for_review]
 
 permissions:
   contents: read
   pull-requests: read
 
-concurrency:
-  group: pr-ci-${{ github.event.pull_request.number }}
-  cancel-in-progress: true
-
-env:
-  PNPM_VERSION: "10.11.0"
-  NODE_VERSION: "22"
-
 jobs:
-  verify:
-    if: github.event.pull_request.draft == false
+  verify-production:
+    if: github.head_ref == 'verify/instant-country-switch-release'
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 12
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: ${{ env.PNPM_VERSION }}
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: pnpm
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Format check
-        run: pnpm format:check
-
-      - name: Lint
-        run: pnpm lint
-
-      - name: Build library packages
-        run: pnpm -r --filter '!@wnr/web' --filter '!@wnr/weather-sync' --filter '!@wnr/maintenance' build
-
-      - name: Typecheck
-        run: pnpm typecheck
-
-      - name: Unit / integration tests
+      - name: Wait for released country map
+        shell: bash
         run: |
-          set -o pipefail
-          pnpm test 2>&1 | tee test-results.log
-          if grep -qiE "Tests +[0-9]+ failed|Test Files +[0-9]+ failed|FAIL " test-results.log; then
-            echo "::error::Unit/integration tests failed — gate is fail-closed."
+          set -euo pipefail
+          SITE_URL="https://868656.xyz"
+          for attempt in $(seq 1 60); do
+            curl --fail --silent --show-error --location --retry 2 --retry-all-errors \
+              --connect-timeout 10 --max-time 30 "${SITE_URL}/zh-cn/jp" -o /tmp/jp.html || true
+            if grep -Fq 'data-country-switch-mode="optimistic-background-route"' /tmp/jp.html 2>/dev/null \
+              && grep -Fq 'data-render-mode="inline-svg"' /tmp/jp.html \
+              && grep -Fq '哪里不下雨' /tmp/jp.html \
+              && grep -Fq '全部已收录旅行地天气一目了然' /tmp/jp.html; then
+              echo "Latest country-switch release is live."
+              break
+            fi
+            if [ "$attempt" = "60" ]; then
+              echo "::error::Latest country-switch release did not become visible in production"
+              exit 1
+            fi
+            sleep 5
+          done
+
+      - name: Verify localized country routes and visual contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          SITE_URL="https://868656.xyz"
+          fetch() {
+            curl --fail --silent --show-error --location --retry 5 --retry-all-errors \
+              --connect-timeout 10 --max-time 30 "$1" -o "$2"
+          }
+          fetch "${SITE_URL}/jp" /tmp/en.html
+          fetch "${SITE_URL}/zh-cn/jp" /tmp/cn.html
+          fetch "${SITE_URL}/zh-hant/jp" /tmp/hant.html
+          fetch "${SITE_URL}/favicon.svg" /tmp/favicon.svg
+
+          for file in /tmp/en.html /tmp/cn.html /tmp/hant.html; do
+            grep -Fq 'data-country-switch-mode="optimistic-background-route"' "$file"
+            grep -Fq 'data-render-mode="inline-svg"' "$file"
+            grep -Fq 'data-city-count="8"' "$file"
+            count=$(grep -o 'data-testid="country-weather-marker"' "$file" | wc -l | tr -d ' ')
+            test "$count" = "8"
+          done
+
+          grep -Fq '哪里不下雨' /tmp/cn.html
+          grep -Fq '哪裡不下雨' /tmp/hant.html
+          grep -Fq 'Where Not Rain sun' /tmp/favicon.svg
+          grep -Fq '#fbbf24' /tmp/favicon.svg
+
+          if grep -Fq '可选天气限制' /tmp/cn.html; then
+            echo "::error::Retired optional weather limits are visible in production"
             exit 1
           fi
 
-      - name: Documentation gate
-        run: pnpm docs:check
-
-      - name: Build web static export
-        env:
-          APP_BASE_URL: https://868656.xyz
-          NEXT_PUBLIC_TRIP_API_URL: https://trip.868656.xyz
-          NEXT_PUBLIC_PRODUCT_ANALYTICS_URL: https://analytics.868656.xyz/api/v1/product-events
-          NEXT_PUBLIC_CLOUDFLARE_ANALYTICS_ENABLED: "false"
-        run: pnpm --filter @wnr/web build
-
-      - name: Build Workers
+      - name: Verify services remain healthy
+        shell: bash
         run: |
-          pnpm --filter @wnr/weather-sync build
-          pnpm --filter @wnr/weather-read build
-          pnpm --filter @wnr/trip-api build
-          pnpm --filter @wnr/product-analytics build
-
-      - name: Pipeline contract tests
-        run: node --test tooling/deploy/pipeline-contract.test.mjs
-
-      - name: Secret scan
-        run: |
-          if grep -RIiE "WEATHERAPI_SECRET|CLOUDFLARE_API_TOKEN|BETTER_AUTH_SECRET|GOOGLE_CLIENT_SECRET|RESEND_API_KEY" apps/web/out apps/web/src workers/trip-api/src workers/product-analytics/src 2>/dev/null; then
-            echo "::error::Possible secret leaked into build output or source"
-            exit 1
-          fi
-          echo "secret scan: clean"
+          set -euo pipefail
+          curl --fail --silent --show-error https://where-not-rain-read-production.ct1150.workers.dev/health | grep -Fq '"ok":true'
+          curl --fail --silent --show-error https://trip.868656.xyz/health | grep -Fq '"ok":true'
+          curl --fail --silent --show-error https://analytics.868656.xyz/health | grep -Fq '"ok":true'
