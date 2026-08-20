@@ -1,18 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import {
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type ChangeEvent,
-  type ReactElement,
-} from "react";
-import type {
-  CountryHeaderViewModel,
-  CountryWeatherCityViewModel,
-} from "../app/view-models";
+import { useEffect, useMemo, useRef, useState, type ChangeEvent, type ReactElement } from "react";
+import type { CountryHeaderViewModel, CountryWeatherCityViewModel } from "../app/view-models";
 import {
   InstantCountryWeatherExplorer,
   type CountryWeatherExplorerProps as InstantCountryWeatherExplorerProps,
