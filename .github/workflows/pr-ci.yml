@@ -2,7 +2,7 @@ name: PR CI
 
 on:
   pull_request:
-    types: [ready_for_review]
+    types: [ready_for_review, synchronize]
 
 permissions:
   contents: write
@@ -71,9 +71,9 @@ jobs:
 
       - name: Focused type and component validation
         run: |
-          pnpm --filter @wnr/analytics build
           pnpm --filter @wnr/config build
           pnpm --filter @wnr/domain build
+          pnpm --filter @wnr/analytics build
           pnpm --filter @wnr/seo build
           pnpm --filter @wnr/web typecheck
           pnpm --filter @wnr/web exec vitest run \
