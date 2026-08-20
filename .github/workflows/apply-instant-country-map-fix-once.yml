@@ -1,0 +1,155 @@
+name: Apply instant country map fix once
+
+on:
+  push:
+    branches: [fix/instant-complete-country-weather-map]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: apply-instant-country-map-fix-once
+  cancel-in-progress: false
+
+jobs:
+  apply:
+    if: contains(github.event.head_commit.message, 'chore: run instant country map fix gate')
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: fix/instant-complete-country-weather-map
+          fetch-depth: 0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.11.0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Align source contracts and production smoke
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          smoke = Path('.github/workflows/production-smoke.yml')
+          text = smoke.read_text()
+          text = text.replace('"Popular destinations at a glance"', '"All supported travel destinations at a glance"')
+          text = text.replace('"热门旅游地天气一目了然"', '"全部已收录旅行地天气一目了然"')
+          text = text.replace('"熱門旅遊地天氣一目了然"', '"全部已收錄旅行地天氣一目了然"')
+          anchor = '''          fetch_and_match "Simplified country weather route" "${SITE_URL}/zh-cn/jp" /tmp/weather-cn-country.html \\
+            "一张图看懂日本哪里天气更好" "全部已收录旅行地天气一目了然" "未来 7 天"\n'''
+          coverage = '''\n          for FILE in /tmp/weather-en-country.html /tmp/weather-cn-country.html /tmp/weather-hant-country.html; do
+            grep -Fq 'data-render-mode="inline-svg"' "${FILE}" || {
+              echo "::error::Country map is not using the instant inline renderer: ${FILE}"
+              exit 1
+            }
+            grep -Fq 'data-city-count="8"' "${FILE}" || {
+              echo "::error::Japan country map does not declare all 8 supported destinations: ${FILE}"
+              exit 1
+            }
+            MARKER_COUNT=$(grep -o 'data-testid="country-weather-marker"' "${FILE}" | wc -l | tr -d ' ')
+            if [ "${MARKER_COUNT}" != "8" ]; then
+              echo "::error::Japan country map rendered ${MARKER_COUNT}/8 weather markers: ${FILE}"
+              exit 1
+            fi
+          done
+'''
+          if coverage.strip() not in text:
+              if anchor not in text:
+                  raise SystemExit('production smoke insertion anchor not found')
+              text = text.replace(anchor, anchor + coverage)
+          smoke.write_text(text)
+
+          contract = Path('apps/web/src/components/production-smoke-copy-contract.test.ts')
+          text = contract.read_text().replace(
+              'expect(outlineMap).toContain("markers={mapMarkers}");',
+              'expect(explorer).toContain("markers={mapMarkers}");',
+          )
+          contract.write_text(text)
+
+          discovery = Path('apps/web/src/components/discovery-trip-action.test.ts')
+          text = discovery.read_text()
+          text = text.replace('./CountryWeatherExplorer.tsx', './InstantCountryWeatherExplorer.tsx')
+          text = text.replace('Popular destinations at a glance', 'All supported travel destinations at a glance')
+          discovery.write_text(text)
+
+          funnel = Path('apps/web/src/components/ux-funnel-contract.test.ts')
+          text = funnel.read_text().replace(
+              './CountryWeatherExplorer.tsx',
+              './InstantCountryWeatherExplorer.tsx',
+          )
+          text = text.replace(
+              'expect(explorer).not.toContain("DiscoveryTripAction");',
+              'expect(explorer).not.toContain("DiscoveryTripAction");\n    expect(explorer).not.toContain("maplibre-gl");\n    expect(explorer).toContain("markers={mapMarkers}");',
+          )
+          funnel.write_text(text)
+
+          destination = Path('apps/web/src/app/destination-pages.test.ts')
+          text = destination.read_text()
+          text = text.replace('Popular destinations at a glance', 'All supported travel destinations at a glance')
+          text = text.replace('热门旅游地天气一目了然', '全部已收录旅行地天气一目了然')
+          destination.write_text(text)
+          PY
+
+      - name: Format changed files
+        run: |
+          pnpm exec prettier --write \
+            .github/workflows/production-smoke.yml \
+            apps/web/src/app/instant-country-map.css \
+            apps/web/src/app/layout.tsx \
+            'apps/web/src/app/[countrySlug]/page.tsx' \
+            'apps/web/src/app/zh-hant/[countrySlug]/page.tsx' \
+            apps/web/src/app/destination-pages.test.ts \
+            apps/web/src/components/CountryWeatherExplorer.tsx \
+            apps/web/src/components/InstantCountryWeatherExplorer.tsx \
+            apps/web/src/components/CountryOutlineMap.tsx \
+            apps/web/src/components/country-map-geometry.ts \
+            apps/web/src/components/country-weather-explorer.test.tsx \
+            apps/web/src/components/production-smoke-copy-contract.test.ts \
+            apps/web/src/components/discovery-trip-action.test.ts \
+            apps/web/src/components/ux-funnel-contract.test.ts
+
+      - name: Focused validation
+        run: |
+          pnpm --filter @wnr/web typecheck
+          pnpm --filter @wnr/web exec vitest run \
+            src/components/country-weather-explorer.test.tsx \
+            src/components/production-smoke-copy-contract.test.ts \
+            src/components/discovery-trip-action.test.ts \
+            src/components/ux-funnel-contract.test.ts \
+            src/app/destination-pages.test.ts
+
+      - name: Commit final branch state and remove this workflow
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/apply-instant-country-map-fix-once.yml
+          git add -- \
+            .github/workflows/production-smoke.yml \
+            apps/web/src/app/instant-country-map.css \
+            apps/web/src/app/layout.tsx \
+            'apps/web/src/app/[countrySlug]/page.tsx' \
+            'apps/web/src/app/zh-hant/[countrySlug]/page.tsx' \
+            apps/web/src/app/destination-pages.test.ts \
+            apps/web/src/components/CountryWeatherExplorer.tsx \
+            apps/web/src/components/InstantCountryWeatherExplorer.tsx \
+            apps/web/src/components/CountryOutlineMap.tsx \
+            apps/web/src/components/country-map-geometry.ts \
+            apps/web/src/components/country-weather-explorer.test.tsx \
+            apps/web/src/components/production-smoke-copy-contract.test.ts \
+            apps/web/src/components/discovery-trip-action.test.ts \
+            apps/web/src/components/ux-funnel-contract.test.ts
+          git commit -m "fix: render complete country weather maps immediately"
+          git push origin HEAD:fix/instant-complete-country-weather-map
