@@ -142,8 +142,7 @@ const COPY = {
     peakRain: "降雨",
     detail: "查看完整城市天气",
     destinations: (country: string) => `${country}全部已收录旅行地`,
-    listHint: (count: number) =>
-      `当前目录中的 ${count} 个旅行地已全部同时显示在地图和天气列表中。`,
+    listHint: (count: number) => `当前目录中的 ${count} 个旅行地已全部同时显示在地图和天气列表中。`,
     outsideLimits: "超出你的限制",
     matchesLimits: "符合你的限制",
     unavailable: "暂无天气数据",
@@ -195,8 +194,7 @@ const COPY = {
     peakRain: "降雨",
     detail: "查看完整城市天氣",
     destinations: (country: string) => `${country}全部已收錄旅行地`,
-    listHint: (count: number) =>
-      `目前目錄中的 ${count} 個旅行地已全部同時顯示在地圖和天氣列表中。`,
+    listHint: (count: number) => `目前目錄中的 ${count} 個旅行地已全部同時顯示在地圖和天氣列表中。`,
     outsideLimits: "超出你的限制",
     matchesLimits: "符合你的限制",
     unavailable: "暫無天氣資料",

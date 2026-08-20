@@ -74,8 +74,7 @@ function overlapPenalty(
     const horizontal = Math.abs(x - other.x);
     const vertical = Math.abs(y - other.y);
     if (horizontal < MARKER_WIDTH && vertical < MARKER_HEIGHT) {
-      penalty +=
-        (MARKER_WIDTH - horizontal + 1) * (MARKER_HEIGHT - vertical + 1) * 1_000;
+      penalty += (MARKER_WIDTH - horizontal + 1) * (MARKER_HEIGHT - vertical + 1) * 1_000;
     }
   }
   return penalty;
@@ -91,7 +90,8 @@ export function layoutCountryMarkers(
     ...projectCountryPoint(geometry, marker.longitude, marker.latitude),
   }));
   const order = [...anchored].sort(
-    (left, right) => left.y - right.y || left.x - right.x || left.marker.id.localeCompare(right.marker.id),
+    (left, right) =>
+      left.y - right.y || left.x - right.x || left.marker.id.localeCompare(right.marker.id),
   );
   const placed: PositionedCountryMarker[] = [];
   const byId = new Map<string, PositionedCountryMarker>();
@@ -106,8 +106,7 @@ export function layoutCountryMarkers(
       const y = clamp(rawY, EDGE_Y, COUNTRY_MAP_HEIGHT - EDGE_Y);
       const clampedDistance = Math.hypot(x - rawX, y - rawY);
       const leaderDistance = Math.hypot(x - entry.x, y - entry.y);
-      const score =
-        overlapPenalty(x, y, placed) + leaderDistance * 0.8 + clampedDistance * 5_000;
+      const score = overlapPenalty(x, y, placed) + leaderDistance * 0.8 + clampedDistance * 5_000;
       if (score < bestScore) {
         bestScore = score;
         best = {
@@ -181,12 +180,7 @@ export function CountryOutlineMap({
         <g className="country-marker-leaders" aria-hidden="true">
           {positioned.map((marker) => (
             <g key={marker.id}>
-              <line
-                x1={marker.anchorX}
-                y1={marker.anchorY}
-                x2={marker.x}
-                y2={marker.y}
-              />
+              <line x1={marker.anchorX} y1={marker.anchorY} x2={marker.x} y2={marker.y} />
               <circle cx={marker.anchorX} cy={marker.anchorY} r="5" />
             </g>
           ))}

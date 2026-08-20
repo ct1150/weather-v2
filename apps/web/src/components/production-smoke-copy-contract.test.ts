@@ -11,7 +11,10 @@ const productionSmoke = readFileSync(
     : new URL("../../../../.github/workflows/production-smoke.yml", import.meta.url),
   "utf8",
 );
-const explorerWrapper = readFileSync(new URL("./CountryWeatherExplorer.tsx", import.meta.url), "utf8");
+const explorerWrapper = readFileSync(
+  new URL("./CountryWeatherExplorer.tsx", import.meta.url),
+  "utf8",
+);
 const explorer = readFileSync(
   new URL("./InstantCountryWeatherExplorer.tsx", import.meta.url),
   "utf8",
@@ -56,7 +59,9 @@ describe("production smoke copy contract", () => {
   });
 
   it("verifies the immediate complete map while retiring the optional-limit row", () => {
-    expect(englishCountry).toContain("all ${cities.length} supported travel destinations immediately");
+    expect(englishCountry).toContain(
+      "all ${cities.length} supported travel destinations immediately",
+    );
     expect(traditionalCountry).toContain("目前目錄全部 {cities.length}");
     for (const phrase of [
       "All supported travel destinations at a glance",

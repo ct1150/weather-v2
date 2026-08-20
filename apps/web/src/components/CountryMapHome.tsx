@@ -191,11 +191,7 @@ export function CountryMapHome({ countries, locale = "en" }: CountryMapHomeProps
       <footer className="page-footer">
         <span>{copy.footer}</span>
         <span>
-          {locale === "en"
-            ? "Forecast data by "
-            : locale === "zh-cn"
-              ? "天气数据："
-              : "天氣資料："}
+          {locale === "en" ? "Forecast data by " : locale === "zh-cn" ? "天气数据：" : "天氣資料："}
           <a href="https://open-meteo.com/">Open-Meteo</a>
         </span>
       </footer>

@@ -141,9 +141,9 @@ describe("CountryWeatherExplorer instant country map", () => {
     }));
     const layout = layoutCountryMarkers("JP", markers);
     expect(layout).toHaveLength(CITIES.length);
-    expect(new Set(layout.map((marker) => `${marker.x.toFixed(2)}:${marker.y.toFixed(2)}`)).size).toBe(
-      CITIES.length,
-    );
+    expect(
+      new Set(layout.map((marker) => `${marker.x.toFixed(2)}:${marker.y.toFixed(2)}`)).size,
+    ).toBe(CITIES.length);
     for (const marker of layout) {
       expect(marker.x).toBeGreaterThanOrEqual(0);
       expect(marker.x).toBeLessThanOrEqual(1000);

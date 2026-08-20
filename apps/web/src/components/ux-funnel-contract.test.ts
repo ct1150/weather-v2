@@ -6,7 +6,10 @@ const simplifiedHome = readFileSync(new URL("../app/zh-cn/page.tsx", import.meta
 const traditionalHome = readFileSync(new URL("../app/zh-hant/page.tsx", import.meta.url), "utf8");
 const countryMapHome = readFileSync(new URL("./CountryMapHome.tsx", import.meta.url), "utf8");
 const header = readFileSync(new URL("./SiteHeader.tsx", import.meta.url), "utf8");
-const explorerWrapper = readFileSync(new URL("./CountryWeatherExplorer.tsx", import.meta.url), "utf8");
+const explorerWrapper = readFileSync(
+  new URL("./CountryWeatherExplorer.tsx", import.meta.url),
+  "utf8",
+);
 const explorer = readFileSync(
   new URL("./InstantCountryWeatherExplorer.tsx", import.meta.url),
   "utf8",
