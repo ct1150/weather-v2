@@ -71,10 +71,7 @@ jobs:
 
       - name: Focused type and component validation
         run: |
-          pnpm --filter @wnr/config build
-          pnpm --filter @wnr/domain build
-          pnpm --filter @wnr/analytics build
-          pnpm --filter @wnr/seo build
+          pnpm -r --filter '!@wnr/web' --filter '!@wnr/weather-sync' --filter '!@wnr/maintenance' build
           pnpm --filter @wnr/web typecheck
           pnpm --filter @wnr/web exec vitest run \
             src/app/travel-radar.test.ts \
