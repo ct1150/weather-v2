@@ -3,7 +3,10 @@ import { notFound } from "next/navigation";
 import type { ReactElement } from "react";
 import type { CountryPageViewModel } from "../view-models";
 import { getBakedDataset, projectCountry } from "../../build/bake";
-import { CountryWeatherExplorer } from "../../components/CountryWeatherExplorer";
+import {
+  CountryWeatherExplorer,
+  type CountryWeatherDataset,
+} from "../../components/CountryWeatherExplorer";
 import { JsonLd } from "../../components/JsonLd";
 import { buildAlternates, countrySearchCopy, localeUrl, routeRobots } from "../seo";
 
@@ -11,9 +14,15 @@ export interface CountryPageProps {
   readonly viewModel: CountryPageViewModel;
   readonly locale?: "en" | "zh-cn";
   readonly jsonLd?: Readonly<Record<string, unknown>>;
+  readonly countryDatasets?: ReadonlyArray<CountryWeatherDataset>;
 }
 
-export function CountryPage({ viewModel, jsonLd, locale = "en" }: CountryPageProps): ReactElement {
+export function CountryPage({
+  viewModel,
+  jsonLd,
+  locale = "en",
+  countryDatasets,
+}: CountryPageProps): ReactElement {
   const { country, cities, weatherCities, availableCountries, dataUpdatedLabel, state } = viewModel;
   const isChinese = locale === "zh-cn";
   const isReady = state === "ready" || state === "stale";
@@ -77,6 +86,7 @@ export function CountryPage({ viewModel, jsonLd, locale = "en" }: CountryPagePro
               : (dataUpdatedLabel ?? "Latest available data")
           }
           locale={locale}
+          countryDatasets={countryDatasets}
         />
       ) : isReady ? (
         <section className="mt-10 rounded-2xl border border-border bg-white p-6">
@@ -145,6 +155,15 @@ export default async function Page({
   if (country === undefined) notFound();
   const viewModel = projectCountry(dataset, params.countrySlug, "en");
   const countryCities = dataset.citiesByCountry.get(country.id) ?? [];
+  const countryDatasets: ReadonlyArray<CountryWeatherDataset> = dataset.countries.map((item) => {
+    const projected = projectCountry(dataset, item.slug, "en");
+    return {
+      path: `/${item.slug}`,
+      country: projected.country,
+      cities: projected.weatherCities ?? [],
+      updatedLabel: projected.dataUpdatedLabel ?? "Latest available data",
+    };
+  });
   const copy = countrySearchCopy(
     country.name.en,
     countryCities.map((item) => item.city.name.en),
@@ -188,5 +207,7 @@ export default async function Page({
     ],
   };
 
-  return <CountryPage viewModel={viewModel} jsonLd={jsonLd} />;
+  return (
+    <CountryPage viewModel={viewModel} jsonLd={jsonLd} countryDatasets={countryDatasets} />
+  );
 }
