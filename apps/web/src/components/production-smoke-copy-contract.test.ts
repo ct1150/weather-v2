@@ -11,7 +11,16 @@ const productionSmoke = readFileSync(
     : new URL("../../../../.github/workflows/production-smoke.yml", import.meta.url),
   "utf8",
 );
-const explorer = readFileSync(new URL("./CountryWeatherExplorer.tsx", import.meta.url), "utf8");
+const explorerWrapper = readFileSync(new URL("./CountryWeatherExplorer.tsx", import.meta.url), "utf8");
+const explorer = readFileSync(
+  new URL("./InstantCountryWeatherExplorer.tsx", import.meta.url),
+  "utf8",
+);
+const outlineMap = readFileSync(new URL("./CountryOutlineMap.tsx", import.meta.url), "utf8");
+const instantMapStyles = readFileSync(
+  new URL("../app/instant-country-map.css", import.meta.url),
+  "utf8",
+);
 const englishHome = readFileSync(new URL("../app/page.tsx", import.meta.url), "utf8");
 const simplifiedHome = readFileSync(new URL("../app/zh-cn/page.tsx", import.meta.url), "utf8");
 const traditionalHome = readFileSync(new URL("../app/zh-hant/page.tsx", import.meta.url), "utf8");
@@ -43,13 +52,13 @@ describe("production smoke copy contract", () => {
     }
   });
 
-  it("verifies map-first country copy and seven-day controls", () => {
-    expect(englishCountry).toContain("travel weather at a glance");
-    expect(traditionalCountry).toContain("<h1>{`一張圖看懂${country.name}哪裡天氣更好`}</h1>");
+  it("verifies immediate complete-map copy and seven-day controls", () => {
+    expect(englishCountry).toContain("all ${cities.length} supported travel destinations immediately");
+    expect(traditionalCountry).toContain("目前目錄全部 {cities.length}");
     for (const phrase of [
-      "Popular destinations at a glance",
-      "热门旅游地天气一目了然",
-      "熱門旅遊地天氣一目了然",
+      "All supported travel destinations at a glance",
+      "全部已收录旅行地天气一目了然",
+      "全部已收錄旅行地天氣一目了然",
     ]) {
       expect(explorer).toContain(phrase);
       expect(productionSmoke).toContain(phrase);
@@ -57,6 +66,26 @@ describe("production smoke copy contract", () => {
     expect(explorer).toContain('"7d"');
     expect(explorer).toContain("Optional weather limits");
     expect(explorer).toContain("超出限制的目的地不会消失");
+    expect(explorer).toContain("no external map tiles delay the first result");
+  });
+
+  it("renders map geometry and every supplied marker in the initial React tree", () => {
+    expect(outlineMap).toContain('data-render-mode="inline-svg"');
+    expect(outlineMap).toContain('data-testid="country-weather-marker"');
+    expect(outlineMap).toContain("markers={mapMarkers}");
+    expect(outlineMap).toContain("positioned.map");
+    expect(instantMapStyles).toContain(".country-weather-map-instant");
+    expect(instantMapStyles).toContain(".country-static-weather-marker");
+    expect(productionSmoke).toContain('data-render-mode="inline-svg"');
+    expect(productionSmoke).toContain('data-city-count="8"');
+    expect(productionSmoke).toContain('data-testid="country-weather-marker"');
+  });
+
+  it("does not load the remote MapLibre tile stack in the active country map", () => {
+    expect(explorerWrapper).not.toContain("maplibre-gl");
+    expect(explorer).not.toContain("maplibre-gl");
+    expect(explorer).not.toContain("MAPLIBRE_STYLE_URL");
+    expect(outlineMap).not.toContain("maplibre-gl");
   });
 
   it("does not restore origin, reachability or Top 3 acquisition copy", () => {
