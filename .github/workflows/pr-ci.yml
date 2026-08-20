@@ -1,94 +1,249 @@
-# Lightweight pull-request validation.
-# Draft PR pushes do not allocate a hosted runner. Validation starts when the PR
-# is marked Ready for review, and re-runs only for subsequent non-draft updates.
-
+# Temporary, non-merge production verifier for PR #69.
 name: PR CI
 
 on:
   pull_request:
-    types: [opened, reopened, ready_for_review, synchronize]
+    types: [ready_for_review]
 
 permissions:
-  contents: read
+  actions: write
+  contents: write
   pull-requests: read
 
 concurrency:
-  group: pr-ci-${{ github.event.pull_request.number }}
-  cancel-in-progress: true
+  group: country-map-production-release-v2
+  cancel-in-progress: false
 
 env:
-  PNPM_VERSION: "10.11.0"
-  NODE_VERSION: "22"
+  TARGET_SHA: "94e87231b7fd4618b6ae3946bd275b0e992ac032"
+  SITE_URL: "https://868656.xyz"
+  READ_URL: "https://where-not-rain-read-production.ct1150.workers.dev"
+  TRIP_URL: "https://trip.868656.xyz"
+  ANALYTICS_URL: "https://analytics.868656.xyz"
+  ANALYTICS_ENDPOINT: "https://analytics.868656.xyz/api/v1/product-events"
 
 jobs:
-  verify:
-    if: github.event.pull_request.draft == false
+  verify_release:
+    if: github.event.pull_request.number == 69 && github.head_ref == 'verify/country-map-production-release-v2'
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 45
     steps:
-      - name: Checkout
+      - name: Checkout verification branch
         uses: actions/checkout@v4
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
         with:
-          version: ${{ env.PNPM_VERSION }}
+          ref: verify/country-map-production-release-v2
+          fetch-depth: 0
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: pnpm
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Format check
-        run: pnpm format:check
-
-      - name: Lint
-        run: pnpm lint
-
-      - name: Build library packages
-        run: pnpm -r --filter '!@wnr/web' --filter '!@wnr/weather-sync' --filter '!@wnr/maintenance' build
-
-      - name: Typecheck
-        run: pnpm typecheck
-
-      - name: Unit / integration tests
-        run: |
-          set -o pipefail
-          pnpm test 2>&1 | tee test-results.log
-          if grep -qiE "Tests +[0-9]+ failed|Test Files +[0-9]+ failed|FAIL " test-results.log; then
-            echo "::error::Unit/integration tests failed — gate is fail-closed."
-            exit 1
-          fi
-
-      - name: Documentation gate
-        run: pnpm docs:check
-
-      - name: Build web static export
+      - name: Verify corrected release
         env:
-          APP_BASE_URL: https://868656.xyz
-          NEXT_PUBLIC_TRIP_API_URL: https://trip.868656.xyz
-          NEXT_PUBLIC_PRODUCT_ANALYTICS_URL: https://analytics.868656.xyz/api/v1/product-events
-          NEXT_PUBLIC_CLOUDFLARE_ANALYTICS_ENABLED: "false"
-        run: pnpm --filter @wnr/web build
-
-      - name: Build Workers
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
         run: |
-          pnpm --filter @wnr/weather-sync build
-          pnpm --filter @wnr/weather-read build
-          pnpm --filter @wnr/trip-api build
-          pnpm --filter @wnr/product-analytics build
+          set -u
+          OVERALL="success"
+          ERRORS=""
+          DEPLOY_ID="not-found"
+          DEPLOY_CONCLUSION="not-found"
+          DEPLOY_URL="not-found"
+          SMOKE_ID="not-found"
+          SMOKE_CONCLUSION="not-found"
+          SMOKE_URL="not-found"
 
-      - name: Pipeline contract tests
-        run: node --test tooling/deploy/pipeline-contract.test.mjs
+          fail() {
+            OVERALL="failure"
+            ERRORS="${ERRORS}\n- $1"
+            echo "::error::$1"
+          }
 
-      - name: Secret scan
-        run: |
-          if grep -RIiE "WEATHERAPI_SECRET|CLOUDFLARE_API_TOKEN|BETTER_AUTH_SECRET|GOOGLE_CLIENT_SECRET|RESEND_API_KEY" apps/web/out apps/web/src workers/trip-api/src workers/product-analytics/src 2>/dev/null; then
-            echo "::error::Possible secret leaked into build output or source"
-            exit 1
+          latest_run() {
+            local workflow="$1"
+            gh api --method GET \
+              "repos/${GITHUB_REPOSITORY}/actions/workflows/${workflow}/runs" \
+              -f branch=main -f per_page=50 2>/dev/null \
+              | jq -c --arg sha "${TARGET_SHA}" \
+                '[.workflow_runs[] | select(.head_sha == $sha)] | sort_by(.created_at) | last // empty'
+          }
+
+          wait_for_run() {
+            local workflow="$1"
+            local dispatch_after="$2"
+            local run=""
+            local dispatched="false"
+            for attempt in $(seq 1 220); do
+              run="$(latest_run "${workflow}")"
+              if [ -n "${run}" ] && [ "$(jq -r '.status' <<<"${run}")" = "completed" ]; then
+                printf '%s' "${run}"
+                return 0
+              fi
+              if [ -z "${run}" ] && [ "${dispatched}" = "false" ] && [ "${attempt}" -ge "${dispatch_after}" ]; then
+                gh workflow run "${workflow}" --ref main || true
+                dispatched="true"
+              fi
+              sleep 6
+            done
+            return 1
+          }
+
+          fetch_match() {
+            local name="$1"
+            local url="$2"
+            local output="$3"
+            shift 3
+            if ! curl --fail --silent --show-error --location --retry 5 --retry-all-errors \
+              --connect-timeout 15 --max-time 45 "${url}" -o "${output}"; then
+              fail "${name} could not be fetched"
+              return
+            fi
+            for expected in "$@"; do
+              grep -Fq "${expected}" "${output}" || fail "${name} missing: ${expected}"
+            done
+          }
+
+          assert_absent() {
+            local name="$1"
+            local file="$2"
+            shift 2
+            for forbidden in "$@"; do
+              if grep -Fq "${forbidden}" "${file}"; then
+                fail "${name} still contains obsolete text: ${forbidden}"
+              fi
+            done
+          }
+
+          if DEPLOY_JSON="$(wait_for_run deploy.yml 5)"; then
+            DEPLOY_ID="$(jq -r '.id' <<<"${DEPLOY_JSON}")"
+            DEPLOY_CONCLUSION="$(jq -r '.conclusion' <<<"${DEPLOY_JSON}")"
+            DEPLOY_URL="$(jq -r '.html_url' <<<"${DEPLOY_JSON}")"
+            [ "${DEPLOY_CONCLUSION}" = "success" ] || fail "Deploy concluded ${DEPLOY_CONCLUSION}"
+          else
+            fail "Deploy did not complete"
           fi
-          echo "secret scan: clean"
+
+          if [ "${DEPLOY_CONCLUSION}" = "success" ]; then
+            if SMOKE_JSON="$(wait_for_run production-smoke.yml 10)"; then
+              SMOKE_ID="$(jq -r '.id' <<<"${SMOKE_JSON}")"
+              SMOKE_CONCLUSION="$(jq -r '.conclusion' <<<"${SMOKE_JSON}")"
+              SMOKE_URL="$(jq -r '.html_url' <<<"${SMOKE_JSON}")"
+              [ "${SMOKE_CONCLUSION}" = "success" ] || fail "Production Smoke concluded ${SMOKE_CONCLUSION}"
+            else
+              fail "Production Smoke did not complete"
+            fi
+
+            fetch_match "English homepage" "${SITE_URL}/" /tmp/home-en.html \
+              "Pick a country. See where the weather looks better." "Choose a country" "Open weather map"
+            fetch_match "Simplified homepage" "${SITE_URL}/zh-cn" /tmp/home-cn.html \
+              "选择一个国家，一张图看懂哪里天气更好。" "选择国家" "打开天气地图"
+            fetch_match "Traditional homepage" "${SITE_URL}/zh-hant" /tmp/home-hant.html \
+              "選擇一個國家，一張圖看懂哪裡天氣更好。" "選擇國家" "打開天氣地圖"
+
+            fetch_match "English Japan map" "${SITE_URL}/jp" /tmp/jp-en.html \
+              "Japan travel weather at a glance" "Popular destinations at a glance" "Next 7 days"
+            fetch_match "Simplified Japan map" "${SITE_URL}/zh-cn/jp" /tmp/jp-cn.html \
+              "一张图看懂日本哪里天气更好" "热门旅游地天气一目了然" "未来 7 天"
+            fetch_match "Traditional Japan map" "${SITE_URL}/zh-hant/jp" /tmp/jp-hant.html \
+              "一張圖看懂日本哪裡天氣更好" "熱門旅遊地天氣一目了然" "未來 7 天"
+
+            assert_absent "English homepage" /tmp/home-en.html \
+              "Starting city" "Max one-way planning time" "Find 3 dry-weather destinations"
+            assert_absent "Simplified homepage" /tmp/home-cn.html \
+              "出发城市" "最长单程规划时间" "找 3 个少雨目的地"
+            assert_absent "Traditional homepage" /tmp/home-hant.html \
+              "出發城市" "最長單程規劃時間" "找 3 個少雨目的地"
+            assert_absent "English Japan map" /tmp/jp-en.html \
+              "Travel Score" "Build this trip" "ranks first"
+
+            fetch_match "Manifest" "${SITE_URL}/manifest.webmanifest" /tmp/manifest.json \
+              '"start_url": "/"' '"url": "/"'
+            assert_absent "Manifest" /tmp/manifest.json '"url": "/discover"'
+            fetch_match "Sitemap" "${SITE_URL}/sitemap.xml" /tmp/sitemap.xml \
+              "${SITE_URL}/jp" "${SITE_URL}/zh-cn/jp" "${SITE_URL}/zh-hant/jp"
+            assert_absent "Sitemap" /tmp/sitemap.xml "${SITE_URL}/discover"
+
+            fetch_match "Analytics health" "${ANALYTICS_URL}/health" /tmp/analytics-health.json \
+              '"ok":true' '"service":"product-analytics"' '"storage":"d1"'
+            fetch_match "Trip API health" "${TRIP_URL}/health" /tmp/trip-health.json \
+              '"ok":true' '"service":"trip-api"'
+            fetch_match "Weather Read health" "${READ_URL}/health" /tmp/read-health.json '"ok":true'
+
+            PREFLIGHT=$(curl --silent --show-error --output /tmp/preflight-body.txt \
+              --dump-header /tmp/preflight-headers.txt --write-out '%{http_code}' \
+              --request OPTIONS --header "origin: ${SITE_URL}" \
+              --header "access-control-request-method: POST" \
+              --header "access-control-request-headers: content-type" \
+              "${ANALYTICS_ENDPOINT}")
+            [ "${PREFLIGHT}" = "204" ] || fail "Analytics preflight returned ${PREFLIGHT}"
+            grep -Fiq "access-control-allow-origin: ${SITE_URL}" /tmp/preflight-headers.txt \
+              || fail "Analytics preflight missing canonical CORS origin"
+
+            OCCURRED_AT=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+            ACCEPT=$(curl --silent --show-error --output /tmp/accepted-event.json \
+              --write-out '%{http_code}' --request POST \
+              --header "origin: ${SITE_URL}" --header "content-type: application/json" \
+              --data "{\"event\":\"country_viewed\",\"event_version\":1,\"occurred_at\":\"${OCCURRED_AT}\",\"route_template\":\"/[country]\",\"locale\":\"en\",\"country_code\":\"JP\"}" \
+              "${ANALYTICS_ENDPOINT}")
+            [ "${ACCEPT}" = "202" ] && grep -Fq '"accepted":true' /tmp/accepted-event.json \
+              || fail "Country-map analytics event was not accepted (HTTP ${ACCEPT})"
+
+            DENIED=$(curl --silent --show-error --output /tmp/denied-event.json \
+              --write-out '%{http_code}' --request POST \
+              --header "origin: https://example.invalid" --header "content-type: application/json" \
+              --data "{\"event\":\"country_viewed\",\"event_version\":1,\"occurred_at\":\"${OCCURRED_AT}\",\"route_template\":\"/[country]\",\"locale\":\"en\",\"country_code\":\"JP\"}" \
+              "${ANALYTICS_ENDPOINT}")
+            [ "${DENIED}" = "403" ] && grep -Fq '"origin_not_allowed"' /tmp/denied-event.json \
+              || fail "Unapproved analytics origin was not denied"
+
+            python - <<'PY' > /tmp/jp-scripts.txt
+          import re
+          from pathlib import Path
+          html = Path('/tmp/jp-en.html').read_text(encoding='utf-8')
+          for src in re.findall(r'<script[^>]+src="([^"]+\.js[^"]*)"', html):
+              print(src)
+          PY
+            MAP_CODE=false
+            ANALYTICS_CODE=false
+            while IFS= read -r src; do
+              [ -n "${src}" ] || continue
+              case "${src}" in
+                http://*|https://*) script_url="${src}" ;;
+                /*) script_url="${SITE_URL}${src}" ;;
+                *) script_url="${SITE_URL}/${src}" ;;
+              esac
+              if curl --fail --silent --show-error --location --retry 3 \
+                "${script_url}" -o /tmp/jp-chunk.js; then
+                grep -Fq "country-weather-marker" /tmp/jp-chunk.js && MAP_CODE=true
+                grep -Fq "${ANALYTICS_ENDPOINT}" /tmp/jp-chunk.js && ANALYTICS_CODE=true
+              fi
+            done < /tmp/jp-scripts.txt
+            [ "${MAP_CODE}" = "true" ] || fail "Country-map client code was not found across page chunks"
+            [ "${ANALYTICS_CODE}" = "true" ] || fail "Analytics endpoint was not found across page chunks"
+          fi
+
+          {
+            echo "# Country weather map production verification v2"
+            echo
+            echo "- Target main SHA: \`${TARGET_SHA}\`"
+            echo "- Deploy run: ${DEPLOY_ID}"
+            echo "- Deploy conclusion: ${DEPLOY_CONCLUSION}"
+            echo "- Deploy URL: ${DEPLOY_URL}"
+            echo "- Production Smoke run: ${SMOKE_ID}"
+            echo "- Production Smoke conclusion: ${SMOKE_CONCLUSION}"
+            echo "- Production Smoke URL: ${SMOKE_URL}"
+            echo "- Localized homepages and country maps: $([ "${OVERALL}" = "success" ] && echo passed || echo see-errors)"
+            echo "- Sitemap and PWA: $([ "${OVERALL}" = "success" ] && echo passed || echo see-errors)"
+            echo "- Analytics CORS/write and service health: $([ "${OVERALL}" = "success" ] && echo passed || echo see-errors)"
+            echo "- Map and analytics JS chunks: $([ "${OVERALL}" = "success" ] && echo passed || echo see-errors)"
+            echo "- Overall: ${OVERALL}"
+            echo
+            echo "## Errors"
+            if [ -n "${ERRORS}" ]; then printf '%b\n' "${ERRORS}"; else echo "None"; fi
+          } > country-map-production-verification-v2.md
+
+          cat country-map-production-verification-v2.md
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add country-map-production-verification-v2.md
+          if ! git diff --cached --quiet; then
+            git commit -m "chore: record corrected country-map production verification"
+            git push origin HEAD:verify/country-map-production-release-v2
+          fi
+          [ "${OVERALL}" = "success" ]
