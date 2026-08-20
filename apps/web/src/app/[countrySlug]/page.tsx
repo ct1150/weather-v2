@@ -32,7 +32,7 @@ export function CountryPage({ viewModel, jsonLd, locale = "en" }: CountryPagePro
           <ol>
             <li>
               <a href={isChinese ? "/zh-cn" : "/"} className="focus-ring">
-                {isChinese ? "国家天气地图" : "Country weather maps"}
+                {isChinese ? "哪里不下雨" : "Country weather maps"}
               </a>
             </li>
             <li aria-current="page">{country.name}</li>
@@ -55,7 +55,7 @@ export function CountryPage({ viewModel, jsonLd, locale = "en" }: CountryPagePro
 
       {state === "loading" ? (
         <p role="status" className="mt-8 text-body text-muted">
-          {isChinese ? "正在加载国家天气地图…" : "Loading the country weather map…"}
+          {isChinese ? "正在加载哪里不下雨…" : "Loading the country weather map…"}
         </p>
       ) : null}
       {state === "error" ? (
