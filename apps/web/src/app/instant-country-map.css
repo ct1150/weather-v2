@@ -1,0 +1,217 @@
+.country-weather-map-instant {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  width: 100%;
+  min-height: 34rem;
+  background:
+    radial-gradient(circle at 50% 42%, rgb(255 255 255 / 0.94), transparent 52%),
+    linear-gradient(145deg, #eaf3fb 0%, #f8fbfd 48%, #edf7f5 100%);
+}
+
+.country-weather-map-instant::before {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  content: "";
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgb(18 35 62 / 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(18 35 62 / 0.035) 1px, transparent 1px);
+  background-size: 2.25rem 2.25rem;
+  mask-image: linear-gradient(to bottom, rgb(0 0 0 / 0.75), transparent 92%);
+}
+
+.country-outline-canvas {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.country-outline-shape {
+  fill: rgb(255 255 255 / 0.9);
+  stroke: rgb(var(--wnr-primary-dark) / 0.42);
+  stroke-width: 3;
+  vector-effect: non-scaling-stroke;
+  filter: drop-shadow(0 16px 18px rgb(18 35 62 / 0.09));
+}
+
+.country-marker-leaders line {
+  stroke: rgb(var(--wnr-body) / 0.38);
+  stroke-width: 1.5;
+  stroke-dasharray: 5 5;
+  vector-effect: non-scaling-stroke;
+}
+
+.country-marker-leaders circle {
+  fill: #fff;
+  stroke: rgb(var(--wnr-primary-dark) / 0.7);
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+}
+
+.country-weather-marker-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.country-static-weather-marker {
+  position: absolute;
+  display: flex;
+  width: 8.75rem;
+  min-height: 3.4rem;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.48rem 0.62rem;
+  border: 2px solid currentColor;
+  border-radius: 0.9rem;
+  color: rgb(var(--wnr-muted));
+  background: rgb(255 255 255 / 0.96);
+  box-shadow: 0 9px 24px rgb(18 35 62 / 0.17);
+  transform: translate(-50%, -50%);
+  transform-origin: center;
+  pointer-events: auto;
+  cursor: pointer;
+  transition:
+    transform 150ms ease,
+    box-shadow 150ms ease,
+    opacity 150ms ease;
+}
+
+.country-static-weather-marker:hover,
+.country-static-weather-marker:focus-visible,
+.country-static-weather-marker[aria-pressed="true"] {
+  z-index: 6;
+  transform: translate(-50%, -50%) scale(1.06);
+  outline: none;
+  box-shadow:
+    0 14px 34px rgb(18 35 62 / 0.24),
+    0 0 0 4px rgb(var(--wnr-primary) / 0.2);
+}
+
+.country-static-weather-marker.risk-good {
+  color: rgb(var(--wnr-success));
+}
+
+.country-static-weather-marker.risk-mixed {
+  color: rgb(var(--wnr-warning));
+}
+
+.country-static-weather-marker.risk-wet {
+  color: rgb(var(--wnr-accent));
+}
+
+.country-static-weather-marker.risk-unknown {
+  color: rgb(var(--wnr-muted));
+}
+
+.country-static-weather-marker.is-filtered {
+  opacity: 0.45;
+  border-style: dashed;
+  filter: grayscale(1);
+}
+
+.country-static-weather-marker.is-filtered:hover,
+.country-static-weather-marker.is-filtered:focus-visible,
+.country-static-weather-marker.is-filtered[aria-pressed="true"] {
+  opacity: 0.82;
+}
+
+.country-static-weather-icon {
+  flex: 0 0 auto;
+  font-size: 1.35rem;
+  line-height: 1;
+}
+
+.country-static-weather-copy {
+  min-width: 0;
+  text-align: left;
+}
+
+.country-static-weather-copy strong,
+.country-static-weather-copy small {
+  display: block;
+  overflow: hidden;
+  color: rgb(var(--wnr-foreground));
+  line-height: 1.15;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.country-static-weather-copy strong {
+  font-size: 0.67rem;
+  font-weight: 850;
+}
+
+.country-static-weather-copy small {
+  margin-top: 0.2rem;
+  color: rgb(var(--wnr-muted));
+  font-size: 0.55rem;
+  font-weight: 750;
+}
+
+.country-map-heading-status {
+  display: grid;
+  flex: 0 0 auto;
+  gap: 0.2rem;
+  justify-items: start;
+  color: rgb(var(--wnr-body));
+  font-size: 0.76rem;
+}
+
+.country-map-heading-status span {
+  color: rgb(var(--wnr-primary));
+  font-size: 0.67rem;
+  font-weight: 850;
+}
+
+@media (min-width: 640px) {
+  .country-map-heading-status {
+    justify-items: end;
+  }
+}
+
+@media (max-width: 1023px) {
+  .country-weather-map-instant {
+    height: min(70vh, 39rem);
+    min-height: 33rem;
+  }
+}
+
+@media (max-width: 639px) {
+  .country-weather-map-instant {
+    height: 68vh;
+    min-height: 32rem;
+  }
+
+  .country-static-weather-marker {
+    width: 6.15rem;
+    min-height: 2.85rem;
+    gap: 0.35rem;
+    padding: 0.38rem 0.45rem;
+    border-width: 1.5px;
+    border-radius: 0.72rem;
+  }
+
+  .country-static-weather-icon {
+    font-size: 1.05rem;
+  }
+
+  .country-static-weather-copy strong {
+    font-size: 0.58rem;
+  }
+
+  .country-static-weather-copy small {
+    font-size: 0.48rem;
+  }
+
+  .country-marker-leaders line {
+    stroke-width: 1;
+  }
+}
