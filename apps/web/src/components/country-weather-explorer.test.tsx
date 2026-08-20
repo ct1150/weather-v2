@@ -3,36 +3,8 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { CountryWeatherCityViewModel, LocalDate, ScoreViewModel } from "../app/view-models";
+import { CountryOutlineMap, layoutCountryMarkers } from "./CountryOutlineMap";
 import { CountryWeatherExplorer } from "./CountryWeatherExplorer";
-
-const maplibre = vi.hoisted(() => {
-  const markerElements: HTMLElement[] = [];
-  const Map = vi.fn().mockImplementation(() => ({
-    addControl: vi.fn(),
-    fitBounds: vi.fn(),
-    on: vi.fn((event: string, callback: () => void) => {
-      if (event === "load") callback();
-    }),
-    remove: vi.fn(),
-  }));
-  const Marker = vi.fn().mockImplementation(({ element }: { element: HTMLElement }) => {
-    markerElements.push(element);
-    return {
-      addTo: vi.fn().mockReturnThis(),
-      remove: vi.fn(),
-      setLngLat: vi.fn().mockReturnThis(),
-    };
-  });
-  class LngLatBounds {
-    extend(): this {
-      return this;
-    }
-  }
-  class NavigationControl {}
-  return { LngLatBounds, Map, Marker, NavigationControl, markerElements };
-});
-
-vi.mock("maplibre-gl", () => maplibre);
 
 const score = (value: number): ScoreViewModel => ({
   value,
@@ -117,15 +89,6 @@ function renderExplorer(locale: "en" | "zh-cn" | "zh-hant" = "en"): ReturnType<t
 
 beforeEach(() => {
   window.history.replaceState({}, "", "/jp");
-  maplibre.markerElements.length = 0;
-  Object.defineProperty(window.URL, "createObjectURL", {
-    configurable: true,
-    value: vi.fn(() => "blob:maplibre-test-worker"),
-  });
-  Object.defineProperty(window.URL, "revokeObjectURL", {
-    configurable: true,
-    value: vi.fn(),
-  });
   Object.defineProperty(window, "matchMedia", {
     configurable: true,
     value: vi.fn().mockReturnValue({ matches: false }),
@@ -141,28 +104,76 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
-describe("CountryWeatherExplorer country-map product", () => {
-  it("defaults to seven days and renders weather-first markers for every city", async () => {
-    renderExplorer();
+describe("CountryWeatherExplorer instant country map", () => {
+  it("renders the complete weather map synchronously without waiting for a tile provider", () => {
+    const { container } = renderExplorer();
 
     expect(screen.getByRole("button", { name: "Next 7 days" }).getAttribute("aria-pressed")).toBe(
       "true",
     );
-    expect(screen.getByText("Popular destinations at a glance")).toBeTruthy();
-    expect(screen.getAllByText("Popular destinations in Japan")).toHaveLength(2);
-    expect(screen.queryByText("Travel Score")).toBeNull();
-    expect(screen.queryByText("ranks first")).toBeNull();
-    expect(screen.getByTestId("country-weather-map")).toBeTruthy();
+    expect(screen.getByText("All supported travel destinations at a glance")).toBeTruthy();
+    const map = screen.getByTestId("country-weather-map");
+    expect(map.getAttribute("data-render-mode")).toBe("inline-svg");
+    expect(map.getAttribute("data-city-count")).toBe(String(CITIES.length));
+    expect(screen.getAllByTestId("country-weather-marker")).toHaveLength(CITIES.length);
+    expect(container.querySelector(".maplibregl-map")).toBeNull();
+    expect(container.textContent).toContain("3/3 shown");
 
-    await waitFor(() => expect(maplibre.Map).toHaveBeenCalledTimes(1));
-    await waitFor(() => expect(maplibre.markerElements).toHaveLength(3));
-    const labels = maplibre.markerElements.flatMap((element) =>
-      Array.from(element.querySelectorAll("button")).map((button) =>
-        button.getAttribute("aria-label"),
-      ),
-    );
+    const labels = screen
+      .getAllByTestId("country-weather-marker")
+      .map((marker) => marker.getAttribute("aria-label"));
     expect(labels.some((label) => label?.includes("Tokyo") && label.includes("3/7"))).toBe(true);
     expect(labels.some((label) => label?.includes("Osaka") && label.includes("7/7"))).toBe(true);
+  });
+
+  it("keeps dense markers distinct and inside the country canvas", () => {
+    const markers = CITIES.map((item) => ({
+      id: item.cityId,
+      name: item.cityName,
+      longitude: item.longitude,
+      latitude: item.latitude,
+      symbol: "☀️",
+      detail: "7/7 dry",
+      risk: "good" as const,
+      filtered: false,
+      selected: false,
+      ariaLabel: item.cityName,
+    }));
+    const layout = layoutCountryMarkers("JP", markers);
+    expect(layout).toHaveLength(CITIES.length);
+    expect(new Set(layout.map((marker) => `${marker.x.toFixed(2)}:${marker.y.toFixed(2)}`)).size).toBe(
+      CITIES.length,
+    );
+    for (const marker of layout) {
+      expect(marker.x).toBeGreaterThanOrEqual(0);
+      expect(marker.x).toBeLessThanOrEqual(1000);
+      expect(marker.y).toBeGreaterThanOrEqual(0);
+      expect(marker.y).toBeLessThanOrEqual(620);
+    }
+  });
+
+  it("renders every supplied catalogue marker in the outline component", () => {
+    render(
+      <CountryOutlineMap
+        countryId="JP"
+        countryName="Japan"
+        ariaLabel="Japan weather map"
+        markers={CITIES.map((item) => ({
+          id: item.cityId,
+          name: item.cityName,
+          longitude: item.longitude,
+          latitude: item.latitude,
+          symbol: "🌤️",
+          detail: "5/7 dry",
+          risk: "mixed",
+          filtered: false,
+          selected: false,
+          ariaLabel: `${item.cityName} weather`,
+        }))}
+        onSelect={vi.fn()}
+      />,
+    );
+    expect(screen.getAllByTestId("country-weather-marker")).toHaveLength(CITIES.length);
   });
 
   it("switches to the three-day view without a submit button", () => {
@@ -176,7 +187,7 @@ describe("CountryWeatherExplorer country-map product", () => {
     expect(screen.getByLabelText("Tokyo weather summary").textContent).toContain("2/3");
   });
 
-  it("greys destinations outside explicit limits instead of hiding them", () => {
+  it("greys destinations outside explicit limits without removing map or list entries", () => {
     const { container } = renderExplorer();
     fireEvent.change(screen.getByLabelText("Highest daily rain chance"), {
       target: { value: "40" },
@@ -185,19 +196,21 @@ describe("CountryWeatherExplorer country-map product", () => {
     const choices = Array.from(container.querySelectorAll(".country-city-choice"));
     const tokyo = choices.find((choice) => choice.textContent?.includes("Tokyo"));
     const osaka = choices.find((choice) => choice.textContent?.includes("Osaka"));
+    const tokyoMarker = container.querySelector('[data-city-id="tokyo"]');
     expect(tokyo?.className).toContain("is-filtered");
+    expect(tokyoMarker?.className).toContain("is-filtered");
     expect(osaka?.className).not.toContain("is-filtered");
     expect(container.textContent).toContain("Peak rain 80% exceeds 40%");
-    expect(choices).toHaveLength(3);
+    expect(choices).toHaveLength(CITIES.length);
+    expect(screen.getAllByTestId("country-weather-marker")).toHaveLength(CITIES.length);
     expect(window.location.search).toContain("rainMax=40");
   });
 
-  it("selects a map destination inline and preserves the country page", async () => {
+  it("selects a map destination inline and preserves the country page", () => {
     renderExplorer();
-    await waitFor(() => expect(maplibre.markerElements).toHaveLength(3));
-    const marker = maplibre.markerElements
-      .flatMap((element) => Array.from(element.querySelectorAll("button")))
-      .find((button) => button.getAttribute("aria-label")?.startsWith("Sapporo:"));
+    const marker = screen
+      .getAllByTestId("country-weather-marker")
+      .find((item) => item.getAttribute("data-city-id") === "sapporo");
 
     expect(marker).toBeDefined();
     fireEvent.click(marker!);
@@ -220,14 +233,16 @@ describe("CountryWeatherExplorer country-map product", () => {
     expect(screen.getByText("Link copied")).toBeTruthy();
   });
 
-  it("uses the same map interaction in Simplified and Traditional Chinese", () => {
+  it("uses the same complete map interaction in Simplified and Traditional Chinese", () => {
     renderExplorer("zh-cn");
     expect(screen.getByRole("button", { name: "未来 7 天" })).toBeTruthy();
-    expect(screen.getByText("热门旅游地天气一目了然")).toBeTruthy();
+    expect(screen.getByText("全部已收录旅行地天气一目了然")).toBeTruthy();
+    expect(screen.getAllByTestId("country-weather-marker")).toHaveLength(CITIES.length);
     cleanup();
 
     renderExplorer("zh-hant");
     expect(screen.getByRole("button", { name: "未來 7 天" })).toBeTruthy();
-    expect(screen.getByText("熱門旅遊地天氣一目了然")).toBeTruthy();
+    expect(screen.getByText("全部已收錄旅行地天氣一目了然")).toBeTruthy();
+    expect(screen.getAllByTestId("country-weather-marker")).toHaveLength(CITIES.length);
   });
 });
