@@ -108,12 +108,12 @@ jobs:
           fetch_and_match "English read-only share route" "${SITE_URL}/trips/share" /tmp/trip-share-page.html \
             "Read-only shared trip" "noindex"
           fetch_and_match "English country weather map" "${SITE_URL}/jp" /tmp/weather-en-country.html \
-            "Japan travel weather at a glance" "Popular destinations at a glance" "Next 7 days"
+            "Japan travel weather at a glance" "All supported travel destinations at a glance" "Next 7 days"
           fetch_and_match "English city-to-trip bridge" "${SITE_URL}/jp/tokyo" /tmp/weather-en-city.html \
             "Tokyo" "Use this weather in your itinerary"
 
           fetch_and_match "Traditional homepage" "${SITE_URL}/zh-hant" /tmp/home-hant.html \
-            "選擇一個國家，一張圖看懂哪裡天氣更好。" "選擇國家" "打開天氣地圖"
+            "選擇一個國家，一張圖看懂哪裡天氣更好。" "哪裡不下雨" "選擇國家" "打開天氣地圖"
           fetch_and_match "Traditional landing" "${SITE_URL}/zh-hant/trips" /tmp/trips-hant.html \
             "進階行程工具" "既有行程仍可繼續使用。" "返回少雨目的地工具"
           fetch_and_match "Traditional import route" "${SITE_URL}/zh-hant/trips/new" /tmp/trips-new-hant.html \
@@ -125,12 +125,12 @@ jobs:
           fetch_and_match "Traditional read-only share route" "${SITE_URL}/zh-hant/trips/share" /tmp/trip-share-hant.html \
             "唯讀分享行程" "noindex"
           fetch_and_match "Traditional country weather route" "${SITE_URL}/zh-hant/jp" /tmp/weather-hant-country.html \
-            "一張圖看懂日本哪裡天氣更好" "熱門旅遊地天氣一目了然" "未來 7 天"
+            "一張圖看懂日本哪裡天氣更好" "全部已收錄旅行地天氣一目了然" "未來 7 天"
           fetch_and_match "Traditional city weather route" "${SITE_URL}/zh-hant/jp/tokyo" /tmp/weather-hant-city.html \
             "目的地天氣" "7 天旅行天氣" "東京" "把天氣結論帶進行程"
 
           fetch_and_match "Simplified homepage" "${SITE_URL}/zh-cn" /tmp/home-cn.html \
-            "选择一个国家，一张图看懂哪里天气更好。" "选择国家" "打开天气地图"
+            "选择一个国家，一张图看懂哪里天气更好。" "哪里不下雨" "选择国家" "打开天气地图"
           fetch_and_match "Simplified landing" "${SITE_URL}/zh-cn/trips" /tmp/trips-cn.html \
             "高级行程工具" "已有行程仍可继续使用。" "返回少雨目的地工具"
           fetch_and_match "Simplified import route" "${SITE_URL}/zh-cn/trips/new" /tmp/trips-new-cn.html \
@@ -140,9 +140,28 @@ jobs:
           fetch_and_match "Simplified read-only share route" "${SITE_URL}/zh-cn/trips/share" /tmp/trip-share-cn.html \
             "只读分享行程" "noindex"
           fetch_and_match "Simplified country weather route" "${SITE_URL}/zh-cn/jp" /tmp/weather-cn-country.html \
-            "一张图看懂日本哪里天气更好" "热门旅游地天气一目了然" "未来 7 天"
+            "一张图看懂日本哪里天气更好" "全部已收录旅行地天气一目了然" "未来 7 天"
           fetch_and_match "Simplified city weather route" "${SITE_URL}/zh-cn/jp/tokyo" /tmp/weather-cn-city.html \
             "目的地天气" "7 天旅行天气" "东京" "把天气结论带进行程"
+
+          for FILE in /tmp/weather-en-country.html /tmp/weather-cn-country.html /tmp/weather-hant-country.html; do
+            grep -Fq 'data-render-mode="inline-svg"' "${FILE}" || {
+              echo "::error::Country map is not using the instant inline renderer: ${FILE}"
+              exit 1
+            }
+            grep -Fq 'data-city-count="8"' "${FILE}" || {
+              echo "::error::Japan country map does not declare all 8 supported destinations: ${FILE}"
+              exit 1
+            }
+            MARKER_COUNT=$(grep -o 'data-testid="country-weather-marker"' "${FILE}" | wc -l | tr -d ' ')
+            if [ "${MARKER_COUNT}" != "8" ]; then
+              echo "::error::Japan country map rendered ${MARKER_COUNT}/8 weather markers: ${FILE}"
+              exit 1
+            fi
+          done
+
+          fetch_and_match "Sun favicon" "${SITE_URL}/favicon.svg" /tmp/favicon.svg \
+            "Where Not Rain sun" "#fbbf24"
 
           fetch_and_match "Trip cities API" "${READ_URL}/api/v1/trip-cities?locale=en" /tmp/cities.json \
             jp-tokyo th-phuket kr-busan
