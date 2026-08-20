@@ -1,17 +1,14 @@
 // apps/web/src/app/destination-pages.test.ts
 //
-// Country + City destination page journey tests (PRD-FR-003, PRD-FR-004,
-// DATA-WEATHER-001, UX-STATE-001). The pages render crawlable primary content
-// (cities, rankings, weather, Travel Score) and honor the full async-state
-// contract, including independent weather/forecast/score regions.
+// Country + City destination page journey tests. Country pages now use one
+// map-first weather interaction, while city pages keep detailed weather and
+// existing compatibility surfaces.
 //
 // NOTE: `.ts` extension (Verify checks `destination-pages.test.ts` by name), so
 // the tree is composed with `createElement` (no JSX).
 
 import { createElement } from "react";
-
 import { renderToStaticMarkup } from "react-dom/server";
-
 import { describe, expect, it } from "vitest";
 
 import { CountryPage } from "./[countrySlug]/page";
@@ -21,8 +18,9 @@ import type {
   CityPageViewModel,
   CountryHeaderViewModel,
   CountryPageViewModel,
+  CountryWeatherCityViewModel,
   DestinationLinkViewModel,
-  RankingSectionViewModel,
+  LocalDate,
   ScoreViewModel,
   WeatherSummaryViewModel,
 } from "./view-models";
@@ -48,25 +46,65 @@ function countryHeader(): CountryHeaderViewModel {
   };
 }
 
+function countryWeatherCity(
+  cityId: string,
+  cityName: string,
+  path: string,
+  latitude: number,
+  longitude: number,
+  rain: ReadonlyArray<number>,
+): CountryWeatherCityViewModel {
+  return {
+    cityId,
+    cityName,
+    countryName: "Japan",
+    path,
+    latitude,
+    longitude,
+    timezone: "Asia/Tokyo",
+    days: rain.map((probability, index) => ({
+      localDate: `2026-07-${String(index + 20).padStart(2, "0")}` as LocalDate,
+      weather: {
+        conditionLabel: probability > 60 ? "Rain showers" : "Clear",
+        temperatureMin: 18 + index,
+        temperatureMax: 26 + index,
+        rainProbability: probability,
+        precipitationMm: probability > 60 ? 9 : 0.5,
+        windSpeedMax: 18 + index,
+        observedAt: "2026-07-20T00:00:00Z",
+      },
+      score: { value: 85, state: "available", confidence: 0.9, reasonCodes: [] },
+    })),
+  };
+}
+
 function countryFixture(state: CountryPageViewModel["state"] = "ready"): CountryPageViewModel {
-  const rankings: RankingSectionViewModel[] = [
-    {
-      theme: "beach",
-      title: "Best beach escapes",
-      items: [
-        link("TYO", "Tokyo", "Japan", "/jp/tokyo"),
-        link("OSA", "Osaka", "Japan", "/jp/osaka"),
-      ],
-    },
-  ];
   return {
     country: countryHeader(),
     cities: [
       link("TYO", "Tokyo", "Japan", "/jp/tokyo"),
       link("OSA", "Osaka", "Japan", "/jp/osaka"),
     ],
-    rankings,
+    rankings: [
+      {
+        theme: "beach",
+        title: "Best beach escapes",
+        items: [
+          link("TYO", "Tokyo", "Japan", "/jp/tokyo"),
+          link("OSA", "Osaka", "Japan", "/jp/osaka"),
+        ],
+      },
+    ],
     relatedLinks: [link("SEL", "Seoul", "South Korea", "/kr/seoul")],
+    weatherCities: [
+      countryWeatherCity("TYO", "Tokyo", "/jp/tokyo", 35.68, 139.69, [20, 75]),
+      countryWeatherCity("OSA", "Osaka", "/jp/osaka", 34.69, 135.5, [15, 25]),
+    ],
+    availableCountries: [
+      { slug: "jp", name: "Japan", path: "/jp" },
+      { slug: "kr", name: "South Korea", path: "/kr" },
+    ],
+    dataUpdatedLabel: "Updated 2026-07-20",
     state,
   };
 }
@@ -127,48 +165,60 @@ function renderCity(vm: CityPageViewModel): string {
   return renderToStaticMarkup(createElement(CityPage, { viewModel: vm }));
 }
 
-describe("Country destination page (PRD-FR-003)", () => {
+describe("Country weather-map page", () => {
   const html = renderCountry(countryFixture("ready"));
 
-  it("renders the country name and summary as crawlable primary content", () => {
-    expect(html).toContain("Japan");
-    expect(html).toContain("island nation");
+  it("renders the country-first map identity as crawlable primary content", () => {
+    expect(html).toContain("Japan travel weather at a glance");
+    expect(html).toContain("Popular destinations at a glance");
+    expect(html).toContain("Next 7 days");
+    expect(html).toContain('data-testid="country-weather-map"');
   });
 
-  it("lists cities with links to their detail pages", () => {
-    expect(html).toContain('href="/jp/tokyo"');
-    expect(html).toContain('href="/jp/osaka"');
+  it("lists every mapped city with links to detailed forecasts", () => {
+    expect(html).toContain('/jp/tokyo?start=2026-07-20&amp;end=2026-07-21');
+    expect(html).toContain('/jp/osaka?start=2026-07-20&amp;end=2026-07-21');
     expect(html).toContain("Tokyo");
     expect(html).toContain("Osaka");
   });
 
-  it("renders curated ranking sections", () => {
-    expect(html).toContain("Best beach escapes");
+  it("does not reintroduce rankings, cross-country recommendations or trip actions", () => {
+    expect(html).not.toContain("Best beach escapes");
+    expect(html).not.toContain('href="/kr/seoul"');
+    expect(html).not.toContain("Build this trip");
+    expect(html).not.toContain("Travel Score");
   });
 
-  it("renders related destinations", () => {
-    expect(html).toContain('href="/kr/seoul"');
-  });
-
-  it("renders the loading state", () => {
+  it("renders the map loading state", () => {
     const loading = renderCountry(countryFixture("loading"));
-    expect(loading).toContain("Loading country");
-    expect(loading).not.toContain('href="/jp/tokyo"');
+    expect(loading).toContain("Loading the country weather map");
+    expect(loading).not.toContain('data-testid="country-weather-map"');
   });
 
-  it("renders the error state", () => {
+  it("renders the map error state", () => {
     const error = renderCountry(countryFixture("error"));
-    expect(error).toContain("couldn’t load this country");
+    expect(error).toContain("The weather map is unavailable right now");
   });
 
-  it("renders Chinese country navigation and decision heading when localized", () => {
+  it("renders Simplified Chinese country navigation and map heading", () => {
+    const localized = countryFixture("ready");
     const html = renderChineseCountry({
-      ...countryFixture("ready"),
+      ...localized,
       country: { ...countryHeader(), name: "日本", summary: "一次比较日本不同地区的天气。" },
+      availableCountries: [
+        { slug: "jp", name: "日本", path: "/zh-cn/jp" },
+        { slug: "kr", name: "韩国", path: "/zh-cn/kr" },
+      ],
+      weatherCities: localized.weatherCities?.map((city) => ({
+        ...city,
+        countryName: "日本",
+        path: `/zh-cn${city.path}`,
+      })),
     });
-    expect(html).toContain("亚洲旅行天气");
-    expect(html).toContain("比较日本2个旅游城市的天气");
-    expect(html).toContain("用天气决定去哪里");
+    expect(html).toContain("国家天气地图");
+    expect(html).toContain("一张图看懂日本哪里天气更好");
+    expect(html).toContain("热门旅游地天气一目了然");
+    expect(html).toContain("未来 7 天");
   });
 });
 
