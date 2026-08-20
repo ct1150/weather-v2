@@ -16,7 +16,7 @@ export interface CountryWeatherDataset {
 }
 
 export interface CountryWeatherExplorerProps extends InstantCountryWeatherExplorerProps {
-  readonly countryDatasets?: ReadonlyArray<CountryWeatherDataset>;
+  readonly countryDatasets?: ReadonlyArray<CountryWeatherDataset> | undefined;
 }
 
 const PRESERVED_COUNTRY_QUERY_KEYS = ["range", "from", "to"] as const;
