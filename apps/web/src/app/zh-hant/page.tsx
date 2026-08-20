@@ -7,7 +7,7 @@ import { toTraditionalText } from "../../trips/traditional";
 import { buildAlternates, localeUrl, routeRobots } from "../seo";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const title = "國家旅行天氣地圖 | Where Not Rain";
+  const title = "哪裡不下雨 | Where Not Rain";
   const description =
     "選擇一個國家，在地圖上直接查看熱門旅遊地未來 7 天的天氣圖示、少雨天數和氣溫。";
   return {
@@ -43,7 +43,7 @@ export default async function TraditionalChineseHome(): Promise<ReactElement> {
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "CollectionPage",
-    name: "國家旅行天氣地圖",
+    name: "哪裡不下雨",
     description: "選擇一個國家，一張地圖查看熱門旅遊地未來 7 天的天氣。",
     url: pageUrl,
     dateModified: dataset.dataUpdatedAt,
