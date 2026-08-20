@@ -1,710 +1,94 @@
-name: Apply requested country map UI refinements
+# Lightweight pull-request validation.
+# Draft PR pushes do not allocate a hosted runner. Validation starts when the PR
+# is marked Ready for review, and re-runs only for subsequent non-draft updates.
+
+name: PR CI
 
 on:
-  push:
-    branches: [fix/instant-complete-country-weather-map]
-    paths: [.github/workflows/pr-ci.yml]
+  pull_request:
+    types: [opened, reopened, ready_for_review, synchronize]
 
 permissions:
-  contents: write
+  contents: read
+  pull-requests: read
 
 concurrency:
-  group: country-map-ui-refinements
-  cancel-in-progress: false
+  group: pr-ci-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+env:
+  PNPM_VERSION: "10.11.0"
+  NODE_VERSION: "22"
 
 jobs:
-  refine:
+  verify:
+    if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
-      - name: Checkout country-map branch
+      - name: Checkout
         uses: actions/checkout@v4
-        with:
-          ref: fix/instant-complete-country-weather-map
-          fetch-depth: 0
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
-          version: 10.11.0
+          version: ${{ env.PNPM_VERSION }}
 
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Apply UI refinements
-        shell: bash
+      - name: Format check
+        run: pnpm format:check
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Build library packages
+        run: pnpm -r --filter '!@wnr/web' --filter '!@wnr/weather-sync' --filter '!@wnr/maintenance' build
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Unit / integration tests
         run: |
-          python - <<'PY'
-          from pathlib import Path
-          import re
-
-          def read(path: str) -> str:
-              return Path(path).read_text(encoding="utf-8")
-
-          def write(path: str, text: str) -> None:
-              Path(path).write_text(text, encoding="utf-8")
-
-          def replace_once(path: str, old: str, new: str) -> None:
-              text = read(path)
-              if old not in text:
-                  raise SystemExit(f"replacement anchor missing in {path}: {old[:100]!r}")
-              write(path, text.replace(old, new, 1))
-
-          def regex_once(path: str, pattern: str, replacement: str) -> None:
-              text = read(path)
-              updated, count = re.subn(pattern, replacement, text, count=1, flags=re.S)
-              if count != 1:
-                  raise SystemExit(f"regex anchor matched {count} times in {path}: {pattern}")
-              write(path, updated)
-
-          sun_svg = '''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="Where Not Rain sun">
-            <rect width="32" height="32" rx="8" fill="#0f172a" />
-            <circle cx="16" cy="16" r="5.5" fill="#fbbf24" />
-            <g fill="none" stroke="#fbbf24" stroke-width="2.2" stroke-linecap="round">
-              <path d="M16 4.2v3.1M16 24.7v3.1M4.2 16h3.1M24.7 16h3.1" />
-              <path d="m7.7 7.7 2.2 2.2M22.1 22.1l2.2 2.2M24.3 7.7l-2.2 2.2M9.9 22.1l-2.2 2.2" />
-            </g>
-          </svg>
-          '''
-          write("apps/web/public/favicon.svg", sun_svg)
-          write("apps/web/public/pwa-icon.svg", sun_svg)
-
-          site_header = "apps/web/src/components/SiteHeader.tsx"
-          text = read(site_header)
-          brand = '''function BrandMark(): ReactElement {
-            return (
-              <span className="brand-mark" aria-hidden="true">
-                <svg viewBox="0 0 36 36" fill="none">
-                  <circle cx="18" cy="18" r="6.5" fill="currentColor" />
-                  <path
-                    d="M18 3.5v4M18 28.5v4M3.5 18h4M28.5 18h4M7.75 7.75l2.8 2.8M25.45 25.45l2.8 2.8M28.25 7.75l-2.8 2.8M10.55 25.45l-2.8 2.8"
-                    stroke="currentColor"
-                    strokeWidth="2.4"
-                    strokeLinecap="round"
-                  />
-                </svg>
-              </span>
-            );
-          }
-          '''
-          updated, count = re.subn(
-              r'function BrandMark\(\): ReactElement \{.*?\n\}\n\nexport function SiteHeader',
-              brand + "\nexport function SiteHeader",
-              text,
-              count=1,
-              flags=re.S,
-          )
-          if count != 1:
-              raise SystemExit("SiteHeader BrandMark anchor missing")
-          replacements = {
-              '"Where Not Rain 國家旅行天氣地圖首頁"': '"Where Not Rain 哪裡不下雨首頁"',
-              '"Where Not Rain 国家旅行天气地图首页"': '"Where Not Rain 哪里不下雨首页"',
-              '"Where Not Rain country travel weather maps home"': '"Where Not Rain home"',
-              'isTraditional ? "國家天氣圖" : isSimplified ? "国家天气图" : "Weather maps"':
-                  'isTraditional ? "哪裡不下雨" : isSimplified ? "哪里不下雨" : "Weather maps"',
-          }
-          for old, new in replacements.items():
-              if old not in updated:
-                  raise SystemExit(f"SiteHeader text anchor missing: {old}")
-              updated = updated.replace(old, new, 1)
-          write(site_header, updated)
-
-          home = "apps/web/src/components/CountryMapHome.tsx"
-          replace_once(
-              home,
-              'import { useEffect, type ReactElement } from "react";\n',
-              'import { useEffect, type ReactElement } from "react";\nimport { useRouter } from "next/navigation";\n',
-          )
-          replace_once(home, '    eyebrow: "国家旅行天气地图",', '    eyebrow: "哪里不下雨",')
-          replace_once(home, '    eyebrow: "國家旅行天氣地圖",', '    eyebrow: "哪裡不下雨",')
-          replace_once(
-              home,
-              '  const copy = COPY[locale];\n\n  useEffect(() => {',
-              '  const copy = COPY[locale];\n  const router = useRouter();\n\n  useEffect(() => {',
-          )
-          replace_once(
-              home,
-              '  }, [locale]);\n\n  function recordCountryOpen',
-              '  }, [locale]);\n\n  useEffect(() => {\n    for (const country of countries) router.prefetch(country.path);\n  }, [countries, router]);\n\n  function recordCountryOpen',
-          )
-          replace_once(home, '              window.location.assign(selected.path);', '              router.push(selected.path);')
-
-          explorer = "apps/web/src/components/InstantCountryWeatherExplorer.tsx"
-          replace_once(
-              explorer,
-              'import { useEffect, useMemo, useRef, useState, type ReactElement } from "react";\n',
-              'import { useEffect, useMemo, useRef, useState, type ReactElement } from "react";\nimport { useRouter } from "next/navigation";\n',
-          )
-          replace_once(
-              explorer,
-              '  const copy = COPY[locale];\n  const [preset,',
-              '  const copy = COPY[locale];\n  const router = useRouter();\n  const [preset,',
-          )
-          regex_once(
-              explorer,
-              r'\nfunction parseNumber\(value: string \| null\): number \| null \{.*?\n\}\n',
-              '\n',
-          )
-          regex_once(
-              explorer,
-              r'\nfunction activeFilterCount\(filters: WeatherFilters\): number \{.*?\n\}\n',
-              '\n',
-          )
-          replace_once(
-              explorer,
-              '''      setFilters({
-                rainMax: parseNumber(params.get("rainMax")),
-                windMax: parseNumber(params.get("windMax")),
-                tempMin: parseNumber(params.get("tempMin")),
-                tempMax: parseNumber(params.get("tempMax")),
-              });''',
-              '''      setFilters(EMPTY_FILTERS);
-              const obsoleteFilterKeys = ["rainMax", "windMax", "tempMin", "tempMax"] as const;
-              const hasObsoleteFilters = obsoleteFilterKeys.some((key) => params.has(key));
-              if (hasObsoleteFilters) {
-                for (const key of obsoleteFilterKeys) params.delete(key);
-                const search = params.toString();
-                window.history.replaceState(
-                  {},
-                  "",
-                  `${window.location.pathname}${search.length > 0 ? `?${search}` : ""}${window.location.hash}`,
-                );
-              }''',
-          )
-          replace_once(explorer, '  const filterCount = activeFilterCount(filters);\n', '')
-          regex_once(
-              explorer,
-              r'\n  function updateFilter\(field: keyof WeatherFilters, raw: string\): void \{.*?\n  \}\n\n  function clearFilters\(\): void \{.*?\n  \}\n',
-              '\n',
-          )
-          regex_once(
-              explorer,
-              r'\n      <details className="country-filter-details">.*?\n      </details>\n',
-              '\n',
-          )
-          replace_once(
-              explorer,
-              '''            <p className={`country-filter-result ${selected.filtered ? "is-filtered" : ""}`}>
-                {selected.filtered ? copy.outsideLimits : copy.matchesLimits}
-              </p>
-              {selected.filterReasons.length > 0 ? (
-                <ul className="country-filter-reasons">
-                  {selected.filterReasons.map((reason) => (
-                    <li key={reason}>{reason}</li>
-                  ))}
-                </ul>
-              ) : null}
-''',
-              '',
-          )
-          replace_once(
-              explorer,
-              '''  useEffect(() => {
-                emitProductAnalytics({
-                  locale,
-                  routeTemplate: "/[country]",
-                  fields: { event: "country_viewed", country_code: country.countryId },
-                });
-              }, [country.countryId, locale]);
-
-              function selectCity''',
-              '''  useEffect(() => {
-                emitProductAnalytics({
-                  locale,
-                  routeTemplate: "/[country]",
-                  fields: { event: "country_viewed", country_code: country.countryId },
-                });
-              }, [country.countryId, locale]);
-
-              useEffect(() => {
-                for (const option of countries) router.prefetch(option.path);
-              }, [countries, router]);
-
-              function switchCountry(path: string): void {
-                const destination = new URL(path, window.location.origin);
-                const current = new URLSearchParams(window.location.search);
-                for (const key of ["range", "from", "to"] as const) {
-                  const value = current.get(key);
-                  if (value !== null) destination.searchParams.set(key, value);
-                }
-                router.push(`${destination.pathname}${destination.search}`);
-              }
-
-              function selectCity''',
-          )
-          replace_once(
-              explorer,
-              '''            onChange={(event) =>
-                window.location.assign(`${event.target.value}${window.location.search}`)
-              }''',
-              '            onChange={(event) => switchCountry(event.target.value)}',
-          )
-
-          css = "apps/web/src/app/instant-country-map.css"
-          replace_once(
-              css,
-              '''  border: 2px solid currentColor;
-                border-radius: 0.9rem;
-                color: rgb(var(--wnr-muted));
-                background: rgb(255 255 255 / 0.96);''',
-              '''  --marker-risk-color: rgb(var(--wnr-muted));
-                --marker-risk-tint: rgb(var(--wnr-muted) / 0.08);
-                --marker-risk-ring: rgb(var(--wnr-muted) / 0.24);
-                border: 3px solid var(--marker-risk-color);
-                border-radius: 0.9rem;
-                color: var(--marker-risk-color);
-                background: linear-gradient(
-                  135deg,
-                  var(--marker-risk-tint),
-                  rgb(255 255 255 / 0.98) 62%
-                );''',
-          )
-          replace_once(
-              css,
-              '    0 0 0 4px rgb(var(--wnr-primary) / 0.2);',
-              '    0 0 0 4px var(--marker-risk-ring);',
-          )
-          replace_once(
-              css,
-              '''.country-static-weather-marker.risk-good {
-                color: rgb(var(--wnr-success));
-              }
-
-              .country-static-weather-marker.risk-mixed {
-                color: rgb(var(--wnr-warning));
-              }
-
-              .country-static-weather-marker.risk-wet {
-                color: rgb(var(--wnr-accent));
-              }
-
-              .country-static-weather-marker.risk-unknown {
-                color: rgb(var(--wnr-muted));
-              }''',
-              '''.country-static-weather-marker.risk-good {
-                --marker-risk-color: rgb(var(--wnr-success));
-                --marker-risk-tint: rgb(var(--wnr-success) / 0.12);
-                --marker-risk-ring: rgb(var(--wnr-success) / 0.25);
-              }
-
-              .country-static-weather-marker.risk-mixed {
-                --marker-risk-color: rgb(var(--wnr-warning));
-                --marker-risk-tint: rgb(var(--wnr-warning) / 0.12);
-                --marker-risk-ring: rgb(var(--wnr-warning) / 0.25);
-              }
-
-              .country-static-weather-marker.risk-wet {
-                --marker-risk-color: rgb(var(--wnr-accent));
-                --marker-risk-tint: rgb(var(--wnr-accent) / 0.13);
-                --marker-risk-ring: rgb(var(--wnr-accent) / 0.26);
-              }
-
-              .country-static-weather-marker.risk-unknown {
-                --marker-risk-color: rgb(var(--wnr-muted));
-                --marker-risk-tint: rgb(var(--wnr-muted) / 0.08);
-                --marker-risk-ring: rgb(var(--wnr-muted) / 0.22);
-              }''',
-          )
-          replace_once(css, '    border-width: 1.5px;', '    border-width: 2.5px;')
-
-          simple_home = "apps/web/src/app/zh-cn/page.tsx"
-          replace_once(simple_home, '"国家旅行天气地图 | Where Not Rain"', '"哪里不下雨 | Where Not Rain"')
-          replace_once(simple_home, '    name: "国家旅行天气地图",', '    name: "哪里不下雨",')
-
-          traditional_home = "apps/web/src/app/zh-hant/page.tsx"
-          replace_once(traditional_home, '"國家旅行天氣地圖 | Where Not Rain"', '"哪裡不下雨 | Where Not Rain"')
-          replace_once(traditional_home, '    name: "國家旅行天氣地圖",', '    name: "哪裡不下雨",')
-
-          country_page = "apps/web/src/app/[countrySlug]/page.tsx"
-          replace_once(country_page, '{isChinese ? "国家天气地图" : "Country weather maps"}', '{isChinese ? "哪里不下雨" : "Country weather maps"}')
-          replace_once(country_page, '"正在加载国家天气地图…"', '"正在加载哪里不下雨…"')
-
-          traditional_country = "apps/web/src/app/zh-hant/[countrySlug]/page.tsx"
-          text = read(traditional_country)
-          text = text.replace('"國家旅行天氣地圖"', '"哪裡不下雨"')
-          text = text.replace('國家天氣地圖', '哪裡不下雨')
-          write(traditional_country, text)
-
-          smoke = ".github/workflows/production-smoke.yml"
-          text = read(smoke)
-          text = text.replace('"Popular destinations at a glance"', '"All supported travel destinations at a glance"')
-          text = text.replace('"熱門旅遊地天氣一目了然"', '"全部已收錄旅行地天氣一目了然"')
-          text = text.replace('"热门旅游地天气一目了然"', '"全部已收录旅行地天气一目了然"')
-          text = text.replace(
-              '"選擇一個國家，一張圖看懂哪裡天氣更好。" "選擇國家" "打開天氣地圖"',
-              '"選擇一個國家，一張圖看懂哪裡天氣更好。" "哪裡不下雨" "選擇國家" "打開天氣地圖"',
-          )
-          text = text.replace(
-              '"选择一个国家，一张图看懂哪里天气更好。" "选择国家" "打开天气地图"',
-              '"选择一个国家，一张图看懂哪里天气更好。" "哪里不下雨" "选择国家" "打开天气地图"',
-          )
-          anchor = '''          fetch_and_match "Simplified country weather route" "${SITE_URL}/zh-cn/jp" /tmp/weather-cn-country.html \\
-            "一张图看懂日本哪里天气更好" "全部已收录旅行地天气一目了然" "未来 7 天"\n'''
-          coverage = '''\n          for FILE in /tmp/weather-en-country.html /tmp/weather-cn-country.html /tmp/weather-hant-country.html; do
-            grep -Fq 'data-render-mode="inline-svg"' "${FILE}" || {
-              echo "::error::Country map is not using the instant inline renderer: ${FILE}"
-              exit 1
-            }
-            grep -Fq 'data-city-count="8"' "${FILE}" || {
-              echo "::error::Japan country map does not declare all 8 supported destinations: ${FILE}"
-              exit 1
-            }
-            MARKER_COUNT=$(grep -o 'data-testid="country-weather-marker"' "${FILE}" | wc -l | tr -d ' ')
-            if [ "${MARKER_COUNT}" != "8" ]; then
-              echo "::error::Japan country map rendered ${MARKER_COUNT}/8 weather markers: ${FILE}"
-              exit 1
-            fi
-          done
-'''
-          if coverage.strip() not in text:
-              if anchor not in text:
-                  raise SystemExit("production smoke coverage anchor missing")
-              text = text.replace(anchor, anchor + coverage, 1)
-          write(smoke, text)
-
-          explorer_test = "apps/web/src/components/country-weather-explorer.test.tsx"
-          text = read(explorer_test)
-          text = text.replace(
-              '// @vitest-environment jsdom\n\n',
-              '// @vitest-environment jsdom\n\nimport { readFileSync } from "node:fs";\n',
-              1,
-          )
-          anchor = 'import { CountryWeatherExplorer } from "./CountryWeatherExplorer";\n'
-          router_mock = '''import { CountryWeatherExplorer } from "./CountryWeatherExplorer";
-
-          const navigation = vi.hoisted(() => ({
-            push: vi.fn(),
-            prefetch: vi.fn(),
-          }));
-
-          vi.mock("next/navigation", () => ({
-            useRouter: () => navigation,
-          }));
-
-          const instantMapStyles = readFileSync(
-            new URL("../app/instant-country-map.css", import.meta.url),
-            "utf8",
-          );
-'''
-          if anchor not in text:
-              raise SystemExit("country explorer test import anchor missing")
-          text = text.replace(anchor, router_mock, 1)
-          text = text.replace(
-              '    expect(screen.getByText("All supported travel destinations at a glance")).toBeTruthy();',
-              '    expect(screen.getByText("All supported travel destinations at a glance")).toBeTruthy();\n    expect(screen.queryByText("Optional weather limits")).toBeNull();',
-              1,
-          )
-          pattern = r'\n  it\("greys destinations outside explicit limits without removing map or list entries", \(\) => \{.*?\n  \}\);\n'
-          replacement = '''
-            it("uses explicit risk-colored marker borders and removes the optional-limit row", () => {
-              renderExplorer();
-              expect(instantMapStyles).toContain("border: 3px solid var(--marker-risk-color)");
-              expect(instantMapStyles).toContain(".country-static-weather-marker.risk-good");
-              expect(instantMapStyles).toContain(".country-static-weather-marker.risk-mixed");
-              expect(instantMapStyles).toContain(".country-static-weather-marker.risk-wet");
-              expect(screen.queryByText("Optional weather limits")).toBeNull();
-            });
-
-            it("prefetches country pages and switches countries through the client router", async () => {
-              renderExplorer();
-              await waitFor(() => expect(navigation.prefetch).toHaveBeenCalledWith("/kr"));
-              fireEvent.click(screen.getByRole("button", { name: "Next 3 days" }));
-              fireEvent.change(screen.getByLabelText("Choose country"), {
-                target: { value: "/kr" },
-              });
-              expect(navigation.push).toHaveBeenCalledWith("/kr?range=3d");
-            });
-          '''
-          text, count = re.subn(pattern, replacement, text, count=1, flags=re.S)
-          if count != 1:
-              raise SystemExit("country explorer filter-test block missing")
-          write(explorer_test, text)
-
-          destination_test = "apps/web/src/app/destination-pages.test.ts"
-          text = read(destination_test)
-          text = text.replace(
-              'import { describe, expect, it } from "vitest";',
-              'import { describe, expect, it, vi } from "vitest";',
-              1,
-          )
-          import_anchor = 'import { CityPage } from "./[countrySlug]/[citySlug]/page";\n'
-          mock = '''import { CityPage } from "./[countrySlug]/[citySlug]/page";
-
-          const navigation = vi.hoisted(() => ({
-            push: vi.fn(),
-            prefetch: vi.fn(),
-          }));
-
-          vi.mock("next/navigation", () => ({
-            useRouter: () => navigation,
-          }));
-'''
-          if import_anchor not in text:
-              raise SystemExit("destination test import anchor missing")
-          text = text.replace(import_anchor, mock, 1)
-          text = text.replace("Popular destinations at a glance", "All supported travel destinations at a glance")
-          text = text.replace("国家天气地图", "哪里不下雨")
-          text = text.replace("热门旅游地天气一目了然", "全部已收录旅行地天气一目了然")
-          write(destination_test, text)
-
-          production_contract = '''import { existsSync, readFileSync } from "node:fs";
-          import { describe, expect, it } from "vitest";
-
-          const stagedSmoke = new URL(
-            "../../../../tooling/one-off/production-smoke.country-map.yml",
-            import.meta.url,
-          );
-          const productionSmoke = readFileSync(
-            existsSync(stagedSmoke)
-              ? stagedSmoke
-              : new URL("../../../../.github/workflows/production-smoke.yml", import.meta.url),
-            "utf8",
-          );
-          const explorer = readFileSync(
-            new URL("./InstantCountryWeatherExplorer.tsx", import.meta.url),
-            "utf8",
-          );
-          const outlineMap = readFileSync(new URL("./CountryOutlineMap.tsx", import.meta.url), "utf8");
-          const instantMapStyles = readFileSync(
-            new URL("../app/instant-country-map.css", import.meta.url),
-            "utf8",
-          );
-          const countryMapHome = readFileSync(new URL("./CountryMapHome.tsx", import.meta.url), "utf8");
-          const favicon = readFileSync(new URL("../../public/favicon.svg", import.meta.url), "utf8");
-          const englishHome = readFileSync(new URL("../app/page.tsx", import.meta.url), "utf8");
-          const simplifiedHome = readFileSync(new URL("../app/zh-cn/page.tsx", import.meta.url), "utf8");
-          const traditionalHome = readFileSync(new URL("../app/zh-hant/page.tsx", import.meta.url), "utf8");
-          const englishCountry = readFileSync(
-            new URL("../app/[countrySlug]/page.tsx", import.meta.url),
-            "utf8",
-          );
-          const traditionalCountry = readFileSync(
-            new URL("../app/zh-hant/[countrySlug]/page.tsx", import.meta.url),
-            "utf8",
-          );
-
-          describe("production smoke copy contract", () => {
-            it("keeps the country-first homepage identity in all three locales", () => {
-              expect(englishHome).toContain("CountryMapHome");
-              expect(simplifiedHome).toContain("哪里不下雨 | Where Not Rain");
-              expect(traditionalHome).toContain("哪裡不下雨 | Where Not Rain");
-              for (const phrase of [
-                "Pick a country. See where the weather looks better.",
-                "选择一个国家，一张图看懂哪里天气更好。",
-                "選擇一個國家，一張圖看懂哪裡天氣更好。",
-                "哪里不下雨",
-                "哪裡不下雨",
-              ]) {
-                expect(productionSmoke).toContain(phrase);
-              }
-            });
-
-            it("verifies the immediate complete map and removes the optional-limit surface", () => {
-              expect(englishCountry).toContain("all ${cities.length} supported travel destinations immediately");
-              expect(traditionalCountry).toContain("目前目錄全部 {cities.length}");
-              for (const phrase of [
-                "All supported travel destinations at a glance",
-                "全部已收录旅行地天气一目了然",
-                "全部已收錄旅行地天氣一目了然",
-              ]) {
-                expect(explorer).toContain(phrase);
-                expect(productionSmoke).toContain(phrase);
-              }
-              expect(explorer).toContain('useState<RangePreset>("7d")');
-              expect(explorer).not.toContain('<details className="country-filter-details">');
-              expect(explorer).not.toContain('className={`country-filter-result');
-              expect(explorer).toContain("router.prefetch");
-              expect(explorer).toContain("router.push");
-              expect(countryMapHome).toContain("router.push");
-            });
-
-            it("renders every supplied marker in the initial React tree", () => {
-              expect(outlineMap).toContain('data-render-mode="inline-svg"');
-              expect(outlineMap).toContain('data-testid="country-weather-marker"');
-              expect(explorer).toContain("markers={mapMarkers}");
-              expect(outlineMap).toContain("positioned.map");
-              expect(productionSmoke).toContain('data-render-mode="inline-svg"');
-              expect(productionSmoke).toContain('data-city-count="8"');
-              expect(productionSmoke).toContain('data-testid="country-weather-marker"');
-            });
-
-            it("uses visible risk colors on marker borders", () => {
-              expect(instantMapStyles).toContain("border: 3px solid var(--marker-risk-color)");
-              expect(instantMapStyles).toContain(".country-static-weather-marker.risk-good");
-              expect(instantMapStyles).toContain(".country-static-weather-marker.risk-mixed");
-              expect(instantMapStyles).toContain(".country-static-weather-marker.risk-wet");
-              expect(instantMapStyles).toContain("--marker-risk-tint");
-            });
-
-            it("uses a high-contrast sun favicon", () => {
-              expect(favicon).toContain('aria-label="Where Not Rain sun"');
-              expect(favicon).toContain("#fbbf24");
-              expect(favicon).not.toContain(">W<");
-            });
-
-            it("does not restore origin, reachability or Top 3 acquisition copy", () => {
-              for (const obsolete of [
-                "Find 3 dry-weather destinations",
-                "找 3 个少雨目的地",
-                "找 3 個少雨目的地",
-                "Starting city",
-                "出发城市",
-                "出發城市",
-                "Max one-way planning time",
-                "最长单程规划时间",
-                "最長單程規劃時間",
-              ]) {
-                expect(productionSmoke).not.toContain(obsolete);
-              }
-            });
-          });
-          '''
-          write("apps/web/src/components/production-smoke-copy-contract.test.ts", production_contract)
-
-          ux_contract = '''import { readFileSync } from "node:fs";
-          import { describe, expect, it } from "vitest";
-
-          const englishHome = readFileSync(new URL("../app/page.tsx", import.meta.url), "utf8");
-          const simplifiedHome = readFileSync(new URL("../app/zh-cn/page.tsx", import.meta.url), "utf8");
-          const traditionalHome = readFileSync(new URL("../app/zh-hant/page.tsx", import.meta.url), "utf8");
-          const countryMapHome = readFileSync(new URL("./CountryMapHome.tsx", import.meta.url), "utf8");
-          const header = readFileSync(new URL("./SiteHeader.tsx", import.meta.url), "utf8");
-          const explorer = readFileSync(
-            new URL("./InstantCountryWeatherExplorer.tsx", import.meta.url),
-            "utf8",
-          );
-          const instantMapStyles = readFileSync(
-            new URL("../app/instant-country-map.css", import.meta.url),
-            "utf8",
-          );
-          const sitemap = readFileSync(new URL("../app/sitemap.ts", import.meta.url), "utf8");
-          const trips = readFileSync(new URL("../app/trips/page.tsx", import.meta.url), "utf8");
-          const legacyDiscovery = readFileSync(new URL("../app/discover/page.tsx", import.meta.url), "utf8");
-
-          describe("country-first weather-map UX contracts", () => {
-            it("gives every homepage one primary country-selection task", () => {
-              expect(englishHome).toContain("CountryMapHome");
-              expect(simplifiedHome).toContain('locale="zh-cn"');
-              expect(traditionalHome).toContain('locale="zh-hant"');
-              for (const page of [englishHome, simplifiedHome, traditionalHome]) {
-                expect(page).not.toContain("origin");
-                expect(page).not.toContain("maxTravel");
-                expect(page).not.toContain('href="/discover"');
-                expect(page).not.toContain('href="/trips"');
-              }
-            });
-
-            it("uses the Where Not Rain identity in every locale", () => {
-              expect(header).toContain("Choose a country");
-              expect(header).toContain("选择国家");
-              expect(header).toContain("選擇國家");
-              expect(header).toContain("哪里不下雨");
-              expect(header).toContain("哪裡不下雨");
-              expect(header).not.toContain('"国家天气图"');
-              expect(header).not.toContain('"國家天氣圖"');
-              expect(simplifiedHome).toContain("哪里不下雨 | Where Not Rain");
-              expect(traditionalHome).toContain("哪裡不下雨 | Where Not Rain");
-            });
-
-            it("keeps date selection, removes optional limits, and switches countries in-app", () => {
-              expect(explorer).toContain('useState<RangePreset>("7d")');
-              expect(explorer).not.toContain('<details className="country-filter-details">');
-              expect(explorer).not.toContain('className={`country-filter-result');
-              expect(explorer).toContain("router.prefetch");
-              expect(explorer).toContain("router.push");
-              expect(countryMapHome).toContain("router.prefetch");
-              expect(countryMapHome).toContain("router.push");
-              expect(instantMapStyles).toContain("border: 3px solid var(--marker-risk-color)");
-              expect(countryMapHome).toContain("weather_discovery_view");
-              expect(countryMapHome).toContain("search_result_clicked");
-              expect(explorer).toContain("country_viewed");
-              expect(explorer).toContain("city_viewed");
-              expect(explorer).not.toContain("DiscoveryTripAction");
-            });
-
-            it("keeps advanced Trips and legacy discovery outside acquisition", () => {
-              expect(trips).toContain("Advanced itinerary tools");
-              expect(trips).toContain("robots: { index: false, follow: true }");
-              expect(legacyDiscovery).toContain("robots: { index: false, follow: true }");
-              expect(sitemap).not.toContain('localizedSitemapEntries("/trips"');
-              expect(sitemap).not.toContain('localizedSitemapEntries("/discover"');
-              expect(sitemap).not.toContain('localizedSitemapEntries("/explore"');
-            });
-
-            it("keeps complete three-locale alternates and destination sitemap routes", () => {
-              expect(englishHome).toContain('buildAlternates("/", "en", ["en", "zh-cn", "zh-hant"])');
-              expect(simplifiedHome).toContain('buildAlternates("/", "zh-cn", ["en", "zh-cn", "zh-hant"])');
-              expect(traditionalHome).toContain(
-                'buildAlternates("/", "zh-hant", ["en", "zh-cn", "zh-hant"])',
-              );
-              expect(sitemap).toContain("countryPath");
-              expect(sitemap).toContain("cityPath");
-            });
-          });
-          '''
-          write("apps/web/src/components/ux-funnel-contract.test.ts", ux_contract)
-          PY
-
-      - name: Format changed source
-        run: |
-          pnpm exec prettier --write \
-            .github/workflows/production-smoke.yml \
-            apps/web/src/app/instant-country-map.css \
-            'apps/web/src/app/[countrySlug]/page.tsx' \
-            apps/web/src/app/zh-cn/page.tsx \
-            apps/web/src/app/zh-hant/page.tsx \
-            'apps/web/src/app/zh-hant/[countrySlug]/page.tsx' \
-            apps/web/src/app/destination-pages.test.ts \
-            apps/web/src/components/CountryMapHome.tsx \
-            apps/web/src/components/SiteHeader.tsx \
-            apps/web/src/components/InstantCountryWeatherExplorer.tsx \
-            apps/web/src/components/country-weather-explorer.test.tsx \
-            apps/web/src/components/production-smoke-copy-contract.test.ts \
-            apps/web/src/components/ux-funnel-contract.test.ts
-
-      - name: Focused validation
-        run: |
-          pnpm --filter @wnr/web lint
-          pnpm --filter @wnr/web typecheck
-          pnpm --filter @wnr/web exec vitest run \
-            src/components/country-weather-explorer.test.tsx \
-            src/components/production-smoke-copy-contract.test.ts \
-            src/components/ux-funnel-contract.test.ts \
-            src/app/destination-pages.test.ts
-          git diff --check
-
-      - name: Restore standard PR CI and publish branch update
-        run: |
-          set -euo pipefail
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git fetch origin main --depth=1
-          git show FETCH_HEAD:.github/workflows/pr-ci.yml > .github/workflows/pr-ci.yml
-          if [ -f .github/workflows/apply-instant-country-map-fix-once.yml ]; then
-            git rm -f .github/workflows/apply-instant-country-map-fix-once.yml
+          set -o pipefail
+          pnpm test 2>&1 | tee test-results.log
+          if grep -qiE "Tests +[0-9]+ failed|Test Files +[0-9]+ failed|FAIL " test-results.log; then
+            echo "::error::Unit/integration tests failed — gate is fail-closed."
+            exit 1
           fi
-          git add -- \
-            .github/workflows/pr-ci.yml \
-            .github/workflows/production-smoke.yml \
-            apps/web/public/favicon.svg \
-            apps/web/public/pwa-icon.svg \
-            apps/web/src/app/instant-country-map.css \
-            'apps/web/src/app/[countrySlug]/page.tsx' \
-            apps/web/src/app/zh-cn/page.tsx \
-            apps/web/src/app/zh-hant/page.tsx \
-            'apps/web/src/app/zh-hant/[countrySlug]/page.tsx' \
-            apps/web/src/app/destination-pages.test.ts \
-            apps/web/src/components/CountryMapHome.tsx \
-            apps/web/src/components/SiteHeader.tsx \
-            apps/web/src/components/InstantCountryWeatherExplorer.tsx \
-            apps/web/src/components/country-weather-explorer.test.tsx \
-            apps/web/src/components/production-smoke-copy-contract.test.ts \
-            apps/web/src/components/ux-funnel-contract.test.ts
-          git commit -m "fix: refine country weather map experience"
-          git push origin HEAD:fix/instant-complete-country-weather-map
+
+      - name: Documentation gate
+        run: pnpm docs:check
+
+      - name: Build web static export
+        env:
+          APP_BASE_URL: https://868656.xyz
+          NEXT_PUBLIC_TRIP_API_URL: https://trip.868656.xyz
+          NEXT_PUBLIC_PRODUCT_ANALYTICS_URL: https://analytics.868656.xyz/api/v1/product-events
+          NEXT_PUBLIC_CLOUDFLARE_ANALYTICS_ENABLED: "false"
+        run: pnpm --filter @wnr/web build
+
+      - name: Build Workers
+        run: |
+          pnpm --filter @wnr/weather-sync build
+          pnpm --filter @wnr/weather-read build
+          pnpm --filter @wnr/trip-api build
+          pnpm --filter @wnr/product-analytics build
+
+      - name: Pipeline contract tests
+        run: node --test tooling/deploy/pipeline-contract.test.mjs
+
+      - name: Secret scan
+        run: |
+          if grep -RIiE "WEATHERAPI_SECRET|CLOUDFLARE_API_TOKEN|BETTER_AUTH_SECRET|GOOGLE_CLIENT_SECRET|RESEND_API_KEY" apps/web/out apps/web/src workers/trip-api/src workers/product-analytics/src 2>/dev/null; then
+            echo "::error::Possible secret leaked into build output or source"
+            exit 1
+          fi
+          echo "secret scan: clean"
