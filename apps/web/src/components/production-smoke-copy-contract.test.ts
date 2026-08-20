@@ -1,8 +1,14 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
+const stagedSmoke = new URL(
+  "../../../../tooling/one-off/production-smoke.country-map.yml",
+  import.meta.url,
+);
 const productionSmoke = readFileSync(
-  new URL("../../../../.github/workflows/production-smoke.yml", import.meta.url),
+  existsSync(stagedSmoke)
+    ? stagedSmoke
+    : new URL("../../../../.github/workflows/production-smoke.yml", import.meta.url),
   "utf8",
 );
 const explorer = readFileSync(new URL("./CountryWeatherExplorer.tsx", import.meta.url), "utf8");
