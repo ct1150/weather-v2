@@ -12,7 +12,7 @@
     "typecheck": "pnpm -r typecheck",
     "lint": "pnpm -r lint",
     "format": "prettier --write .",
-    "format:check": "prettier --write apps/web/src/app/destination-pages.test.ts && git diff -- apps/web/src/app/destination-pages.test.ts && exit 1",
+    "format:check": "prettier --check .",
     "docs:test": "node --test tooling/docs/*.test.mjs",
     "docs:check": "node tooling/docs/validate-docs.mjs --mode active",
     "indexnow:submit": "node tooling/deploy/submit-indexnow.mjs",
