@@ -207,7 +207,5 @@ export default async function Page({
     ],
   };
 
-  return (
-    <CountryPage viewModel={viewModel} jsonLd={jsonLd} countryDatasets={countryDatasets} />
-  );
+  return <CountryPage viewModel={viewModel} jsonLd={jsonLd} countryDatasets={countryDatasets} />;
 }
