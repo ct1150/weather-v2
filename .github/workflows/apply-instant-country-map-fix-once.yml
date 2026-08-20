@@ -1,50 +1,16 @@
-name: Format optimistic country switcher once
+# Retired one-off workflow retained only because repository automation does not
+# permit deleting workflow files through the current integration.
+name: Retired country-map one-off
 
 on:
-  push:
-    branches: [fix/instant-complete-country-weather-map]
-    paths: [.github/workflows/apply-instant-country-map-fix-once.yml]
+  workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  format:
+  retired:
+    if: ${{ false }}
     runs-on: ubuntu-latest
-    timeout-minutes: 10
     steps:
-      - name: Checkout branch
-        uses: actions/checkout@v4
-        with:
-          ref: fix/instant-complete-country-weather-map
-          fetch-depth: 0
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 10.11.0
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: pnpm
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Format switcher
-        run: pnpm exec prettier --write apps/web/src/components/CountryWeatherExplorer.tsx
-
-      - name: Publish formatted source
-        run: |
-          set -euo pipefail
-          if git diff --quiet -- apps/web/src/components/CountryWeatherExplorer.tsx; then
-            echo "Already formatted"
-            exit 0
-          fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -- apps/web/src/components/CountryWeatherExplorer.tsx
-          git commit -m "style: format optimistic country switcher"
-          git push origin HEAD:fix/instant-complete-country-weather-map
+      - run: echo "This one-off workflow has been retired."
