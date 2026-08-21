@@ -88,12 +88,15 @@ describe("production smoke copy contract", () => {
     expect(productionSmoke).toContain('data-testid="country-weather-marker"');
   });
 
-  it("maps good, mixed and wet states to explicit marker-border colors", () => {
-    expect(instantMapStyles).toContain("border: 3px solid var(--marker-risk-color)");
-    expect(instantMapStyles).toContain(".country-static-weather-marker.risk-good");
-    expect(instantMapStyles).toContain(".country-static-weather-marker.risk-mixed");
-    expect(instantMapStyles).toContain(".country-static-weather-marker.risk-wet");
-    expect(instantMapStyles).toContain("--marker-risk-tint");
+  it("maps good, mixed and wet states to explicit weather-dot colors", () => {
+    expect(instantMapStyles).toContain(".country-weather-dot.risk-good");
+    expect(instantMapStyles).toContain("--dot-color: rgb(var(--wnr-success))");
+    expect(instantMapStyles).toContain(".country-weather-dot.risk-mixed");
+    expect(instantMapStyles).toContain("--dot-color: rgb(var(--wnr-warning))");
+    expect(instantMapStyles).toContain(".country-weather-dot.risk-wet");
+    expect(instantMapStyles).toContain("--dot-color: rgb(var(--wnr-accent))");
+    expect(instantMapStyles).toContain("background: var(--dot-color)");
+    expect(instantMapStyles).toContain(".country-weather-dot:hover .country-weather-dot-tooltip");
   });
 
   it("switches supported countries from local data without route-prefetch work", () => {
