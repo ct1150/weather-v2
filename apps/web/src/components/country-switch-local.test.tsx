@@ -106,20 +106,24 @@ describe("local country switching", () => {
       container.querySelector('[data-country-switch-mode="local-state-history"]'),
     ).toBeTruthy();
     expect(container.querySelector('[data-testid="country-prefetch-links"]')).toBeNull();
-    expect(screen.getByText("Tokyo")).toBeTruthy();
+    expect(screen.getAllByText("Tokyo").length).toBeGreaterThan(0);
 
     fireEvent.change(screen.getByLabelText("Choose country"), { target: { value: "/kr" } });
 
-    await waitFor(() => expect(screen.getByText("Seoul")).toBeTruthy());
+    await waitFor(() => expect(screen.getAllByText("Seoul").length).toBeGreaterThan(0));
     expect(window.location.pathname).toBe("/kr");
     expect(window.location.search).toBe("?range=3d");
-    expect(screen.getByText("South Korea travel weather at a glance")).toBeTruthy();
-    expect(screen.getByText("South Korea").textContent).toBe("South Korea");
+    expect(container.querySelector("[data-country-map-title]")?.textContent).toBe(
+      "South Korea travel weather at a glance",
+    );
+    expect(container.querySelector("[data-country-map-breadcrumb]")?.textContent).toBe(
+      "South Korea",
+    );
     expect(document.title).toBe("South Korea travel weather — Where Not Rain");
   });
 
   it("restores the cached map on browser history events", async () => {
-    render(
+    const { container } = render(
       <main>
         <span data-country-map-breadcrumb>Japan</span>
         <h1 data-country-map-title>Japan travel weather at a glance</h1>
@@ -139,13 +143,16 @@ describe("local country switching", () => {
     );
 
     fireEvent.change(screen.getByLabelText("Choose country"), { target: { value: "/kr" } });
-    await waitFor(() => expect(screen.getByText("Seoul")).toBeTruthy());
+    await waitFor(() => expect(screen.getAllByText("Seoul").length).toBeGreaterThan(0));
 
     window.history.replaceState({}, "", "/jp?range=3d");
     window.dispatchEvent(new PopStateEvent("popstate"));
 
-    await waitFor(() => expect(screen.getByText("Tokyo")).toBeTruthy());
+    await waitFor(() => expect(screen.getAllByText("Tokyo").length).toBeGreaterThan(0));
     expect(window.location.pathname).toBe("/jp");
+    expect(container.querySelector("[data-country-map-title]")?.textContent).toBe(
+      "Japan travel weather at a glance",
+    );
     expect(document.title).toBe("Japan travel weather — Where Not Rain");
   });
 });
