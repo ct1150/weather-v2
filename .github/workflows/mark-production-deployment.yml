@@ -1,0 +1,29 @@
+name: Mark production deployment
+
+on:
+  workflow_run:
+    workflows: ["Deploy"]
+    types: [completed]
+
+permissions:
+  contents: write
+
+jobs:
+  mark:
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_branch == 'main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Point production-deployed at the verified release
+        env:
+          DEPLOYED_SHA: ${{ github.event.workflow_run.head_sha }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          git init release-marker
+          cd release-marker
+          git remote add origin "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          git fetch --depth=1 origin "${DEPLOYED_SHA}"
+          git push origin "${DEPLOYED_SHA}:refs/heads/production-deployed" --force
+          echo "production-deployed -> ${DEPLOYED_SHA}"
