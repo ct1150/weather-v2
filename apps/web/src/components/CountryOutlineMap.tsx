@@ -41,6 +41,7 @@ const MARKER_WIDTH = 220;
 const MARKER_HEIGHT = 72;
 const EDGE_X = 72;
 const EDGE_Y = 48;
+export const MAX_MARKER_LEADER_DISTANCE = 116;
 
 function clamp(value: number, minimum: number, maximum: number): number {
   return Math.max(minimum, Math.min(maximum, value));
@@ -49,11 +50,9 @@ function clamp(value: number, minimum: number, maximum: number): number {
 function candidateOffsets(): ReadonlyArray<readonly [number, number]> {
   const offsets: Array<readonly [number, number]> = [[0, 0]];
   for (const [radius, steps] of [
-    [82, 8],
-    [150, 12],
-    [230, 16],
-    [320, 20],
-    [400, 24],
+    [52, 8],
+    [84, 12],
+    [116, 16],
   ] as const) {
     for (let index = 0; index < steps; index += 1) {
       const angle = -Math.PI / 2 + (Math.PI * 2 * index) / steps;
@@ -149,6 +148,13 @@ function markerStyle(marker: PositionedCountryMarker): CSSProperties {
   };
 }
 
+function anchorStyle(marker: PositionedCountryMarker): CSSProperties {
+  return {
+    left: `${(marker.anchorX / COUNTRY_MAP_WIDTH) * 100}%`,
+    top: `${(marker.anchorY / COUNTRY_MAP_HEIGHT) * 100}%`,
+  };
+}
+
 export function CountryOutlineMap({
   countryId,
   countryName,
@@ -184,13 +190,28 @@ export function CountryOutlineMap({
         />
         <g className="country-marker-leaders" aria-hidden="true">
           {positioned.map((marker) => (
-            <g key={marker.id}>
-              <line x1={marker.anchorX} y1={marker.anchorY} x2={marker.x} y2={marker.y} />
-              <circle cx={marker.anchorX} cy={marker.anchorY} r="5" />
-            </g>
+            <line
+              key={marker.id}
+              x1={marker.anchorX}
+              y1={marker.anchorY}
+              x2={marker.x}
+              y2={marker.y}
+            />
           ))}
         </g>
       </svg>
+
+      <div className="country-weather-pin-layer" aria-hidden="true">
+        {positioned.map((marker) => (
+          <span
+            key={marker.id}
+            className={`country-weather-pin risk-${marker.risk}`}
+            style={anchorStyle(marker)}
+            data-testid="country-weather-pin"
+            data-city-id={marker.id}
+          />
+        ))}
+      </div>
 
       <div className="country-weather-marker-layer">
         {positioned.map((marker) => (
