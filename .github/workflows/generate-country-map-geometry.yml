@@ -1,0 +1,34 @@
+name: Generate country map geometry
+
+on:
+  push:
+    branches:
+      - fix/country-map-marker-geography
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/country-map-marker-geography
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Generate boundaries
+        run: node tooling/maps/generate-country-geometries.mjs
+      - name: Commit generated geometry
+        run: |
+          if git diff --quiet -- apps/web/src/components/country-map-world.generated.ts; then
+            echo "Generated geometry is already current."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add apps/web/src/components/country-map-world.generated.ts
+          git commit -m "build: refresh supported country map geometry"
+          git push origin HEAD:fix/country-map-marker-geography
