@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { countryMapGeometryOverride } from "./country-map-geometry-overrides";
-import { projectCountryPoint } from "./country-map-geometry";
+import { CHINA_MAP_RINGS } from "./country-map-cn.generated";
+import {
+  countryMapGeometryOverride,
+  projectCountryMapPoint,
+} from "./country-map-geometry-overrides";
 import {
   layoutCountryMarkers,
   MAX_MARKER_LEADER_DISTANCE,
@@ -95,19 +98,39 @@ function pathBounds(path: string) {
 }
 
 describe("China country-map geographic precision", () => {
-  it("keeps the visible China outline on the same projection frame as WGS84 points", () => {
+  it("derives the visible outline from real WGS84 boundary rings", () => {
     const geometry = countryMapGeometryOverride("CN");
     expect(geometry).not.toBeNull();
     if (geometry === null) return;
 
-    const southWest = projectCountryPoint(geometry, geometry.minLongitude, geometry.minLatitude);
-    const northEast = projectCountryPoint(geometry, geometry.maxLongitude, geometry.maxLatitude);
+    expect(CHINA_MAP_RINGS).toHaveLength(2);
+    expect(CHINA_MAP_RINGS[0].length).toBeGreaterThan(200);
+    expect(geometry.path.match(/[ML]/g)?.length ?? 0).toBeGreaterThan(200);
+  });
+
+  it("keeps the generated outline and WGS84 cities on the same Mercator frame", () => {
+    const geometry = countryMapGeometryOverride("CN");
+    expect(geometry).not.toBeNull();
+    if (geometry === null) return;
+
+    const southWest = projectCountryMapPoint(
+      "CN",
+      geometry,
+      geometry.minLongitude,
+      geometry.minLatitude,
+    );
+    const northEast = projectCountryMapPoint(
+      "CN",
+      geometry,
+      geometry.maxLongitude,
+      geometry.maxLatitude,
+    );
     const bounds = pathBounds(geometry.path);
 
-    expect(Math.abs(bounds.minX - northEast.x)).toBeLessThan(18);
-    expect(Math.abs(bounds.maxX - southWest.x)).toBeLessThan(18);
-    expect(Math.abs(bounds.minY - northEast.y)).toBeLessThan(18);
-    expect(Math.abs(bounds.maxY - southWest.y)).toBeLessThan(18);
+    expect(Math.abs(bounds.minX - northEast.x)).toBeLessThan(1);
+    expect(Math.abs(bounds.maxX - southWest.x)).toBeLessThan(1);
+    expect(Math.abs(bounds.minY - northEast.y)).toBeLessThan(1);
+    expect(Math.abs(bounds.maxY - southWest.y)).toBeLessThan(1);
   });
 
   it("keeps weather cards close to their exact geographic pins", () => {
