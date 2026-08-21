@@ -35,53 +35,8 @@ export interface CountryOutlineMapProps {
   readonly onSelect: (markerId: string) => void;
 }
 
-const MARKER_WIDTH = 220;
-const MARKER_HEIGHT = 72;
-const EDGE_X = 72;
-const EDGE_Y = 48;
-export const MAX_MARKER_LEADER_DISTANCE = 116;
-
-type MarkerPositionStyle = CSSProperties & {
-  readonly "--anchor-left": string;
-  readonly "--anchor-top": string;
-};
-
-function clamp(value: number, minimum: number, maximum: number): number {
-  return Math.max(minimum, Math.min(maximum, value));
-}
-
-function candidateOffsets(): ReadonlyArray<readonly [number, number]> {
-  const offsets: Array<readonly [number, number]> = [[0, 0]];
-  for (const [radius, steps] of [
-    [52, 8],
-    [84, 12],
-    [116, 16],
-  ] as const) {
-    for (let index = 0; index < steps; index += 1) {
-      const angle = -Math.PI / 2 + (Math.PI * 2 * index) / steps;
-      offsets.push([Math.cos(angle) * radius, Math.sin(angle) * radius]);
-    }
-  }
-  return offsets;
-}
-
-const CANDIDATE_OFFSETS = candidateOffsets();
-
-function overlapPenalty(
-  x: number,
-  y: number,
-  placed: ReadonlyArray<PositionedCountryMarker>,
-): number {
-  let penalty = 0;
-  for (const other of placed) {
-    const horizontal = Math.abs(x - other.x);
-    const vertical = Math.abs(y - other.y);
-    if (horizontal < MARKER_WIDTH && vertical < MARKER_HEIGHT) {
-      penalty += (MARKER_WIDTH - horizontal + 1) * (MARKER_HEIGHT - vertical + 1) * 1_000;
-    }
-  }
-  return penalty;
-}
+/** Dots now stay exactly on their geographic anchors. */
+export const MAX_MARKER_LEADER_DISTANCE = 0;
 
 function resolveCountryGeometry(countryId: string) {
   return countryMapGeometryOverride(countryId) ?? countryMapGeometry(countryId);
@@ -92,72 +47,34 @@ export function layoutCountryMarkers(
   markers: ReadonlyArray<CountryOutlineMarker>,
 ): ReadonlyArray<PositionedCountryMarker> {
   const geometry = resolveCountryGeometry(countryId);
-  const anchored = markers.map((marker) => ({
-    marker,
-    ...projectCountryMapPoint(countryId, geometry, marker.longitude, marker.latitude),
-  }));
-  const order = [...anchored].sort(
-    (left, right) =>
-      left.y - right.y || left.x - right.x || left.marker.id.localeCompare(right.marker.id),
-  );
-  const placed: PositionedCountryMarker[] = [];
-  const byId = new Map<string, PositionedCountryMarker>();
-
-  for (const entry of order) {
-    let best: PositionedCountryMarker | null = null;
-    let bestScore = Number.POSITIVE_INFINITY;
-    for (const [offsetX, offsetY] of CANDIDATE_OFFSETS) {
-      const rawX = entry.x + offsetX;
-      const rawY = entry.y + offsetY;
-      const x = clamp(rawX, EDGE_X, COUNTRY_MAP_WIDTH - EDGE_X);
-      const y = clamp(rawY, EDGE_Y, COUNTRY_MAP_HEIGHT - EDGE_Y);
-      const clampedDistance = Math.hypot(x - rawX, y - rawY);
-      const leaderDistance = Math.hypot(x - entry.x, y - entry.y);
-      const score = overlapPenalty(x, y, placed) + leaderDistance * 0.8 + clampedDistance * 5_000;
-      if (score < bestScore) {
-        bestScore = score;
-        best = {
-          ...entry.marker,
-          anchorX: entry.x,
-          anchorY: entry.y,
-          x,
-          y,
-        };
-      }
-      if (score === 0) break;
-    }
-    const resolved =
-      best ??
-      ({
-        ...entry.marker,
-        anchorX: entry.x,
-        anchorY: entry.y,
-        x: entry.x,
-        y: entry.y,
-      } satisfies PositionedCountryMarker);
-    placed.push(resolved);
-    byId.set(resolved.id, resolved);
-  }
-
-  return markers
-    .map((marker) => byId.get(marker.id))
-    .filter((marker): marker is PositionedCountryMarker => marker !== undefined);
+  return markers.map((marker) => {
+    const point = projectCountryMapPoint(countryId, geometry, marker.longitude, marker.latitude);
+    return {
+      ...marker,
+      anchorX: point.x,
+      anchorY: point.y,
+      x: point.x,
+      y: point.y,
+    };
+  });
 }
 
-function markerStyle(marker: PositionedCountryMarker): MarkerPositionStyle {
-  return {
-    left: `${(marker.x / COUNTRY_MAP_WIDTH) * 100}%`,
-    top: `${(marker.y / COUNTRY_MAP_HEIGHT) * 100}%`,
-    "--anchor-left": `${(marker.anchorX / COUNTRY_MAP_WIDTH) * 100}%`,
-    "--anchor-top": `${(marker.anchorY / COUNTRY_MAP_HEIGHT) * 100}%`,
-  };
-}
-
-function anchorStyle(marker: PositionedCountryMarker): CSSProperties {
+function markerStyle(marker: PositionedCountryMarker): CSSProperties {
   return {
     left: `${(marker.anchorX / COUNTRY_MAP_WIDTH) * 100}%`,
     top: `${(marker.anchorY / COUNTRY_MAP_HEIGHT) * 100}%`,
   };
+}
+
+function tooltipPlacement(marker: PositionedCountryMarker): string {
+  const horizontal =
+    marker.anchorX < COUNTRY_MAP_WIDTH * 0.2
+      ? "tooltip-left"
+      : marker.anchorX > COUNTRY_MAP_WIDTH * 0.8
+        ? "tooltip-right"
+        : "tooltip-center";
+  const vertical = marker.anchorY < COUNTRY_MAP_HEIGHT * 0.24 ? "tooltip-below" : "tooltip-above";
+  return `${horizontal} ${vertical}`;
 }
 
 export function CountryOutlineMap({
@@ -193,37 +110,14 @@ export function CountryOutlineMap({
           fillRule="evenodd"
           clipRule="evenodd"
         />
-        <g className="country-marker-leaders" aria-hidden="true">
-          {positioned.map((marker) => (
-            <line
-              key={marker.id}
-              x1={marker.anchorX}
-              y1={marker.anchorY}
-              x2={marker.x}
-              y2={marker.y}
-            />
-          ))}
-        </g>
       </svg>
 
-      <div className="country-weather-pin-layer" aria-hidden="true">
-        {positioned.map((marker) => (
-          <span
-            key={marker.id}
-            className={`country-weather-pin risk-${marker.risk}${marker.filtered ? " is-filtered" : ""}${marker.selected ? " is-selected" : ""}`}
-            style={anchorStyle(marker)}
-            data-testid="country-weather-pin"
-            data-city-id={marker.id}
-          />
-        ))}
-      </div>
-
-      <div className="country-weather-marker-layer">
+      <div className="country-weather-dot-layer">
         {positioned.map((marker) => (
           <button
             key={marker.id}
             type="button"
-            className={`country-static-weather-marker risk-${marker.risk}${marker.filtered ? " is-filtered" : ""}`}
+            className={`country-weather-dot risk-${marker.risk}${marker.filtered ? " is-filtered" : ""}${marker.selected ? " is-selected" : ""} ${tooltipPlacement(marker)}`}
             style={markerStyle(marker)}
             aria-label={marker.ariaLabel}
             aria-pressed={marker.selected}
@@ -232,11 +126,17 @@ export function CountryOutlineMap({
             data-selected={marker.selected ? "true" : "false"}
             onClick={() => onSelect(marker.id)}
           >
-            <span className="country-static-weather-icon" aria-hidden="true">
-              {marker.symbol}
-            </span>
-            <span className="country-static-weather-copy">
-              <strong>{marker.name}</strong>
+            <span
+              className={`country-weather-dot-core${marker.selected ? " is-selected" : ""}`}
+              data-testid="country-weather-pin"
+              data-city-id={marker.id}
+              aria-hidden="true"
+            />
+            <span className="country-weather-dot-tooltip" aria-hidden="true">
+              <span className="country-weather-dot-tooltip-heading">
+                <span>{marker.symbol}</span>
+                <strong>{marker.name}</strong>
+              </span>
               <small>{marker.detail}</small>
             </span>
           </button>
