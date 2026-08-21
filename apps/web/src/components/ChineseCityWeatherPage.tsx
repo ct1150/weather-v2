@@ -22,8 +22,7 @@ const COPY = {
     radar: "亚洲旅行天气",
     breadcrumb: "面包屑",
     eyebrow: "目的地天气",
-    intro: (country: string) =>
-      `查看降雨风险、气温和 7 天旅行评分，再和${country}其他目的地比较后决定行程。`,
+    intro: (country: string) => `查看未来 7 天的降雨、气温和每天变化，再和${country}其他城市比较。`,
     current: "当前天气",
     loadingWeather: "正在加载天气…",
     weatherError: "暂时无法加载当前天气。",
@@ -32,8 +31,8 @@ const COPY = {
     temperature: "气温",
     peakRain: "最高降雨概率",
     updated: "更新于",
-    score: "旅行评分",
-    reason: "评分原因",
+    score: "天气参考",
+    reason: "主要天气特点",
     plan: "安排未来几天",
     outlook: "7 天旅行天气",
     timezone: (timezone: string) => `日期与天气使用 ${timezone} 当地时间`,
@@ -43,21 +42,20 @@ const COPY = {
     today: "今天",
     tomorrow: "明天",
     day: (index: number) => `第 ${index + 1} 天`,
-    scoreShort: "评分",
+    scoreShort: "天气参考",
     peakRainShort: "最高降雨",
     covering: "覆盖日期：",
     relatedEyebrow: "继续探索",
     related: "相关目的地",
     footer: "Where Not Rain · 用天气决定去哪里",
     source: "天气数据：",
-    derived: " · 衍生旅行评分",
+    derived: "",
   },
   "zh-hant": {
     radar: "亞洲旅行天氣",
     breadcrumb: "麵包屑",
     eyebrow: "目的地天氣",
-    intro: (country: string) =>
-      `查看降雨風險、氣溫和 7 天旅行評分，再和${country}其他目的地比較後決定行程。`,
+    intro: (country: string) => `查看未來 7 天的降雨、氣溫和每天變化，再和${country}其他城市比較。`,
     current: "目前天氣",
     loadingWeather: "正在載入天氣…",
     weatherError: "暫時無法載入目前天氣。",
@@ -66,8 +64,8 @@ const COPY = {
     temperature: "氣溫",
     peakRain: "最高降雨機率",
     updated: "更新於",
-    score: "旅行評分",
-    reason: "評分原因",
+    score: "天氣參考",
+    reason: "主要天氣特點",
     plan: "安排未來幾天",
     outlook: "7 天旅行天氣",
     timezone: (timezone: string) => `日期與天氣使用 ${timezone} 當地時間`,
@@ -77,14 +75,14 @@ const COPY = {
     today: "今天",
     tomorrow: "明天",
     day: (index: number) => `第 ${index + 1} 天`,
-    scoreShort: "評分",
+    scoreShort: "天氣參考",
     peakRainShort: "最高降雨",
     covering: "涵蓋日期：",
     relatedEyebrow: "繼續探索",
     related: "相關目的地",
     footer: "Where Not Rain · 用天氣決定去哪裡",
     source: "天氣資料：",
-    derived: " · 衍生旅行評分",
+    derived: "",
   },
 } as const;
 
@@ -95,6 +93,18 @@ function renderScoreValue(score: ScoreViewModel, locale: ChineseWeatherLocale): 
     return "—";
   }
   return String(score.value);
+}
+
+function weatherReferenceLabel(score: ScoreViewModel, locale: ChineseWeatherLocale): string {
+  if (score.value === null) return renderScoreValue(score, locale);
+  if (locale === "zh-hant") {
+    if (score.value >= 75) return "整體較適合戶外安排";
+    if (score.value >= 50) return "部分時段需要留意";
+    return "建議多看逐日天氣再安排戶外活動";
+  }
+  if (score.value >= 75) return "整体较适合安排户外活动";
+  if (score.value >= 50) return "部分时段需要留意";
+  return "建议多看逐日天气再安排户外活动";
 }
 
 function formatObservation(value: string, locale: ChineseWeatherLocale): string {
@@ -294,14 +304,9 @@ export function ChineseCityWeatherPage({
 
         <section aria-label={copy.score} className="info-panel h-full">
           <p className="text-xs font-bold uppercase tracking-[0.12em] text-muted">{copy.score}</p>
-          <div className="mt-3 flex items-end gap-2">
-            <span className="text-5xl font-bold tracking-[-0.05em] text-foreground">
-              {renderScoreValue(score, locale)}
-            </span>
-            {score.value !== null ? (
-              <span className="mb-1 text-sm font-semibold text-muted">/ 100</span>
-            ) : null}
-          </div>
+          <p className="mt-3 text-2xl font-bold leading-tight text-foreground">
+            {weatherReferenceLabel(score, locale)}
+          </p>
           {score.reasonCodes.length > 0 ? (
             <ul className="mt-5 flex flex-wrap gap-2" aria-label={copy.reason}>
               {score.reasonCodes.map((reason) => (
@@ -370,12 +375,6 @@ export function ChineseCityWeatherPage({
                     }
                   >
                     {day.weather.rainProbability ?? "—"}% {copy.peakRainShort}
-                  </span>
-                  <span className="min-w-12 text-right text-sm font-bold text-foreground">
-                    {renderScoreValue(day.score, locale)}
-                    <span className="block text-[9px] uppercase tracking-[0.1em] text-muted">
-                      {copy.scoreShort}
-                    </span>
                   </span>
                 </div>
               </li>

@@ -41,10 +41,12 @@ function ScoreDial({ score }: { readonly score: number }): ReactElement {
   const style = {
     "--trip-score": `${score * 3.6}deg`,
   } as CSSProperties;
+  const label = score >= 75 ? "天气影响较小" : score >= 50 ? "部分时段需留意" : "建议调整户外安排";
+  const shortLabel = score >= 75 ? "较稳" : score >= 50 ? "留意" : "调整";
   return (
-    <div className="trip-score-dial" style={style} aria-label={`天气适宜度 ${score} 分`}>
-      <span>{score}</span>
-      <small>适宜度</small>
+    <div className="trip-score-dial" style={style} aria-label={label}>
+      <span>{shortLabel}</span>
+      <small>天气参考</small>
     </div>
   );
 }
@@ -61,10 +63,10 @@ function ActivityCard({ activity }: { readonly activity: ResolvedTripActivity })
         <div className="flex flex-wrap items-center gap-2">
           <h4 className="text-base font-bold text-foreground">{activity.name}</h4>
           <span className={`trip-risk-badge ${riskClass(activity.assessment.riskLevel)}`}>
-            {activity.assessment.score} · {riskCopy(activity.assessment.riskLevel)}
+            {riskCopy(activity.assessment.riskLevel)}
           </span>
           {activity.flexibility === "fixed" ? (
-            <span className="trip-constraint-badge">固定约束</span>
+            <span className="trip-constraint-badge">已固定</span>
           ) : null}
           {activity.latestDeparture !== undefined ? (
             <span className="trip-deadline-badge">最晚 {activity.latestDeparture}</span>
@@ -78,7 +80,7 @@ function ActivityCard({ activity }: { readonly activity: ResolvedTripActivity })
           <span>{formatTemperature(activity)}</span>
           <span>降雨 {metric(activity.weather?.rainProbability, "%")}</span>
           <span>风速 {metric(activity.weather?.windSpeedKph, " km/h")}</span>
-          <span>{activity.weather?.source === "open-meteo" ? "实时构建数据" : "预报快照"}</span>
+          <span>{activity.weather?.source === "open-meteo" ? "最新预报" : "已有预报"}</span>
         </div>
         <p className="mt-3 text-sm font-semibold text-foreground">{activity.assessment.summary}</p>
         <ul className="mt-2 grid gap-1 text-xs leading-5 text-muted sm:grid-cols-2">
@@ -146,7 +148,7 @@ export function TripPlannerDashboard({ trip }: { readonly trip: ResolvedTripPlan
         </div>
         <div>
           <span>天气数据</span>
-          <strong>{trip.liveWeatherEnabled ? "Open-Meteo 构建快照" : "内置预报快照"}</strong>
+          <strong>{trip.liveWeatherEnabled ? "最新天气" : "已有天气"}</strong>
         </div>
       </section>
 
@@ -200,7 +202,7 @@ export function TripPlannerDashboard({ trip }: { readonly trip: ResolvedTripPlan
 
         <div className={`trip-decision-panel ${riskClass(selectedDay.riskLevel)}`}>
           <div>
-            <span>天气决策摘要</span>
+            <span>今天的天气提醒</span>
             <strong>{selectedDay.primaryWeatherSummary}</strong>
           </div>
           <button type="button" onClick={() => setPlanBEnabled((value) => !value)}>
@@ -210,9 +212,7 @@ export function TripPlannerDashboard({ trip }: { readonly trip: ResolvedTripPlan
 
         {planBEnabled ? (
           <section className="trip-plan-b" aria-live="polite">
-            <p className="text-xs font-bold uppercase tracking-[0.14em]">
-              Weather-triggered Plan B
-            </p>
+            <p className="text-xs font-bold uppercase tracking-[0.14em]">天气变化后的备选安排</p>
             <h3 className="mt-2 text-xl font-bold">{selectedDay.planB}</h3>
             <p className="mt-3 text-sm leading-6 opacity-80">
               系统仅提出调整建议，不会自动修改已购机票、高铁、门票或酒店订单。固定约束始终优先。
@@ -224,7 +224,7 @@ export function TripPlannerDashboard({ trip }: { readonly trip: ResolvedTripPlan
           <div>
             <div className="flex items-end justify-between gap-4">
               <div>
-                <p className="eyebrow">逐项天气与约束</p>
+                <p className="eyebrow">逐项天气提醒</p>
                 <h3 className="section-title mt-2">今日时间轴</h3>
               </div>
               <button type="button" className="trip-print-button" onClick={() => window.print()}>
