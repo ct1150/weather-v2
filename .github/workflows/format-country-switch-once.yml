@@ -1,0 +1,50 @@
+name: Format country switch test once
+
+on:
+  push:
+    branches: [fix/instant-country-switch-local]
+    paths: [.github/workflows/format-country-switch-once.yml]
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: fix/instant-country-switch-local
+          fetch-depth: 0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.11.0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Format regression test
+        run: pnpm exec prettier --write apps/web/src/components/country-switch-local.test.tsx
+
+      - name: Commit formatted source
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- apps/web/src/components/country-switch-local.test.tsx
+          if git diff --cached --quiet; then
+            echo "No formatting changes needed"
+            exit 0
+          fi
+          git commit -m "style: format country switch test"
+          git push origin HEAD:fix/instant-country-switch-local
