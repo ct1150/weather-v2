@@ -60,9 +60,9 @@ describe("country-first weather-map UX contracts", () => {
     expect(explorerWrapper).not.toContain("country-prefetch-links");
     expect(countryMapHome).toContain('from "next/link"');
     expect(countryMapHome).not.toContain("window.location.assign");
-    expect(instantMapStyles).toContain("border: 3px solid var(--marker-risk-color)");
-    expect(countryMapHome).toContain("weather_discovery_view");
-    expect(countryMapHome).toContain("search_result_clicked");
+    expect(instantMapStyles).toContain(".country-weather-dot.risk-good");
+    expect(instantMapStyles).toContain("--dot-color: rgb(var(--wnr-success))");
+    expect(instantMapStyles).toContain(".country-weather-dot:hover .country-weather-dot-tooltip");
     expect(explorer).toContain("country_viewed");
     expect(explorer).toContain("city_viewed");
     expect(explorer).not.toContain("DiscoveryTripAction");
