@@ -96,11 +96,13 @@ describe("production smoke copy contract", () => {
     expect(instantMapStyles).toContain("--marker-risk-tint");
   });
 
-  it("switches countries through prefetched Next links instead of location assignment", () => {
-    expect(explorerWrapper).toContain('from "next/link"');
-    expect(explorerWrapper).toContain("onChangeCapture={switchCountry}");
-    expect(explorerWrapper).toContain("prefetch");
-    expect(explorerWrapper).not.toContain("window.location.assign");
+  it("switches supported countries from local data without route-prefetch work", () => {
+    expect(explorerWrapper).toContain('data-country-switch-mode="local-state-history"');
+    expect(explorerWrapper).toContain("window.history.pushState");
+    expect(explorerWrapper).toContain('window.addEventListener("popstate"');
+    expect(explorerWrapper).toContain("PRESERVED_COUNTRY_QUERY_KEYS");
+    expect(explorerWrapper).not.toContain('from "next/link"');
+    expect(explorerWrapper).not.toContain("country-prefetch-links");
     expect(countryMapHome).toContain('from "next/link"');
     expect(countryMapHome).not.toContain("window.location.assign");
   });

@@ -47,14 +47,17 @@ describe("country-first weather-map UX contracts", () => {
     expect(traditionalHome).toContain("哪裡不下雨 | Where Not Rain");
   });
 
-  it("keeps date selection, retires optional limits and makes country changes client-side", () => {
+  it("keeps date selection, retires optional limits and switches countries from local state", () => {
     expect(explorer).toContain('useState<RangePreset>("7d")');
     expect(instantMapStyles).toContain(".country-filter-details");
     expect(instantMapStyles).toContain("display: none !important");
-    expect(explorerWrapper).toContain('from "next/link"');
+    expect(explorerWrapper).toContain('data-country-switch-mode="local-state-history"');
     expect(explorerWrapper).toContain("onChangeCapture={switchCountry}");
+    expect(explorerWrapper).toContain("window.history.pushState");
+    expect(explorerWrapper).toContain('window.addEventListener("popstate"');
     expect(explorerWrapper).toContain("PRESERVED_COUNTRY_QUERY_KEYS");
-    expect(explorerWrapper).not.toContain("window.location.assign");
+    expect(explorerWrapper).not.toContain('from "next/link"');
+    expect(explorerWrapper).not.toContain("country-prefetch-links");
     expect(countryMapHome).toContain('from "next/link"');
     expect(countryMapHome).not.toContain("window.location.assign");
     expect(instantMapStyles).toContain("border: 3px solid var(--marker-risk-color)");

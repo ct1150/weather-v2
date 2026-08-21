@@ -44,18 +44,20 @@ export function CountryPage({
                 {isChinese ? "哪里不下雨" : "Country weather maps"}
               </a>
             </li>
-            <li aria-current="page">{country.name}</li>
+            <li aria-current="page" data-country-map-breadcrumb>
+              {country.name}
+            </li>
           </ol>
         </nav>
         <p className="eyebrow">
           {isChinese ? "未来 7 天旅行天气" : "Next 7 days of travel weather"}
         </p>
-        <h1>
+        <h1 data-country-map-title>
           {isChinese
             ? `一张图看懂${country.name}哪里天气更好`
             : `${country.name} travel weather at a glance`}
         </h1>
-        <p>
+        <p data-country-map-description>
           {isChinese
             ? `地图立即显示当前目录全部 ${cities.length} 个旅行地的天气图标、少雨天数和气温。点击任意地点，再查看逐日预报。`
             : `See all ${cities.length} supported travel destinations immediately, with weather icons, lower-rain days and temperatures. Tap any place only when you want the daily detail.`}

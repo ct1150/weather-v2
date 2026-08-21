@@ -181,12 +181,14 @@ export default async function TraditionalChineseCountryPage({
                 哪裡不下雨
               </a>
             </li>
-            <li aria-current="page">{country.name}</li>
+            <li aria-current="page" data-country-map-breadcrumb>
+              {country.name}
+            </li>
           </ol>
         </nav>
         <p className="eyebrow">未來 7 天旅行天氣</p>
-        <h1>{`一張圖看懂${country.name}哪裡天氣更好`}</h1>
-        <p>
+        <h1 data-country-map-title>{`一張圖看懂${country.name}哪裡天氣更好`}</h1>
+        <p data-country-map-description>
           地圖立即顯示目前目錄全部 {cities.length}{" "}
           個旅行地的天氣圖示、少雨天數和氣溫。點擊任意地點，再查看逐日預報。
         </p>
