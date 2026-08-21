@@ -53,8 +53,7 @@ function squaredSegmentDistance(point, start, end) {
 
 function simplifyDouglasPeucker(points, tolerance) {
   if (points.length <= 3) return points;
-  const closed =
-    points[0][0] === points.at(-1)[0] && points[0][1] === points.at(-1)[1];
+  const closed = points[0][0] === points.at(-1)[0] && points[0][1] === points.at(-1)[1];
   const source = closed ? points.slice(0, -1) : [...points];
   if (source.length <= 3) return points;
 
@@ -113,11 +112,12 @@ if (!mainland) throw new Error("Mainland boundary ring not found");
 // Taiwan remains a separate catalogue entry in Weather V2, and tiny South China
 // Sea features are intentionally omitted so they do not crush the useful map scale.
 const hainan = rings
-  .filter(({ bounds }) =>
-    bounds.minLongitude >= 108 &&
-    bounds.maxLongitude <= 112 &&
-    bounds.minLatitude >= 18 &&
-    bounds.maxLatitude <= 21,
+  .filter(
+    ({ bounds }) =>
+      bounds.minLongitude >= 108 &&
+      bounds.maxLongitude <= 112 &&
+      bounds.minLatitude >= 18 &&
+      bounds.maxLatitude <= 21,
   )
   .sort((left, right) => right.area - left.area)[0];
 if (!hainan) throw new Error("Hainan boundary ring not found");

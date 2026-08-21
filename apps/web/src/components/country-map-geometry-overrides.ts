@@ -52,13 +52,14 @@ function projectMercatorPoint(
 }
 
 function chinaPath(frame: CountryMapGeometry): string {
-  return CHINA_MAP_RINGS.map((ring) =>
-    ring
-      .map(([longitude, latitude], index) => {
-        const point = projectMercatorPoint(frame, longitude, latitude);
-        return `${index === 0 ? "M" : "L"}${point.x.toFixed(1)},${point.y.toFixed(1)}`;
-      })
-      .join("") + "Z",
+  return CHINA_MAP_RINGS.map(
+    (ring) =>
+      ring
+        .map(([longitude, latitude], index) => {
+          const point = projectMercatorPoint(frame, longitude, latitude);
+          return `${index === 0 ? "M" : "L"}${point.x.toFixed(1)},${point.y.toFixed(1)}`;
+        })
+        .join("") + "Z",
   ).join("");
 }
 

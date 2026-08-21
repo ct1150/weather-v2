@@ -1,9 +1,5 @@
 import type { CSSProperties, ReactElement } from "react";
-import {
-  COUNTRY_MAP_HEIGHT,
-  COUNTRY_MAP_WIDTH,
-  countryMapGeometry,
-} from "./country-map-geometry";
+import { COUNTRY_MAP_HEIGHT, COUNTRY_MAP_WIDTH, countryMapGeometry } from "./country-map-geometry";
 import {
   countryMapGeometryOverride,
   projectCountryMapPoint,
