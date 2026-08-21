@@ -8,6 +8,7 @@ import "./globals.css";
 import "./country-map.css";
 import "./instant-country-map.css";
 import "./country-map-refinements.css";
+import "./country-select-refinements.css";
 
 export const metadata: Metadata = {
   title: {

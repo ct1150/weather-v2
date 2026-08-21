@@ -1,0 +1,216 @@
+/* Weather Atlas country selector refinement.
+ * Keep native <select> semantics, but remove the generic form-control appearance.
+ */
+
+.country-map-home-picker,
+.country-select-label {
+  position: relative;
+}
+
+.country-map-home-picker {
+  padding: 0.9rem;
+  border: 1px solid rgb(var(--atlas-ink) / 0.15) !important;
+  border-radius: 0.85rem !important;
+  color: rgb(var(--atlas-ink)) !important;
+  background:
+    linear-gradient(90deg, rgb(var(--atlas-blue) / 0.055) 1px, transparent 1px),
+    linear-gradient(rgb(var(--atlas-blue) / 0.055) 1px, transparent 1px), rgb(var(--atlas-paper)) !important;
+  background-size:
+    18px 18px,
+    18px 18px,
+    auto !important;
+  box-shadow:
+    0 12px 30px rgb(var(--atlas-ink) / 0.08),
+    inset 0 0 0 1px rgb(255 255 255 / 0.82) !important;
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease;
+}
+
+.country-map-home-picker:focus-within {
+  border-color: rgb(var(--atlas-blue) / 0.55) !important;
+  box-shadow:
+    0 15px 34px rgb(var(--atlas-ink) / 0.1),
+    0 0 0 3px rgb(var(--atlas-blue) / 0.1) !important;
+}
+
+.country-map-home-picker > span {
+  margin: 0 0 0.55rem 0.15rem !important;
+  color: rgb(var(--atlas-blue) / 0.82) !important;
+  font-size: 0.61rem !important;
+  letter-spacing: 0.15em !important;
+}
+
+.country-map-home-picker::before,
+.country-select-label::before {
+  position: absolute;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgb(var(--atlas-blue) / 0.22);
+  border-radius: 50%;
+  content: "⌖";
+  color: rgb(var(--atlas-blue));
+  background: rgb(var(--atlas-sky) / 0.68);
+  font-family: var(--atlas-mono);
+  font-weight: 800;
+  line-height: 1;
+  pointer-events: none;
+}
+
+.country-map-home-picker::before {
+  bottom: 1.68rem;
+  left: 1.35rem;
+  width: 1.85rem;
+  height: 1.85rem;
+  font-size: 0.82rem;
+}
+
+.country-map-home-picker::after,
+.country-select-label::after {
+  position: absolute;
+  z-index: 2;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  content: "";
+  color: rgb(var(--atlas-blue));
+  pointer-events: none;
+  transform: rotate(45deg);
+}
+
+.country-map-home-picker::after {
+  right: 1.55rem;
+  bottom: 2.23rem;
+}
+
+.country-map-home-picker select {
+  min-height: 3.55rem !important;
+  padding: 0 3rem 0 3.2rem !important;
+  border: 1px solid rgb(var(--atlas-ink) / 0.13) !important;
+  border-radius: 0.58rem !important;
+  outline: none;
+  color: rgb(var(--atlas-ink)) !important;
+  background: rgb(255 255 255 / 0.88) !important;
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.9),
+    0 1px 0 rgb(var(--atlas-ink) / 0.03) !important;
+  font-size: 0.94rem;
+  font-weight: 720 !important;
+  letter-spacing: -0.01em;
+  appearance: none;
+  cursor: pointer;
+  transition:
+    border-color 160ms ease,
+    background-color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.country-map-home-picker select:hover {
+  border-color: rgb(var(--atlas-blue) / 0.35) !important;
+  background: rgb(255 255 255 / 0.98) !important;
+}
+
+.country-map-home-picker select:focus-visible {
+  border-color: rgb(var(--atlas-blue) / 0.58) !important;
+  box-shadow: inset 3px 0 0 rgb(var(--atlas-sun)) !important;
+}
+
+.country-map-home-picker option,
+.country-select option {
+  color: rgb(var(--atlas-ink));
+  background: rgb(var(--atlas-paper));
+  font-family: ui-sans-serif, system-ui, sans-serif;
+}
+
+/* Country-page selector: instrument slot inside the dark weather console. */
+.country-select-label {
+  min-width: 0;
+}
+
+.country-select-label::before {
+  bottom: 0.68rem;
+  left: 0.7rem;
+  width: 1.65rem;
+  height: 1.65rem;
+  border-color: rgb(255 255 255 / 0.16);
+  color: rgb(var(--atlas-sun));
+  background: rgb(255 255 255 / 0.075);
+  font-size: 0.72rem;
+}
+
+.country-select-label::after {
+  right: 0.85rem;
+  bottom: 1.22rem;
+  color: rgb(var(--atlas-sun));
+}
+
+.country-select-label .country-select {
+  min-height: 3rem !important;
+  margin-top: 0.45rem !important;
+  padding: 0 2.6rem 0 2.75rem !important;
+  border: 1px solid rgb(255 255 255 / 0.14) !important;
+  border-radius: 0.52rem !important;
+  outline: none;
+  color: white !important;
+  background:
+    linear-gradient(90deg, rgb(255 255 255 / 0.045), rgb(255 255 255 / 0.08)), rgb(7 31 55 / 0.56) !important;
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.07),
+    0 5px 14px rgb(0 0 0 / 0.1) !important;
+  font-size: 0.82rem;
+  font-weight: 720;
+  appearance: none;
+  cursor: pointer;
+  transition:
+    border-color 160ms ease,
+    background-color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.country-select-label .country-select:hover {
+  border-color: rgb(var(--atlas-sun) / 0.42) !important;
+  background:
+    linear-gradient(90deg, rgb(255 255 255 / 0.065), rgb(255 255 255 / 0.1)), rgb(7 31 55 / 0.64) !important;
+}
+
+.country-select-label .country-select:focus-visible {
+  border-color: rgb(var(--atlas-sun) / 0.72) !important;
+  box-shadow:
+    inset 3px 0 0 rgb(var(--atlas-sun)),
+    0 0 0 3px rgb(var(--atlas-sun) / 0.11) !important;
+}
+
+.country-select-label .country-select option {
+  color: rgb(var(--atlas-ink));
+  background: #f7faf8;
+}
+
+@media (max-width: 639px) {
+  .country-map-home-picker {
+    padding: 0.75rem;
+  }
+
+  .country-map-home-picker::before {
+    bottom: 1.45rem;
+    left: 1.15rem;
+  }
+
+  .country-map-home-picker::after {
+    right: 1.35rem;
+    bottom: 2rem;
+  }
+
+  .country-map-home-picker select {
+    min-height: 3.35rem !important;
+    padding-left: 3rem !important;
+    font-size: 0.9rem;
+  }
+
+  .country-select-label .country-select {
+    min-height: 2.9rem !important;
+    font-size: 0.86rem;
+  }
+}
