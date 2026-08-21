@@ -14,6 +14,9 @@ node_modules/
 # Generated Cloudflare binding types
 **/worker-configuration.d.ts
 
+# Generated map boundary data
+apps/web/src/components/country-map-world.generated.ts
+
 # OS / editor
 *.log
 
