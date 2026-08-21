@@ -127,8 +127,8 @@ describe("China country-map geographic precision", () => {
     );
     const bounds = pathBounds(geometry.path);
 
-    expect(Math.abs(bounds.minX - northEast.x)).toBeLessThan(1);
-    expect(Math.abs(bounds.maxX - southWest.x)).toBeLessThan(1);
+    expect(Math.abs(bounds.minX - southWest.x)).toBeLessThan(1);
+    expect(Math.abs(bounds.maxX - northEast.x)).toBeLessThan(1);
     expect(Math.abs(bounds.minY - northEast.y)).toBeLessThan(1);
     expect(Math.abs(bounds.maxY - southWest.y)).toBeLessThan(1);
   });
