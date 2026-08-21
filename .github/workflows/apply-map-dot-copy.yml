@@ -3,6 +3,9 @@ name: Apply Map Dot Copy
 on:
   push:
     branches: [ux/map-dot-weather-markers]
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize]
 
 permissions:
   contents: write
