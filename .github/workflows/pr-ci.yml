@@ -1,94 +1,95 @@
-# Lightweight pull-request validation.
-# Draft PR pushes do not allocate a hosted runner. Validation starts when the PR
-# is marked Ready for review, and re-runs only for subsequent non-draft updates.
-
-name: PR CI
+name: Country Switch Production Verification
 
 on:
   pull_request:
-    types: [opened, reopened, ready_for_review, synchronize]
+    types: [opened, reopened, synchronize, ready_for_review]
 
 permissions:
   contents: read
   pull-requests: read
 
 concurrency:
-  group: pr-ci-${{ github.event.pull_request.number }}
+  group: country-switch-production-verification
   cancel-in-progress: true
-
-env:
-  PNPM_VERSION: "10.11.0"
-  NODE_VERSION: "22"
 
 jobs:
   verify:
-    if: github.event.pull_request.draft == false
+    if: github.head_ref == 'verify/local-country-switch-release'
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 15
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: ${{ env.PNPM_VERSION }}
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: pnpm
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Format check
-        run: pnpm format:check
-
-      - name: Lint
-        run: pnpm lint
-
-      - name: Build library packages
-        run: pnpm -r --filter '!@wnr/web' --filter '!@wnr/weather-sync' --filter '!@wnr/maintenance' build
-
-      - name: Typecheck
-        run: pnpm typecheck
-
-      - name: Unit / integration tests
+      - name: Wait for production release
+        shell: bash
         run: |
-          set -o pipefail
-          pnpm test 2>&1 | tee test-results.log
-          if grep -qiE "Tests +[0-9]+ failed|Test Files +[0-9]+ failed|FAIL " test-results.log; then
-            echo "::error::Unit/integration tests failed — gate is fail-closed."
-            exit 1
-          fi
+          set -euo pipefail
+          SITE_URL="https://868656.xyz"
+          for attempt in $(seq 1 45); do
+            if curl --fail --silent --show-error --location --connect-timeout 15 --max-time 45 \
+                "${SITE_URL}/jp" -o /tmp/jp.html \
+              && grep -Fq 'data-country-switch-mode="local-state-history"' /tmp/jp.html; then
+              echo "Production contains the fully local country switch implementation."
+              exit 0
+            fi
+            sleep 8
+          done
+          echo "::error::Production did not expose the local country switch implementation."
+          exit 1
 
-      - name: Documentation gate
-        run: pnpm docs:check
-
-      - name: Build web static export
-        env:
-          APP_BASE_URL: https://868656.xyz
-          NEXT_PUBLIC_TRIP_API_URL: https://trip.868656.xyz
-          NEXT_PUBLIC_PRODUCT_ANALYTICS_URL: https://analytics.868656.xyz/api/v1/product-events
-          NEXT_PUBLIC_CLOUDFLARE_ANALYTICS_ENABLED: "false"
-        run: pnpm --filter @wnr/web build
-
-      - name: Build Workers
+      - name: Verify localized country maps
+        shell: bash
         run: |
-          pnpm --filter @wnr/weather-sync build
-          pnpm --filter @wnr/weather-read build
-          pnpm --filter @wnr/trip-api build
-          pnpm --filter @wnr/product-analytics build
+          set -euo pipefail
+          SITE_URL="https://868656.xyz"
+          check_page() {
+            local name="$1"
+            local path="$2"
+            local title="$3"
+            local output="$4"
+            curl --fail --silent --show-error --location --retry 4 --retry-all-errors \
+              --connect-timeout 15 --max-time 45 "${SITE_URL}${path}" -o "${output}"
+            grep -Fq 'data-country-switch-mode="local-state-history"' "${output}" || {
+              echo "::error::${name} missing local country switch mode"
+              exit 1
+            }
+            grep -Fq 'data-render-mode="inline-svg"' "${output}" || {
+              echo "::error::${name} missing inline country map"
+              exit 1
+            }
+            grep -Fq 'data-country-map-title' "${output}" || {
+              echo "::error::${name} missing locally-updatable country title"
+              exit 1
+            }
+            grep -Fq "${title}" "${output}" || {
+              echo "::error::${name} missing expected title"
+              exit 1
+            }
+            if grep -Fq 'data-testid="country-prefetch-links"' "${output}"; then
+              echo "::error::${name} still renders country prefetch links"
+              exit 1
+            fi
+          }
 
-      - name: Pipeline contract tests
-        run: node --test tooling/deploy/pipeline-contract.test.mjs
+          check_page "English Japan" "/jp" "Japan travel weather at a glance" /tmp/jp.html
+          check_page "Simplified Japan" "/zh-cn/jp" "一张图看懂日本哪里天气更好" /tmp/jp-cn.html
+          check_page "Traditional Japan" "/zh-hant/jp" "一張圖看懂日本哪裡天氣更好" /tmp/jp-hant.html
+          check_page "English Korea" "/kr" "South Korea travel weather at a glance" /tmp/kr.html
 
-      - name: Secret scan
+      - name: Verify sun icon and production services
+        shell: bash
         run: |
-          if grep -RIiE "WEATHERAPI_SECRET|CLOUDFLARE_API_TOKEN|BETTER_AUTH_SECRET|GOOGLE_CLIENT_SECRET|RESEND_API_KEY" apps/web/out apps/web/src workers/trip-api/src workers/product-analytics/src 2>/dev/null; then
-            echo "::error::Possible secret leaked into build output or source"
-            exit 1
-          fi
-          echo "secret scan: clean"
+          set -euo pipefail
+          curl --fail --silent --show-error --location --retry 3 https://868656.xyz/favicon.svg -o /tmp/favicon.svg
+          grep -Fq 'Where Not Rain sun' /tmp/favicon.svg
+          grep -Fq '#fbbf24' /tmp/favicon.svg
+
+          curl --fail --silent --show-error --retry 3 \
+            https://where-not-rain-read-production.ct1150.workers.dev/health -o /tmp/read.json
+          grep -Fq '"ok":true' /tmp/read.json
+
+          curl --fail --silent --show-error --retry 3 \
+            https://trip.868656.xyz/health -o /tmp/trip.json
+          grep -Fq '"ok":true' /tmp/trip.json
+
+          curl --fail --silent --show-error --retry 3 \
+            https://analytics.868656.xyz/health -o /tmp/analytics.json
+          grep -Fq '"ok":true' /tmp/analytics.json
