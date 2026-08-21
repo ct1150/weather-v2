@@ -30,11 +30,14 @@ const COPY = {
     howItWorks: "How to use the map",
     steps: [
       ["01", "Choose a country", "Start with a country you may visit."],
-      ["02", "Check the dots", "Green means less rain; yellow and red mean rain needs more attention."],
+      [
+        "02",
+        "Check the dots",
+        "Green means less rain; yellow and red mean rain needs more attention.",
+      ],
       ["03", "Open a city", "Hover or tap a city when you want the daily forecast."],
     ],
-    cityCount: (count: number) =>
-      `${count} ${count === 1 ? "destination" : "destinations"}`,
+    cityCount: (count: number) => `${count} ${count === 1 ? "destination" : "destinations"}`,
     footer: "Where Not Rain · Compare rain outlooks by city",
   },
   "zh-cn": {
