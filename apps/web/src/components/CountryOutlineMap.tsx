@@ -3,9 +3,11 @@ import {
   COUNTRY_MAP_HEIGHT,
   COUNTRY_MAP_WIDTH,
   countryMapGeometry,
-  projectCountryPoint,
 } from "./country-map-geometry";
-import { countryMapGeometryOverride } from "./country-map-geometry-overrides";
+import {
+  countryMapGeometryOverride,
+  projectCountryMapPoint,
+} from "./country-map-geometry-overrides";
 
 export type CountryOutlineRisk = "good" | "mixed" | "wet" | "unknown";
 
@@ -91,7 +93,7 @@ export function layoutCountryMarkers(
   const geometry = resolveCountryGeometry(countryId);
   const anchored = markers.map((marker) => ({
     marker,
-    ...projectCountryPoint(geometry, marker.longitude, marker.latitude),
+    ...projectCountryMapPoint(countryId, geometry, marker.longitude, marker.latitude),
   }));
   const order = [...anchored].sort(
     (left, right) =>
