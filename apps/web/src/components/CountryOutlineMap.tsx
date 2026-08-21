@@ -1,12 +1,6 @@
 "use client";
 
-import {
-  useLayoutEffect,
-  useRef,
-  useState,
-  type CSSProperties,
-  type ReactElement,
-} from "react";
+import { useLayoutEffect, useRef, useState, type CSSProperties, type ReactElement } from "react";
 import { COUNTRY_MAP_HEIGHT, COUNTRY_MAP_WIDTH, countryMapGeometry } from "./country-map-geometry";
 import {
   countryMapGeometryOverride,
@@ -60,10 +54,7 @@ function resolveCountryGeometry(countryId: string) {
  * Mirrors SVG preserveAspectRatio="xMidYMid meet" so the HTML marker layer and
  * the SVG outline always share the same rendered coordinate frame.
  */
-export function fitCountryMapRenderedFrame(
-  width: number,
-  height: number,
-): CountryMapRenderedFrame {
+export function fitCountryMapRenderedFrame(width: number, height: number): CountryMapRenderedFrame {
   if (width <= 0 || height <= 0) {
     return { scale: 0, offsetX: 0, offsetY: 0 };
   }

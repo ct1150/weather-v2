@@ -137,7 +137,8 @@ function intersectsFrame(bounds, frame) {
 
 function extractRings(geometry) {
   if (geometry?.type === "Polygon") return geometry.coordinates ?? [];
-  if (geometry?.type === "MultiPolygon") return (geometry.coordinates ?? []).flatMap((polygon) => polygon);
+  if (geometry?.type === "MultiPolygon")
+    return (geometry.coordinates ?? []).flatMap((polygon) => polygon);
   throw new Error(`Unsupported geometry type: ${geometry?.type ?? "unknown"}`);
 }
 
@@ -162,7 +163,10 @@ const generated = {};
 const sourceMeta = {};
 
 for (const country of COUNTRIES) {
-  const metadata = await fetchJson(`${API_ROOT}/${country.iso3}/ADM0/`, `${country.countryId} metadata`);
+  const metadata = await fetchJson(
+    `${API_ROOT}/${country.iso3}/ADM0/`,
+    `${country.countryId} metadata`,
+  );
   const geometryUrl = metadata.simplifiedGeometryGeoJSON || metadata.gjDownloadURL;
   if (!geometryUrl) throw new Error(`No GeoJSON URL for ${country.countryId}`);
 

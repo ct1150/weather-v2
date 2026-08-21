@@ -224,7 +224,9 @@ describe("China country-map geographic precision", () => {
 
 describe("all supported country-map geographic precision", () => {
   it("uses generated WGS84 boundaries for every non-China catalogue country", () => {
-    const countryIds = geographySeed.countries.map((country) => country.id).filter((id) => id !== "CN");
+    const countryIds = geographySeed.countries
+      .map((country) => country.id)
+      .filter((id) => id !== "CN");
     expect(Object.keys(GENERATED_COUNTRY_MAPS).sort()).toEqual(countryIds.sort());
 
     for (const countryId of countryIds) {
@@ -278,7 +280,15 @@ describe("all supported country-map geographic precision", () => {
   });
 
   it("retains the small islands used by weather-first travel destinations", () => {
-    const islandDestinationIds = ["naha", "phuket", "koh-samui", "phu-quoc", "bali", "lombok", "boracay"];
+    const islandDestinationIds = [
+      "naha",
+      "phuket",
+      "koh-samui",
+      "phu-quoc",
+      "bali",
+      "lombok",
+      "boracay",
+    ];
 
     for (const cityId of islandDestinationIds) {
       const city = geographySeed.cities.find((candidate) => candidate.id === cityId);
