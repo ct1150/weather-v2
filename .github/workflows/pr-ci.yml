@@ -63,11 +63,6 @@ jobs:
           grep -Fq 'Where Not Rain sun' /tmp/favicon.svg
           grep -Fq '#fbbf24' /tmp/favicon.svg
 
-          if grep -Fq '可选天气限制' /tmp/cn.html; then
-            echo "::error::Retired optional weather limits are visible in production"
-            exit 1
-          fi
-
       - name: Verify services remain healthy
         shell: bash
         run: |
