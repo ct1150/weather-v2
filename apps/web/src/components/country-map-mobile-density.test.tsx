@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
 import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { CountryOutlineMap, type CountryOutlineMarker } from "./CountryOutlineMap";
@@ -59,7 +60,7 @@ describe("country map mobile density", () => {
   });
 
   it("collapses mobile markers to anchor chips and one selected bottom card", () => {
-    const css = readFileSync(new URL("../app/instant-country-map.css", import.meta.url), "utf8");
+    const css = readFileSync(join(process.cwd(), "src/app/instant-country-map.css"), "utf8");
 
     expect(css).toContain("@media (max-width: 639px)");
     expect(css).toContain("left: var(--anchor-left) !important");
