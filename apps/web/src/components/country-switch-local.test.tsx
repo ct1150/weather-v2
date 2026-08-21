@@ -105,7 +105,9 @@ describe("local country switching", () => {
       </main>,
     );
 
-    expect(container.querySelector('[data-country-switch-mode="local-state-history"]')).toBeTruthy();
+    expect(
+      container.querySelector('[data-country-switch-mode="local-state-history"]'),
+    ).toBeTruthy();
     expect(container.querySelector('[data-testid="country-prefetch-links"]')).toBeNull();
     expect(screen.getByText("Tokyo")).toBeTruthy();
 
