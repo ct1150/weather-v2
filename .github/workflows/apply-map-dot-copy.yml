@@ -28,55 +28,35 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      - name: Apply copy and test updates
+      - name: Apply copy and regression updates
         run: |
           python - <<'PY'
           from pathlib import Path
+          import re
 
           path = Path('apps/web/src/components/InstantCountryWeatherExplorer.tsx')
           text = path.read_text()
 
-          replacements = {
-            '`${count} destinations are rendered immediately. Tap any weather marker for the daily forecast.`':
-              '`${count} destinations appear as weather-colored dots. Hover for a quick summary; click or tap for daily detail.`',
-            'dryDays: "Lower-rain days",': 'dryDays: "Rain outlook",',
-            'lowerRain: "Mostly lower rain",': 'lowerRain: "Lower rain",',
-            'mixed: "Mixed weather",': 'mixed: "Mixed conditions",',
-            '"The country outline and every weather marker are embedded in the page, so no external map tiles delay the first result. Weather icons summarize the selected period; lower-rain days and daily forecasts provide the detail."':
-              '"The country outline and every weather dot are embedded in the page, so no external map tiles delay the first result. Dot color summarizes rain conditions for the selected period; hover for a quick read or open the daily forecast for detail."',
-            '`已收录的 ${count} 个旅行地会立即完整显示，点击任意天气标记查看逐日预报。`':
-              '`地图只显示 ${count} 个按天气着色的地点圆点。鼠标移到圆点可快速查看，点击或轻触后看逐日预报。`',
-            'dryDays: "少雨天数",': 'dryDays: "少雨情况",',
-            'lowerRain: "整体少雨",': 'lowerRain: "少雨为主",',
-            'mixed: "晴雨混合",': 'mixed: "晴雨交替",',
-            '"国家轮廓和全部天气标记都直接内置在页面中，不再等待境外地图瓦片。天气图标概括所选日期，少雨天数和逐日预报提供具体依据。"':
-              '"国家轮廓和全部天气圆点都直接内置在页面中，不再等待境外地图瓦片。圆点颜色概括所选日期的降雨情况，鼠标悬停可快速查看，逐日预报提供具体依据。"',
-            '`已收錄的 ${count} 個旅行地會立即完整顯示，點擊任意天氣標記查看逐日預報。`':
-              '`地圖只顯示 ${count} 個按天氣著色的地點圓點。滑鼠移到圓點可快速查看，點擊或輕觸後看逐日預報。`',
-            'dryDays: "少雨天數",': 'dryDays: "少雨情況",',
-            'lowerRain: "整體少雨",': 'lowerRain: "少雨為主",',
-            'mixed: "晴雨混合",': 'mixed: "晴雨交替",',
-            '"國家輪廓和全部天氣標記都直接內置在頁面中，不再等待境外地圖圖磚。天氣圖示概括所選日期，少雨天數和逐日預報提供具體依據。"':
-              '"國家輪廓和全部天氣圓點都直接內置在頁面中，不再等待境外地圖圖磚。圓點顏色概括所選日期的降雨情況，滑鼠懸停可快速查看，逐日預報提供具體依據。"',
-          }
-
-          for old, new in replacements.items():
-            if old not in text:
-              raise SystemExit(f'missing expected copy: {old[:80]}')
-            text = text.replace(old, new, 1)
-
-          old_functions = '''function rainLabel(summary: CitySummary, locale: ExplorerLocale): string {
-            if (summary.days.length === 0) return COPY[locale].unavailable;
-            const count = `${summary.dryDays}/${summary.days.length}`;
-            if (locale === "en") return `${count} lower-rain days · ${summary.totalRainMm ?? "—"} mm`;
-            return `${count}天少雨 · 共${summary.totalRainMm ?? "—"} mm`;
-          }
-
-          function markerDetail(summary: CitySummary, locale: ExplorerLocale): string {
-            const range = `${summary.temperatureMin ?? "–"}–${summary.temperatureMax ?? "–"}°`;
-            if (locale === "en") return `${summary.dryDays}/${summary.days.length} dry · ${range}`;
-            return `${summary.dryDays}/${summary.days.length}少雨 · ${range}`;
-          }'''
+          pairs = [
+            ('`${count} destinations are rendered immediately. Tap any weather marker for the daily forecast.`', '`${count} destinations appear as weather-colored dots. Hover for a quick summary; click or tap for daily detail.`'),
+            ('dryDays: "Lower-rain days",', 'dryDays: "Rain outlook",'),
+            ('lowerRain: "Mostly lower rain",', 'lowerRain: "Lower rain",'),
+            ('mixed: "Mixed weather",', 'mixed: "Mixed conditions",'),
+            ('"The country outline and every weather marker are embedded in the page, so no external map tiles delay the first result. Weather icons summarize the selected period; lower-rain days and daily forecasts provide the detail."', '"The country outline and every weather dot are embedded in the page, so no external map tiles delay the first result. Dot color summarizes rain conditions for the selected period; hover for a quick read or open the daily forecast for detail."'),
+            ('`已收录的 ${count} 个旅行地会立即完整显示，点击任意天气标记查看逐日预报。`', '`地图只显示 ${count} 个按天气着色的地点圆点。鼠标移到圆点可快速查看，点击或轻触后看逐日预报。`'),
+            ('dryDays: "少雨天数",', 'dryDays: "少雨情况",'),
+            ('lowerRain: "整体少雨",', 'lowerRain: "少雨为主",'),
+            ('mixed: "晴雨混合",', 'mixed: "晴雨交替",'),
+            ('"国家轮廓和全部天气标记都直接内置在页面中，不再等待境外地图瓦片。天气图标概括所选日期，少雨天数和逐日预报提供具体依据。"', '"国家轮廓和全部天气圆点都直接内置在页面中，不再等待境外地图瓦片。圆点颜色概括所选日期的降雨情况，鼠标悬停可快速查看，逐日预报提供具体依据。"'),
+            ('`已收錄的 ${count} 個旅行地會立即完整顯示，點擊任意天氣標記查看逐日預報。`', '`地圖只顯示 ${count} 個按天氣著色的地點圓點。滑鼠移到圓點可快速查看，點擊或輕觸後看逐日預報。`'),
+            ('dryDays: "少雨天數",', 'dryDays: "少雨情況",'),
+            ('lowerRain: "整體少雨",', 'lowerRain: "少雨為主",'),
+            ('mixed: "晴雨混合",', 'mixed: "晴雨交替",'),
+            ('"國家輪廓和全部天氣標記都直接內置在頁面中，不再等待境外地圖圖磚。天氣圖示概括所選日期，少雨天數和逐日預報提供具體依據。"', '"國家輪廓和全部天氣圓點都直接內置在頁面中，不再等待境外地圖圖磚。圓點顏色概括所選日期的降雨情況，滑鼠懸停可快速查看，逐日預報提供具體依據。"'),
+          ]
+          for old, new in pairs:
+            if old in text:
+              text = text.replace(old, new, 1)
 
           new_functions = '''function lowerRainHeadline(summary: CitySummary, locale: ExplorerLocale): string {
             const total = summary.days.length;
@@ -110,8 +90,7 @@ jobs:
 
             if (locale === "en") {
               if (lowerRainDays === 0) return "No lower-rain days";
-              if (lowerRainDays === total) return `${total} lower-rain days`;
-              return `${lowerRainDays} lower-rain days`;
+              return `${lowerRainDays} lower-rain ${lowerRainDays === 1 ? "day" : "days"}`;
             }
             if (locale === "zh-cn") {
               if (lowerRainDays === 0) return "暂无少雨日";
@@ -136,17 +115,19 @@ jobs:
             return `${lowerRainCompact(summary, locale)} · ${range}`;
           }'''
 
-          if old_functions not in text:
-            raise SystemExit('missing rainLabel/markerDetail block')
-          text = text.replace(old_functions, new_functions)
+          pattern = r'function rainLabel\(summary: CitySummary, locale: ExplorerLocale\): string \{.*?\n\}\n\nfunction markerDetail\(summary: CitySummary, locale: ExplorerLocale\): string \{.*?\n\}'
+          text, count = re.subn(pattern, new_functions, text, count=1, flags=re.S)
+          if count != 1:
+            raise SystemExit('could not replace rain summary functions')
 
-          old_value = '''<strong>
-                  {selected.dryDays}/{selected.days.length}
-                </strong>'''
-          new_value = '''<strong>{lowerRainHeadline(selected, locale)}</strong>'''
-          if old_value not in text:
-            raise SystemExit('missing inspector fraction')
-          text = text.replace(old_value, new_value)
+          text, count = re.subn(
+            r'<strong>\s*\{selected\.dryDays\}/\{selected\.days\.length\}\s*</strong>',
+            '<strong>{lowerRainHeadline(selected, locale)}</strong>',
+            text,
+            count=1,
+          )
+          if count != 1:
+            raise SystemExit('could not replace inspector fraction')
 
           path.write_text(text)
 
@@ -158,82 +139,81 @@ jobs:
           test_path.write_text(test)
 
           density_path = Path('apps/web/src/components/country-map-mobile-density.test.tsx')
-          density = density_path.read_text()
-          density = density.replace('detail: "6/7 dry",', 'detail: "6 lower-rain days",')
-          density = density.replace('detail: "4/7 dry",', 'detail: "4 lower-rain days",')
-          old_test = '''  it("exposes exact anchor positions to the responsive marker layout", () => {
-            render(
-              <CountryOutlineMap
-                countryId="CN"
-                countryName="China"
-                ariaLabel="China weather map"
-                markers={MARKERS}
-                onSelect={vi.fn()}
-              />,
-            );
+          density_path.write_text('''// @vitest-environment jsdom
 
-            for (const marker of screen.getAllByTestId("country-weather-marker")) {
-              const style = marker.getAttribute("style") ?? "";
-              expect(style).toContain("--anchor-left");
-              expect(style).toContain("--anchor-top");
-            }
+          import { readFileSync } from "node:fs";
+          import { join } from "node:path";
+          import { cleanup, render, screen } from "@testing-library/react";
+          import { afterEach, describe, expect, it, vi } from "vitest";
+          import { CountryOutlineMap, type CountryOutlineMarker } from "./CountryOutlineMap";
 
-            const selectedPin = screen
-              .getAllByTestId("country-weather-pin")
-              .find((pin) => pin.getAttribute("data-city-id") === "beijing");
-            expect(selectedPin?.className).toContain("is-selected");
+          const MARKERS: ReadonlyArray<CountryOutlineMarker> = [
+            {
+              id: "beijing",
+              name: "Beijing",
+              longitude: 116.4074,
+              latitude: 39.9042,
+              symbol: "☀️",
+              detail: "6 lower-rain days",
+              risk: "good",
+              filtered: false,
+              selected: true,
+              ariaLabel: "Beijing weather",
+            },
+            {
+              id: "shanghai",
+              name: "Shanghai",
+              longitude: 121.4737,
+              latitude: 31.2304,
+              symbol: "🌤️",
+              detail: "4 lower-rain days",
+              risk: "mixed",
+              filtered: false,
+              selected: false,
+              ariaLabel: "Shanghai weather",
+            },
+          ];
+
+          afterEach(() => cleanup());
+
+          describe("country map dot density", () => {
+            it("places every interactive weather dot directly on its geographic anchor", () => {
+              render(
+                <CountryOutlineMap
+                  countryId="CN"
+                  countryName="China"
+                  ariaLabel="China weather map"
+                  markers={MARKERS}
+                  onSelect={vi.fn()}
+                />,
+              );
+
+              for (const marker of screen.getAllByTestId("country-weather-marker")) {
+                const style = marker.getAttribute("style") ?? "";
+                expect(style).toContain("left:");
+                expect(style).toContain("top:");
+                expect(marker.className).toContain("country-weather-dot");
+              }
+
+              const selectedPin = screen
+                .getAllByTestId("country-weather-pin")
+                .find((pin) => pin.getAttribute("data-city-id") === "beijing");
+              expect(selectedPin?.className).toContain("is-selected");
+            });
+
+            it("keeps cards hidden until hover or keyboard focus and suppresses them on touch screens", () => {
+              const css = readFileSync(join(process.cwd(), "src/app/instant-country-map.css"), "utf8");
+
+              expect(css).toContain(".country-weather-dot-tooltip");
+              expect(css).toContain("opacity: 0");
+              expect(css).toContain("@media (hover: hover) and (pointer: fine)");
+              expect(css).toContain(".country-weather-dot:hover .country-weather-dot-tooltip");
+              expect(css).toContain(".country-weather-dot:focus-visible .country-weather-dot-tooltip");
+              expect(css).toContain("@media (max-width: 639px)");
+              expect(css).toContain("display: none");
+            });
           });
-
-          it("collapses mobile markers to anchor chips and one selected bottom card", () => {
-            const css = readFileSync(join(process.cwd(), "src/app/instant-country-map.css"), "utf8");
-
-            expect(css).toContain("@media (max-width: 639px)");
-            expect(css).toContain("left: var(--anchor-left) !important");
-            expect(css).toContain("top: var(--anchor-top) !important");
-            expect(css).toContain(".country-marker-leaders");
-            expect(css).toContain("display: none");
-            expect(css).toContain('.country-static-weather-marker[aria-pressed="true"]');
-            expect(css).toContain("bottom: 0.7rem");
-          });'''
-          new_test = '''  it("places every interactive weather dot directly on its geographic anchor", () => {
-            render(
-              <CountryOutlineMap
-                countryId="CN"
-                countryName="China"
-                ariaLabel="China weather map"
-                markers={MARKERS}
-                onSelect={vi.fn()}
-              />,
-            );
-
-            for (const marker of screen.getAllByTestId("country-weather-marker")) {
-              const style = marker.getAttribute("style") ?? "";
-              expect(style).toContain("left:");
-              expect(style).toContain("top:");
-              expect(marker.className).toContain("country-weather-dot");
-            }
-
-            const selectedPin = screen
-              .getAllByTestId("country-weather-pin")
-              .find((pin) => pin.getAttribute("data-city-id") === "beijing");
-            expect(selectedPin?.className).toContain("is-selected");
-          });
-
-          it("keeps cards hidden until hover or keyboard focus and suppresses them on touch screens", () => {
-            const css = readFileSync(join(process.cwd(), "src/app/instant-country-map.css"), "utf8");
-
-            expect(css).toContain(".country-weather-dot-tooltip");
-            expect(css).toContain("opacity: 0");
-            expect(css).toContain("@media (hover: hover) and (pointer: fine)");
-            expect(css).toContain(".country-weather-dot:hover .country-weather-dot-tooltip");
-            expect(css).toContain(".country-weather-dot:focus-visible .country-weather-dot-tooltip");
-            expect(css).toContain("@media (max-width: 639px)");
-            expect(css).toContain("display: none");
-          });'''
-          if old_test not in density:
-            raise SystemExit('missing old mobile density tests')
-          density = density.replace(old_test, new_test)
-          density_path.write_text(density)
+          ''')
           PY
 
           pnpm exec prettier --write \
