@@ -2,7 +2,10 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
-const refinements = readFileSync(resolve(process.cwd(), "src/app/country-map-refinements.css"), "utf8");
+const refinements = readFileSync(
+  resolve(process.cwd(), "src/app/country-map-refinements.css"),
+  "utf8",
+);
 
 describe("Weather Atlas frontend design system", () => {
   it("defines a distinctive atlas visual language instead of generic card styling", () => {
@@ -23,7 +26,7 @@ describe("Weather Atlas frontend design system", () => {
 
   it("keeps responsive and reduced-motion behavior explicit", () => {
     expect(refinements).toContain("@media (max-width: 639px)");
-    expect(refinements).toContain(".country-static-weather-marker:not([aria-pressed=\"true\"])");
+    expect(refinements).toContain('.country-static-weather-marker:not([aria-pressed="true"])');
     expect(refinements).toContain("@media (prefers-reduced-motion: no-preference)");
     expect(refinements).toContain("@keyframes atlas-reveal");
   });
