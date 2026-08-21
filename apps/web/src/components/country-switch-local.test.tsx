@@ -8,10 +8,7 @@ import type {
   LocalDate,
   ScoreViewModel,
 } from "../app/view-models";
-import {
-  CountryWeatherExplorer,
-  type CountryWeatherDataset,
-} from "./CountryWeatherExplorer";
+import { CountryWeatherExplorer, type CountryWeatherDataset } from "./CountryWeatherExplorer";
 
 const SCORE: ScoreViewModel = {
   value: 90,
