@@ -203,7 +203,7 @@ export function CountryOutlineMap({
         {positioned.map((marker) => (
           <span
             key={marker.id}
-            className={`country-weather-pin risk-${marker.risk}`}
+            className={`country-weather-pin risk-${marker.risk}${marker.filtered ? " is-filtered" : ""}`}
             style={anchorStyle(marker)}
             data-testid="country-weather-pin"
             data-city-id={marker.id}
