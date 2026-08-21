@@ -74,14 +74,14 @@ const COPY = {
     copyFailed: "Copy unavailable",
     mapHeading: "All supported travel destinations at a glance",
     mapHint: (count: number) =>
-      `${count} destinations are rendered immediately. Tap any weather marker for the daily forecast.`,
+      `${count} destinations appear as weather-colored dots. Hover for a quick summary; click or tap for daily detail.`,
     mapCount: (count: number) => `${count}/${count} shown`,
     mapLegend: "Weather map legend",
-    lowerRain: "Mostly lower rain",
-    mixed: "Mixed weather",
+    lowerRain: "Lower rain",
+    mixed: "Mixed conditions",
     rainLikely: "Rain more likely",
     selected: "Selected destination",
-    dryDays: "Lower-rain days",
+    dryDays: "Rain outlook",
     rain: "Expected rain · peak chance",
     temperature: "Temperature",
     wind: "Maximum wind",
@@ -100,7 +100,7 @@ const COPY = {
     hotReason: (value: number, limit: number) => `Day high ${value}°C exceeds ${limit}°C`,
     sourceHeading: "How to read this map",
     sourceText:
-      "The country outline and every weather marker are embedded in the page, so no external map tiles delay the first result. Weather icons summarize the selected period; lower-rain days and daily forecasts provide the detail.",
+      "The country outline and every weather dot are embedded in the page, so no external map tiles delay the first result. Dot color summarizes rain conditions for the selected period; hover for a quick read or open the daily forecast for detail.",
     source: "Forecast source",
   },
   "zh-cn": {
@@ -127,14 +127,14 @@ const COPY = {
     copyFailed: "暂时无法复制",
     mapHeading: "全部已收录旅行地天气一目了然",
     mapHint: (count: number) =>
-      `已收录的 ${count} 个旅行地会立即完整显示，点击任意天气标记查看逐日预报。`,
+      `地图只显示 ${count} 个按天气着色的地点圆点。鼠标移到圆点可快速查看，点击或轻触后看逐日预报。`,
     mapCount: (count: number) => `已显示 ${count}/${count}`,
     mapLegend: "地图天气图例",
-    lowerRain: "整体少雨",
-    mixed: "晴雨混合",
+    lowerRain: "少雨为主",
+    mixed: "晴雨交替",
     rainLikely: "降雨偏多",
     selected: "已选目的地",
-    dryDays: "少雨天数",
+    dryDays: "少雨情况",
     rain: "预计降雨量 · 最高概率",
     temperature: "气温",
     wind: "最大风速",
@@ -152,7 +152,7 @@ const COPY = {
     hotReason: (value: number, limit: number) => `白天最高 ${value}°C 超过 ${limit}°C`,
     sourceHeading: "如何理解这张地图",
     sourceText:
-      "国家轮廓和全部天气标记都直接内置在页面中，不再等待境外地图瓦片。天气图标概括所选日期，少雨天数和逐日预报提供具体依据。",
+      "国家轮廓和全部天气圆点都直接内置在页面中，不再等待境外地图瓦片。圆点颜色概括所选日期的降雨情况，鼠标悬停可快速查看，逐日预报提供具体依据。",
     source: "天气数据来源",
   },
   "zh-hant": {
@@ -179,14 +179,14 @@ const COPY = {
     copyFailed: "暫時無法複製",
     mapHeading: "全部已收錄旅行地天氣一目了然",
     mapHint: (count: number) =>
-      `已收錄的 ${count} 個旅行地會立即完整顯示，點擊任意天氣標記查看逐日預報。`,
+      `地圖只顯示 ${count} 個按天氣著色的地點圓點。滑鼠移到圓點可快速查看，點擊或輕觸後看逐日預報。`,
     mapCount: (count: number) => `已顯示 ${count}/${count}`,
     mapLegend: "地圖天氣圖例",
-    lowerRain: "整體少雨",
-    mixed: "晴雨混合",
+    lowerRain: "少雨為主",
+    mixed: "晴雨交替",
     rainLikely: "降雨偏多",
     selected: "已選目的地",
-    dryDays: "少雨天數",
+    dryDays: "少雨情況",
     rain: "預計降雨量 · 最高機率",
     temperature: "氣溫",
     wind: "最大風速",
@@ -204,7 +204,7 @@ const COPY = {
     hotReason: (value: number, limit: number) => `白天最高 ${value}°C 超過 ${limit}°C`,
     sourceHeading: "如何理解這張地圖",
     sourceText:
-      "國家輪廓和全部天氣標記都直接內置在頁面中，不再等待境外地圖圖磚。天氣圖示概括所選日期，少雨天數和逐日預報提供具體依據。",
+      "國家輪廓和全部天氣圓點都直接內置在頁面中，不再等待境外地圖圖磚。圓點顏色概括所選日期的降雨情況，滑鼠懸停可快速查看，逐日預報提供具體依據。",
     source: "天氣資料來源",
   },
 } as const;
@@ -383,17 +383,64 @@ function rangeLabel(
   return `${shortDate(days[0]?.localDate ?? "", locale)}–${shortDate(days.at(-1)?.localDate ?? "", locale)}`;
 }
 
+function lowerRainHeadline(summary: CitySummary, locale: ExplorerLocale): string {
+  const total = summary.days.length;
+  const lowerRainDays = summary.dryDays;
+  if (total === 0) return COPY[locale].unavailable;
+
+  if (locale === "en") {
+    if (total === 1)
+      return lowerRainDays === 1
+        ? "Rain looks relatively low that day"
+        : "Rain is worth watching that day";
+    if (lowerRainDays === 0) return `Rain is worth watching throughout this ${total}-day period`;
+    if (lowerRainDays === total) return `All ${total} days look relatively low-rain`;
+    return `${lowerRainDays} of ${total} days look relatively low-rain`;
+  }
+
+  if (locale === "zh-cn") {
+    if (total === 1) return lowerRainDays === 1 ? "当天雨较少" : "当天需留意降雨";
+    if (lowerRainDays === 0) return `这${total}天都要留意降雨`;
+    if (lowerRainDays === total) return `这${total}天整体都比较少雨`;
+    return `${total}天里有${lowerRainDays}天雨较少`;
+  }
+
+  if (total === 1) return lowerRainDays === 1 ? "當天雨較少" : "當天需留意降雨";
+  if (lowerRainDays === 0) return `這${total}天都要留意降雨`;
+  if (lowerRainDays === total) return `這${total}天整體都比較少雨`;
+  return `${total}天裡有${lowerRainDays}天雨較少`;
+}
+
+function lowerRainCompact(summary: CitySummary, locale: ExplorerLocale): string {
+  const total = summary.days.length;
+  const lowerRainDays = summary.dryDays;
+  if (total === 0) return COPY[locale].unavailable;
+
+  if (locale === "en") {
+    if (lowerRainDays === 0) return "No lower-rain days";
+    return `${lowerRainDays} lower-rain ${lowerRainDays === 1 ? "day" : "days"}`;
+  }
+  if (locale === "zh-cn") {
+    if (lowerRainDays === 0) return "暂无少雨日";
+    if (lowerRainDays === total) return `${total}天整体少雨`;
+    return `${lowerRainDays}天雨较少`;
+  }
+  if (lowerRainDays === 0) return "暫無少雨日";
+  if (lowerRainDays === total) return `${total}天整體少雨`;
+  return `${lowerRainDays}天雨較少`;
+}
+
 function rainLabel(summary: CitySummary, locale: ExplorerLocale): string {
   if (summary.days.length === 0) return COPY[locale].unavailable;
-  const count = `${summary.dryDays}/${summary.days.length}`;
-  if (locale === "en") return `${count} lower-rain days · ${summary.totalRainMm ?? "—"} mm`;
-  return `${count}天少雨 · 共${summary.totalRainMm ?? "—"} mm`;
+  const rain = summary.totalRainMm ?? "—";
+  if (locale === "en") return `${lowerRainHeadline(summary, locale)} · ${rain} mm expected`;
+  if (locale === "zh-cn") return `${lowerRainHeadline(summary, locale)} · 预计共${rain} mm`;
+  return `${lowerRainHeadline(summary, locale)} · 預計共${rain} mm`;
 }
 
 function markerDetail(summary: CitySummary, locale: ExplorerLocale): string {
   const range = `${summary.temperatureMin ?? "–"}–${summary.temperatureMax ?? "–"}°`;
-  if (locale === "en") return `${summary.dryDays}/${summary.days.length} dry · ${range}`;
-  return `${summary.dryDays}/${summary.days.length}少雨 · ${range}`;
+  return `${lowerRainCompact(summary, locale)} · ${range}`;
 }
 
 function conditionLabel(value: string, locale: ExplorerLocale): string {
@@ -891,9 +938,7 @@ export function InstantCountryWeatherExplorer({
             <div className="country-inspector-summary country-map-inspector-summary">
               <div>
                 <span>{copy.dryDays}</span>
-                <strong>
-                  {selected.dryDays}/{selected.days.length}
-                </strong>
+                <strong>{lowerRainHeadline(selected, locale)}</strong>
               </div>
               <div>
                 <span>{copy.rain}</span>

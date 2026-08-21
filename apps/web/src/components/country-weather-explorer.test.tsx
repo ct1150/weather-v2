@@ -122,8 +122,18 @@ describe("CountryWeatherExplorer instant country map", () => {
     const labels = screen
       .getAllByTestId("country-weather-marker")
       .map((marker) => marker.getAttribute("aria-label"));
-    expect(labels.some((label) => label?.includes("Tokyo") && label.includes("3/7"))).toBe(true);
-    expect(labels.some((label) => label?.includes("Osaka") && label.includes("7/7"))).toBe(true);
+    expect(
+      labels.some(
+        (label) =>
+          label?.includes("Tokyo") && label.includes("3 of 7 days look relatively low-rain"),
+      ),
+    ).toBe(true);
+    expect(
+      labels.some(
+        (label) =>
+          label?.includes("Osaka") && label.includes("All 7 days look relatively low-rain"),
+      ),
+    ).toBe(true);
   });
 
   it("keeps dense markers distinct and inside the country canvas", () => {
@@ -184,7 +194,9 @@ describe("CountryWeatherExplorer instant country map", () => {
     expect(screen.getByRole("button", { name: "Next 3 days" }).getAttribute("aria-pressed")).toBe(
       "true",
     );
-    expect(screen.getByLabelText("Tokyo weather summary").textContent).toContain("2/3");
+    expect(screen.getByLabelText("Tokyo weather summary").textContent).toContain(
+      "2 of 3 days look relatively low-rain",
+    );
   });
 
   it("greys destinations outside explicit limits without removing map or list entries", () => {
