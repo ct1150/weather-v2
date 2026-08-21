@@ -41,6 +41,11 @@ const EDGE_X = 72;
 const EDGE_Y = 48;
 export const MAX_MARKER_LEADER_DISTANCE = 116;
 
+type MarkerPositionStyle = CSSProperties & {
+  readonly "--anchor-left": string;
+  readonly "--anchor-top": string;
+};
+
 function clamp(value: number, minimum: number, maximum: number): number {
   return Math.max(minimum, Math.min(maximum, value));
 }
@@ -139,10 +144,12 @@ export function layoutCountryMarkers(
     .filter((marker): marker is PositionedCountryMarker => marker !== undefined);
 }
 
-function markerStyle(marker: PositionedCountryMarker): CSSProperties {
+function markerStyle(marker: PositionedCountryMarker): MarkerPositionStyle {
   return {
     left: `${(marker.x / COUNTRY_MAP_WIDTH) * 100}%`,
     top: `${(marker.y / COUNTRY_MAP_HEIGHT) * 100}%`,
+    "--anchor-left": `${(marker.anchorX / COUNTRY_MAP_WIDTH) * 100}%`,
+    "--anchor-top": `${(marker.anchorY / COUNTRY_MAP_HEIGHT) * 100}%`,
   };
 }
 
@@ -203,7 +210,7 @@ export function CountryOutlineMap({
         {positioned.map((marker) => (
           <span
             key={marker.id}
-            className={`country-weather-pin risk-${marker.risk}${marker.filtered ? " is-filtered" : ""}`}
+            className={`country-weather-pin risk-${marker.risk}${marker.filtered ? " is-filtered" : ""}${marker.selected ? " is-selected" : ""}`}
             style={anchorStyle(marker)}
             data-testid="country-weather-pin"
             data-city-id={marker.id}
