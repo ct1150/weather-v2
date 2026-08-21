@@ -5,7 +5,7 @@ on:
     types: [ready_for_review, synchronize]
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   generate:
@@ -14,6 +14,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -22,6 +24,18 @@ jobs:
 
       - name: Generate simplified geometry
         run: node tooling/maps/generate-cn-geometry.mjs
+
+      - name: Commit generated source when changed
+        run: |
+          if git diff --quiet -- apps/web/src/components/country-map-cn.generated.ts && git ls-files --error-unmatch apps/web/src/components/country-map-cn.generated.ts >/dev/null 2>&1; then
+            echo "Generated geometry already up to date"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- apps/web/src/components/country-map-cn.generated.ts
+          git commit -m "chore: generate China map boundary"
+          git push origin HEAD:${{ github.event.pull_request.head.ref }}
 
       - name: Upload generated source
         uses: actions/upload-artifact@v4
