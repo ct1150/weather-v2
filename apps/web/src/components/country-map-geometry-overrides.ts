@@ -1,8 +1,14 @@
 import type { CountryMapGeometry } from "./country-map-geometry";
 
+/**
+ * Dedicated country geometries for catalogue entries that are not yet part of the
+ * original phase-one geometry set. The China path is normalized to the exact
+ * projection frame used by projectCountryPoint so real WGS84 city coordinates and
+ * the visible outline share the same drawing extent instead of drifting apart.
+ */
 const OVERRIDES: Readonly<Record<string, CountryMapGeometry>> = {
   CN: {
-    path: "M137,230L175,167L251,135L322,93L407,111L492,83L575,111L659,143L754,176L833,233L799,285L824,347L765,405L679,424L625,479L545,466L474,493L401,457L329,440L270,392L207,366L161,319L124,274L137,230ZM552,529L568,522L583,531L578,546L561,550L549,540L552,529Z",
+    path: "M95.5,215.9L140.5,147.4L230.5,112.6L314.6,66.9L415.3,86.5L516.0,56.0L614.3,86.5L713.8,121.3L826.3,157.2L919.9,219.2L879.6,275.7L909.2,343.2L839.4,406.3L737.5,426.9L673.5,486.8L578.8,472.6L494.7,502.0L408.2,462.8L322.9,444.3L253.0,392.1L178.4,363.8L123.9,312.7L80.1,263.8L95.5,215.9ZM587.1,541.2L606.0,533.5L623.8,543.3L617.9,559.6L597.7,564.0L583.5,553.1L587.1,541.2Z",
     minLongitude: 73,
     maxLongitude: 135,
     minLatitude: 17,
