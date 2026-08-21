@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - fix/country-map-marker-geography
+  pull_request:
+    branches:
+      - main
   workflow_dispatch:
 
 permissions:
