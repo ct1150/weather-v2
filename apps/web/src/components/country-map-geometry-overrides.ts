@@ -5,6 +5,11 @@ import {
   type CountryMapGeometry,
 } from "./country-map-geometry";
 import { CHINA_MAP_BOUNDS, CHINA_MAP_RINGS } from "./country-map-cn.generated";
+import {
+  GENERATED_COUNTRY_MAPS,
+  type GeneratedCountryMapRing,
+  type GeneratedCountryMapSource,
+} from "./country-map-world.generated";
 
 const COUNTRY_MAP_PADDING = 56;
 const MAX_MERCATOR_LATITUDE = 85.05112878;
@@ -51,16 +56,32 @@ function projectMercatorPoint(
   };
 }
 
-function chinaPath(frame: CountryMapGeometry): string {
-  return CHINA_MAP_RINGS.map(
-    (ring) =>
-      ring
-        .map(([longitude, latitude], index) => {
-          const point = projectMercatorPoint(frame, longitude, latitude);
-          return `${index === 0 ? "M" : "L"}${point.x.toFixed(1)},${point.y.toFixed(1)}`;
-        })
-        .join("") + "Z",
-  ).join("");
+function ringsPath(
+  frame: CountryMapGeometry,
+  rings: ReadonlyArray<GeneratedCountryMapRing>,
+): string {
+  return rings
+    .map(
+      (ring) =>
+        ring
+          .map(([longitude, latitude], index) => {
+            const point = projectMercatorPoint(frame, longitude, latitude);
+            return `${index === 0 ? "M" : "L"}${point.x.toFixed(1)},${point.y.toFixed(1)}`;
+          })
+          .join("") + "Z",
+    )
+    .join("");
+}
+
+function generatedGeometry(source: GeneratedCountryMapSource): CountryMapGeometry {
+  const frame: CountryMapGeometry = {
+    path: "",
+    ...source.frame,
+  };
+  return {
+    ...frame,
+    path: ringsPath(frame, source.rings),
+  };
 }
 
 const CHINA_FRAME: CountryMapGeometry = {
@@ -70,24 +91,24 @@ const CHINA_FRAME: CountryMapGeometry = {
 
 const CHINA_GEOMETRY: CountryMapGeometry = {
   ...CHINA_FRAME,
-  path: chinaPath(CHINA_FRAME),
+  path: ringsPath(CHINA_FRAME, CHINA_MAP_RINGS),
 };
 
+const GENERATED_OVERRIDES: Readonly<Record<string, CountryMapGeometry>> = Object.fromEntries(
+  Object.entries(GENERATED_COUNTRY_MAPS).map(([countryId, source]) => [
+    countryId,
+    generatedGeometry(source),
+  ]),
+);
+
 /**
- * Dedicated country geometries for catalogue entries that are not part of the
- * original phase-one geometry set. China is generated from simplified WGS84
- * boundary rings and projected with the same Web Mercator function used for its
- * destination anchors, so outline and city positions cannot drift independently.
+ * All supported country outlines and destination anchors now originate in WGS84
+ * and share the same Web Mercator projection. This prevents a country silhouette
+ * and its city dots from drifting independently.
  */
 const OVERRIDES: Readonly<Record<string, CountryMapGeometry>> = {
+  ...GENERATED_OVERRIDES,
   CN: CHINA_GEOMETRY,
-  TW: {
-    path: "M514,76C553,107 579,154 590,205C603,264 585,328 559,384C536,434 508,487 476,545C443,506 424,458 417,407C408,345 418,278 435,218C452,157 476,105 514,76Z",
-    minLongitude: 119.4,
-    maxLongitude: 122.2,
-    minLatitude: 21.4,
-    maxLatitude: 25.7,
-  },
 };
 
 export function countryMapGeometryOverride(countryId: string): CountryMapGeometry | null {
@@ -100,7 +121,8 @@ export function projectCountryMapPoint(
   longitude: number,
   latitude: number,
 ): { readonly x: number; readonly y: number } {
-  if (countryId.toUpperCase() === "CN") {
+  const normalizedCountryId = countryId.toUpperCase();
+  if (normalizedCountryId === "CN" || GENERATED_COUNTRY_MAPS[normalizedCountryId] !== undefined) {
     return projectMercatorPoint(geometry, longitude, latitude);
   }
   return projectCountryPoint(geometry, longitude, latitude);

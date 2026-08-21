@@ -4,7 +4,11 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { CountryOutlineMap, type CountryOutlineMarker } from "./CountryOutlineMap";
+import {
+  CountryOutlineMap,
+  fitCountryMapRenderedFrame,
+  type CountryOutlineMarker,
+} from "./CountryOutlineMap";
 
 const MARKERS: ReadonlyArray<CountryOutlineMarker> = [
   {
@@ -58,6 +62,23 @@ describe("country map dot density", () => {
       .getAllByTestId("country-weather-pin")
       .find((pin) => pin.getAttribute("data-city-id") === "beijing");
     expect(selectedPin?.className).toContain("is-selected");
+  });
+
+  it("matches xMidYMid meet letterboxing on wide and tall map containers", () => {
+    const wide = fitCountryMapRenderedFrame(1200, 544);
+    expect(wide.scale).toBeCloseTo(544 / 620, 6);
+    expect(wide.offsetX).toBeGreaterThan(150);
+    expect(wide.offsetY).toBeCloseTo(0, 6);
+
+    const tall = fitCountryMapRenderedFrame(360, 420);
+    expect(tall.scale).toBeCloseTo(360 / 1000, 6);
+    expect(tall.offsetX).toBeCloseTo(0, 6);
+    expect(tall.offsetY).toBeGreaterThan(90);
+
+    const centerX = tall.offsetX + 500 * tall.scale;
+    const centerY = tall.offsetY + 310 * tall.scale;
+    expect(centerX).toBeCloseTo(180, 6);
+    expect(centerY).toBeCloseTo(210, 6);
   });
 
   it("keeps cards hidden until hover or keyboard focus and suppresses them on touch screens", () => {

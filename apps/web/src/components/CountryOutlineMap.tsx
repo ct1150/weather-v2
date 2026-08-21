@@ -1,4 +1,6 @@
-import type { CSSProperties, ReactElement } from "react";
+"use client";
+
+import { useLayoutEffect, useRef, useState, type CSSProperties, type ReactElement } from "react";
 import { COUNTRY_MAP_HEIGHT, COUNTRY_MAP_WIDTH, countryMapGeometry } from "./country-map-geometry";
 import {
   countryMapGeometryOverride,
@@ -35,11 +37,37 @@ export interface CountryOutlineMapProps {
   readonly onSelect: (markerId: string) => void;
 }
 
+export interface CountryMapRenderedFrame {
+  readonly scale: number;
+  readonly offsetX: number;
+  readonly offsetY: number;
+}
+
 /** Dots now stay exactly on their geographic anchors. */
 export const MAX_MARKER_LEADER_DISTANCE = 0;
 
 function resolveCountryGeometry(countryId: string) {
   return countryMapGeometryOverride(countryId) ?? countryMapGeometry(countryId);
+}
+
+/**
+ * Mirrors SVG preserveAspectRatio="xMidYMid meet" so the HTML marker layer and
+ * the SVG outline always share the same rendered coordinate frame.
+ */
+export function fitCountryMapRenderedFrame(width: number, height: number): CountryMapRenderedFrame {
+  if (width <= 0 || height <= 0) {
+    return { scale: 0, offsetX: 0, offsetY: 0 };
+  }
+
+  const scale = Math.min(width / COUNTRY_MAP_WIDTH, height / COUNTRY_MAP_HEIGHT);
+  const renderedWidth = COUNTRY_MAP_WIDTH * scale;
+  const renderedHeight = COUNTRY_MAP_HEIGHT * scale;
+
+  return {
+    scale,
+    offsetX: (width - renderedWidth) / 2,
+    offsetY: (height - renderedHeight) / 2,
+  };
 }
 
 export function layoutCountryMarkers(
@@ -59,7 +87,18 @@ export function layoutCountryMarkers(
   });
 }
 
-function markerStyle(marker: PositionedCountryMarker): CSSProperties {
+function markerStyle(
+  marker: PositionedCountryMarker,
+  renderedFrame: CountryMapRenderedFrame | null,
+): CSSProperties {
+  if (renderedFrame !== null && renderedFrame.scale > 0) {
+    return {
+      left: `${renderedFrame.offsetX + marker.anchorX * renderedFrame.scale}px`,
+      top: `${renderedFrame.offsetY + marker.anchorY * renderedFrame.scale}px`,
+    };
+  }
+
+  // SSR/jsdom fallback. useLayoutEffect replaces this before browser paint.
   return {
     left: `${(marker.anchorX / COUNTRY_MAP_WIDTH) * 100}%`,
     top: `${(marker.anchorY / COUNTRY_MAP_HEIGHT) * 100}%`,
@@ -84,11 +123,36 @@ export function CountryOutlineMap({
   markers,
   onSelect,
 }: CountryOutlineMapProps): ReactElement {
+  const mapRef = useRef<HTMLDivElement>(null);
+  const [renderedFrame, setRenderedFrame] = useState<CountryMapRenderedFrame | null>(null);
   const geometry = resolveCountryGeometry(countryId);
   const positioned = layoutCountryMarkers(countryId, markers);
 
+  useLayoutEffect(() => {
+    const map = mapRef.current;
+    if (map === null) return;
+
+    const updateRenderedFrame = () => {
+      const rect = map.getBoundingClientRect();
+      if (rect.width <= 0 || rect.height <= 0) return;
+      setRenderedFrame(fitCountryMapRenderedFrame(rect.width, rect.height));
+    };
+
+    updateRenderedFrame();
+
+    if (typeof ResizeObserver !== "undefined") {
+      const observer = new ResizeObserver(updateRenderedFrame);
+      observer.observe(map);
+      return () => observer.disconnect();
+    }
+
+    window.addEventListener("resize", updateRenderedFrame);
+    return () => window.removeEventListener("resize", updateRenderedFrame);
+  }, []);
+
   return (
     <div
+      ref={mapRef}
       className="country-weather-map country-weather-map-primary country-weather-map-instant"
       role="region"
       aria-label={ariaLabel}
@@ -118,7 +182,7 @@ export function CountryOutlineMap({
             key={marker.id}
             type="button"
             className={`country-weather-dot risk-${marker.risk}${marker.filtered ? " is-filtered" : ""}${marker.selected ? " is-selected" : ""} ${tooltipPlacement(marker)}`}
-            style={markerStyle(marker)}
+            style={markerStyle(marker, renderedFrame)}
             aria-label={marker.ariaLabel}
             aria-pressed={marker.selected}
             data-testid="country-weather-marker"
