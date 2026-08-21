@@ -1,9 +1,9 @@
 name: Format country map geography fix
 
 on:
-  push:
+  pull_request:
     branches:
-      - fix/country-map-marker-geography
+      - main
 
 permissions:
   contents: write
