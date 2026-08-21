@@ -257,9 +257,7 @@ for (const country of COUNTRIES) {
     .map(({ ring, protectsDestination }) =>
       simplifyDouglasPeucker(
         ring,
-        protectsDestination
-          ? TRAVEL_ISLAND_SIMPLIFY_TOLERANCE
-          : DEFAULT_SIMPLIFY_TOLERANCE,
+        protectsDestination ? TRAVEL_ISLAND_SIMPLIFY_TOLERANCE : DEFAULT_SIMPLIFY_TOLERANCE,
       ),
     )
     .map(roundRing)
