@@ -337,4 +337,20 @@
   .country-weather-dot-tooltip {
     display: none;
   }
+
+  .country-weather-dot.is-selected .country-weather-dot-tooltip {
+    display: grid;
+    max-width: min(11rem, 62vw);
+    opacity: 1;
+    visibility: visible;
+  }
+
+  .country-weather-dot.is-selected.tooltip-center .country-weather-dot-tooltip {
+    transform: translate(-50%, 0);
+  }
+
+  .country-weather-dot.is-selected.tooltip-left .country-weather-dot-tooltip,
+  .country-weather-dot.is-selected.tooltip-right .country-weather-dot-tooltip {
+    transform: translate(0, 0);
+  }
 }

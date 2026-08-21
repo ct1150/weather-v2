@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type ReactElement } from "react";
+import { useEffect, useMemo, useState, type ReactElement } from "react";
 import type {
   CountryHeaderViewModel,
   CountryOptionViewModel,
@@ -74,7 +74,7 @@ const COPY = {
     copyFailed: "Copy unavailable",
     mapHeading: "All supported travel destinations at a glance",
     mapHint: (count: number) =>
-      `${count} destinations appear as weather-colored dots. Hover for a quick summary; click or tap for daily detail.`,
+      `${count} destinations appear as weather-colored dots. Hover on desktop; on mobile, tap a dot to keep a quick summary beside it and tap another dot to compare. Scroll down only when you want the daily forecast.`,
     mapCount: (count: number) => `${count}/${count} shown`,
     mapLegend: "Weather map legend",
     lowerRain: "Lower rain",
@@ -127,7 +127,7 @@ const COPY = {
     copyFailed: "暂时无法复制",
     mapHeading: "全部已收录旅行地天气一目了然",
     mapHint: (count: number) =>
-      `地图只显示 ${count} 个按天气着色的地点圆点。鼠标移到圆点可快速查看，点击或轻触后看逐日预报。`,
+      `地图显示 ${count} 个按天气着色的地点圆点。手机轻触圆点会在原地显示摘要，可继续点击其他圆点比较；需要逐日天气时再向下查看。`,
     mapCount: (count: number) => `已显示 ${count}/${count}`,
     mapLegend: "地图天气图例",
     lowerRain: "少雨为主",
@@ -179,7 +179,7 @@ const COPY = {
     copyFailed: "暫時無法複製",
     mapHeading: "全部已收錄旅行地天氣一目了然",
     mapHint: (count: number) =>
-      `地圖只顯示 ${count} 個按天氣著色的地點圓點。滑鼠移到圓點可快速查看，點擊或輕觸後看逐日預報。`,
+      `地圖顯示 ${count} 個按天氣著色的地點圓點。手機輕觸圓點會在原地顯示摘要，可繼續點擊其他圓點比較；需要逐日天氣時再向下查看。`,
     mapCount: (count: number) => `已顯示 ${count}/${count}`,
     mapLegend: "地圖天氣圖例",
     lowerRain: "少雨為主",
@@ -482,7 +482,6 @@ export function InstantCountryWeatherExplorer({
   const [filters, setFilters] = useState<WeatherFilters>(EMPTY_FILTERS);
   const [selectedCityId, setSelectedCityId] = useState("");
   const [shareStatus, setShareStatus] = useState("");
-  const inspectorRef = useRef<HTMLElement | null>(null);
 
   const dates = useMemo(() => (cities[0]?.days ?? []).map((day) => day.localDate), [cities]);
   const selectedIndices = useMemo(() => {
@@ -608,7 +607,7 @@ export function InstantCountryWeatherExplorer({
     });
   }, [country.countryId, locale]);
 
-  function selectCity(summary: CitySummary, scrollOnMobile = false): void {
+  function selectCity(summary: CitySummary): void {
     setSelectedCityId(summary.city.cityId);
     writeUrl(preset, customRange, filters, summary.city.cityId);
     emitProductAnalytics({
@@ -620,21 +619,11 @@ export function InstantCountryWeatherExplorer({
         country_code: country.countryId,
       },
     });
-    if (
-      scrollOnMobile &&
-      typeof window.matchMedia === "function" &&
-      window.matchMedia("(max-width: 1023px)").matches
-    ) {
-      window.setTimeout(
-        () => inspectorRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }),
-        0,
-      );
-    }
   }
 
   function selectMarker(markerId: string): void {
     const summary = summaries.find((item) => item.city.cityId === markerId);
-    if (summary !== undefined) selectCity(summary, true);
+    if (summary !== undefined) selectCity(summary);
   }
 
   function selectPreset(nextPreset: Exclude<RangePreset, "custom">): void {
@@ -913,7 +902,6 @@ export function InstantCountryWeatherExplorer({
 
         {selected !== null ? (
           <aside
-            ref={inspectorRef}
             className="country-city-inspector"
             aria-label={`${selected.city.cityName} weather summary`}
           >
