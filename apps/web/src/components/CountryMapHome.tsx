@@ -20,60 +20,56 @@ export interface CountryMapHomeProps {
 
 const COPY = {
   en: {
-    eyebrow: "Country travel weather map",
-    title: "Pick a country. See where the weather looks better.",
+    eyebrow: "Where Not Rain",
+    title: "Pick a country and see where rain looks less likely.",
     description:
-      "Open one map and compare the next seven days across popular travel destinations. No origin, route or score to configure.",
+      "Each city is a dot on the map. Color shows the rain outlook for the next seven days; hover or tap a city for details.",
     choose: "Choose a country",
     placeholder: "Select a country",
-    mapAction: "Open weather map",
-    howItWorks: "One glance, three steps",
+    mapAction: "View country weather",
+    howItWorks: "How to use the map",
     steps: [
-      ["01", "Choose a country", "Start with the country you are already considering."],
-      [
-        "02",
-        "Read the map",
-        "Weather icons, lower-rain days and temperatures appear on every destination.",
-      ],
-      ["03", "Tap a place", "Open the daily forecast only when a destination catches your eye."],
+      ["01", "Choose a country", "Start with a country you may visit."],
+      ["02", "Check the dots", "Green means less rain; yellow and red mean rain needs more attention."],
+      ["03", "Open a city", "Hover or tap a city when you want the daily forecast."],
     ],
     cityCount: (count: number) =>
-      `${count} popular ${count === 1 ? "destination" : "destinations"}`,
-    footer: "Where Not Rain · One country map, less weather guesswork",
+      `${count} ${count === 1 ? "destination" : "destinations"}`,
+    footer: "Where Not Rain · Compare rain outlooks by city",
   },
   "zh-cn": {
     eyebrow: "哪里不下雨",
-    title: "选择一个国家，一张图看懂哪里天气更好。",
+    title: "选一个国家，看看哪些城市更少雨。",
     description:
-      "直接查看热门旅游地未来 7 天的天气图标、少雨天数和气温，不需要填写出发地、交通方式或复杂评分。",
+      "地图上的每个圆点代表一个城市，颜色表示未来 7 天的降雨情况；鼠标移入或点击即可查看详情。",
     choose: "选择国家",
     placeholder: "请选择一个国家",
-    mapAction: "打开天气地图",
-    howItWorks: "一眼看懂，只需三步",
+    mapAction: "查看国家天气",
+    howItWorks: "怎么看这张图",
     steps: [
-      ["01", "选择国家", "从你已经感兴趣的国家开始。"],
-      ["02", "查看地图", "每个热门目的地直接显示天气图标、少雨天数和气温。"],
-      ["03", "点击地点", "只有对某个地方感兴趣时，再查看逐日天气。"],
+      ["01", "选择国家", "先选一个你准备去的国家。"],
+      ["02", "看圆点颜色", "绿色表示雨较少；黄色和红色表示更需要留意降雨。"],
+      ["03", "查看城市", "想看具体天气时，再移到或点击城市圆点。"],
     ],
-    cityCount: (count: number) => `${count} 个热门旅游地`,
-    footer: "Where Not Rain · 一张国家地图，少一点天气猜测",
+    cityCount: (count: number) => `${count} 个旅游地`,
+    footer: "Where Not Rain · 按城市比较未来降雨情况",
   },
   "zh-hant": {
     eyebrow: "哪裡不下雨",
-    title: "選擇一個國家，一張圖看懂哪裡天氣更好。",
+    title: "選一個國家，看看哪些城市更少雨。",
     description:
-      "直接查看熱門旅遊地未來 7 天的天氣圖示、少雨天數和氣溫，不需要填寫出發地、交通方式或複雜評分。",
+      "地圖上的每個圓點代表一個城市，顏色表示未來 7 天的降雨情況；滑鼠移入或點擊即可查看詳情。",
     choose: "選擇國家",
     placeholder: "請選擇一個國家",
-    mapAction: "打開天氣地圖",
-    howItWorks: "一眼看懂，只需三步",
+    mapAction: "查看國家天氣",
+    howItWorks: "怎麼看這張圖",
     steps: [
-      ["01", "選擇國家", "從你已經感興趣的國家開始。"],
-      ["02", "查看地圖", "每個熱門目的地直接顯示天氣圖示、少雨天數和氣溫。"],
-      ["03", "點擊地點", "只有對某個地方感興趣時，再查看逐日天氣。"],
+      ["01", "選擇國家", "先選一個你準備去的國家。"],
+      ["02", "看圓點顏色", "綠色表示雨較少；黃色和紅色表示更需要留意降雨。"],
+      ["03", "查看城市", "想看具體天氣時，再移到或點擊城市圓點。"],
     ],
-    cityCount: (count: number) => `${count} 個熱門旅遊地`,
-    footer: "Where Not Rain · 一張國家地圖，少一點天氣猜測",
+    cityCount: (count: number) => `${count} 個旅遊地`,
+    footer: "Where Not Rain · 按城市比較未來降雨情況",
   },
 } as const;
 
@@ -141,7 +137,7 @@ export function CountryMapHome({ countries, locale = "en" }: CountryMapHomeProps
         <div>
           <p className="eyebrow">{copy.choose}</p>
           <h2 id="country-map-list-heading" className="section-title mt-3">
-            {locale === "en" ? "Popular country maps" : copy.title}
+            {locale === "en" ? "Countries" : copy.title}
           </h2>
         </div>
         <ul>
