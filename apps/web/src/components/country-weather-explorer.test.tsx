@@ -124,12 +124,14 @@ describe("CountryWeatherExplorer instant country map", () => {
       .map((marker) => marker.getAttribute("aria-label"));
     expect(
       labels.some(
-        (label) => label?.includes("Tokyo") && label.includes("3 of 7 days should be mostly rain-free"),
+        (label) =>
+          label?.includes("Tokyo") && label.includes("3 of 7 days should be mostly rain-free"),
       ),
     ).toBe(true);
     expect(
       labels.some(
-        (label) => label?.includes("Osaka") && label.includes("6 of 7 days should be mostly rain-free"),
+        (label) =>
+          label?.includes("Osaka") && label.includes("6 of 7 days should be mostly rain-free"),
       ),
     ).toBe(true);
   });

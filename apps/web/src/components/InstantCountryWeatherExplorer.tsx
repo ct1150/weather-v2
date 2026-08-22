@@ -387,7 +387,9 @@ function lowerRainHeadline(summary: CitySummary, locale: ExplorerLocale): string
 
   if (locale === "en") {
     if (total === 1)
-      return lowerRainDays === 1 ? "That day should be mostly rain-free" : "Rain is possible that day";
+      return lowerRainDays === 1
+        ? "That day should be mostly rain-free"
+        : "Rain is possible that day";
     if (lowerRainDays === 0) return `Rain is possible on all ${total} days`;
     if (lowerRainDays === total) return `All ${total} days should be mostly rain-free`;
     return `${lowerRainDays} of ${total} days should be mostly rain-free`;
