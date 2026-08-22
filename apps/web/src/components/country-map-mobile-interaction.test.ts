@@ -6,6 +6,7 @@ const component = readFileSync(
   join(process.cwd(), "src/components/InstantCountryWeatherExplorer.tsx"),
   "utf8",
 );
+const mapComponent = readFileSync(join(process.cwd(), "src/components/CountryOutlineMap.tsx"), "utf8");
 const styles = readFileSync(join(process.cwd(), "src/app/instant-country-map.css"), "utf8");
 
 describe("mobile country-map comparison interaction", () => {
@@ -20,5 +21,14 @@ describe("mobile country-map comparison interaction", () => {
     expect(styles).toContain("max-width: min(11rem, 62vw)");
     expect(styles).toContain("opacity: 1");
     expect(styles).toContain("visibility: visible");
+  });
+
+  it("dismisses the selected summary when the user taps map background", () => {
+    expect(mapComponent).toContain("handleMapBackgroundClick");
+    expect(mapComponent).toContain("setDismissedMarkerId(selectedMarkerId)");
+    expect(mapComponent).toContain("dismissedMarkerId !== marker.id");
+    expect(mapComponent).toContain("setDismissedMarkerId(null)");
+    expect(mapComponent).toContain("onClick={handleMapBackgroundClick}");
+    expect(mapComponent).toContain("country-weather-marker");
   });
 });
