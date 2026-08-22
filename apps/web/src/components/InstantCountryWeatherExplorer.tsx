@@ -10,6 +10,7 @@ import type {
 import { emitProductAnalytics, type BrowserAnalyticsLocale } from "../analytics/browser-events";
 import { toTraditionalText } from "../trips/traditional";
 import { windowIndicesForDates } from "../weather/window-selection";
+import { isMostlyDryTravelDay } from "./rain-day-classification";
 import {
   CountryOutlineMap,
   type CountryOutlineMarker,
@@ -77,7 +78,7 @@ const COPY = {
       `${count} destinations appear as weather-colored dots. Hover on desktop; on mobile, tap a dot to keep a quick summary beside it and tap another dot to compare. Scroll down only when you want the daily forecast.`,
     mapCount: (count: number) => `${count}/${count} shown`,
     mapLegend: "Weather map legend",
-    lowerRain: "Lower rain",
+    lowerRain: "Mostly dry",
     mixed: "Mixed conditions",
     rainLikely: "Rain more likely",
     selected: "Selected destination",
@@ -130,11 +131,11 @@ const COPY = {
       `地图显示 ${count} 个按天气着色的地点圆点。手机轻触圆点会在原地显示摘要，可继续点击其他圆点比较；需要逐日天气时再向下查看。`,
     mapCount: (count: number) => `已显示 ${count}/${count}`,
     mapLegend: "地图天气图例",
-    lowerRain: "少雨为主",
+    lowerRain: "基本无雨",
     mixed: "晴雨交替",
     rainLikely: "降雨偏多",
     selected: "已选目的地",
-    dryDays: "少雨情况",
+    dryDays: "无雨情况",
     rain: "预计降雨量 · 最高概率",
     temperature: "气温",
     wind: "最大风速",
@@ -182,11 +183,11 @@ const COPY = {
       `地圖顯示 ${count} 個按天氣著色的地點圓點。手機輕觸圓點會在原地顯示摘要，可繼續點擊其他圓點比較；需要逐日天氣時再向下查看。`,
     mapCount: (count: number) => `已顯示 ${count}/${count}`,
     mapLegend: "地圖天氣圖例",
-    lowerRain: "少雨為主",
+    lowerRain: "基本無雨",
     mixed: "晴雨交替",
     rainLikely: "降雨偏多",
     selected: "已選目的地",
-    dryDays: "少雨情況",
+    dryDays: "無雨情況",
     rain: "預計降雨量 · 最高機率",
     temperature: "氣溫",
     wind: "最大風速",
@@ -322,13 +323,7 @@ function summarize(
   const minimums = numericValues(days.map((day) => day.weather.temperatureMin));
   const maximums = numericValues(days.map((day) => day.weather.temperatureMax));
   const winds = numericValues(days.map((day) => day.weather.windSpeedMax));
-  const dryDays = days.filter((day) => {
-    const chance = day.weather.rainProbability;
-    const amount = day.weather.precipitationMm;
-    return amount !== undefined && amount !== null
-      ? amount <= 2.5 || ((chance ?? 100) <= 45 && amount < 5)
-      : chance !== null && chance <= 45;
-  }).length;
+  const dryDays = days.filter(isMostlyDryTravelDay).length;
   const maxRain = rainValues.length > 0 ? Math.max(...rainValues) : null;
   const totalRainMm =
     rainAmounts.length > 0
@@ -340,9 +335,11 @@ function summarize(
   const risk: Risk =
     days.length === 0 || (totalRainMm === null && maxRain === null)
       ? "unknown"
-      : dryDays === days.length && (totalRainMm ?? 0) <= days.length * 2.5
+      : dryDays === days.length
         ? "good"
-        : dryDays >= Math.ceil(days.length / 2) || (totalRainMm ?? Infinity) <= days.length * 8
+        : dryDays > 0 &&
+            (dryDays >= Math.ceil(days.length / 2) ||
+              (totalRainMm ?? Infinity) <= days.length * 2.5)
           ? "mixed"
           : "wet";
   const metrics = { maxRain, maxWind, temperatureMin, temperatureMax };
@@ -390,25 +387,23 @@ function lowerRainHeadline(summary: CitySummary, locale: ExplorerLocale): string
 
   if (locale === "en") {
     if (total === 1)
-      return lowerRainDays === 1
-        ? "Rain looks relatively low that day"
-        : "Rain is worth watching that day";
-    if (lowerRainDays === 0) return `Rain is worth watching throughout this ${total}-day period`;
-    if (lowerRainDays === total) return `All ${total} days look relatively low-rain`;
-    return `${lowerRainDays} of ${total} days look relatively low-rain`;
+      return lowerRainDays === 1 ? "That day looks mostly dry" : "Rain is expected that day";
+    if (lowerRainDays === 0) return `No clearly dry days in this ${total}-day period`;
+    if (lowerRainDays === total) return `All ${total} days look mostly dry`;
+    return `${lowerRainDays} of ${total} days look mostly dry`;
   }
 
   if (locale === "zh-cn") {
-    if (total === 1) return lowerRainDays === 1 ? "当天雨较少" : "当天需留意降雨";
-    if (lowerRainDays === 0) return `这${total}天都要留意降雨`;
-    if (lowerRainDays === total) return `这${total}天整体都比较少雨`;
-    return `${total}天里有${lowerRainDays}天雨较少`;
+    if (total === 1) return lowerRainDays === 1 ? "当天基本无雨" : "当天有降雨";
+    if (lowerRainDays === 0) return `这${total}天暂无明显无雨日`;
+    if (lowerRainDays === total) return `这${total}天基本都无雨`;
+    return `${total}天里有${lowerRainDays}天基本无雨`;
   }
 
-  if (total === 1) return lowerRainDays === 1 ? "當天雨較少" : "當天需留意降雨";
-  if (lowerRainDays === 0) return `這${total}天都要留意降雨`;
-  if (lowerRainDays === total) return `這${total}天整體都比較少雨`;
-  return `${total}天裡有${lowerRainDays}天雨較少`;
+  if (total === 1) return lowerRainDays === 1 ? "當天基本無雨" : "當天有降雨";
+  if (lowerRainDays === 0) return `這${total}天暫無明顯無雨日`;
+  if (lowerRainDays === total) return `這${total}天基本都無雨`;
+  return `${total}天裡有${lowerRainDays}天基本無雨`;
 }
 
 function lowerRainCompact(summary: CitySummary, locale: ExplorerLocale): string {
@@ -417,17 +412,17 @@ function lowerRainCompact(summary: CitySummary, locale: ExplorerLocale): string 
   if (total === 0) return COPY[locale].unavailable;
 
   if (locale === "en") {
-    if (lowerRainDays === 0) return "No lower-rain days";
-    return `${lowerRainDays} lower-rain ${lowerRainDays === 1 ? "day" : "days"}`;
+    if (lowerRainDays === 0) return "No clearly dry days";
+    return `${lowerRainDays} mostly dry ${lowerRainDays === 1 ? "day" : "days"}`;
   }
   if (locale === "zh-cn") {
-    if (lowerRainDays === 0) return "暂无少雨日";
-    if (lowerRainDays === total) return `${total}天整体少雨`;
-    return `${lowerRainDays}天雨较少`;
+    if (lowerRainDays === 0) return "暂无明显无雨日";
+    if (lowerRainDays === total) return `${total}天基本无雨`;
+    return `${lowerRainDays}天基本无雨`;
   }
-  if (lowerRainDays === 0) return "暫無少雨日";
-  if (lowerRainDays === total) return `${total}天整體少雨`;
-  return `${lowerRainDays}天雨較少`;
+  if (lowerRainDays === 0) return "暫無明顯無雨日";
+  if (lowerRainDays === total) return `${total}天基本無雨`;
+  return `${lowerRainDays}天基本無雨`;
 }
 
 function rainLabel(summary: CitySummary, locale: ExplorerLocale): string {

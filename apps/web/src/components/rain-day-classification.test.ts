@@ -1,7 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { isMostlyDryTravelDay } from "./rain-day-classification";
 
-function day(conditionLabel: string, precipitationMm: number | null, rainProbability: number | null) {
+function day(
+  conditionLabel: string,
+  precipitationMm: number | null,
+  rainProbability: number | null,
+) {
   return {
     weather: {
       conditionLabel,
