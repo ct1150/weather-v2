@@ -1,0 +1,107 @@
+name: Apply rain semantics patch
+
+on:
+  push:
+    branches: [fix/rain-semantics-tooltip-stack]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/rain-semantics-tooltip-stack
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.11.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Apply product patch
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          component_path = Path('apps/web/src/components/InstantCountryWeatherExplorer.tsx')
+          text = component_path.read_text()
+
+          old = 'import { windowIndicesForDates } from "../weather/window-selection";\n'
+          new = old + 'import { isMostlyDryTravelDay } from "./rain-day-classification";\n'
+          assert old in text
+          text = text.replace(old, new, 1)
+
+          old = '''  const dryDays = days.filter((day) => {\n    const chance = day.weather.rainProbability;\n    const amount = day.weather.precipitationMm;\n    return amount !== undefined && amount !== null\n      ? amount <= 2.5 || ((chance ?? 100) <= 45 && amount < 5)\n      : chance !== null && chance <= 45;\n  }).length;'''
+          new = '  const dryDays = days.filter(isMostlyDryTravelDay).length;'
+          assert old in text
+          text = text.replace(old, new, 1)
+
+          old = '''  const risk: Risk =\n    days.length === 0 || (totalRainMm === null && maxRain === null)\n      ? "unknown"\n      : dryDays === days.length && (totalRainMm ?? 0) <= days.length * 2.5\n        ? "good"\n        : dryDays >= Math.ceil(days.length / 2) || (totalRainMm ?? Infinity) <= days.length * 8\n          ? "mixed"\n          : "wet";'''
+          new = '''  const risk: Risk =\n    days.length === 0 || (totalRainMm === null && maxRain === null)\n      ? "unknown"\n      : dryDays === days.length\n        ? "good"\n        : dryDays > 0 &&\n            (dryDays >= Math.ceil(days.length / 2) ||\n              (totalRainMm ?? Infinity) <= days.length * 2.5)\n          ? "mixed"\n          : "wet";'''
+          assert old in text
+          text = text.replace(old, new, 1)
+
+          replacements = {
+            'lowerRain: "Lower rain"': 'lowerRain: "Mostly dry"',
+            'lowerRain: "少雨为主"': 'lowerRain: "基本无雨"',
+            'lowerRain: "少雨為主"': 'lowerRain: "基本無雨"',
+            'dryDays: "少雨情况"': 'dryDays: "无雨情况"',
+            'dryDays: "少雨情況"': 'dryDays: "無雨情況"',
+            '"Rain looks relatively low that day"': '"That day looks mostly dry"',
+            '"Rain is worth watching that day"': '"Rain is expected that day"',
+            '`Rain is worth watching throughout this ${total}-day period`': '`No clearly dry days in this ${total}-day period`',
+            '`All ${total} days look relatively low-rain`': '`All ${total} days look mostly dry`',
+            '`${lowerRainDays} of ${total} days look relatively low-rain`': '`${lowerRainDays} of ${total} days look mostly dry`',
+            '"No lower-rain days"': '"No clearly dry days"',
+            '`${lowerRainDays} lower-rain ${lowerRainDays === 1 ? "day" : "days"}`': '`${lowerRainDays} mostly dry ${lowerRainDays === 1 ? "day" : "days"}`',
+            '"当天雨较少"': '"当天基本无雨"',
+            '"当天需留意降雨"': '"当天有降雨"',
+            '`这${total}天都要留意降雨`': '`这${total}天暂无明显无雨日`',
+            '`这${total}天整体都比较少雨`': '`这${total}天基本都无雨`',
+            '`${total}天里有${lowerRainDays}天雨较少`': '`${total}天里有${lowerRainDays}天基本无雨`',
+            '"暂无少雨日"': '"暂无明显无雨日"',
+            '`${total}天整体少雨`': '`${total}天基本无雨`',
+            '`${lowerRainDays}天雨较少`': '`${lowerRainDays}天基本无雨`',
+            '"當天雨較少"': '"當天基本無雨"',
+            '"當天需留意降雨"': '"當天有降雨"',
+            '`這${total}天都要留意降雨`': '`這${total}天暫無明顯無雨日`',
+            '`這${total}天整體都比較少雨`': '`這${total}天基本都無雨`',
+            '`${total}天裡有${lowerRainDays}天雨較少`': '`${total}天裡有${lowerRainDays}天基本無雨`',
+            '"暫無少雨日"': '"暫無明顯無雨日"',
+            '`${total}天整體少雨`': '`${total}天基本無雨`',
+            '`${lowerRainDays}天雨較少`': '`${lowerRainDays}天基本無雨`',
+          }
+          for old_value, new_value in replacements.items():
+            assert old_value in text, old_value
+            text = text.replace(old_value, new_value)
+          component_path.write_text(text)
+
+          css_path = Path('apps/web/src/app/instant-country-map.css')
+          css = css_path.read_text()
+          anchor = '.country-weather-dot.is-selected .country-weather-dot-core,\n'
+          insert = '.country-weather-dot.is-selected {\n  z-index: 100;\n}\n\n' + anchor
+          assert anchor in css
+          css = css.replace(anchor, insert, 1)
+          css_path.write_text(css)
+
+          test_path = Path('apps/web/src/components/country-weather-explorer.test.tsx')
+          test = test_path.read_text()
+          test = test.replace('3 of 7 days look relatively low-rain', '3 of 7 days look mostly dry')
+          test = test.replace('All 7 days look relatively low-rain', 'All 7 days look mostly dry')
+          test = test.replace('2 of 3 days look relatively low-rain', '2 of 3 days look mostly dry')
+          test_path.write_text(test)
+          PY
+      - name: Format changed files
+        run: pnpm exec prettier --write apps/web/src/components/InstantCountryWeatherExplorer.tsx apps/web/src/components/rain-day-classification.ts apps/web/src/components/rain-day-classification.test.ts apps/web/src/components/country-weather-explorer.test.tsx apps/web/src/app/instant-country-map.css
+      - name: Commit product changes and remove temporary workflow
+        run: |
+          rm .github/workflows/apply-rain-semantics.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- apps/web/src/components/InstantCountryWeatherExplorer.tsx apps/web/src/components/rain-day-classification.ts apps/web/src/components/rain-day-classification.test.ts apps/web/src/components/country-weather-explorer.test.tsx apps/web/src/app/instant-country-map.css .github/workflows/apply-rain-semantics.yml
+          git commit -m "fix: align rain summaries with dry-day expectations"
+          git push origin HEAD:fix/rain-semantics-tooltip-stack
