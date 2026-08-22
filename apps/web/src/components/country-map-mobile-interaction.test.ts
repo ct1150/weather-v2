@@ -6,7 +6,10 @@ const component = readFileSync(
   join(process.cwd(), "src/components/InstantCountryWeatherExplorer.tsx"),
   "utf8",
 );
-const mapComponent = readFileSync(join(process.cwd(), "src/components/CountryOutlineMap.tsx"), "utf8");
+const mapComponent = readFileSync(
+  join(process.cwd(), "src/components/CountryOutlineMap.tsx"),
+  "utf8",
+);
 const styles = readFileSync(join(process.cwd(), "src/app/instant-country-map.css"), "utf8");
 
 describe("mobile country-map comparison interaction", () => {
