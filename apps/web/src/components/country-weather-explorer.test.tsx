@@ -245,16 +245,22 @@ describe("CountryWeatherExplorer instant country map", () => {
     expect(screen.getByText("Link copied")).toBeTruthy();
   });
 
-  it("uses the same complete map interaction in Simplified and Traditional Chinese", () => {
+  it("uses conversational rain language in Simplified and Traditional Chinese", () => {
     renderExplorer("zh-cn");
     expect(screen.getByRole("button", { name: "未来 7 天" })).toBeTruthy();
     expect(screen.getByText("全部已收录旅行地天气一目了然")).toBeTruthy();
+    expect(screen.getByText("基本不下雨")).toBeTruthy();
+    expect(document.body.textContent).not.toContain("基本无雨");
+    expect(document.body.textContent).not.toContain("无雨日");
     expect(screen.getAllByTestId("country-weather-marker")).toHaveLength(CITIES.length);
     cleanup();
 
     renderExplorer("zh-hant");
     expect(screen.getByRole("button", { name: "未來 7 天" })).toBeTruthy();
     expect(screen.getByText("全部已收錄旅行地天氣一目了然")).toBeTruthy();
+    expect(screen.getByText("基本不下雨")).toBeTruthy();
+    expect(document.body.textContent).not.toContain("基本無雨");
+    expect(document.body.textContent).not.toContain("無雨日");
     expect(screen.getAllByTestId("country-weather-marker")).toHaveLength(CITIES.length);
   });
 });
