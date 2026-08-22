@@ -124,14 +124,12 @@ describe("CountryWeatherExplorer instant country map", () => {
       .map((marker) => marker.getAttribute("aria-label"));
     expect(
       labels.some(
-        (label) =>
-          label?.includes("Tokyo") && label.includes("3 of 7 days look relatively low-rain"),
+        (label) => label?.includes("Tokyo") && label.includes("3 of 7 days look mostly dry"),
       ),
     ).toBe(true);
     expect(
       labels.some(
-        (label) =>
-          label?.includes("Osaka") && label.includes("All 7 days look relatively low-rain"),
+        (label) => label?.includes("Osaka") && label.includes("6 of 7 days look mostly dry"),
       ),
     ).toBe(true);
   });
@@ -195,7 +193,7 @@ describe("CountryWeatherExplorer instant country map", () => {
       "true",
     );
     expect(screen.getByLabelText("Tokyo weather summary").textContent).toContain(
-      "2 of 3 days look relatively low-rain",
+      "2 of 3 days look mostly dry",
     );
   });
 

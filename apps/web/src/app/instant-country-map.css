@@ -112,6 +112,10 @@
   transform: translate(-50%, -50%);
 }
 
+.country-weather-dot.is-selected {
+  z-index: 100;
+}
+
 .country-weather-dot.is-selected .country-weather-dot-core,
 .country-weather-dot:focus-visible .country-weather-dot-core {
   width: 0.84rem;
