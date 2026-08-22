@@ -1,6 +1,13 @@
 "use client";
 
-import { useLayoutEffect, useRef, useState, type CSSProperties, type ReactElement } from "react";
+import {
+  useLayoutEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type MouseEvent as ReactMouseEvent,
+  type ReactElement,
+} from "react";
 import { COUNTRY_MAP_HEIGHT, COUNTRY_MAP_WIDTH, countryMapGeometry } from "./country-map-geometry";
 import {
   countryMapGeometryOverride,
@@ -125,8 +132,10 @@ export function CountryOutlineMap({
 }: CountryOutlineMapProps): ReactElement {
   const mapRef = useRef<HTMLDivElement>(null);
   const [renderedFrame, setRenderedFrame] = useState<CountryMapRenderedFrame | null>(null);
+  const [dismissedMarkerId, setDismissedMarkerId] = useState<string | null>(null);
   const geometry = resolveCountryGeometry(countryId);
   const positioned = layoutCountryMarkers(countryId, markers);
+  const selectedMarkerId = positioned.find((marker) => marker.selected)?.id ?? null;
 
   useLayoutEffect(() => {
     const map = mapRef.current;
@@ -150,6 +159,17 @@ export function CountryOutlineMap({
     return () => window.removeEventListener("resize", updateRenderedFrame);
   }, []);
 
+  function handleMapBackgroundClick(event: ReactMouseEvent<HTMLDivElement>): void {
+    const target = event.target;
+    if (
+      target instanceof Element &&
+      target.closest('[data-testid="country-weather-marker"]') !== null
+    ) {
+      return;
+    }
+    if (selectedMarkerId !== null) setDismissedMarkerId(selectedMarkerId);
+  }
+
   return (
     <div
       ref={mapRef}
@@ -159,6 +179,7 @@ export function CountryOutlineMap({
       data-testid="country-weather-map"
       data-render-mode="inline-svg"
       data-city-count={positioned.length}
+      onClick={handleMapBackgroundClick}
     >
       <svg
         className="country-outline-canvas"
@@ -177,34 +198,40 @@ export function CountryOutlineMap({
       </svg>
 
       <div className="country-weather-dot-layer">
-        {positioned.map((marker) => (
-          <button
-            key={marker.id}
-            type="button"
-            className={`country-weather-dot risk-${marker.risk}${marker.filtered ? " is-filtered" : ""}${marker.selected ? " is-selected" : ""} ${tooltipPlacement(marker)}`}
-            style={markerStyle(marker, renderedFrame)}
-            aria-label={marker.ariaLabel}
-            aria-pressed={marker.selected}
-            data-testid="country-weather-marker"
-            data-city-id={marker.id}
-            data-selected={marker.selected ? "true" : "false"}
-            onClick={() => onSelect(marker.id)}
-          >
-            <span
-              className={`country-weather-dot-core${marker.selected ? " is-selected" : ""}`}
-              data-testid="country-weather-pin"
+        {positioned.map((marker) => {
+          const summaryVisible = marker.selected && dismissedMarkerId !== marker.id;
+          return (
+            <button
+              key={marker.id}
+              type="button"
+              className={`country-weather-dot risk-${marker.risk}${marker.filtered ? " is-filtered" : ""}${summaryVisible ? " is-selected" : ""} ${tooltipPlacement(marker)}`}
+              style={markerStyle(marker, renderedFrame)}
+              aria-label={marker.ariaLabel}
+              aria-pressed={summaryVisible}
+              data-testid="country-weather-marker"
               data-city-id={marker.id}
-              aria-hidden="true"
-            />
-            <span className="country-weather-dot-tooltip" aria-hidden="true">
-              <span className="country-weather-dot-tooltip-heading">
-                <span>{marker.symbol}</span>
-                <strong>{marker.name}</strong>
+              data-selected={summaryVisible ? "true" : "false"}
+              onClick={() => {
+                setDismissedMarkerId(null);
+                onSelect(marker.id);
+              }}
+            >
+              <span
+                className={`country-weather-dot-core${summaryVisible ? " is-selected" : ""}`}
+                data-testid="country-weather-pin"
+                data-city-id={marker.id}
+                aria-hidden="true"
+              />
+              <span className="country-weather-dot-tooltip" aria-hidden="true">
+                <span className="country-weather-dot-tooltip-heading">
+                  <span>{marker.symbol}</span>
+                  <strong>{marker.name}</strong>
+                </span>
+                <small>{marker.detail}</small>
               </span>
-              <small>{marker.detail}</small>
-            </span>
-          </button>
-        ))}
+            </button>
+          );
+        })}
       </div>
     </div>
   );
