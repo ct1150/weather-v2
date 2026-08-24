@@ -42,7 +42,7 @@ export function countrySearchCopy(
   const preview = remainder > 0 ? `${examples} and ${remainder} more` : examples;
   return {
     title: `${countryName} travel weather map: ${cityCount} popular destinations`,
-    description: `See weather icons, lower-rain days and temperatures for ${preview} on one ${countryName} map, then open the daily forecast for any place.`,
+    description: `Compare weather icons, mostly rain-free days and temperatures for ${preview} on one ${countryName} map, then open the daily forecast for any place.`,
   };
 }
 
@@ -51,8 +51,8 @@ export function citySearchCopy(
   countryName: string,
 ): { readonly title: string; readonly description: string } {
   return {
-    title: `${cityName} travel weather: rain and temperature outlook`,
-    description: `See the 7-day ${cityName} forecast, rain risk and temperature, then return to the ${countryName} weather map to compare other destinations.`,
+    title: `${cityName} 7-day travel weather: rain-free days & temperature`,
+    description: `See which of the next 7 days in ${cityName} should be mostly rain-free, expected rain and temperatures, then compare other ${countryName} destinations.`,
   };
 }
 
@@ -66,7 +66,7 @@ export function countrySearchCopyZh(
   const preview = remainder > 0 ? `${examples}等${cityCount}个目的地` : examples;
   return {
     title: `${countryName}旅行天气地图：${cityCount}个热门目的地`,
-    description: `一张地图查看${preview}的天气图标、少雨天数和气温，点击任意地点再查看逐日预报。`,
+    description: `一张地图比较${preview}的天气、基本不下雨的天数和气温，点击任意地点再查看逐日预报。`,
   };
 }
 

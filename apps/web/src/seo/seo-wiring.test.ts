@@ -134,13 +134,13 @@ describe("seo.ts helpers — canonical, country-map copy and robots", () => {
     expect(countrySearchCopy("Japan", ["Tokyo", "Osaka", "Sapporo", "Kyoto"])).toEqual({
       title: "Japan travel weather map: 4 popular destinations",
       description:
-        "See weather icons, lower-rain days and temperatures for Tokyo, Osaka, Sapporo and 1 more on one Japan map, then open the daily forecast for any place.",
+        "Compare weather icons, mostly rain-free days and temperatures for Tokyo, Osaka, Sapporo and 1 more on one Japan map, then open the daily forecast for any place.",
     });
-    expect(citySearchCopy("Tokyo", "Japan").title).toContain("Tokyo travel weather");
+    expect(citySearchCopy("Tokyo", "Japan").title).toContain("Tokyo 7-day travel weather");
     expect(countrySearchCopyZh("日本", ["东京", "大阪", "札幌", "京都"])).toEqual({
       title: "日本旅行天气地图：4个热门目的地",
       description:
-        "一张地图查看东京、大阪、札幌等4个目的地的天气图标、少雨天数和气温，点击任意地点再查看逐日预报。",
+        "一张地图比较东京、大阪、札幌等4个目的地的天气、基本不下雨的天数和气温，点击任意地点再查看逐日预报。",
     });
   });
 

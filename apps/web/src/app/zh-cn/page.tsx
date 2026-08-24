@@ -8,7 +8,7 @@ import { buildAlternates, localeUrl, routeRobots } from "../seo";
 export async function generateMetadata(): Promise<Metadata> {
   const title = "哪里不下雨 | Where Not Rain";
   const description =
-    "选择一个国家，在地图上直接查看热门旅游地未来 7 天的天气图标、少雨天数和气温。";
+    "选择一个国家，在地图上直接比较热门旅游地未来 7 天的天气、基本不下雨的天数和气温。";
   return {
     title: { absolute: title },
     description,
@@ -43,7 +43,7 @@ export default async function SimplifiedChineseHome(): Promise<ReactElement> {
     "@context": "https://schema.org",
     "@type": "CollectionPage",
     name: "哪里不下雨",
-    description: "选择一个国家，一张地图查看热门旅游地未来 7 天的天气。",
+    description: "选择一个国家，一张地图比较热门旅游地未来 7 天哪些日期基本不下雨。",
     url: pageUrl,
     dateModified: dataset.dataUpdatedAt,
     inLanguage: "zh-CN",

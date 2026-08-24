@@ -28,8 +28,8 @@ export async function generateMetadata({
   if (baked === undefined) return { title: "目的地旅行天氣" };
   const cityName = toTraditionalText(baked.city.name["zh-cn"]);
   const countryName = toTraditionalText(baked.country.name["zh-cn"]);
-  const title = `${cityName}旅行天氣：降雨、氣溫和7天評分`;
-  const description = `查看${cityName}未來7天天氣、降雨風險、氣溫和旅行評分，並與${countryName}其他目的地比較。`;
+  const title = `${cityName}未來7天天氣：哪幾天基本不下雨`;
+  const description = `查看${cityName}未來7天天氣、每天是否下雨、預計降雨和氣溫，並與${countryName}其他目的地比較。`;
   return {
     title,
     description,
@@ -88,7 +88,7 @@ export default async function TraditionalChineseCityPage({
     "@context": "https://schema.org",
     "@type": "TouristDestination",
     name: viewModel.city.cityName,
-    description: `查看${viewModel.city.cityName}未來7天天氣、降雨風險、氣溫和旅行評分。`,
+    description: `查看${viewModel.city.cityName}未來7天天氣、基本不下雨的日期、預計降雨和氣溫。`,
     url: pageUrl,
     inLanguage: "zh-Hant",
     containedInPlace: { "@type": "Country", name: viewModel.city.countryName },
