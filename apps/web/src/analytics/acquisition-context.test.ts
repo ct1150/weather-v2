@@ -8,7 +8,12 @@ describe("acquisition context", () => {
 
   it("classifies paid, organic, social, referral and direct traffic", () => {
     expect(
-      classifyAcquisition({ referrerHost: "", siteHost: "868656.xyz", utmSource: "", utmMedium: "" }),
+      classifyAcquisition({
+        referrerHost: "",
+        siteHost: "868656.xyz",
+        utmSource: "",
+        utmMedium: "",
+      }),
     ).toBe("direct");
     expect(
       classifyAcquisition({

@@ -1,11 +1,5 @@
 export type AcquisitionChannel =
-  | "direct"
-  | "organic_search"
-  | "referral"
-  | "social"
-  | "paid"
-  | "email"
-  | "other";
+  "direct" | "organic_search" | "referral" | "social" | "paid" | "email" | "other";
 
 export interface AcquisitionContext {
   readonly acquisition_channel: AcquisitionChannel;
@@ -49,9 +43,11 @@ export function classifyAcquisition(input: {
   if (input.utmSource.length > 0 && medium.length > 0) return "other";
 
   const host = input.referrerHost;
-  if (host.length === 0 || host === input.siteHost || host.endsWith(`.${input.siteHost}`)) return "direct";
+  if (host.length === 0 || host === input.siteHost || host.endsWith(`.${input.siteHost}`))
+    return "direct";
   if (SEARCH_HOSTS.some((candidate) => host.includes(candidate))) return "organic_search";
-  if (SOCIAL_HOSTS.some((candidate) => host === candidate || host.endsWith(`.${candidate}`))) return "social";
+  if (SOCIAL_HOSTS.some((candidate) => host === candidate || host.endsWith(`.${candidate}`)))
+    return "social";
   return "referral";
 }
 

@@ -36,8 +36,11 @@ export async function injectAcquisitionNavigation(response: Response): Promise<R
   const contentType = response.headers.get("content-type") ?? "";
   if (!response.ok || !contentType.includes("text/html")) return response;
   const html = await response.text();
-  const navigation = '<p class="growth-nav"><a href="/growth/acquisition">查看用户来源分析 →</a></p>';
-  const body = html.includes("</header>") ? html.replace("</header>", `${navigation}</header>`) : html;
+  const navigation =
+    '<p class="growth-nav"><a href="/growth/acquisition">查看用户来源分析 →</a></p>';
+  const body = html.includes("</header>")
+    ? html.replace("</header>", `${navigation}</header>`)
+    : html;
   const headers = new Headers(response.headers);
   headers.delete("content-length");
   return new Response(body, { status: response.status, headers });

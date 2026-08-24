@@ -1,11 +1,5 @@
 export type AcquisitionChannel =
-  | "direct"
-  | "organic_search"
-  | "referral"
-  | "social"
-  | "paid"
-  | "email"
-  | "other";
+  "direct" | "organic_search" | "referral" | "social" | "paid" | "email" | "other";
 
 export interface AcquisitionContext {
   readonly acquisitionChannel: AcquisitionChannel;
@@ -67,8 +61,7 @@ export function parseAcquisitionContext(raw: Record<string, unknown>): Acquisiti
       ? (channel as AcquisitionChannel)
       : "direct",
     referrerHost: token("referrer_host", 96),
-    landingRouteTemplate:
-      typeof landing === "string" && ROUTE_RE.test(landing) ? landing : "",
+    landingRouteTemplate: typeof landing === "string" && ROUTE_RE.test(landing) ? landing : "",
     utmSource: token("utm_source", 64),
     utmMedium: token("utm_medium", 64),
     utmCampaign: token("utm_campaign", 64),
@@ -189,7 +182,9 @@ function lineChart(rows: DailySourceRow[]): string {
 }
 
 export async function renderAcquisitionDashboard(db: D1Database): Promise<string> {
-  const [qualityResult, dailyResult, landingResult, referrerResult] = await db.batch<Record<string, unknown>>([
+  const [qualityResult, dailyResult, landingResult, referrerResult] = await db.batch<
+    Record<string, unknown>
+  >([
     db.prepare(SOURCE_QUALITY_SQL),
     db.prepare(DAILY_SOURCE_SQL),
     db.prepare(LANDING_SQL),
@@ -214,14 +209,16 @@ export async function renderAcquisitionDashboard(db: D1Database): Promise<string
   const qualityTable = quality.length
     ? quality
         .map(
-          (row) => `<tr><td><strong>${esc(row.channel)}</strong></td><td>${row.homepageViews}</td><td>${pct(row.countryClicks, row.homepageViews)}</td><td>${pct(row.cityInteractions, row.countryViews)}</td><td>${pct(row.cityDetailViews, row.cityInteractions)}</td><td>${pct(row.shortlistActions, row.countryViews)}</td></tr>`,
+          (row) =>
+            `<tr><td><strong>${esc(row.channel)}</strong></td><td>${row.homepageViews}</td><td>${pct(row.countryClicks, row.homepageViews)}</td><td>${pct(row.cityInteractions, row.countryViews)}</td><td>${pct(row.cityDetailViews, row.cityInteractions)}</td><td>${pct(row.shortlistActions, row.countryViews)}</td></tr>`,
         )
         .join("")
     : '<tr><td colspan="6">来源字段从本次发布后开始采集，暂无历史来源数据。</td></tr>';
   const landingTable = landings.length
     ? landings
         .map(
-          (row) => `<tr><td>${esc(row.landing)}</td><td>${esc(row.channel)}</td><td>${row.events}</td><td>${row.cityDetailViews}</td><td>${row.shortlistActions}</td></tr>`,
+          (row) =>
+            `<tr><td>${esc(row.landing)}</td><td>${esc(row.channel)}</td><td>${row.events}</td><td>${row.cityDetailViews}</td><td>${row.shortlistActions}</td></tr>`,
         )
         .join("")
     : '<tr><td colspan="5">暂无落地页来源数据。</td></tr>';
@@ -231,7 +228,10 @@ export async function renderAcquisitionDashboard(db: D1Database): Promise<string
   const maxRef = Math.max(1, ...referrers.map((row) => row.events));
   const referrerBars = referrers.length
     ? referrers
-        .map((row) => `<div class="bar-row"><span>${esc(row.host)}</span><div><i style="width:${Math.max(2, (row.events / maxRef) * 100)}%"></i></div><strong>${row.events}</strong></div>`)
+        .map(
+          (row) =>
+            `<div class="bar-row"><span>${esc(row.host)}</span><div><i style="width:${Math.max(2, (row.events / maxRef) * 100)}%"></i></div><strong>${row.events}</strong></div>`,
+        )
         .join("")
     : '<div class="empty">暂无外部 Referrer 数据。</div>';
   const totalHome = quality.reduce((sum, row) => sum + row.homepageViews, 0);
