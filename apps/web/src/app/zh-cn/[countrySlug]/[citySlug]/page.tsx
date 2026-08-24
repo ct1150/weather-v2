@@ -27,8 +27,8 @@ export async function generateMetadata({
   if (baked === undefined) return { title: "目的地旅行天气" };
   const cityName = baked.city.name["zh-cn"];
   const countryName = baked.country.name["zh-cn"];
-  const title = `${cityName}旅行天气：降雨、气温和7天评分`;
-  const description = `查看${cityName}未来7天天气、降雨风险、气温和旅行评分，并与${countryName}其他目的地比较。`;
+  const title = `${cityName}未来7天天气：哪几天基本不下雨`;
+  const description = `查看${cityName}未来7天天气、每天是否下雨、预计降雨和气温，并与${countryName}其他目的地比较。`;
   return {
     title,
     description,
@@ -73,7 +73,7 @@ export default async function SimplifiedChineseCityPage({
     "@context": "https://schema.org",
     "@type": "TouristDestination",
     name: viewModel.city.cityName,
-    description: `查看${viewModel.city.cityName}未来7天天气、降雨风险、气温和旅行评分。`,
+    description: `查看${viewModel.city.cityName}未来7天天气、基本不下雨的日期、预计降雨和气温。`,
     url: pageUrl,
     inLanguage: "zh-CN",
     containedInPlace: { "@type": "Country", name: viewModel.city.countryName },
