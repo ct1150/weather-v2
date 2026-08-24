@@ -1,0 +1,98 @@
+name: Patch compare to trip
+
+on:
+  push:
+    branches: [feat/compare-to-trip]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/compare-to-trip
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.11.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Wire compare winner into planning
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          sheet = Path('apps/web/src/components/CountryCompareSheet.tsx')
+          text = sheet.read_text()
+          text = text.replace(
+              'import type { ReactElement } from "react";\n',
+              'import type { ReactElement } from "react";\nimport { CountryCompareTripAction } from "./CountryCompareTripAction";\n',
+              1,
+          )
+          text = text.replace(
+              '  readonly name: string;\n  readonly symbol: string;',
+              '  readonly name: string;\n  readonly countryName: string;\n  readonly symbol: string;',
+              1,
+          )
+          old = '''                        <a
+                          href={item.detailHref}
+                          className="inline-flex rounded-full border border-border px-3 py-2 text-xs font-bold text-foreground focus-ring"
+                        >
+                          {copy.details} →
+                        </a>'''
+          new = '''                        <div className="flex min-w-[150px] flex-col items-start gap-1">
+                          <a
+                            href={item.detailHref}
+                            className="inline-flex rounded-full border border-border px-3 py-2 text-xs font-bold text-foreground focus-ring"
+                          >
+                            {copy.details} →
+                          </a>
+                          <CountryCompareTripAction
+                            locale={locale}
+                            cityId={item.id}
+                            cityName={item.name}
+                            countryName={item.countryName}
+                            dates={item.days.map((day) => day.localDate)}
+                          />
+                        </div>'''
+          if old not in text:
+              raise SystemExit('compare footer anchor not found')
+          sheet.write_text(text.replace(old, new, 1))
+
+          explorer = Path('apps/web/src/components/InstantCountryWeatherExplorer.tsx')
+          text = explorer.read_text()
+          old = '''          id: summary.city.cityId,
+          name: summary.city.cityName,
+          symbol: summary.symbol,'''
+          new = '''          id: summary.city.cityId,
+          name: summary.city.cityName,
+          countryName: summary.city.countryName,
+          symbol: summary.symbol,'''
+          if old not in text:
+              raise SystemExit('compare item anchor not found')
+          explorer.write_text(text.replace(old, new, 1))
+
+          test = Path('apps/web/src/components/country-weather-explorer.test.tsx')
+          text = test.read_text()
+          old = '''    expect(within(dialog).getByText("Rain outlook")).toBeTruthy();
+    expect(window.location.pathname).toBe("/jp");'''
+          new = '''    expect(within(dialog).getByText("Rain outlook")).toBeTruthy();
+    expect(within(dialog).getAllByRole("button", { name: "Choose & plan" })).toHaveLength(2);
+    expect(window.location.pathname).toBe("/jp");'''
+          if old not in text:
+              raise SystemExit('compare test anchor not found')
+          test.write_text(text.replace(old, new, 1))
+          PY
+          rm .github/workflows/patch-compare-to-trip.yml
+          pnpm exec prettier --write apps/web/src/components/CountryCompareSheet.tsx apps/web/src/components/InstantCountryWeatherExplorer.tsx apps/web/src/components/country-weather-explorer.test.tsx apps/web/src/components/CountryCompareTripAction.tsx
+          pnpm --filter @wnr/web exec vitest run src/components/country-weather-explorer.test.tsx
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add -A
+          git commit -m "feat: plan trips from country comparison"
+          git push origin HEAD:feat/compare-to-trip
