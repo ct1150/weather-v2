@@ -44,7 +44,12 @@ describe("saved country map views", () => {
     expect(
       parseSavedCountryMapViews(
         JSON.stringify([
-          { id: "evil", url: "https://evil.example", label: "Bad", savedAt: "2026-08-24T00:00:00Z" },
+          {
+            id: "evil",
+            url: "https://evil.example",
+            label: "Bad",
+            savedAt: "2026-08-24T00:00:00Z",
+          },
         ]),
       ),
     ).toEqual([]);

@@ -55,9 +55,7 @@ export function parseSavedCountryMapViews(raw: string | null): ReadonlyArray<Sav
   }
 }
 
-export function serializeSavedCountryMapViews(
-  views: ReadonlyArray<SavedCountryMapView>,
-): string {
+export function serializeSavedCountryMapViews(views: ReadonlyArray<SavedCountryMapView>): string {
   return JSON.stringify(views.slice(0, MAX_COUNTRY_MAP_SAVED_VIEWS));
 }
 
@@ -68,7 +66,8 @@ export function buildSavedCountryMapView(input: {
   readonly comparedNames: ReadonlyArray<string>;
   readonly now?: Date;
 }): SavedCountryMapView {
-  const search = input.search.startsWith("?") || input.search.length === 0 ? input.search : `?${input.search}`;
+  const search =
+    input.search.startsWith("?") || input.search.length === 0 ? input.search : `?${input.search}`;
   const url = `${input.pathname}${search}`;
   const compared = input.comparedNames.slice(0, 3);
   const label =

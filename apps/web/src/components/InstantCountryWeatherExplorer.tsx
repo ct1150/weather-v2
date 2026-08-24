@@ -18,6 +18,7 @@ import { toTraditionalText } from "../trips/traditional";
 import { windowIndicesForDates } from "../weather/window-selection";
 import { isMostlyDryTravelDay } from "./rain-day-classification";
 import { CountryCompareSheet, type CountryCompareItem } from "./CountryCompareSheet";
+import { CountrySavedViewsControl } from "./CountrySavedViewsControl";
 import {
   CountryOutlineMap,
   type CountryOutlineMarker,
@@ -841,6 +842,11 @@ export function InstantCountryWeatherExplorer({
         </div>
 
         <div className="country-map-actions">
+          <CountrySavedViewsControl
+            locale={locale}
+            countryName={country.name}
+            comparedNames={compareSummaries.map((summary) => summary.city.cityName)}
+          />
           <button
             type="button"
             onClick={() => void copyShareLink()}
