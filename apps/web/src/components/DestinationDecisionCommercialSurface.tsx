@@ -6,10 +6,13 @@ import {
   WNR_ANALYTICS_BROWSER_EVENT,
   type BrowserAnalyticsRouteTemplate,
 } from "../analytics/browser-events";
-import { ContextualAffiliateSurface } from "./ContextualAffiliateSurface";
 import type { CommercialSurfaceLocale } from "../commercial/contextual-affiliate";
+import { ContextualAffiliateSurface } from "./ContextualAffiliateSurface";
 
-type DecisionRoute = Extract<BrowserAnalyticsRouteTemplate, "/[country]" | "/[country]/[city]">;
+type DecisionRoute = Extract<
+  BrowserAnalyticsRouteTemplate,
+  "/[country]" | "/[country]/[city]"
+>;
 
 function validDestinationId(value: unknown): value is string {
   return typeof value === "string" && /^[a-z0-9][a-z0-9_-]{1,95}$/u.test(value);
