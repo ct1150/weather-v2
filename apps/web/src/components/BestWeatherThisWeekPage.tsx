@@ -3,7 +3,9 @@ import type { PublishedLocale } from "../app/seo";
 import type { WeeklyWeatherRankItem } from "../seo/weekly-weather-ranking";
 import { JsonLd } from "./JsonLd";
 
-const COPY = {
+type WeatherRankingMode = "week" | "weekend";
+
+const WEEK_COPY = {
   en: {
     eyebrow: "Updated travel-weather ranking",
     title: "Where is the best weather this week?",
@@ -81,6 +83,84 @@ const COPY = {
   },
 } as const;
 
+const WEEKEND_COPY = {
+  en: {
+    eyebrow: "This weekend's travel-weather ranking",
+    title: "Where is the best weather this weekend?",
+    intro:
+      "Compare supported destinations for the upcoming Saturday and Sunday. The ranking uses the same mostly rain-free rule as the country maps and city pages.",
+    direct: (best: WeeklyWeatherRankItem | undefined) =>
+      best === undefined
+        ? "No weekend forecast is available right now."
+        : `${best.cityName} currently ranks first for the weekend with ${best.rainFreeDays} of ${best.totalDays} forecast days mostly rain-free and ${best.totalRainMm ?? "—"} mm expected precipitation.`,
+    ranking: "Best travel weather this weekend",
+    rainFree: (item: WeeklyWeatherRankItem) =>
+      item.rainFreeDays === item.totalDays
+        ? `All ${item.totalDays} weekend days mostly rain-free`
+        : `${item.rainFreeDays} of ${item.totalDays} weekend days mostly rain-free`,
+    rain: "Expected rain",
+    peak: "Peak rain chance",
+    temperature: "Temperature",
+    dates: "Mostly rain-free weekend dates",
+    details: "Open city forecast",
+    methodTitle: "How this weekend ranking works",
+    method:
+      "The next real Saturday and Sunday in the forecast are selected by calendar date. Destinations rank first by mostly rain-free weekend days, then by lower expected precipitation and lower peak rain chance. Rain, drizzle, showers, thunder, hail, snow and sleet never count as rain-free.",
+    source: "Forecast source",
+    updated: "Data updated",
+  },
+  "zh-cn": {
+    eyebrow: "本周末旅行天气排行",
+    title: "本周末哪里天气更好？",
+    intro:
+      "直接比较即将到来的周六、周日哪些旅行地基本不下雨。排行与国家地图、城市页使用同一套降雨判断规则。",
+    direct: (best: WeeklyWeatherRankItem | undefined) =>
+      best === undefined
+        ? "暂时没有可用的周末天气排行。"
+        : `目前${best.cityName}周末排名第一：${best.totalDays}天里有${best.rainFreeDays}天基本不下雨，预计总降雨${best.totalRainMm ?? "—"} mm。`,
+    ranking: "本周末天气更好的旅行地",
+    rainFree: (item: WeeklyWeatherRankItem) =>
+      item.rainFreeDays === item.totalDays
+        ? `周末${item.totalDays}天基本都不下雨`
+        : `周末${item.totalDays}天里有${item.rainFreeDays}天基本不下雨`,
+    rain: "预计总降雨",
+    peak: "最高降雨概率",
+    temperature: "气温",
+    dates: "基本不下雨的周末日期",
+    details: "查看城市天气",
+    methodTitle: "周末排行怎么计算",
+    method:
+      "系统按真实日历日期选取预报中的下一个周六和周日，再按“基本不下雨”的天数、预计总降雨量和最高降雨概率依次排序。雨、毛毛雨、阵雨、雷暴、冰雹或雪都不会计为“基本不下雨”。",
+    source: "天气数据来源",
+    updated: "数据更新于",
+  },
+  "zh-hant": {
+    eyebrow: "本週末旅行天氣排行",
+    title: "本週末哪裡天氣更好？",
+    intro:
+      "直接比較即將到來的週六、週日哪些旅行地基本不下雨。排行與國家地圖、城市頁使用同一套降雨判斷規則。",
+    direct: (best: WeeklyWeatherRankItem | undefined) =>
+      best === undefined
+        ? "暫時沒有可用的週末天氣排行。"
+        : `目前${best.cityName}週末排名第一：${best.totalDays}天裡有${best.rainFreeDays}天基本不下雨，預計總降雨${best.totalRainMm ?? "—"} mm。`,
+    ranking: "本週末天氣更好的旅行地",
+    rainFree: (item: WeeklyWeatherRankItem) =>
+      item.rainFreeDays === item.totalDays
+        ? `週末${item.totalDays}天基本都不下雨`
+        : `週末${item.totalDays}天裡有${item.rainFreeDays}天基本不下雨`,
+    rain: "預計總降雨",
+    peak: "最高降雨機率",
+    temperature: "氣溫",
+    dates: "基本不下雨的週末日期",
+    details: "查看城市天氣",
+    methodTitle: "週末排行怎麼計算",
+    method:
+      "系統按真實日曆日期選取預報中的下一個週六和週日，再按「基本不下雨」的天數、預計總降雨量和最高降雨機率依次排序。雨、毛毛雨、陣雨、雷暴、冰雹或雪都不會計為「基本不下雨」。",
+    source: "天氣資料來源",
+    updated: "資料更新於",
+  },
+} as const;
+
 function shortDate(value: string, locale: PublishedLocale): string {
   const date = new Date(`${value}T00:00:00Z`);
   if (Number.isNaN(date.getTime())) return value;
@@ -117,15 +197,19 @@ export function BestWeatherThisWeekPage({
   items,
   dataUpdatedAt,
   jsonLd,
+  mode = "week",
 }: {
   readonly locale: PublishedLocale;
   readonly items: ReadonlyArray<WeeklyWeatherRankItem>;
   readonly dataUpdatedAt: string;
   readonly jsonLd?: Readonly<Record<string, unknown>>;
+  readonly mode?: WeatherRankingMode;
 }): ReactElement {
-  const copy = COPY[locale];
+  const copy = (mode === "weekend" ? WEEKEND_COPY : WEEK_COPY)[locale];
   const displayed = items.slice(0, 20);
   const best = displayed[0];
+  const rankingId = mode === "weekend" ? "weekend-weather-ranking" : "weekly-weather-ranking";
+  const methodId = mode === "weekend" ? "weekend-weather-method" : "weekly-weather-method";
 
   return (
     <main id="main-content" className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-10">
@@ -151,9 +235,9 @@ export function BestWeatherThisWeekPage({
         </div>
       </section>
 
-      <section aria-labelledby="weekly-weather-ranking" className="mt-10">
+      <section aria-labelledby={rankingId} className="mt-10">
         <p className="eyebrow">Top {displayed.length}</p>
-        <h2 id="weekly-weather-ranking" className="section-title mt-3">
+        <h2 id={rankingId} className="section-title mt-3">
           {copy.ranking}
         </h2>
         <ol className="mt-5 grid gap-4 lg:grid-cols-2">
@@ -206,8 +290,8 @@ export function BestWeatherThisWeekPage({
         </ol>
       </section>
 
-      <section className="info-panel mt-10" aria-labelledby="weekly-weather-method">
-        <h2 id="weekly-weather-method" className="text-lg font-bold text-foreground">
+      <section className="info-panel mt-10" aria-labelledby={methodId}>
+        <h2 id={methodId} className="text-lg font-bold text-foreground">
           {copy.methodTitle}
         </h2>
         <p className="mt-3 max-w-4xl text-sm leading-6 text-muted">{copy.method}</p>
