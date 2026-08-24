@@ -11,12 +11,18 @@ import {
   resolveContextualAffiliateSurface,
   type CommercialSurfaceLocale,
 } from "../commercial/contextual-affiliate";
-import { emitProductAnalytics } from "../analytics/browser-events";
+import {
+  emitProductAnalytics,
+  type BrowserAnalyticsRouteTemplate,
+} from "../analytics/browser-events";
 
 const RAW_OFFERS = process.env.NEXT_PUBLIC_AFFILIATE_OFFERS_JSON ?? "";
 const ENABLED_SLOTS = process.env.NEXT_PUBLIC_AFFILIATE_SLOTS ?? "";
 
-type CommerceAnalyticsRoute = "/discover" | "/trips/workspace";
+type CommerceAnalyticsRoute = Extract<
+  BrowserAnalyticsRouteTemplate,
+  "/[country]" | "/[country]/[city]" | "/discover" | "/trips/workspace"
+>;
 
 function analyticsRoute(surface: string): CommerceAnalyticsRoute {
   return surface === "discovery_decision" ? "/discover" : "/trips/workspace";
@@ -72,7 +78,7 @@ export function ContextualAffiliateSurface({
     <aside
       className="rounded-2xl border border-border/80 bg-surface-elevated p-4"
       aria-label={COPY[locale].title}
-      data-contextual-commerce="phase-9"
+      data-contextual-commerce="phase-growth"
     >
       <p className="text-xs font-bold uppercase tracking-[0.08em] text-muted">
         {COPY[locale].title}
