@@ -1,4 +1,13 @@
 import { projectAnalyticsEvent, validateAnalyticsEvent, type AnalyticsEvent } from "@wnr/analytics";
+import {
+  parseAcquisitionContext,
+  stripAcquisitionFields,
+  type AcquisitionContext,
+} from "./acquisition-dashboard";
+import {
+  handleAcquisitionDashboardRequest,
+  injectAcquisitionNavigation,
+} from "./acquisition-handler";
 import { handleGrowthDashboardRequest } from "./growth-dashboard";
 
 const MAX_BODY_BYTES = 8192;
@@ -12,6 +21,12 @@ const PRODUCT_EVENT_COLUMNS = [
   ...Array.from({ length: 15 }, (_, index) => `blob${index + 1}`),
   ...Array.from({ length: 12 }, (_, index) => `double${index + 1}`),
   "_sample_interval",
+  "acquisition_channel",
+  "referrer_host",
+  "landing_route_template",
+  "utm_source",
+  "utm_medium",
+  "utm_campaign",
 ];
 
 const INSERT_PRODUCT_EVENT_SQL =
@@ -21,13 +36,18 @@ const INSERT_PRODUCT_EVENT_SQL =
 export interface ProductAnalyticsDependencies {
   readonly webOrigin: string;
   readonly now: () => Date;
-  readonly persistEvent: (event: AnalyticsEvent, receivedAt: string) => Promise<void>;
+  readonly persistEvent: (
+    event: AnalyticsEvent,
+    receivedAt: string,
+    acquisition: AcquisitionContext,
+  ) => Promise<void>;
 }
 
 export async function persistProductEvent(
   db: D1Database,
   event: AnalyticsEvent,
   receivedAt: string,
+  acquisition: AcquisitionContext,
 ): Promise<void> {
   const projection = projectAnalyticsEvent(event);
   const values: Array<string | number> = [
@@ -37,6 +57,12 @@ export async function persistProductEvent(
     ...projection.blobs,
     ...projection.doubles,
     1,
+    acquisition.acquisitionChannel,
+    acquisition.referrerHost,
+    acquisition.landingRouteTemplate,
+    acquisition.utmSource,
+    acquisition.utmMedium,
+    acquisition.utmCampaign,
   ];
   if (values.length !== PRODUCT_EVENT_COLUMNS.length) {
     throw new Error("PRODUCT_EVENT_SCHEMA_MISMATCH");
@@ -122,9 +148,10 @@ export async function handleProductAnalyticsRequest(
       {
         ok: true,
         service: "product-analytics",
-        schemaVersion: 1,
+        schemaVersion: 2,
         storage: "d1",
         binding: true,
+        acquisition: true,
       },
       200,
       origin,
@@ -168,7 +195,11 @@ export async function handleProductAnalyticsRequest(
   } catch {
     return json({ ok: false, error: "invalid_json" }, 400, origin, dependencies.webOrigin);
   }
-  const validated = validateAnalyticsEvent(raw);
+  if (typeof raw !== "object" || raw === null || Array.isArray(raw)) {
+    return json({ ok: false, error: "invalid_shape" }, 400, origin, dependencies.webOrigin);
+  }
+  const acquisition = parseAcquisitionContext(raw as Record<string, unknown>);
+  const validated = validateAnalyticsEvent(stripAcquisitionFields(raw as Record<string, unknown>));
   if (!validated.ok) {
     return json({ ok: false, error: validated.error.code }, 400, origin, dependencies.webOrigin);
   }
@@ -184,7 +215,7 @@ export async function handleProductAnalyticsRequest(
   }
 
   try {
-    await dependencies.persistEvent(validated.value, receivedAt.toISOString());
+    await dependencies.persistEvent(validated.value, receivedAt.toISOString(), acquisition);
   } catch {
     return json({ ok: false, error: "storage_unavailable" }, 503, origin, dependencies.webOrigin);
   }
@@ -192,18 +223,26 @@ export async function handleProductAnalyticsRequest(
 }
 
 export default {
-  fetch(request, env) {
+  async fetch(request, env) {
     const url = new URL(request.url);
-    if (request.method === "GET" && url.pathname === "/growth") {
-      return handleGrowthDashboardRequest(request, {
+    if (request.method === "GET" && url.pathname === "/growth/acquisition") {
+      return handleAcquisitionDashboardRequest(request, {
         db: env.DB,
         password: env.GROWTH_DASHBOARD_PASSWORD ?? "",
       });
     }
+    if (request.method === "GET" && url.pathname === "/growth") {
+      const response = await handleGrowthDashboardRequest(request, {
+        db: env.DB,
+        password: env.GROWTH_DASHBOARD_PASSWORD ?? "",
+      });
+      return injectAcquisitionNavigation(response);
+    }
     return handleProductAnalyticsRequest(request, {
       webOrigin: env.WEB_ORIGIN,
       now: () => new Date(),
-      persistEvent: (event, receivedAt) => persistProductEvent(env.DB, event, receivedAt),
+      persistEvent: (event, receivedAt, acquisition) =>
+        persistProductEvent(env.DB, event, receivedAt, acquisition),
     });
   },
 } satisfies ExportedHandler<Env>;
