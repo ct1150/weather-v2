@@ -3,7 +3,10 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { CountryWeatherCityViewModel, LocalDate, ScoreViewModel } from "../app/view-models";
-import { COUNTRY_MAP_SAVED_VIEWS_STORAGE_KEY } from "../country-map/saved-views";
+import {
+  COUNTRY_MAP_SAVED_VIEWS_STORAGE_KEY,
+  parseSavedCountryMapViews,
+} from "../country-map/saved-views";
 import { CountryOutlineMap, layoutCountryMarkers } from "./CountryOutlineMap";
 import { CountryWeatherExplorer } from "./CountryWeatherExplorer";
 
@@ -261,20 +264,34 @@ describe("CountryWeatherExplorer instant country map", () => {
     expect(window.location.pathname).toBe("/jp");
   });
 
-  it("saves and restores the complete country-map state locally", () => {
+  it("saves a travel decision and keeps the complete country-map state restorable", () => {
     renderExplorer();
 
     fireEvent.click(screen.getByRole("button", { name: "Add Tokyo to compare" }));
-    fireEvent.click(screen.getByRole("button", { name: "Save current view" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save this search" }));
 
     const raw = window.localStorage.getItem(COUNTRY_MAP_SAVED_VIEWS_STORAGE_KEY);
-    expect(raw).toContain("cities=tokyo");
-    expect(raw).toContain("Japan · Tokyo");
+    const saved = parseSavedCountryMapViews(raw);
+    expect(saved).toHaveLength(1);
+    expect(saved[0]).toMatchObject({
+      countryName: "Japan",
+      rangePreset: "7d",
+      filters: { rainMax: null, windMax: null, tempMin: null, tempMax: null },
+      comparedNames: ["Tokyo"],
+      schemaVersion: 2,
+    });
+    expect(saved[0]?.url).toContain("cities=tokyo");
+    expect(saved[0]?.label).toBe("Japan · Tokyo");
 
-    fireEvent.click(screen.getByRole("button", { name: "Saved views (1)" }));
-    const dialog = screen.getByRole("dialog", { name: "Saved country maps" });
+    fireEvent.click(screen.getByRole("button", { name: "Saved searches (1)" }));
+    const dialog = screen.getByRole("dialog", { name: "Saved travel decisions" });
     expect(within(dialog).getByText("Japan · Tokyo")).toBeTruthy();
-    expect(within(dialog).getByText("/jp?cities=tokyo")).toBeTruthy();
+    expect(within(dialog).getByText("Next 7 days")).toBeTruthy();
+    expect(within(dialog).getByText("Candidate destinations")).toBeTruthy();
+    expect(within(dialog).getByRole("button", { name: "Check latest weather" })).toBeTruthy();
+    expect(
+      within(dialog).getByText("You are viewing this saved search with the latest forecast."),
+    ).toBeTruthy();
   });
 
   it("copies the full shareable country-map state", async () => {
