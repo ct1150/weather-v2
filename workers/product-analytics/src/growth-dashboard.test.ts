@@ -62,6 +62,7 @@ describe("growth dashboard", () => {
     expect(snapshot.twentyEightDays.topCountries[0]).toEqual({ id: "jp", events: 120 });
     expect(snapshot.gate.state).toBe("ready_for_monetization_test");
     expect(snapshot.gate.passed).toBe(5);
+    expect(snapshot.gate.checks[1]?.label).toBe("国家选择率");
   });
 
   it("keeps low-volume products in collecting state", async () => {
@@ -72,12 +73,17 @@ describe("growth dashboard", () => {
     expect(snapshot.gate.checks[0]?.passed).toBe(false);
   });
 
-  it("renders noindex HTML and explains anonymous-event limitations", async () => {
+  it("renders a Chinese noindex dashboard with explicit analysis priorities", async () => {
     const snapshot = await buildGrowthDashboardSnapshot(dbWithPeriods());
     const html = renderGrowthDashboardHtml(snapshot);
-    expect(html).toContain("Weather V2 Growth Dashboard");
+    expect(html).toContain("Weather V2 增长分析看板");
+    expect(html).toContain('lang="zh-CN"');
     expect(html).toContain('name="robots" content="noindex,nofollow"');
-    expect(html).toContain("event-count ratios");
+    expect(html).toContain("当前分析重点");
+    expect(html).toContain("先判断样本量是否足够");
+    expect(html).toContain("看首页能否推动用户选国家");
+    expect(html).toContain("分析重点：看国家地图是否让用户愿意继续比较城市");
+    expect(html).toContain("事件次数之间的比例");
     expect(html).not.toContain("Affiliate revenue");
   });
 
