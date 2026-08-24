@@ -72,9 +72,11 @@ export function SocialWeatherShareCard({
     () => buildPromotionCopy({ locale, mode, channel: primaryChannel, pageUrl, items: top }),
     [items, locale, mode, pageUrl, primaryChannel, top],
   );
+  const postTitle = post.split("\n")[0] ?? "Where Not Rain";
+  const shareText = post.split("\n").slice(0, 4).join("\n");
   const shareUrl = buildPromotionUrl(pageUrl, primaryChannel, mode);
-  const redditUrl = `https://www.reddit.com/submit?url=${encodeURIComponent(buildPromotionUrl(pageUrl, "reddit", mode))}&title=${encodeURIComponent(post.split("\n")[0] ?? "Where Not Rain")}`;
-  const xUrl = `https://x.com/intent/post?url=${encodeURIComponent(buildPromotionUrl(pageUrl, "x", mode))}&text=${encodeURIComponent(post.split("\n").slice(0, 4).join("\n"))}`;
+  const redditUrl = `https://www.reddit.com/submit?url=${encodeURIComponent(buildPromotionUrl(pageUrl, "reddit", mode))}&title=${encodeURIComponent(postTitle)}`;
+  const xUrl = `https://x.com/intent/post?url=${encodeURIComponent(buildPromotionUrl(pageUrl, "x", mode))}&text=${encodeURIComponent(shareText)}`;
 
   if (top.length === 0) return null;
 
@@ -95,8 +97,8 @@ export function SocialWeatherShareCard({
     }
     try {
       await navigator.share({
-        title: post.split("\n")[0],
-        text: post.split("\n").slice(0, 4).join("\n"),
+        title: postTitle,
+        text: shareText,
         url: shareUrl,
       });
     } catch {
