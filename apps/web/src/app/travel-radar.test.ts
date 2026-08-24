@@ -5,20 +5,26 @@ import { TravelRadarPage } from "./page";
 
 const countries = [
   {
+    countryId: "JP",
     slug: "jp",
     name: "Japan",
     path: "/jp",
     summary: "Compare popular destinations across Japan.",
     cityCount: 8,
-    cityNames: ["Tokyo", "Osaka", "Sapporo", "Okinawa"],
+    cityNames: ["Sapporo", "Osaka", "Tokyo", "Okinawa"],
+    weatherScore: 82,
+    weatherStatus: "excellent" as const,
   },
   {
+    countryId: "TH",
     slug: "th",
     name: "Thailand",
     path: "/th",
     summary: "See northern, capital and island weather together.",
     cityCount: 7,
-    cityNames: ["Bangkok", "Chiang Mai", "Phuket", "Koh Samui"],
+    cityNames: ["Chiang Mai", "Bangkok", "Phuket", "Koh Samui"],
+    weatherScore: 61,
+    weatherStatus: "mixed" as const,
   },
 ] as const;
 
@@ -26,31 +32,31 @@ function render(): string {
   return renderToStaticMarkup(createElement(TravelRadarPage, { countryLinks: countries }));
 }
 
-describe("country-map homepage", () => {
+describe("world-map homepage", () => {
   const html = render();
 
-  it("makes country selection the only primary product task", () => {
-    expect(html).toContain("Pick a country. See where the weather looks better.");
-    expect(html).toContain("Choose a country");
+  it("makes the visual world map the primary discovery task", () => {
+    expect(html).toContain("See the world first. Then decide where to go.");
+    expect(html).toContain("World travel weather overview");
+    expect(html).toContain("world-weather-country-shape");
     expect(html).toContain('href="/jp"');
     expect(html).toContain('href="/th"');
     expect(html).not.toContain("Starting city");
     expect(html).not.toContain("Max one-way");
-    expect(html).not.toContain("Top 3");
     expect(html).not.toContain('href="/discover"');
   });
 
-  it("renders crawlable country and destination context without JavaScript", () => {
+  it("keeps crawlable supported-country links as a compact fallback", () => {
+    expect(html).toContain("Supported countries");
     expect(html).toContain("Japan");
     expect(html).toContain("Thailand");
-    expect(html).toContain("8 popular destinations");
-    expect(html).toContain("Tokyo · Osaka · Sapporo · Okinawa");
-    expect(html).toContain("Open weather map");
+    expect(html).toContain("8 cities");
+    expect(html).toContain("7 cities");
   });
 
-  it("explains the three-step low-cost interaction", () => {
-    expect(html).toContain("Choose a country");
-    expect(html).toContain("Read the map");
-    expect(html).toContain("Tap a place");
+  it("renders weather status classes from country aggregation", () => {
+    expect(html).toContain("status-excellent");
+    expect(html).toContain("status-mixed");
+    expect(html).toContain("Sapporo · Osaka · Tokyo");
   });
 });
