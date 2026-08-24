@@ -144,6 +144,11 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: pnpm --filter @wnr/weather-read exec wrangler deploy --env production
 
+      - name: Apply product analytics D1 migrations
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: pnpm --filter @wnr/trip-api exec wrangler d1 migrations apply wnr-trip-production --env production --remote
+
       - name: Deploy product-analytics Worker
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
