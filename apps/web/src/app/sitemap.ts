@@ -13,6 +13,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       { lastModified, changeFrequency: "daily" },
       ["en", "zh-cn", "zh-hant"],
     ),
+    ...localizedSitemapEntries("/best-weekend", { lastModified, changeFrequency: "daily" }, [
+      "en",
+      "zh-cn",
+      "zh-hant",
+    ]),
   ];
 
   for (const country of dataset.countries) {

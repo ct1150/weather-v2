@@ -1,9 +1,10 @@
 import type { BakedDataset } from "../build/types";
 import { projectCountry } from "../build/bake";
 import type { PublishedLocale } from "../app/seo";
-import type { CountryWeatherCityViewModel } from "../app/view-models";
+import type { CountryWeatherCityViewModel, CountryWeatherDayViewModel } from "../app/view-models";
 import { isMostlyDryTravelDay } from "../components/rain-day-classification";
 import { toTraditionalText } from "../trips/traditional";
+import { windowIndicesForDates } from "../weather/window-selection";
 
 export interface WeeklyWeatherRankItem {
   readonly cityId: string;
@@ -36,13 +37,14 @@ function localizedName(value: string, locale: PublishedLocale): string {
 
 function rankItem(
   city: CountryWeatherCityViewModel,
+  days: ReadonlyArray<CountryWeatherDayViewModel>,
   locale: PublishedLocale,
 ): WeeklyWeatherRankItem {
-  const rainAmounts = numeric(city.days.map((day) => day.weather.precipitationMm));
-  const rainChances = numeric(city.days.map((day) => day.weather.rainProbability));
-  const minimums = numeric(city.days.map((day) => day.weather.temperatureMin));
-  const maximums = numeric(city.days.map((day) => day.weather.temperatureMax));
-  const rainFreeDates = city.days.filter(isMostlyDryTravelDay).map((day) => day.localDate);
+  const rainAmounts = numeric(days.map((day) => day.weather.precipitationMm));
+  const rainChances = numeric(days.map((day) => day.weather.rainProbability));
+  const minimums = numeric(days.map((day) => day.weather.temperatureMin));
+  const maximums = numeric(days.map((day) => day.weather.temperatureMax));
+  const rainFreeDates = days.filter(isMostlyDryTravelDay).map((day) => day.localDate);
 
   return {
     cityId: city.cityId,
@@ -50,7 +52,7 @@ function rankItem(
     countryName: localizedName(city.countryName, locale),
     path: localizedPath(city.path, locale),
     rainFreeDays: rainFreeDates.length,
-    totalDays: city.days.length,
+    totalDays: days.length,
     rainFreeDates,
     totalRainMm:
       rainAmounts.length === 0
@@ -66,22 +68,51 @@ function numericSort(value: number | null): number {
   return value === null ? Number.POSITIVE_INFINITY : value;
 }
 
-export function buildWeeklyWeatherRanking(
-  dataset: BakedDataset,
-  locale: PublishedLocale,
-): ReadonlyArray<WeeklyWeatherRankItem> {
-  const projectionLocale = locale === "zh-hant" ? "zh-cn" : locale;
-  const items = dataset.countries.flatMap((country) => {
-    const projected = projectCountry(dataset, country.slug, projectionLocale);
-    return (projected.weatherCities ?? []).map((city) => rankItem(city, locale));
-  });
-
+function sortRanking(items: WeeklyWeatherRankItem[]): ReadonlyArray<WeeklyWeatherRankItem> {
   return items.sort((a, b) => {
     if (b.rainFreeDays !== a.rainFreeDays) return b.rainFreeDays - a.rainFreeDays;
     const rainDelta = numericSort(a.totalRainMm) - numericSort(b.totalRainMm);
     if (rainDelta !== 0) return rainDelta;
     const chanceDelta = numericSort(a.peakRainChance) - numericSort(b.peakRainChance);
     if (chanceDelta !== 0) return chanceDelta;
-    return a.cityName.localeCompare(b.cityName);
+    return a.cityId.localeCompare(b.cityId);
   });
+}
+
+function projectedCities(
+  dataset: BakedDataset,
+  locale: PublishedLocale,
+): ReadonlyArray<CountryWeatherCityViewModel> {
+  const projectionLocale = locale === "zh-hant" ? "zh-cn" : locale;
+  return dataset.countries.flatMap((country) => {
+    const projected = projectCountry(dataset, country.slug, projectionLocale);
+    return projected.weatherCities ?? [];
+  });
+}
+
+export function buildWeeklyWeatherRanking(
+  dataset: BakedDataset,
+  locale: PublishedLocale,
+): ReadonlyArray<WeeklyWeatherRankItem> {
+  const items = projectedCities(dataset, locale).map((city) => rankItem(city, city.days, locale));
+  return sortRanking(items);
+}
+
+export function buildWeekendWeatherRanking(
+  dataset: BakedDataset,
+  locale: PublishedLocale,
+): ReadonlyArray<WeeklyWeatherRankItem> {
+  const items = projectedCities(dataset, locale)
+    .map((city) => {
+      const indices = windowIndicesForDates(
+        city.days.map((day) => day.localDate),
+        "weekend",
+      );
+      const days = indices
+        .map((index) => city.days[index])
+        .filter((day): day is CountryWeatherDayViewModel => day !== undefined);
+      return rankItem(city, days, locale);
+    })
+    .filter((item) => item.totalDays > 0);
+  return sortRanking(items);
 }

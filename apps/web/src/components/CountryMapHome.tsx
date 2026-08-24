@@ -29,8 +29,9 @@ const COPY = {
     mapAction: "Open weather map",
     weeklyTitle: "Not sure which country yet?",
     weeklyDescription:
-      "Compare supported cities across countries by how many of the next seven days are mostly rain-free.",
+      "Compare supported cities across countries by how many forecast days are mostly rain-free, for the next seven days or just this weekend.",
     weeklyAction: "See this week's best weather",
+    weekendAction: "See this weekend's best weather",
     howItWorks: "One glance, three steps",
     steps: [
       ["01", "Choose a country", "Start with the country you are already considering."],
@@ -54,8 +55,9 @@ const COPY = {
     placeholder: "请选择一个国家",
     mapAction: "打开天气地图",
     weeklyTitle: "还没决定去哪个国家？",
-    weeklyDescription: "跨国家比较热门城市未来 7 天基本不下雨的天数，直接找这周天气更好的旅行地。",
+    weeklyDescription: "跨国家比较热门城市基本不下雨的天数，可以看未来 7 天，也可以只看本周末。",
     weeklyAction: "查看这周天气排行",
+    weekendAction: "查看本周末天气排行",
     howItWorks: "一眼看懂，只需三步",
     steps: [
       ["01", "选择国家", "从你已经感兴趣的国家开始。"],
@@ -74,8 +76,9 @@ const COPY = {
     placeholder: "請選擇一個國家",
     mapAction: "打開天氣地圖",
     weeklyTitle: "還沒決定去哪個國家？",
-    weeklyDescription: "跨國家比較熱門城市未來 7 天基本不下雨的天數，直接找這週天氣更好的旅行地。",
+    weeklyDescription: "跨國家比較熱門城市基本不下雨的天數，可以看未來 7 天，也可以只看本週末。",
     weeklyAction: "查看這週天氣排行",
+    weekendAction: "查看本週末天氣排行",
     howItWorks: "一眼看懂，只需三步",
     steps: [
       ["01", "選擇國家", "從你已經感興趣的國家開始。"],
@@ -92,6 +95,7 @@ export function CountryMapHome({ countries, locale = "en" }: CountryMapHomeProps
   const countryLinkRefs = useRef(new Map<string, HTMLAnchorElement>());
   const weeklyPath =
     locale === "en" ? "/best-weather-this-week" : `/${locale}/best-weather-this-week`;
+  const weekendPath = locale === "en" ? "/best-weekend" : `/${locale}/best-weekend`;
 
   useEffect(() => {
     emitProductAnalytics({
@@ -154,9 +158,14 @@ export function CountryMapHome({ countries, locale = "en" }: CountryMapHomeProps
           <p className="eyebrow">{copy.weeklyTitle}</p>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-muted">{copy.weeklyDescription}</p>
         </div>
-        <Link href={weeklyPath} className="country-detail-link focus-ring shrink-0">
-          {copy.weeklyAction} <span aria-hidden="true">→</span>
-        </Link>
+        <div className="flex shrink-0 flex-wrap gap-2">
+          <Link href={weeklyPath} className="country-detail-link focus-ring">
+            {copy.weeklyAction} <span aria-hidden="true">→</span>
+          </Link>
+          <Link href={weekendPath} className="country-detail-link focus-ring">
+            {copy.weekendAction} <span aria-hidden="true">→</span>
+          </Link>
+        </div>
       </section>
 
       <section className="country-map-home-list" aria-labelledby="country-map-list-heading">
