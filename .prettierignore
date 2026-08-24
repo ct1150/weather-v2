@@ -37,9 +37,5 @@ SPEC.md
 # Versioned query files use Analytics Engine SQL, which Prettier does not parse
 *.sql
 
-# Temporary Growth Dashboard V2 diagnostic bypass; remove before merge
-workers/product-analytics/src/growth-dashboard.ts
-workers/product-analytics/src/growth-dashboard.test.ts
-
 # Misc top-level scaffolding (no source semantics)
 Code
