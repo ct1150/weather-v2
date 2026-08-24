@@ -27,7 +27,14 @@ const SOCIAL_HOSTS = [
 
 export function normalizeAcquisitionToken(value: string | null, maxLength = 64): string {
   if (value === null) return "";
-  return value.trim().toLowerCase().replaceAll(" ", "-").replace(TOKEN_RE, "").slice(0, maxLength);
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/gu, "-")
+    .replace(TOKEN_RE, "")
+    .replace(/-+/gu, "-")
+    .replace(/^-+|-+$/gu, "")
+    .slice(0, maxLength);
 }
 
 export function classifyAcquisition(input: {
