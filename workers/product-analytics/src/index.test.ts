@@ -42,9 +42,20 @@ function post(value: unknown, origin = allowedOrigin): Request {
 }
 
 describe("product analytics Worker", () => {
-  it("accepts one validated event and persists the bounded projection", async () => {
+  it("accepts one validated event and persists bounded acquisition attribution", async () => {
     const test = dependencies();
-    const response = await handleProductAnalyticsRequest(post(event), test.dependencies);
+    const response = await handleProductAnalyticsRequest(
+      post({
+        ...event,
+        acquisition_channel: "organic_search",
+        referrer_host: "www.google.com",
+        landing_route_template: "/discover",
+        utm_source: "google",
+        utm_medium: "organic",
+        utm_campaign: "summer-2026",
+      }),
+      test.dependencies,
+    );
     expect(response.status).toBe(202);
     expect(response.headers.get("access-control-allow-origin")).toBe(allowedOrigin);
     expect(test.persistEvent).toHaveBeenCalledTimes(1);
@@ -52,6 +63,37 @@ describe("product analytics Worker", () => {
       event: "discovery_results_returned",
     });
     expect(test.persistEvent.mock.calls[0]?.[1]).toBe("2026-08-19T12:01:00.000Z");
+    expect(test.persistEvent.mock.calls[0]?.[2]).toEqual({
+      acquisitionChannel: "organic_search",
+      referrerHost: "www.google.com",
+      landingRouteTemplate: "/discover",
+      utmSource: "google",
+      utmMedium: "organic",
+      utmCampaign: "summer-2026",
+    });
+  });
+
+  it("falls back to direct and drops unsafe acquisition tokens", async () => {
+    const test = dependencies();
+    const response = await handleProductAnalyticsRequest(
+      post({
+        ...event,
+        acquisition_channel: "unknown-channel",
+        referrer_host: "https://not-a-host/path?secret=x",
+        landing_route_template: "/raw/private/url",
+        utm_source: "bad value with spaces",
+      }),
+      test.dependencies,
+    );
+    expect(response.status).toBe(202);
+    expect(test.persistEvent.mock.calls[0]?.[2]).toEqual({
+      acquisitionChannel: "direct",
+      referrerHost: "",
+      landingRouteTemplate: "",
+      utmSource: "",
+      utmMedium: "",
+      utmCampaign: "",
+    });
   });
 
   it("rejects an unapproved origin before storage", async () => {
@@ -110,7 +152,7 @@ describe("product analytics Worker", () => {
     expect(await response.json()).toMatchObject({ error: "storage_unavailable" });
   });
 
-  it("exposes health and restrictive preflight responses", async () => {
+  it("exposes acquisition-aware health and restrictive preflight responses", async () => {
     const test = dependencies();
     const health = await handleProductAnalyticsRequest(
       new Request("https://analytics.868656.xyz/health"),
@@ -120,7 +162,9 @@ describe("product analytics Worker", () => {
     expect(await health.json()).toMatchObject({
       ok: true,
       service: "product-analytics",
+      schemaVersion: 2,
       storage: "d1",
+      acquisition: true,
     });
 
     const options = await handleProductAnalyticsRequest(
