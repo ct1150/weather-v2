@@ -7,22 +7,20 @@ import {
 } from "@wnr/analytics";
 import { useEffect, useRef, type ReactElement } from "react";
 
+import { emitProductAnalytics } from "../analytics/browser-events";
 import {
   resolveContextualAffiliateSurface,
   type CommercialSurfaceLocale,
 } from "../commercial/contextual-affiliate";
-import {
-  emitProductAnalytics,
-  type BrowserAnalyticsRouteTemplate,
-} from "../analytics/browser-events";
 
 const RAW_OFFERS = process.env.NEXT_PUBLIC_AFFILIATE_OFFERS_JSON ?? "";
 const ENABLED_SLOTS = process.env.NEXT_PUBLIC_AFFILIATE_SLOTS ?? "";
 
-type CommerceAnalyticsRoute = Extract<
-  BrowserAnalyticsRouteTemplate,
-  "/[country]" | "/[country]/[city]" | "/discover" | "/trips/workspace"
->;
+type CommerceAnalyticsRoute =
+  | "/[country]"
+  | "/[country]/[city]"
+  | "/discover"
+  | "/trips/workspace";
 
 function analyticsRoute(surface: string): CommerceAnalyticsRoute {
   return surface === "discovery_decision" ? "/discover" : "/trips/workspace";
