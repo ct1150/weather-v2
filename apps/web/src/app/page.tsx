@@ -3,6 +3,7 @@ import type { ReactElement } from "react";
 import { getBakedDataset } from "../build/bake";
 import { CountryMapHome, type CountryMapHomeItem } from "../components/CountryMapHome";
 import { JsonLd } from "../components/JsonLd";
+import { summarizeCountryWeather } from "../world/world-overview";
 import { buildAlternates, localeUrl, routeRobots } from "./seo";
 
 export interface TravelRadarPageProps {
@@ -10,10 +11,7 @@ export interface TravelRadarPageProps {
   readonly jsonLd?: Readonly<Record<string, unknown>>;
 }
 
-/**
- * Historical export name retained for test and import compatibility. The active
- * product surface is now the country-first travel-weather map.
- */
+/** Historical export name retained for test and import compatibility. */
 export function TravelRadarPage({ countryLinks, jsonLd }: TravelRadarPageProps): ReactElement {
   return (
     <main id="main-content" className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-10">
@@ -24,9 +22,9 @@ export function TravelRadarPage({ countryLinks, jsonLd }: TravelRadarPageProps):
 }
 
 export async function generateMetadata(): Promise<Metadata> {
-  const title = "Country travel weather maps | Where Not Rain";
+  const title = "World travel weather map | Where Not Rain";
   const description =
-    "Choose a country and compare the next seven days across popular travel destinations on one weather map.";
+    "See supported countries on one world map, compare their overall travel-weather outlook, then open a country to compare cities.";
   return {
     title: { absolute: title },
     description,
@@ -47,13 +45,22 @@ export default async function Page(): Promise<ReactElement> {
   const dataset = await getBakedDataset();
   const countryLinks: CountryMapHomeItem[] = dataset.countries.map((country) => {
     const cities = dataset.citiesByCountry.get(country.id) ?? [];
+    const weather = summarizeCountryWeather(cities);
+    const topIds = new Set(weather.topCityIds);
+    const topCities = [
+      ...cities.filter((item) => topIds.has(item.city.id)),
+      ...cities.filter((item) => !topIds.has(item.city.id)),
+    ].slice(0, 4);
     return {
+      countryId: country.id,
       slug: country.slug,
       name: country.name.en,
       path: `/${country.slug}`,
       summary: country.summary?.en ?? "",
       cityCount: cities.length,
-      cityNames: cities.slice(0, 4).map((item) => item.city.name.en),
+      cityNames: topCities.map((item) => item.city.name.en),
+      weatherScore: weather.score,
+      weatherStatus: weather.status,
     };
   });
   const pageUrl = localeUrl("en", "/");
@@ -64,18 +71,18 @@ export default async function Page(): Promise<ReactElement> {
         "@type": "WebSite",
         "@id": `${pageUrl}#website`,
         name: "Where Not Rain",
-        alternateName: "Country travel weather maps",
+        alternateName: "World travel weather map",
         description:
-          "Choose a country and compare popular destinations' weather at a glance on one map.",
+          "Explore supported countries visually, then compare city weather inside a country.",
         url: pageUrl,
         inLanguage: "en",
       },
       {
         "@type": "CollectionPage",
         "@id": `${pageUrl}#webpage`,
-        name: "Country travel weather maps",
+        name: "World travel weather map",
         description:
-          "Weather, mostly rain-free days and temperatures for popular destinations in each country.",
+          "A visual weather-first entry point to supported country and city travel weather maps.",
         url: pageUrl,
         dateModified: dataset.dataUpdatedAt,
         inLanguage: "en",
@@ -85,7 +92,7 @@ export default async function Page(): Promise<ReactElement> {
       {
         "@type": "ItemList",
         "@id": `${pageUrl}#countries`,
-        name: "Country travel weather maps",
+        name: "Supported country travel weather maps",
         numberOfItems: countryLinks.length,
         itemListElement: countryLinks.map((country, index) => ({
           "@type": "ListItem",

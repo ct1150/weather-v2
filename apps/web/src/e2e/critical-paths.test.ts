@@ -14,12 +14,15 @@ import {
 
 const countryLinks = [
   {
+    countryId: "JP",
     slug: "jp",
     name: "Japan",
     path: "/jp",
     summary: "Compare Japan's popular destinations on one weather map.",
     cityCount: 8,
-    cityNames: ["Tokyo", "Osaka", "Sapporo", "Okinawa"],
+    cityNames: ["Sapporo", "Osaka", "Tokyo", "Okinawa"],
+    weatherScore: 82,
+    weatherStatus: "excellent" as const,
   },
 ] as const;
 
@@ -27,13 +30,14 @@ function renderHome(): string {
   return renderToStaticMarkup(createElement(TravelRadarPage, { countryLinks }));
 }
 
-describe("critical path — country-map homepage renders without JavaScript", () => {
-  it("renders the single country-selection task and crawlable links", () => {
+describe("critical path — world-map homepage renders without JavaScript", () => {
+  it("renders visual country discovery and crawlable country links", () => {
     const html = renderHome();
-    expect(html).toContain("Pick a country. See where the weather looks better.");
-    expect(html).toContain("Choose a country");
+    expect(html).toContain("See the world first. Then decide where to go.");
+    expect(html).toContain("World travel weather overview");
+    expect(html).toContain("world-weather-country-shape");
     expect(html).toContain("Japan");
-    expect(html).toContain("Tokyo · Osaka · Sapporo · Okinawa");
+    expect(html).toContain("Sapporo · Osaka · Tokyo");
     expect(html).toContain('href="/jp"');
     expect(html).not.toContain("Starting city");
     expect(html).not.toContain("Max one-way planning time");
