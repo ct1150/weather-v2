@@ -93,11 +93,17 @@ function rankedRows(result: D1Result<Record<string, unknown>>): ReadonlyArray<Ra
 }
 
 async function period(db: D1Database, days: 7 | 28): Promise<GrowthPeriodSnapshot> {
-  const [funnel, countries, cities] = await db.batch<Record<string, unknown>>([
+  const results = await db.batch<Record<string, unknown>>([
     db.prepare(FUNNEL_SQL).bind(days),
     db.prepare(TOP_COUNTRIES_SQL).bind(days),
     db.prepare(TOP_CITIES_SQL).bind(days),
   ]);
+  const funnel = results[0];
+  const countries = results[1];
+  const cities = results[2];
+  if (funnel === undefined || countries === undefined || cities === undefined) {
+    throw new Error("GROWTH_DASHBOARD_QUERY_MISMATCH");
+  }
   const row = funnel.results[0] ?? {};
   const homepageViews = numberValue(row.homepage_views);
   const countryClicks = numberValue(row.country_clicks);
