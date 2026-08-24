@@ -30,6 +30,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       ]),
     );
     const cities = dataset.citiesByCountry.get(country.id) ?? [];
+    if (cities.length >= 3) {
+      entries.push(
+        ...localizedSitemapEntries(
+          `/${country.slug}/best-weather-this-week`,
+          { lastModified, changeFrequency: "daily" },
+          ["en", "zh-cn", "zh-hant"],
+        ),
+      );
+    }
     for (const city of cities) {
       const cityPath = `/${country.slug}/${city.city.slug}`;
       entries.push(
