@@ -218,7 +218,12 @@ function periodSection(periodSnapshot: GrowthPeriodSnapshot): string {
 }
 
 export function renderGrowthDashboardHtml(snapshot: GrowthDashboardSnapshot): string {
-  const gateClass = snapshot.gate.state === "ready_for_monetization_test" ? "ready" : snapshot.gate.state === "promising" ? "promising" : "collecting";
+  const gateClass =
+    snapshot.gate.state === "ready_for_monetization_test"
+      ? "ready"
+      : snapshot.gate.state === "promising"
+        ? "promising"
+        : "collecting";
   const gateLabel = snapshot.gate.state.replaceAll("_", " ");
   const checks = snapshot.gate.checks
     .map(
