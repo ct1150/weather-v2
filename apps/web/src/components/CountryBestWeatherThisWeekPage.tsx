@@ -141,11 +141,14 @@ export function CountryBestWeatherThisWeekPage({
           <p className="mt-4 max-w-3xl text-sm leading-6 text-muted sm:text-base">
             {copy.intro(countryName)}
           </p>
-          <p className="mt-5 max-w-3xl text-lg font-bold leading-7 text-foreground" data-ranking-answer>
+          <p
+            className="mt-5 max-w-3xl text-lg font-bold leading-7 text-foreground"
+            data-ranking-answer
+          >
             {copy.direct(countryName, best)}
           </p>
           <p className="mt-3 text-xs text-muted">
-            {copy.updated} {updatedAt(dataUpdatedAt, locale)} · {copy.source}: {" "}
+            {copy.updated} {updatedAt(dataUpdatedAt, locale)} · {copy.source}:{" "}
             <a href="https://open-meteo.com/">Open-Meteo</a>
           </p>
         </div>

@@ -1,9 +1,6 @@
 import type { PublishedLocale } from "../app/seo";
 import type { BakedDataset } from "../build/types";
-import {
-  buildWeeklyWeatherRanking,
-  type WeeklyWeatherRankItem,
-} from "./weekly-weather-ranking";
+import { buildWeeklyWeatherRanking, type WeeklyWeatherRankItem } from "./weekly-weather-ranking";
 
 function countryPathPrefix(countrySlug: string, locale: PublishedLocale): string {
   return locale === "en" ? `/${countrySlug}/` : `/${locale}/${countrySlug}/`;
