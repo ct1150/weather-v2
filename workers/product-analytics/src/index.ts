@@ -1,4 +1,5 @@
 import { projectAnalyticsEvent, validateAnalyticsEvent, type AnalyticsEvent } from "@wnr/analytics";
+import { handleGrowthDashboardRequest } from "./growth-dashboard";
 
 const MAX_BODY_BYTES = 8192;
 const MAX_EVENT_AGE_MS = 24 * 60 * 60 * 1000;
@@ -192,6 +193,13 @@ export async function handleProductAnalyticsRequest(
 
 export default {
   fetch(request, env) {
+    const url = new URL(request.url);
+    if (request.method === "GET" && url.pathname === "/growth") {
+      return handleGrowthDashboardRequest(request, {
+        db: env.DB,
+        password: env.GROWTH_DASHBOARD_PASSWORD ?? "",
+      });
+    }
     return handleProductAnalyticsRequest(request, {
       webOrigin: env.WEB_ORIGIN,
       now: () => new Date(),

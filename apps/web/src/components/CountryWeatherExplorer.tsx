@@ -1,6 +1,14 @@
 "use client";
 
-import { useEffect, useMemo, useState, type ChangeEvent, type ReactElement } from "react";
+import {
+  useEffect,
+  useMemo,
+  useState,
+  type ChangeEvent,
+  type MouseEvent as ReactMouseEvent,
+  type ReactElement,
+} from "react";
+import { emitProductAnalytics } from "../analytics/browser-events";
 import type { CountryHeaderViewModel, CountryWeatherCityViewModel } from "../app/view-models";
 import {
   InstantCountryWeatherExplorer,
@@ -130,8 +138,35 @@ export function CountryWeatherExplorer(props: CountryWeatherExplorerProps): Reac
     window.history.pushState({ countryPath: path }, "", href);
   }
 
+  function trackCityDetailOpen(event: ReactMouseEvent<HTMLDivElement>): void {
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+    const anchor = target.closest<HTMLAnchorElement>(
+      "a.country-detail-link, a.country-city-forecast-link",
+    );
+    if (anchor === null) return;
+    const pathname = new URL(anchor.href, window.location.origin).pathname;
+    const city = activeDataset.cities.find(
+      (item) => new URL(item.path, window.location.origin).pathname === pathname,
+    );
+    if (city === undefined) return;
+    emitProductAnalytics({
+      locale: props.locale ?? "en",
+      routeTemplate: "/[country]/[city]",
+      fields: {
+        event: "city_viewed",
+        city_id: city.cityId,
+        country_code: activeDataset.country.countryId,
+      },
+    });
+  }
+
   return (
-    <div onChangeCapture={switchCountry} data-country-switch-mode="local-state-history">
+    <div
+      onChangeCapture={switchCountry}
+      onClickCapture={trackCityDetailOpen}
+      data-country-switch-mode="local-state-history"
+    >
       <InstantCountryWeatherExplorer
         country={activeDataset.country}
         countries={props.countries}

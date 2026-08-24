@@ -149,6 +149,21 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: pnpm --filter @wnr/product-analytics exec wrangler deploy --env production
 
+      - name: Configure growth dashboard password
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          GROWTH_DASHBOARD_PASSWORD: ${{ secrets.GROWTH_DASHBOARD_PASSWORD }}
+        run: |
+          if [ -n "${GROWTH_DASHBOARD_PASSWORD:-}" ]; then
+            printf '%s' "$GROWTH_DASHBOARD_PASSWORD" | pnpm --filter @wnr/product-analytics exec wrangler secret put GROWTH_DASHBOARD_PASSWORD --env production
+            echo "Private growth dashboard enabled."
+          else
+            if pnpm --filter @wnr/product-analytics exec wrangler secret list --env production --format json | grep -Fq '"GROWTH_DASHBOARD_PASSWORD"'; then
+              pnpm --filter @wnr/product-analytics exec wrangler secret delete GROWTH_DASHBOARD_PASSWORD --env production
+            fi
+            echo "GROWTH_DASHBOARD_PASSWORD is not configured; /growth is disabled."
+          fi
+
       - name: Apply Trip D1 migrations
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
