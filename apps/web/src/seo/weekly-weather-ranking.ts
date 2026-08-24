@@ -19,7 +19,9 @@ export interface WeeklyWeatherRankItem {
 }
 
 function numeric(values: ReadonlyArray<number | null | undefined>): number[] {
-  return values.filter((value): value is number => typeof value === "number" && Number.isFinite(value));
+  return values.filter(
+    (value): value is number => typeof value === "number" && Number.isFinite(value),
+  );
 }
 
 function localizedPath(path: string, locale: PublishedLocale): string {
@@ -27,7 +29,10 @@ function localizedPath(path: string, locale: PublishedLocale): string {
   return `/${locale}${path}`;
 }
 
-function rankItem(city: CountryWeatherCityViewModel, locale: PublishedLocale): WeeklyWeatherRankItem {
+function rankItem(
+  city: CountryWeatherCityViewModel,
+  locale: PublishedLocale,
+): WeeklyWeatherRankItem {
   const rainAmounts = numeric(city.days.map((day) => day.weather.precipitationMm));
   const rainChances = numeric(city.days.map((day) => day.weather.rainProbability));
   const minimums = numeric(city.days.map((day) => day.weather.temperatureMin));

@@ -90,7 +90,8 @@ const COPY = {
 export function CountryMapHome({ countries, locale = "en" }: CountryMapHomeProps): ReactElement {
   const copy = COPY[locale];
   const countryLinkRefs = useRef(new Map<string, HTMLAnchorElement>());
-  const weeklyPath = locale === "en" ? "/best-weather-this-week" : `/${locale}/best-weather-this-week`;
+  const weeklyPath =
+    locale === "en" ? "/best-weather-this-week" : `/${locale}/best-weather-this-week`;
 
   useEffect(() => {
     emitProductAnalytics({

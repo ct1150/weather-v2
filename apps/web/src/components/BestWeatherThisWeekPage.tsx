@@ -138,7 +138,10 @@ export function BestWeatherThisWeekPage({
             {copy.title}
           </h1>
           <p className="mt-4 max-w-3xl text-sm leading-6 text-muted sm:text-base">{copy.intro}</p>
-          <p className="mt-5 max-w-3xl text-lg font-bold leading-7 text-foreground" data-ranking-answer>
+          <p
+            className="mt-5 max-w-3xl text-lg font-bold leading-7 text-foreground"
+            data-ranking-answer
+          >
             {copy.direct(best)}
           </p>
           <p className="mt-3 text-xs text-muted">
