@@ -131,7 +131,7 @@ describe("CountryWeatherExplorer instant country map", () => {
     expect(
       labels.some(
         (label) =>
-          label?.includes("Osaka") && label.includes("6 of 7 days should be mostly rain-free"),
+          label?.includes("Osaka") && label.includes("All 7 days should be mostly rain-free"),
       ),
     ).toBe(true);
   });
