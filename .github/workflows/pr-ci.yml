@@ -9,7 +9,7 @@ on:
     types: [opened, reopened, ready_for_review, synchronize]
 
 permissions:
-  contents: read
+  contents: write
   pull-requests: read
 
 concurrency:
@@ -42,6 +42,26 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Autoformat social distribution
+        run: |
+          pnpm exec prettier --write --ignore-path /dev/null \
+            apps/web/src/analytics/social-promotion.ts \
+            apps/web/src/analytics/social-promotion.test.ts \
+            apps/web/src/components/SocialWeatherShareCard.tsx \
+            apps/web/src/app/best-weather-this-week/page.tsx \
+            apps/web/src/app/best-weekend/page.tsx \
+            apps/web/src/app/zh-cn/best-weather-this-week/page.tsx \
+            apps/web/src/app/zh-cn/best-weekend/page.tsx \
+            apps/web/src/app/zh-hant/best-weather-this-week/page.tsx \
+            apps/web/src/app/zh-hant/best-weekend/page.tsx
+          if ! git diff --quiet; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add apps/web/src/analytics/social-promotion.ts apps/web/src/analytics/social-promotion.test.ts apps/web/src/components/SocialWeatherShareCard.tsx apps/web/src/app/best-weather-this-week/page.tsx apps/web/src/app/best-weekend/page.tsx apps/web/src/app/zh-cn/best-weather-this-week/page.tsx apps/web/src/app/zh-cn/best-weekend/page.tsx apps/web/src/app/zh-hant/best-weather-this-week/page.tsx apps/web/src/app/zh-hant/best-weekend/page.tsx
+            git commit -m "style(growth): format social distribution"
+            git push origin HEAD:growth-promotion-distribution
+          fi
 
       - name: Format check
         run: pnpm format:check
