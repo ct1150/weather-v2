@@ -40,7 +40,13 @@ function dbWithPeriods(input?: {
       { id: "bangkok", events: 45 },
     ]),
   ]);
-  return { batch } as unknown as D1Database;
+  const prepare = vi.fn(() => {
+    const statement = {
+      bind: vi.fn(() => statement),
+    };
+    return statement;
+  });
+  return { batch, prepare } as unknown as D1Database;
 }
 
 describe("growth dashboard", () => {
