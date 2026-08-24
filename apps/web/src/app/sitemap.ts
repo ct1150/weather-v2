@@ -8,6 +8,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const changeFrequency = "daily" as const;
   const entries: MetadataRoute.Sitemap = [
     ...localizedSitemapEntries("/", { lastModified, changeFrequency }, ["en", "zh-hant", "zh-cn"]),
+    ...localizedSitemapEntries(
+      "/best-weather-this-week",
+      { lastModified, changeFrequency: "daily" },
+      ["en", "zh-cn", "zh-hant"],
+    ),
   ];
 
   for (const country of dataset.countries) {
