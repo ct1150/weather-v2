@@ -59,8 +59,9 @@ describe("city direct answer", () => {
         "2 of the next 3 forecast days in Bangkok are currently expected to be mostly rain-free.",
       ),
     ).toBeTruthy();
-    expect(screen.getByText(/Better outdoor-weather dates:/)).toHaveTextContent("Aug 24");
-    expect(screen.getByText(/Better outdoor-weather dates:/)).toHaveTextContent("Aug 26");
+    const guidance = screen.getByText(/Better outdoor-weather dates:/);
+    expect(guidance.textContent).toContain("Aug 24");
+    expect(guidance.textContent).toContain("Aug 26");
     expect(screen.getByText("0.7 mm")).toBeTruthy();
     expect(screen.getByRole("link", { name: "Open-Meteo" })).toBeTruthy();
   });
@@ -77,6 +78,6 @@ describe("city direct answer", () => {
     const { container } = render(
       <CityDirectAnswer cityName="Bangkok" forecastDays={[]} locale="en" />,
     );
-    expect(container).toBeEmptyDOMElement();
+    expect(container.innerHTML).toBe("");
   });
 });
