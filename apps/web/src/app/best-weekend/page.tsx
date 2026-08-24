@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import type { ReactElement } from "react";
 import { getBakedDataset } from "../../build/bake";
 import { BestWeatherThisWeekPage } from "../../components/BestWeatherThisWeekPage";
+import { SocialWeatherShareCard } from "../../components/SocialWeatherShareCard";
 import { buildWeekendWeatherRanking } from "../../seo/weekly-weather-ranking";
 import { buildAlternates, localeUrl, routeRobots } from "../seo";
 
@@ -58,12 +59,20 @@ export default async function Page(): Promise<ReactElement> {
   };
 
   return (
-    <BestWeatherThisWeekPage
-      locale="en"
-      mode="weekend"
-      items={items}
-      dataUpdatedAt={dataset.dataUpdatedAt}
-      jsonLd={jsonLd}
-    />
+    <>
+      <BestWeatherThisWeekPage
+        locale="en"
+        mode="weekend"
+        items={items}
+        dataUpdatedAt={dataset.dataUpdatedAt}
+        jsonLd={jsonLd}
+      />
+      <SocialWeatherShareCard
+        locale="en"
+        mode="weekend"
+        pageUrl={pageUrl}
+        items={topItems.slice(0, 3)}
+      />
+    </>
   );
 }
