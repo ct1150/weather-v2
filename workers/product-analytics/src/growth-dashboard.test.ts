@@ -13,6 +13,26 @@ function result(rows: ReadonlyArray<Record<string, unknown>>): D1Result<Record<s
   } as D1Result<Record<string, unknown>>;
 }
 
+function trendRows(): ReadonlyArray<Record<string, unknown>> {
+  const rows: Record<string, unknown>[] = [];
+  const start = new Date("2026-07-28T00:00:00.000Z");
+  for (let index = 0; index < 28; index += 1) {
+    const date = new Date(start);
+    date.setUTCDate(date.getUTCDate() + index);
+    const recent = index >= 21;
+    rows.push({
+      day: date.toISOString().slice(0, 10),
+      homepage_views: recent ? 50 : 40,
+      country_clicks: recent ? 15 : 8,
+      country_views: recent ? 14 : 10,
+      city_interactions: recent ? 7 : 3,
+      city_detail_views: recent ? 2 : 1,
+      shortlist_actions: recent ? 2 : 0,
+    });
+  }
+  return rows;
+}
+
 function dbWithPeriods(input?: {
   readonly homepageViews?: number;
   readonly countryClicks?: number;
@@ -29,17 +49,20 @@ function dbWithPeriods(input?: {
     city_detail_views: input?.cityDetailViews ?? 35,
     shortlist_actions: input?.shortlistActions ?? 28,
   };
-  const batch = vi.fn(async () => [
-    result([metrics]),
-    result([
-      { id: "jp", events: 120 },
-      { id: "th", events: 80 },
-    ]),
-    result([
-      { id: "tokyo", events: 60 },
-      { id: "bangkok", events: 45 },
-    ]),
-  ]);
+  const batch = vi.fn(async (statements: ReadonlyArray<unknown>) => {
+    if (statements.length === 1) return [result(trendRows())];
+    return [
+      result([metrics]),
+      result([
+        { id: "jp", events: 120 },
+        { id: "th", events: 80 },
+      ]),
+      result([
+        { id: "tokyo", events: 60 },
+        { id: "bangkok", events: 45 },
+      ]),
+    ];
+  });
   const prepare = vi.fn(() => {
     const statement = {
       bind: vi.fn(() => statement),
@@ -50,7 +73,7 @@ function dbWithPeriods(input?: {
 }
 
 describe("growth dashboard", () => {
-  it("builds 7/28 day funnel snapshots and a monetization-test gate", async () => {
+  it("builds 7/28 day snapshots, real daily trend and comparison diagnostics", async () => {
     const snapshot = await buildGrowthDashboardSnapshot(
       dbWithPeriods(),
       new Date("2026-08-24T08:00:00.000Z"),
@@ -60,30 +83,74 @@ describe("growth dashboard", () => {
     expect(snapshot.twentyEightDays.metrics.cityDetailOpenRate).toBe(25);
     expect(snapshot.twentyEightDays.metrics.retentionIntentRate).toBe(10);
     expect(snapshot.twentyEightDays.topCountries[0]).toEqual({ id: "jp", events: 120 });
+    expect(snapshot.dailyTrend).toHaveLength(28);
+    expect(snapshot.dailyTrend.at(-1)).toMatchObject({
+      date: "2026-08-24",
+      homepageViews: 50,
+      countryClicks: 15,
+      countrySelectionRate: 30,
+    });
+    expect(snapshot.comparison.homepageViewsChangePct).toBe(25);
+    expect(snapshot.comparison.countrySelectionRateDelta).toBe(10);
     expect(snapshot.gate.state).toBe("ready_for_monetization_test");
     expect(snapshot.gate.passed).toBe(5);
-    expect(snapshot.gate.checks[1]?.label).toBe("国家选择率");
   });
 
-  it("keeps low-volume products in collecting state", async () => {
+  it("fills missing trend days with zero-valued production aggregates", async () => {
+    const db = dbWithPeriods();
+    const batch = db.batch as unknown as ReturnType<typeof vi.fn>;
+    batch.mockImplementation(async (statements: ReadonlyArray<unknown>) => {
+      if (statements.length === 1) {
+        return [
+          result([
+            {
+              day: "2026-08-24",
+              homepage_views: 10,
+              country_clicks: 2,
+              country_views: 2,
+              city_interactions: 1,
+              city_detail_views: 0,
+              shortlist_actions: 0,
+            },
+          ]),
+        ];
+      }
+      return [result([{}]), result([]), result([])];
+    });
     const snapshot = await buildGrowthDashboardSnapshot(
-      dbWithPeriods({ homepageViews: 120, countryClicks: 50 }),
+      db,
+      new Date("2026-08-24T08:00:00.000Z"),
+    );
+    expect(snapshot.dailyTrend).toHaveLength(28);
+    expect(snapshot.dailyTrend[0]?.homepageViews).toBe(0);
+    expect(snapshot.dailyTrend.at(-1)?.homepageViews).toBe(10);
+  });
+
+  it("keeps low-volume products in collecting state and emits focus alerts", async () => {
+    const snapshot = await buildGrowthDashboardSnapshot(
+      dbWithPeriods({ homepageViews: 120, countryClicks: 10, countryViews: 100, cityInteractions: 10 }),
+      new Date("2026-08-24T08:00:00.000Z"),
     );
     expect(snapshot.gate.state).toBe("collecting");
     expect(snapshot.gate.checks[0]?.passed).toBe(false);
+    expect(snapshot.alerts.some((alert) => alert.includes("样本量"))).toBe(true);
   });
 
-  it("renders a Chinese noindex dashboard with explicit analysis priorities", async () => {
-    const snapshot = await buildGrowthDashboardSnapshot(dbWithPeriods());
+  it("renders Chinese noindex HTML with charts, funnel and production-data guidance", async () => {
+    const snapshot = await buildGrowthDashboardSnapshot(
+      dbWithPeriods(),
+      new Date("2026-08-24T08:00:00.000Z"),
+    );
     const html = renderGrowthDashboardHtml(snapshot);
     expect(html).toContain("Weather V2 增长分析看板");
-    expect(html).toContain('lang="zh-CN"');
-    expect(html).toContain('name="robots" content="noindex,nofollow"');
     expect(html).toContain("当前分析重点");
-    expect(html).toContain("先判断样本量是否足够");
-    expect(html).toContain("看首页能否推动用户选国家");
-    expect(html).toContain("分析重点：看国家地图是否让用户愿意继续比较城市");
-    expect(html).toContain("事件次数之间的比例");
+    expect(html).toContain("28 天事件量趋势");
+    expect(html).toContain("28 天转化率趋势");
+    expect(html).toContain("28 天用户决策漏斗");
+    expect(html).toContain("最近 7 天环比前 7 天");
+    expect(html).toContain("真实生产数据 · 事件级统计 · 非独立用户数");
+    expect(html).toContain("<svg");
+    expect(html).toContain('name="robots" content="noindex,nofollow"');
     expect(html).not.toContain("Affiliate revenue");
   });
 
@@ -107,12 +174,14 @@ describe("growth dashboard", () => {
       new Request("https://analytics.868656.xyz/growth?format=json", {
         headers: { authorization },
       }),
-      { db, password: "a-strong-dashboard-password" },
+      { db, password: "a-strong-dashboard-password", now: new Date("2026-08-24T08:00:00.000Z") },
     );
     expect(authorized.status).toBe(200);
     expect(authorized.headers.get("cache-control")).toBe("no-store");
     expect(await authorized.json()).toMatchObject({
       gate: { state: "ready_for_monetization_test" },
+      dailyTrend: expect.any(Array),
+      comparison: { homepageViewsChangePct: 25 },
     });
   });
 });
