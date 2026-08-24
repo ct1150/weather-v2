@@ -274,7 +274,7 @@ describe("CountryWeatherExplorer instant country map", () => {
     fireEvent.click(screen.getByRole("button", { name: "Saved views (1)" }));
     const dialog = screen.getByRole("dialog", { name: "Saved country maps" });
     expect(within(dialog).getByText("Japan · Tokyo")).toBeTruthy();
-    expect(within(dialog).getByText(/\/jp\?range=7d&cities=tokyo/)).toBeTruthy();
+    expect(within(dialog).getByText("/jp?cities=tokyo")).toBeTruthy();
   });
 
   it("copies the full shareable country-map state", async () => {
