@@ -88,7 +88,7 @@ export function WorldWeatherMap({
 
   const positioned = useMemo(
     () =>
-      countries.map((country) => {
+      countries.map((country, index) => {
         const geometry = countryMapGeometry(country.countryId);
         const x = projectX(geometry.minLongitude);
         const right = projectX(geometry.maxLongitude);
@@ -96,6 +96,7 @@ export function WorldWeatherMap({
         const bottom = projectY(geometry.minLatitude);
         return {
           country,
+          position: index + 1,
           geometry,
           x,
           y,
@@ -108,17 +109,20 @@ export function WorldWeatherMap({
     [countries],
   );
 
-  function recordOpen(country: WorldWeatherMapCountry): void {
+  function recordOpen(country: WorldWeatherMapCountry, position: number): void {
     emitProductAnalytics({
       locale,
       routeTemplate: "/",
       fields: {
         event: "search_result_clicked",
         destination_id: country.slug,
-        result_type: "country_world_map",
+        result_type: "country",
+        position,
       },
     });
   }
+
+  const activePosition = Math.max(1, countries.findIndex((country) => country.slug === active?.slug) + 1);
 
   return (
     <section className="world-weather-panel" aria-label={copy.aria} data-world-weather-map>
@@ -131,7 +135,7 @@ export function WorldWeatherMap({
           preserveAspectRatio="xMidYMid meet"
         >
           <path d={WORLD_LAND_PATH} className="world-weather-land" />
-          {positioned.map(({ country, geometry, x, y, width, height, centerX, centerY }) => (
+          {positioned.map(({ country, position, geometry, x, y, width, height, centerX, centerY }) => (
             <a
               key={country.slug}
               href={country.path}
@@ -139,7 +143,7 @@ export function WorldWeatherMap({
               className={`world-weather-country-link status-${country.weatherStatus}`}
               onMouseEnter={() => setActiveSlug(country.slug)}
               onFocus={() => setActiveSlug(country.slug)}
-              onClick={() => recordOpen(country)}
+              onClick={() => recordOpen(country, position)}
             >
               <svg
                 x={x}
@@ -168,7 +172,7 @@ export function WorldWeatherMap({
         <a
           href={active.path}
           className={`world-weather-focus-card status-${active.weatherStatus} focus-ring`}
-          onClick={() => recordOpen(active)}
+          onClick={() => recordOpen(active, activePosition)}
         >
           <div>
             <span className="world-weather-focus-status">
