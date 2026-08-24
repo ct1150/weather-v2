@@ -1,7 +1,10 @@
 import type { BakedDataset } from "../build/types";
 import { projectCountry } from "../build/bake";
 import type { PublishedLocale } from "../app/seo";
-import type { CountryWeatherCityViewModel, CountryWeatherDayViewModel } from "../app/view-models";
+import type {
+  CountryWeatherCityViewModel,
+  CountryWeatherDayViewModel,
+} from "../app/view-models";
 import { isMostlyDryTravelDay } from "../components/rain-day-classification";
 import { toTraditionalText } from "../trips/traditional";
 import { windowIndicesForDates } from "../weather/window-selection";
@@ -75,7 +78,7 @@ function sortRanking(items: WeeklyWeatherRankItem[]): ReadonlyArray<WeeklyWeathe
     if (rainDelta !== 0) return rainDelta;
     const chanceDelta = numericSort(a.peakRainChance) - numericSort(b.peakRainChance);
     if (chanceDelta !== 0) return chanceDelta;
-    return a.cityName.localeCompare(b.cityName);
+    return a.cityId.localeCompare(b.cityId);
   });
 }
 
