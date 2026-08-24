@@ -200,7 +200,9 @@ export function CountryBestWeatherThisWeekPage({
     : copy.ranking(countryName);
   const methodTitle = isWeekend ? weekendMethodTitle(locale) : copy.methodTitle;
   const method = isWeekend ? weekendMethod(locale) : copy.method;
-  const rankingId = isWeekend ? "country-weekend-weather-ranking" : "country-weekly-weather-ranking";
+  const rankingId = isWeekend
+    ? "country-weekend-weather-ranking"
+    : "country-weekly-weather-ranking";
   const methodId = isWeekend ? "country-weekend-weather-method" : "country-weekly-weather-method";
 
   return (
