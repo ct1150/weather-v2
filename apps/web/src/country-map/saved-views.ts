@@ -24,13 +24,6 @@ export interface SavedCountryMapView {
   readonly schemaVersion: 2;
 }
 
-const EMPTY_FILTERS: SavedDecisionFilters = {
-  rainMax: null,
-  windMax: null,
-  tempMin: null,
-  tempMax: null,
-};
-
 function isRelativeSiteUrl(value: string): boolean {
   return value.startsWith("/") && !value.startsWith("//") && !value.includes("\\");
 }
