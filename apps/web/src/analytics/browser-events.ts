@@ -1,4 +1,5 @@
 import { validateAnalyticsEvent, type AnalyticsEvent, type AnalyticsLocale } from "@wnr/analytics";
+import { browserAcquisitionContext } from "./acquisition-context";
 
 export const WNR_ANALYTICS_BROWSER_EVENT = "wnr:analytics";
 
@@ -10,9 +11,13 @@ export function analyticsLocale(locale: BrowserAnalyticsLocale): AnalyticsLocale
   return locale === "zh-hant" ? "zh-tw" : locale;
 }
 
-function transmitProductEvent(event: AnalyticsEvent, endpoint: string): void {
+function transmitProductEvent(
+  event: AnalyticsEvent,
+  endpoint: string,
+  acquisition: ReturnType<typeof browserAcquisitionContext>,
+): void {
   if (endpoint.length === 0 || typeof window === "undefined") return;
-  const payload = JSON.stringify(event);
+  const payload = JSON.stringify(acquisition === null ? event : { ...event, ...acquisition });
   try {
     if (typeof navigator.sendBeacon === "function") {
       const accepted = navigator.sendBeacon(
@@ -65,6 +70,10 @@ export function emitProductAnalytics(input: {
   } catch {
     // Local listeners must never block or alter the product path.
   }
-  transmitProductEvent(result.value, input.endpoint ?? PRODUCT_ANALYTICS_URL);
+  transmitProductEvent(
+    result.value,
+    input.endpoint ?? PRODUCT_ANALYTICS_URL,
+    browserAcquisitionContext(input.routeTemplate),
+  );
   return true;
 }
