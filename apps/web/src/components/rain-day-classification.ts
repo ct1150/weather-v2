@@ -7,25 +7,26 @@ type RainSignalDay = {
   >;
 };
 
-const PRECIPITATION_CONDITION = /rain|drizzle|shower|thunder|hail|snow|sleet/i;
+const PRECIPITATION_CONDITION = /rain|drizzle|shower|thunder|hail|snow|sleet|雨|雪|雷|冰雹/i;
+const DRY_CONDITION = /clear|cloud|overcast|fog|mist|sun|晴|云|雲|阴|陰|雾|霧/i;
 
 /**
- * "Mostly dry" is intentionally stricter than "low precipitation".
- * A day with an explicit precipitation condition is never presented as dry,
- * even when the forecast amount is tiny (for example persistent drizzle).
+ * User-facing "basically not raining" should follow the day's forecast condition
+ * and expected precipitation amount first. Rain probability is uncertainty, so it
+ * is only a fallback when the daily precipitation amount is unavailable.
+ *
+ * Explicit precipitation conditions are never presented as rain-free, even when
+ * the forecast amount is tiny (for example persistent drizzle).
  */
 export function isMostlyDryTravelDay(day: RainSignalDay): boolean {
   const { conditionLabel, precipitationMm, rainProbability } = day.weather;
 
   if (PRECIPITATION_CONDITION.test(conditionLabel)) return false;
-  if (precipitationMm !== null && precipitationMm !== undefined && precipitationMm > 0.5) {
-    return false;
-  }
-  if (rainProbability !== null && rainProbability !== undefined && rainProbability > 35) {
-    return false;
+  if (!DRY_CONDITION.test(conditionLabel)) return false;
+
+  if (precipitationMm !== null && precipitationMm !== undefined) {
+    return precipitationMm <= 0.5;
   }
 
-  return precipitationMm !== null && precipitationMm !== undefined
-    ? true
-    : rainProbability !== null && rainProbability !== undefined;
+  return rainProbability !== null && rainProbability !== undefined && rainProbability <= 35;
 }
