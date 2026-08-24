@@ -32,6 +32,13 @@ function workspacePath(locale: CountryCompareTripLocale): string {
   return "/trips/workspace";
 }
 
+function resolveCountryName(explicit: string | undefined): string {
+  const value = explicit?.trim();
+  if (value) return value;
+  const heading = document.querySelector<HTMLElement>(".country-map-primary-heading .eyebrow");
+  return heading?.textContent?.trim() || "Travel destination";
+}
+
 export function CountryCompareTripAction({
   locale,
   cityId,
@@ -42,7 +49,7 @@ export function CountryCompareTripAction({
   readonly locale: CountryCompareTripLocale;
   readonly cityId: string;
   readonly cityName: string;
-  readonly countryName: string;
+  readonly countryName?: string;
   readonly dates: ReadonlyArray<string>;
 }): ReactElement {
   const copy = COPY[locale];
@@ -50,7 +57,7 @@ export function CountryCompareTripAction({
   function chooseAndPlan(): void {
     const next = addDestinationRangeToWorkspace(
       readStoredWorkspace(),
-      { cityId, cityName, countryName },
+      { cityId, cityName, countryName: resolveCountryName(countryName) },
       dates,
       { blankTitle: copy.title },
     );
