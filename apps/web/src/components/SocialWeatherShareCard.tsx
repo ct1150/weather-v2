@@ -14,7 +14,8 @@ const COPY = {
   en: {
     eyebrow: "Shareable weather card",
     title: "Turn the live ranking into a post",
-    intro: "Use the top three destinations as ready-to-share travel-weather content. Every channel link carries UTM attribution so source quality appears in the Growth Dashboard.",
+    intro:
+      "Use the top three destinations as ready-to-share travel-weather content. Every channel link carries UTM attribution so source quality appears in the Growth Dashboard.",
     copyPost: "Copy post",
     copied: "Copied",
     share: "Share",
@@ -25,7 +26,8 @@ const COPY = {
   "zh-cn": {
     eyebrow: "可分享天气卡片",
     title: "把实时排行直接变成推广内容",
-    intro: "Top 3 自动生成可复制文案，并给不同渠道附带 UTM。发布后可以在 Growth Dashboard 直接比较 Reddit、小红书、TikTok 等来源质量。",
+    intro:
+      "Top 3 自动生成可复制文案，并给不同渠道附带 UTM。发布后可以在 Growth Dashboard 直接比较 Reddit、小红书、TikTok 等来源质量。",
     copyPost: "复制推广文案",
     copied: "已复制",
     share: "系统分享",
@@ -36,7 +38,8 @@ const COPY = {
   "zh-hant": {
     eyebrow: "可分享天氣卡片",
     title: "把即時排行直接變成推廣內容",
-    intro: "Top 3 自動生成可複製文案，並為不同渠道附帶 UTM。發布後可以在 Growth Dashboard 直接比較 Reddit、社群與短影音來源品質。",
+    intro:
+      "Top 3 自動生成可複製文案，並為不同渠道附帶 UTM。發布後可以在 Growth Dashboard 直接比較 Reddit、社群與短影音來源品質。",
     copyPost: "複製推廣文案",
     copied: "已複製",
     share: "系統分享",
@@ -113,7 +116,10 @@ export function SocialWeatherShareCard({
             <p className="mt-3 max-w-2xl text-sm leading-6 text-muted">{copy.intro}</p>
             <ol className="mt-5 grid gap-3">
               {top.map((item, index) => (
-                <li key={`${item.cityName}-${index}`} className="rounded-2xl border border-border bg-background px-4 py-3">
+                <li
+                  key={`${item.cityName}-${index}`}
+                  className="rounded-2xl border border-border bg-background px-4 py-3"
+                >
                   <div className="flex items-center justify-between gap-4">
                     <div>
                       <p className="text-xs font-semibold text-muted">TOP {index + 1}</p>
@@ -137,16 +143,34 @@ export function SocialWeatherShareCard({
           <div className="rounded-2xl bg-foreground p-5 text-background">
             <pre className="whitespace-pre-wrap font-sans text-sm leading-6">{post}</pre>
             <div className="mt-5 flex flex-wrap gap-2">
-              <button type="button" onClick={() => void copyPost()} className="rounded-full bg-background px-4 py-2 text-sm font-bold text-foreground">
+              <button
+                type="button"
+                onClick={() => void copyPost()}
+                className="rounded-full bg-background px-4 py-2 text-sm font-bold text-foreground"
+              >
                 {copied ? copy.copied : copy.copyPost}
               </button>
-              <button type="button" onClick={() => void share()} className="rounded-full border border-background/40 px-4 py-2 text-sm font-bold text-background">
+              <button
+                type="button"
+                onClick={() => void share()}
+                className="rounded-full border border-background/40 px-4 py-2 text-sm font-bold text-background"
+              >
                 {copy.share}
               </button>
-              <a href={redditUrl} target="_blank" rel="noreferrer" className="rounded-full border border-background/40 px-4 py-2 text-sm font-bold text-background">
+              <a
+                href={redditUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="rounded-full border border-background/40 px-4 py-2 text-sm font-bold text-background"
+              >
                 {copy.reddit}
               </a>
-              <a href={xUrl} target="_blank" rel="noreferrer" className="rounded-full border border-background/40 px-4 py-2 text-sm font-bold text-background">
+              <a
+                href={xUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="rounded-full border border-background/40 px-4 py-2 text-sm font-bold text-background"
+              >
                 {copy.x}
               </a>
             </div>

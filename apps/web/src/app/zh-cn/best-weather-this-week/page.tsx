@@ -68,7 +68,12 @@ export default async function Page(): Promise<ReactElement> {
         dataUpdatedAt={dataset.dataUpdatedAt}
         jsonLd={jsonLd}
       />
-      <SocialWeatherShareCard locale="zh-cn" mode="week" pageUrl={pageUrl} items={topItems.slice(0, 3)} />
+      <SocialWeatherShareCard
+        locale="zh-cn"
+        mode="week"
+        pageUrl={pageUrl}
+        items={topItems.slice(0, 3)}
+      />
     </>
   );
 }

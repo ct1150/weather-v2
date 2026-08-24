@@ -10,7 +10,9 @@ const items = [
 
 describe("social promotion attribution", () => {
   it("builds bounded channel-specific UTM links", () => {
-    const url = new URL(buildPromotionUrl("https://868656.xyz/best-weather-this-week", "reddit", "week"));
+    const url = new URL(
+      buildPromotionUrl("https://868656.xyz/best-weather-this-week", "reddit", "week"),
+    );
     expect(url.searchParams.get("utm_source")).toBe("reddit");
     expect(url.searchParams.get("utm_medium")).toBe("social");
     expect(url.searchParams.get("utm_campaign")).toBe("weekly_weather");

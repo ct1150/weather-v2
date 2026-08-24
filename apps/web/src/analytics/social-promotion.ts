@@ -61,7 +61,11 @@ export function buildPromotionCopy(input: {
       input.mode === "weekend"
         ? "Best mostly rain-free destinations this weekend"
         : "Best mostly rain-free destinations this week";
-    return [title, ...top.map((item, index) => `${index + 1}. ${compactItem(item, input.locale)}`), `Live ranking: ${url}`].join("\n");
+    return [
+      title,
+      ...top.map((item, index) => `${index + 1}. ${compactItem(item, input.locale)}`),
+      `Live ranking: ${url}`,
+    ].join("\n");
   }
   const traditional = input.locale === "zh-hant";
   const title =
@@ -73,5 +77,9 @@ export function buildPromotionCopy(input: {
         ? "這週基本不下雨旅行地 Top 3"
         : "这周基本不下雨旅行地 Top 3";
   const footer = traditional ? `即時排行：${url}` : `实时排行：${url}`;
-  return [title, ...top.map((item, index) => `${index + 1}. ${compactItem(item, input.locale)}`), footer].join("\n");
+  return [
+    title,
+    ...top.map((item, index) => `${index + 1}. ${compactItem(item, input.locale)}`),
+    footer,
+  ].join("\n");
 }
