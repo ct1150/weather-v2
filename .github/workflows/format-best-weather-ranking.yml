@@ -1,0 +1,40 @@
+name: Format weekly weather ranking
+
+on:
+  push:
+    branches: [seo/best-weather-this-week]
+
+permissions:
+  contents: write
+
+env:
+  PNPM_VERSION: 10.11.0
+  NODE_VERSION: 22
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: seo/best-weather-this-week
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Format changed files and clean up
+        run: |
+          pnpm exec prettier --write \
+            apps/web/src/components/BestWeatherThisWeekPage.tsx \
+            apps/web/src/components/CountryMapHome.tsx \
+            apps/web/src/seo/weekly-weather-ranking.ts
+          rm .github/workflows/format-best-weather-ranking.yml
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add -A
+          git commit -m 'style: format weekly weather ranking'
+          git push origin HEAD:seo/best-weather-this-week
