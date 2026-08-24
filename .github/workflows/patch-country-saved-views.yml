@@ -1,0 +1,35 @@
+name: Patch country saved views
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/country-map-saved-views
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.11.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Apply saved-view integration
+        run: |
+          python .github/scripts/patch-country-saved-views.py
+          pnpm exec prettier --write apps/web/src/components/InstantCountryWeatherExplorer.tsx apps/web/src/components/CountrySavedViewsControl.tsx apps/web/src/components/country-weather-explorer.test.tsx apps/web/src/country-map/saved-views.ts apps/web/src/country-map/saved-views.test.ts
+          rm .github/workflows/patch-country-saved-views.yml
+          rm .github/scripts/patch-country-saved-views.py
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add -A
+          git commit -m "feat: save country map views"
+          git push origin HEAD:feat/country-map-saved-views
