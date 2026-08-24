@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import type { ReactElement } from "react";
 import { InternationalTripWorkspace } from "../../../components/InternationalTripWorkspace";
+import { TripDecisionCommercialSurface } from "../../../components/TripDecisionCommercialSurface";
 import { buildAlternates } from "../../seo";
 
 export const metadata: Metadata = {
@@ -27,6 +28,7 @@ export default function InternationalTripWorkspacePage(): ReactElement {
           Open execution mode →
         </a>
       </div>
+      <TripDecisionCommercialSurface locale="en" />
       <div className="mt-6">
         <InternationalTripWorkspace />
       </div>
