@@ -55,8 +55,7 @@ const COPY = {
     placeholder: "请选择一个国家",
     mapAction: "打开天气地图",
     weeklyTitle: "还没决定去哪个国家？",
-    weeklyDescription:
-      "跨国家比较热门城市基本不下雨的天数，可以看未来 7 天，也可以只看本周末。",
+    weeklyDescription: "跨国家比较热门城市基本不下雨的天数，可以看未来 7 天，也可以只看本周末。",
     weeklyAction: "查看这周天气排行",
     weekendAction: "查看本周末天气排行",
     howItWorks: "一眼看懂，只需三步",
@@ -77,8 +76,7 @@ const COPY = {
     placeholder: "請選擇一個國家",
     mapAction: "打開天氣地圖",
     weeklyTitle: "還沒決定去哪個國家？",
-    weeklyDescription:
-      "跨國家比較熱門城市基本不下雨的天數，可以看未來 7 天，也可以只看本週末。",
+    weeklyDescription: "跨國家比較熱門城市基本不下雨的天數，可以看未來 7 天，也可以只看本週末。",
     weeklyAction: "查看這週天氣排行",
     weekendAction: "查看本週末天氣排行",
     howItWorks: "一眼看懂，只需三步",
