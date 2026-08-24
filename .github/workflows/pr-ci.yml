@@ -44,12 +44,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Format check
-        run: |
-          if ! pnpm format:check; then
-            pnpm exec prettier --write workers/product-analytics/src/growth-dashboard.ts
-            git diff -- workers/product-analytics/src/growth-dashboard.ts
-            exit 1
-          fi
+        run: pnpm format:check
 
       - name: Lint
         run: pnpm lint
