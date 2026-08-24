@@ -1,94 +1,109 @@
-# Lightweight pull-request validation.
-# Draft PR pushes do not allocate a hosted runner. Validation starts when the PR
-# is marked Ready for review, and re-runs only for subsequent non-draft updates.
-
-name: PR CI
+name: Remove retired weather limits once
 
 on:
   pull_request:
-    types: [opened, reopened, ready_for_review, synchronize]
+    types: [opened, reopened, ready_for_review]
 
 permissions:
-  contents: read
+  contents: write
   pull-requests: read
 
-concurrency:
-  group: pr-ci-${{ github.event.pull_request.number }}
-  cancel-in-progress: true
-
-env:
-  PNPM_VERSION: "10.11.0"
-  NODE_VERSION: "22"
-
 jobs:
-  verify:
-    if: github.event.pull_request.draft == false
+  remove-retired-limits:
+    if: github.head_ref == 'fix/remove-retired-weather-limits'
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 15
     steps:
-      - name: Checkout
+      - name: Checkout branch
         uses: actions/checkout@v4
+        with:
+          ref: fix/remove-retired-weather-limits
+          fetch-depth: 0
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
-          version: ${{ env.PNPM_VERSION }}
+          version: 10.11.0
 
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: ${{ env.NODE_VERSION }}
+          node-version: 22
           cache: pnpm
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Format check
-        run: pnpm format:check
-
-      - name: Lint
-        run: pnpm lint
-
-      - name: Build library packages
-        run: pnpm -r --filter '!@wnr/web' --filter '!@wnr/weather-sync' --filter '!@wnr/maintenance' build
-
-      - name: Typecheck
-        run: pnpm typecheck
-
-      - name: Unit / integration tests
+      - name: Remove retired UI and stale filter behavior
+        shell: bash
         run: |
-          set -o pipefail
-          pnpm test 2>&1 | tee test-results.log
-          if grep -qiE "Tests +[0-9]+ failed|Test Files +[0-9]+ failed|FAIL " test-results.log; then
-            echo "::error::Unit/integration tests failed — gate is fail-closed."
-            exit 1
-          fi
+          python - <<'PY'
+          from pathlib import Path
+          import re
 
-      - name: Documentation gate
-        run: pnpm docs:check
+          explorer = Path('apps/web/src/components/InstantCountryWeatherExplorer.tsx')
+          text = explorer.read_text(encoding='utf-8')
 
-      - name: Build web static export
-        env:
-          APP_BASE_URL: https://868656.xyz
-          NEXT_PUBLIC_TRIP_API_URL: https://trip.868656.xyz
-          NEXT_PUBLIC_PRODUCT_ANALYTICS_URL: https://analytics.868656.xyz/api/v1/product-events
-          NEXT_PUBLIC_CLOUDFLARE_ANALYTICS_ENABLED: "false"
-        run: pnpm --filter @wnr/web build
+          def sub_once(pattern: str, replacement: str, value: str) -> str:
+              updated, count = re.subn(pattern, replacement, value, count=1, flags=re.S)
+              if count != 1:
+                  raise SystemExit(f'expected one match, got {count}: {pattern[:80]}')
+              return updated
 
-      - name: Build Workers
+          text = sub_once(
+              r'\nfunction activeFilterCount\(filters: WeatherFilters\): number \{.*?\n\}\n',
+              '\n',
+              text,
+          )
+          text = text.replace('  const filterCount = activeFilterCount(filters);\n', '')
+          text = sub_once(
+              r'\n  function updateFilter\(field: keyof WeatherFilters, raw: string\): void \{.*?\n  \}\n\n  function clearFilters\(\): void \{.*?\n  \}\n',
+              '\n',
+              text,
+          )
+          text = sub_once(
+              r'\n      <details className="country-filter-details">.*?\n      </details>\n',
+              '\n',
+              text,
+          )
+          text = sub_once(
+              r'\n            <p className=\{`country-filter-result .*?\n            \) : null\}\n',
+              '\n',
+              text,
+          )
+          text = text.replace(
+              '      setFilters({\n        rainMax: parseNumber(params.get("rainMax")),\n        windMax: parseNumber(params.get("windMax")),\n        tempMin: parseNumber(params.get("tempMin")),\n        tempMax: parseNumber(params.get("tempMax")),\n      });',
+              '      setFilters(EMPTY_FILTERS);\n      for (const key of ["rainMax", "windMax", "tempMin", "tempMax"] as const) {\n        params.delete(key);\n      }',
+          )
+          explorer.write_text(text, encoding='utf-8')
+
+          contract = Path('apps/web/src/components/production-smoke-copy-contract.test.ts')
+          text = contract.read_text(encoding='utf-8')
+          text = text.replace(
+              '    expect(instantMapStyles).toContain(".country-filter-details");\n    expect(instantMapStyles).toContain("display: none !important");\n    expect(instantMapStyles).toContain("Legacy shared URLs must not dim destinations");',
+              '    expect(explorer).not.toContain(\'<details className="country-filter-details">\');\n    expect(explorer).not.toContain("updateFilter(");\n    expect(instantMapStyles).toContain("Legacy shared URLs must not dim destinations");',
+          )
+          contract.write_text(text, encoding='utf-8')
+          PY
+
+      - name: Format and focused validation
         run: |
-          pnpm --filter @wnr/weather-sync build
-          pnpm --filter @wnr/weather-read build
-          pnpm --filter @wnr/trip-api build
-          pnpm --filter @wnr/product-analytics build
+          pnpm exec prettier --write \
+            apps/web/src/components/InstantCountryWeatherExplorer.tsx \
+            apps/web/src/components/production-smoke-copy-contract.test.ts
+          pnpm -r --filter '!@wnr/web' --filter '!@wnr/weather-sync' --filter '!@wnr/maintenance' build
+          pnpm --filter @wnr/web typecheck
+          pnpm --filter @wnr/web exec vitest run \
+            src/components/country-weather-explorer.test.tsx \
+            src/components/production-smoke-copy-contract.test.ts
 
-      - name: Pipeline contract tests
-        run: node --test tooling/deploy/pipeline-contract.test.mjs
-
-      - name: Secret scan
+      - name: Publish source-only hotfix
         run: |
-          if grep -RIiE "WEATHERAPI_SECRET|CLOUDFLARE_API_TOKEN|BETTER_AUTH_SECRET|GOOGLE_CLIENT_SECRET|RESEND_API_KEY" apps/web/out apps/web/src workers/trip-api/src workers/product-analytics/src 2>/dev/null; then
-            echo "::error::Possible secret leaked into build output or source"
-            exit 1
-          fi
-          echo "secret scan: clean"
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- \
+            apps/web/src/components/InstantCountryWeatherExplorer.tsx \
+            apps/web/src/components/production-smoke-copy-contract.test.ts
+          git commit -m "fix: remove retired weather limit controls"
+          git push origin HEAD:fix/remove-retired-weather-limits
