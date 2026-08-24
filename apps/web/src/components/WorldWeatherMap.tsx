@@ -156,7 +156,7 @@ export function WorldWeatherMap({
                   height={height}
                   viewBox={`0 0 ${COUNTRY_MAP_WIDTH} ${COUNTRY_MAP_HEIGHT}`}
                   preserveAspectRatio="xMidYMid meet"
-                  overflow="visible"
+                  overflow="hidden"
                 >
                   <path
                     d={geometry.path}
@@ -165,6 +165,12 @@ export function WorldWeatherMap({
                     clipRule="evenodd"
                   />
                 </svg>
+                <circle
+                  cx={centerX}
+                  cy={centerY}
+                  r={30}
+                  className="world-weather-country-touch-target"
+                />
                 <circle cx={centerX} cy={centerY} r={8} className="world-weather-country-hit" />
               </a>
             ),

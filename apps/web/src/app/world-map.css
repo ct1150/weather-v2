@@ -66,12 +66,13 @@
   display: block;
   width: 100%;
   height: auto;
-  min-height: 21rem;
+  min-height: 0;
+  aspect-ratio: 1200 / 620;
 }
 
 .world-weather-land {
-  fill: rgb(var(--wnr-border) / 0.38);
-  stroke: rgb(var(--wnr-border) / 0.7);
+  fill: rgb(var(--wnr-border) / 0.16);
+  stroke: rgb(var(--wnr-border) / 0.62);
   stroke-width: 1.5;
 }
 
@@ -83,10 +84,15 @@
 .world-weather-country-shape {
   stroke: #fff;
   stroke-width: 18;
-  vector-effect: non-scaling-stroke;
   transition:
     filter 160ms ease,
     opacity 160ms ease;
+}
+
+.world-weather-country-touch-target {
+  fill: transparent;
+  stroke: none;
+  pointer-events: all;
 }
 
 .world-weather-country-hit {
@@ -95,6 +101,7 @@
   stroke-width: 4;
   opacity: 0.68;
   vector-effect: non-scaling-stroke;
+  pointer-events: none;
 }
 
 .world-weather-country-link:hover .world-weather-country-shape,
@@ -300,14 +307,36 @@
 }
 
 @media (max-width: 640px) {
+  .world-weather-panel {
+    padding: 0.6rem;
+    border-radius: 1.25rem;
+  }
+
+  .world-weather-map-wrap {
+    border-radius: 0.95rem;
+  }
+
   .world-weather-map {
-    min-height: 18rem;
-    transform: scale(1.12);
-    transform-origin: 72% 48%;
+    width: 100%;
+    height: auto;
+    min-height: 0;
+    aspect-ratio: 1200 / 620;
+    transform: none;
+  }
+
+  .world-weather-land {
+    fill: rgb(var(--wnr-border) / 0.1);
   }
 
   .world-weather-map-hint {
-    right: 0.55rem;
-    bottom: 0.55rem;
+    position: static;
+    width: fit-content;
+    margin: 0.35rem auto 0.5rem;
+    background: transparent;
+    backdrop-filter: none;
+  }
+
+  .world-weather-focus-card {
+    border-radius: 1rem;
   }
 }
