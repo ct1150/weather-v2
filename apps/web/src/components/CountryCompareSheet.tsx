@@ -1,6 +1,7 @@
 "use client";
 
 import type { ReactElement } from "react";
+import { CountryCompareTripAction } from "./CountryCompareTripAction";
 
 export type CountryCompareLocale = "en" | "zh-cn" | "zh-hant";
 
@@ -252,12 +253,20 @@ export function CountryCompareSheet({
                     </th>
                     {items.map((item) => (
                       <td key={item.id} className="px-3 py-4">
-                        <a
-                          href={item.detailHref}
-                          className="inline-flex rounded-full border border-border px-3 py-2 text-xs font-bold text-foreground focus-ring"
-                        >
-                          {copy.details} →
-                        </a>
+                        <div className="flex min-w-[150px] flex-col items-start gap-1">
+                          <a
+                            href={item.detailHref}
+                            className="inline-flex rounded-full border border-border px-3 py-2 text-xs font-bold text-foreground focus-ring"
+                          >
+                            {copy.details} →
+                          </a>
+                          <CountryCompareTripAction
+                            locale={locale}
+                            cityId={item.id}
+                            cityName={item.name}
+                            dates={item.days.map((day) => day.localDate)}
+                          />
+                        </div>
                       </td>
                     ))}
                   </tr>
