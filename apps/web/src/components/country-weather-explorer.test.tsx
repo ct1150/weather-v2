@@ -3,6 +3,7 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { CountryWeatherCityViewModel, LocalDate, ScoreViewModel } from "../app/view-models";
+import { COUNTRY_MAP_SAVED_VIEWS_STORAGE_KEY } from "../country-map/saved-views";
 import { CountryOutlineMap, layoutCountryMarkers } from "./CountryOutlineMap";
 import { CountryWeatherExplorer } from "./CountryWeatherExplorer";
 
@@ -89,6 +90,7 @@ function renderExplorer(locale: "en" | "zh-cn" | "zh-hant" = "en"): ReturnType<t
 
 beforeEach(() => {
   window.history.replaceState({}, "", "/jp");
+  window.localStorage.removeItem(COUNTRY_MAP_SAVED_VIEWS_STORAGE_KEY);
   Object.defineProperty(window, "matchMedia", {
     configurable: true,
     value: vi.fn().mockReturnValue({ matches: false }),
@@ -257,6 +259,22 @@ describe("CountryWeatherExplorer instant country map", () => {
     expect(within(dialog).getAllByText("Osaka").length).toBeGreaterThan(0);
     expect(within(dialog).getByText("Rain outlook")).toBeTruthy();
     expect(window.location.pathname).toBe("/jp");
+  });
+
+  it("saves and restores the complete country-map state locally", () => {
+    renderExplorer();
+
+    fireEvent.click(screen.getByRole("button", { name: "Add Tokyo to compare" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save current view" }));
+
+    const raw = window.localStorage.getItem(COUNTRY_MAP_SAVED_VIEWS_STORAGE_KEY);
+    expect(raw).toContain("cities=tokyo");
+    expect(raw).toContain("Japan · Tokyo");
+
+    fireEvent.click(screen.getByRole("button", { name: "Saved views (1)" }));
+    const dialog = screen.getByRole("dialog", { name: "Saved country maps" });
+    expect(within(dialog).getByText("Japan · Tokyo")).toBeTruthy();
+    expect(within(dialog).getByText("/jp?cities=tokyo")).toBeTruthy();
   });
 
   it("copies the full shareable country-map state", async () => {
