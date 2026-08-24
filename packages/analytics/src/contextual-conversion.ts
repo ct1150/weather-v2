@@ -60,8 +60,8 @@ function opportunity(
 
 const CATEGORY_ORDER: ReadonlyArray<CommercialCategory> = [
   "hotel",
-  "flights",
   "activities",
+  "flights",
   "car_rental",
   "sim",
   "insurance",
@@ -108,12 +108,12 @@ export function resolveContextualCommercialOpportunities(
           100,
         ),
         opportunity(
-          "flights",
+          "activities",
           "discovery_decision",
-          "discovery.flights",
+          "discovery.activities",
           destinationId,
-          "DESTINATION_TRANSPORT_DECIDED",
-          80,
+          "STRUCTURED_ACTIVITY_PLANNED",
+          90,
         ),
       );
       break;
