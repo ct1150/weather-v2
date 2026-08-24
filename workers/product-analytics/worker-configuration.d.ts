@@ -2,5 +2,6 @@
 
 interface Env {
 	WEB_ORIGIN: "http://localhost:3000" | "https://where-not-rain.pages.dev" | "https://868656.xyz";
+	GROWTH_DASHBOARD_PASSWORD?: string;
 	DB: D1Database;
 }
