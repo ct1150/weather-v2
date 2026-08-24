@@ -20,7 +20,7 @@ function context(overrides: Partial<ConversionContext> = {}): ConversionContext 
 }
 
 describe("contextual conversion resolver", () => {
-  it("returns a stable bounded hotel/flight pair only after a destination decision", () => {
+  it("returns a stable bounded hotel/activity pair only after a destination decision", () => {
     const input = context();
     const first = resolveContextualCommercialOpportunities(input);
     const second = resolveContextualCommercialOpportunities(input);
@@ -36,12 +36,12 @@ describe("contextual conversion resolver", () => {
         priority: 100,
       },
       {
-        category: "flights",
+        category: "activities",
         surface: "discovery_decision",
-        slot: "discovery.flights",
+        slot: "discovery.activities",
         destinationId: "jp-tokyo",
-        reasonCode: "DESTINATION_TRANSPORT_DECIDED",
-        priority: 80,
+        reasonCode: "DESTINATION_ACTIVITY_OPTIONS",
+        priority: 90,
       },
     ]);
     expect(first).toHaveLength(2);
