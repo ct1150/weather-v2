@@ -7,6 +7,7 @@ import type {
 } from "../app/view-models";
 import { JsonLd } from "./JsonLd";
 import { CityTripBridge } from "./CityTripBridge";
+import { CityDirectAnswer } from "./CityDirectAnswer";
 import { toTraditionalText } from "../trips/traditional";
 
 export type ChineseWeatherLocale = "zh-cn" | "zh-hant";
@@ -23,7 +24,7 @@ const COPY = {
     breadcrumb: "面包屑",
     eyebrow: "目的地天气",
     intro: (country: string) =>
-      `查看降雨风险、气温和 7 天旅行评分，再和${country}其他目的地比较后决定行程。`,
+      `先看未来 7 天哪些日期基本不下雨、预计降雨和气温，再和${country}其他目的地比较后决定行程。`,
     current: "当前天气",
     loadingWeather: "正在加载天气…",
     weatherError: "暂时无法加载当前天气。",
@@ -57,7 +58,7 @@ const COPY = {
     breadcrumb: "麵包屑",
     eyebrow: "目的地天氣",
     intro: (country: string) =>
-      `查看降雨風險、氣溫和 7 天旅行評分，再和${country}其他目的地比較後決定行程。`,
+      `先看未來 7 天哪些日期基本不下雨、預計降雨和氣溫，再和${country}其他目的地比較後決定行程。`,
     current: "目前天氣",
     loadingWeather: "正在載入天氣…",
     weatherError: "暫時無法載入目前天氣。",
@@ -262,6 +263,12 @@ export function ChineseCityWeatherPage({
           </p>
         </div>
       </section>
+
+      <CityDirectAnswer
+        cityName={city.cityName}
+        forecastDays={forecastDays ?? []}
+        locale={locale}
+      />
 
       <CityTripBridge
         locale={locale}
