@@ -111,47 +111,94 @@ export function CountryCompareSheet({
 
   return (
     <>
-      <aside className="sticky bottom-3 z-[130] mt-5 rounded-2xl border border-border bg-white/95 p-3 shadow-2xl backdrop-blur sm:p-4" aria-label={copy.comparison}>
+      <aside
+        className="sticky bottom-3 z-[130] mt-5 rounded-2xl border border-border bg-white/95 p-3 shadow-2xl backdrop-blur sm:p-4"
+        aria-label={copy.comparison}
+      >
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="min-w-0">
             <p className="text-xs font-semibold text-muted">{copy.tray(items.length, maxItems)}</p>
             <div className="mt-1 flex flex-wrap gap-2">
               {items.map((item) => (
-                <span key={item.id} className="inline-flex items-center gap-1 rounded-full bg-surface-elevated px-2.5 py-1 text-xs font-semibold text-foreground">
+                <span
+                  key={item.id}
+                  className="inline-flex items-center gap-1 rounded-full bg-surface-elevated px-2.5 py-1 text-xs font-semibold text-foreground"
+                >
                   <span aria-hidden="true">{item.symbol}</span>
                   {item.name}
-                  <button type="button" onClick={() => onRemove(item.id)} aria-label={copy.remove(item.name)} className="ml-1 rounded-full px-1 text-muted hover:text-foreground focus-ring">×</button>
+                  <button
+                    type="button"
+                    onClick={() => onRemove(item.id)}
+                    aria-label={copy.remove(item.name)}
+                    className="ml-1 rounded-full px-1 text-muted hover:text-foreground focus-ring"
+                  >
+                    ×
+                  </button>
                 </span>
               ))}
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <button type="button" onClick={onClear} className="rounded-full border border-border px-3 py-2 text-xs font-semibold text-muted focus-ring">{copy.clear}</button>
-            <button type="button" onClick={onOpen} className="rounded-full bg-foreground px-4 py-2 text-sm font-bold text-white focus-ring">{copy.compare(items.length)}</button>
+            <button
+              type="button"
+              onClick={onClear}
+              className="rounded-full border border-border px-3 py-2 text-xs font-semibold text-muted focus-ring"
+            >
+              {copy.clear}
+            </button>
+            <button
+              type="button"
+              onClick={onOpen}
+              className="rounded-full bg-foreground px-4 py-2 text-sm font-bold text-white focus-ring"
+            >
+              {copy.compare(items.length)}
+            </button>
           </div>
         </div>
       </aside>
 
       {open ? (
-        <div className="fixed inset-0 z-[180] bg-black/30 p-3 sm:p-6" onClick={onClose} role="presentation">
-          <section role="dialog" aria-modal="true" aria-label={copy.comparison} onClick={(event) => event.stopPropagation()} className="absolute inset-x-3 bottom-3 max-h-[82vh] overflow-y-auto rounded-3xl border border-border bg-white p-4 shadow-2xl sm:inset-x-6 sm:bottom-6 sm:p-6 lg:left-1/2 lg:right-auto lg:w-[min(900px,calc(100vw-3rem))] lg:-translate-x-1/2">
+        <div
+          className="fixed inset-0 z-[180] bg-black/30 p-3 sm:p-6"
+          onClick={onClose}
+          role="presentation"
+        >
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-label={copy.comparison}
+            onClick={(event) => event.stopPropagation()}
+            className="absolute inset-x-3 bottom-3 max-h-[82vh] overflow-y-auto rounded-3xl border border-border bg-white p-4 shadow-2xl sm:inset-x-6 sm:bottom-6 sm:p-6 lg:left-1/2 lg:right-auto lg:w-[min(900px,calc(100vw-3rem))] lg:-translate-x-1/2"
+          >
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="eyebrow">{copy.comparison}</p>
                 <h2 className="section-title mt-2">{items.map((item) => item.name).join(" · ")}</h2>
                 <p className="mt-2 max-w-2xl text-sm text-muted">{copy.intro}</p>
               </div>
-              <button type="button" onClick={onClose} aria-label={copy.close} className="rounded-full border border-border px-3 py-2 text-sm font-semibold focus-ring">×</button>
+              <button
+                type="button"
+                onClick={onClose}
+                aria-label={copy.close}
+                className="rounded-full border border-border px-3 py-2 text-sm font-semibold focus-ring"
+              >
+                ×
+              </button>
             </div>
 
             <div className="mt-5 overflow-x-auto">
               <table className="w-full min-w-[620px] border-separate border-spacing-0 text-left text-sm">
                 <thead>
                   <tr>
-                    <th className="sticky left-0 z-10 border-b border-border bg-white px-3 py-3 text-xs text-muted"> </th>
+                    <th className="sticky left-0 z-10 border-b border-border bg-white px-3 py-3 text-xs text-muted">
+                      {" "}
+                    </th>
                     {items.map((item) => (
                       <th key={item.id} className="border-b border-border px-3 py-3 align-top">
-                        <div className="flex items-center gap-2 text-base font-bold text-foreground"><span aria-hidden="true">{item.symbol}</span>{item.name}</div>
+                        <div className="flex items-center gap-2 text-base font-bold text-foreground">
+                          <span aria-hidden="true">{item.symbol}</span>
+                          {item.name}
+                        </div>
                       </th>
                     ))}
                   </tr>
@@ -165,22 +212,54 @@ export function CountryCompareSheet({
                     [copy.wind, (item: CountryCompareItem) => metric(item.maxWind, " km/h")],
                   ].map(([label, render]) => (
                     <tr key={label as string}>
-                      <th className="sticky left-0 z-10 border-b border-border bg-white px-3 py-3 text-xs font-semibold text-muted">{label as string}</th>
-                      {items.map((item) => <td key={item.id} className="border-b border-border px-3 py-3 font-semibold text-foreground">{(render as (item: CountryCompareItem) => string)(item)}</td>)}
+                      <th className="sticky left-0 z-10 border-b border-border bg-white px-3 py-3 text-xs font-semibold text-muted">
+                        {label as string}
+                      </th>
+                      {items.map((item) => (
+                        <td
+                          key={item.id}
+                          className="border-b border-border px-3 py-3 font-semibold text-foreground"
+                        >
+                          {(render as (item: CountryCompareItem) => string)(item)}
+                        </td>
+                      ))}
                     </tr>
                   ))}
                   {dates.map((date, dateIndex) => (
                     <tr key={date}>
-                      <th className="sticky left-0 z-10 border-b border-border bg-white px-3 py-3 text-xs font-semibold text-muted">{dateIndex === 0 ? copy.daily : date}</th>
+                      <th className="sticky left-0 z-10 border-b border-border bg-white px-3 py-3 text-xs font-semibold text-muted">
+                        {dateIndex === 0 ? copy.daily : date}
+                      </th>
                       {items.map((item) => {
                         const day = item.days.find((candidate) => candidate.localDate === date);
-                        return <td key={item.id} className="border-b border-border px-3 py-3"><strong className="block text-foreground">{day?.conditionLabel ?? "—"}</strong><span className="mt-1 block text-xs text-muted">{day?.rainProbability ?? "—"}% · {day?.temperatureMin ?? "–"}–{day?.temperatureMax ?? "–"}°</span></td>;
+                        return (
+                          <td key={item.id} className="border-b border-border px-3 py-3">
+                            <strong className="block text-foreground">
+                              {day?.conditionLabel ?? "—"}
+                            </strong>
+                            <span className="mt-1 block text-xs text-muted">
+                              {day?.rainProbability ?? "—"}% · {day?.temperatureMin ?? "–"}–
+                              {day?.temperatureMax ?? "–"}°
+                            </span>
+                          </td>
+                        );
                       })}
                     </tr>
                   ))}
                   <tr>
-                    <th className="sticky left-0 z-10 bg-white px-3 py-4 text-xs font-semibold text-muted"> </th>
-                    {items.map((item) => <td key={item.id} className="px-3 py-4"><a href={item.detailHref} className="inline-flex rounded-full border border-border px-3 py-2 text-xs font-bold text-foreground focus-ring">{copy.details} →</a></td>)}
+                    <th className="sticky left-0 z-10 bg-white px-3 py-4 text-xs font-semibold text-muted">
+                      {" "}
+                    </th>
+                    {items.map((item) => (
+                      <td key={item.id} className="px-3 py-4">
+                        <a
+                          href={item.detailHref}
+                          className="inline-flex rounded-full border border-border px-3 py-2 text-xs font-bold text-foreground focus-ring"
+                        >
+                          {copy.details} →
+                        </a>
+                      </td>
+                    ))}
                   </tr>
                 </tbody>
               </table>

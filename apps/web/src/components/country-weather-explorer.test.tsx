@@ -238,6 +238,27 @@ describe("CountryWeatherExplorer instant country map", () => {
     ).toContain("/jp/sapporo?start=2026-08-04&end=2026-08-10");
   });
 
+  it("compares destinations side by side without leaving the country map", () => {
+    renderExplorer();
+
+    fireEvent.click(screen.getByRole("button", { name: "Add Tokyo to compare" }));
+    const osakaMarker = screen
+      .getAllByTestId("country-weather-marker")
+      .find((item) => item.getAttribute("data-city-id") === "osaka");
+    expect(osakaMarker).toBeDefined();
+    fireEvent.click(osakaMarker!);
+    fireEvent.click(screen.getByRole("button", { name: "Add Osaka to compare" }));
+
+    expect(window.location.search).toContain("cities=tokyo%2Cosaka");
+    fireEvent.click(screen.getByRole("button", { name: "Compare 2 destinations" }));
+
+    const dialog = screen.getByRole("dialog", { name: "Compare destinations" });
+    expect(within(dialog).getAllByText("Tokyo").length).toBeGreaterThan(0);
+    expect(within(dialog).getAllByText("Osaka").length).toBeGreaterThan(0);
+    expect(within(dialog).getByText("Rain outlook")).toBeTruthy();
+    expect(window.location.pathname).toBe("/jp");
+  });
+
   it("copies the full shareable country-map state", async () => {
     renderExplorer();
     fireEvent.click(screen.getByRole("button", { name: "Copy map link" }));
