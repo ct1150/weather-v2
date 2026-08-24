@@ -1,0 +1,40 @@
+name: Format GEO direct answers
+
+on:
+  push:
+    branches: [seo/geo-direct-answers]
+
+permissions:
+  contents: write
+
+env:
+  PNPM_VERSION: 10.11.0
+  NODE_VERSION: 22
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: seo/geo-direct-answers
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Format changed files and clean up
+        run: |
+          pnpm exec prettier --write \
+            'apps/web/src/app/[countrySlug]/[citySlug]/page.tsx' \
+            apps/web/src/components/city-direct-answer.ts \
+            apps/web/src/components/city-direct-answer.test.tsx
+          rm .github/workflows/format-geo-direct.yml
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add -A
+          git commit -m 'style: format city GEO direct answers'
+          git push origin HEAD:seo/geo-direct-answers
