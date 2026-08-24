@@ -87,7 +87,7 @@ export function CountryMapHome({ countries, locale = "en" }: CountryMapHomeProps
       fields: {
         event: "search_result_clicked",
         destination_id: country.slug,
-        result_type: "country_card",
+        result_type: "country",
         position,
       },
     });
