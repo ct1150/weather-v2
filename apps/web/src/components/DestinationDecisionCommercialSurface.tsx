@@ -62,11 +62,7 @@ export function DestinationDecisionCommercialSurface({
 
   return (
     <div className="mt-5" data-destination-decision-commerce>
-      <ContextualAffiliateSurface
-        context={context}
-        locale={locale}
-        routeTemplate={routeTemplate}
-      />
+      <ContextualAffiliateSurface context={context} locale={locale} routeTemplate={routeTemplate} />
     </div>
   );
 }
