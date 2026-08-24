@@ -9,7 +9,7 @@ on:
     types: [opened, reopened, ready_for_review, synchronize]
 
 permissions:
-  contents: write
+  contents: read
   pull-requests: read
 
 concurrency:
@@ -28,8 +28,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.pull_request.head.ref }}
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -44,17 +42,6 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-
-      - name: Autoformat Growth Dashboard V2
-        run: |
-          pnpm exec prettier --ignore-path /dev/null --write workers/product-analytics/src/growth-dashboard.ts workers/product-analytics/src/growth-dashboard.test.ts
-          if ! git diff --quiet -- workers/product-analytics/src/growth-dashboard.ts workers/product-analytics/src/growth-dashboard.test.ts; then
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add workers/product-analytics/src/growth-dashboard.ts workers/product-analytics/src/growth-dashboard.test.ts
-            git commit -m "style(growth): format dashboard v2"
-            git push origin HEAD:${{ github.event.pull_request.head.ref }}
-          fi
 
       - name: Format check
         run: pnpm format:check
