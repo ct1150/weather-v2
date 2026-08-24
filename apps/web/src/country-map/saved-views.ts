@@ -54,7 +54,7 @@ function parseSearch(search: string): {
     ? "custom"
     : requested === "3d" || requested === "7d" || requested === "weekend"
       ? requested
-      : null;
+      : "7d";
 
   const queryNumber = (name: string): number | null => {
     const raw = params.get(name);
