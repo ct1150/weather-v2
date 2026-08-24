@@ -75,7 +75,7 @@ jobs:
 
       - name: Build web static export
         env:
-          APP_BASE_URL: https://868656.xyz
+          APP_BASE_URL: ${{ vars.APP_BASE_URL || 'https://868656.xyz' }}
           NEXT_PUBLIC_TRIP_API_URL: ${{ env.TRIP_PRODUCTION_URL }}
           NEXT_PUBLIC_CLOUDFLARE_ANALYTICS_ENABLED: ${{ secrets.NEXT_PUBLIC_CLOUDFLARE_ANALYTICS_ENABLED }}
           NEXT_PUBLIC_CLOUDFLARE_ANALYTICS_TOKEN: ${{ secrets.NEXT_PUBLIC_CLOUDFLARE_ANALYTICS_TOKEN }}
@@ -202,6 +202,8 @@ jobs:
 
       - name: Notify IndexNow
         continue-on-error: true
+        env:
+          INDEXNOW_SITE_HOST: ${{ vars.INDEXNOW_SITE_HOST }}
         run: pnpm indexnow:submit
 
       - name: Production weather smoke
