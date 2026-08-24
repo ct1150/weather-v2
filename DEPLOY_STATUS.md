@@ -1,8 +1,7 @@
 # Latest production deployment status
 
-- Conclusion: success
-- Head SHA: c4678de250bdc6f281aaa3200a4453eb4ec4580b
-- Run number: 385
+- Conclusion: redeploy requested
+- Head SHA: 00f881858b309b40e78f5b76b586232bca275743
 - Trigger: push
-- Workflow: https://github.com/ct1150/weather-v2/actions/runs/31351331889
-- Recorded at: 2026-08-10T03:05:08Z
+- Reason: verify Growth Dashboard secret + current SEO production state
+- Requested at: 2026-08-24T09:28:00Z
