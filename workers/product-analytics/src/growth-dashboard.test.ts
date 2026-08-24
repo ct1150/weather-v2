@@ -117,10 +117,7 @@ describe("growth dashboard", () => {
       }
       return [result([{}]), result([]), result([])];
     });
-    const snapshot = await buildGrowthDashboardSnapshot(
-      db,
-      new Date("2026-08-24T08:00:00.000Z"),
-    );
+    const snapshot = await buildGrowthDashboardSnapshot(db, new Date("2026-08-24T08:00:00.000Z"));
     expect(snapshot.dailyTrend).toHaveLength(28);
     expect(snapshot.dailyTrend[0]?.homepageViews).toBe(0);
     expect(snapshot.dailyTrend.at(-1)?.homepageViews).toBe(10);
@@ -128,7 +125,12 @@ describe("growth dashboard", () => {
 
   it("keeps low-volume products in collecting state and emits focus alerts", async () => {
     const snapshot = await buildGrowthDashboardSnapshot(
-      dbWithPeriods({ homepageViews: 120, countryClicks: 10, countryViews: 100, cityInteractions: 10 }),
+      dbWithPeriods({
+        homepageViews: 120,
+        countryClicks: 10,
+        countryViews: 100,
+        cityInteractions: 10,
+      }),
       new Date("2026-08-24T08:00:00.000Z"),
     );
     expect(snapshot.gate.state).toBe("collecting");

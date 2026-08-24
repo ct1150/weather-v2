@@ -304,12 +304,18 @@ function buildGate(snapshot: GrowthPeriodSnapshot): GrowthDashboardSnapshot["gat
 function buildAlerts(snapshot: GrowthPeriodSnapshot, comparison: GrowthComparison): string[] {
   const alerts: string[] = [];
   const m = snapshot.metrics;
-  if (m.homepageViews < 300) alerts.push("样本量仍偏低：优先继续积累真实流量，不建议因短期比例波动频繁改版。");
-  if ((m.countrySelectionRate ?? 0) < 20) alerts.push("国家选择率低于工作阈值：优先检查首页价值主张与国家入口是否足够清晰。");
-  if ((m.mapInteractionRate ?? 0) < 30) alerts.push("地图互动率低于工作阈值：优先优化天气结论、地图可读性和城市点击动机。");
-  if ((comparison.mapInteractionRateDelta ?? 0) <= -5) alerts.push("地图互动率较前 7 天下降超过 5 个百分点，建议优先排查近期产品或流量结构变化。");
-  if ((comparison.countrySelectionRateDelta ?? 0) >= 5) alerts.push("国家选择率较前 7 天明显改善，可以复盘近期首页改动或流量来源变化。");
-  if ((m.retentionIntentRate ?? 0) < 5) alerts.push("留存意图仍弱：暂不建议扩大商业化曝光，先验证收藏/对比是否真正有价值。");
+  if (m.homepageViews < 300)
+    alerts.push("样本量仍偏低：优先继续积累真实流量，不建议因短期比例波动频繁改版。");
+  if ((m.countrySelectionRate ?? 0) < 20)
+    alerts.push("国家选择率低于工作阈值：优先检查首页价值主张与国家入口是否足够清晰。");
+  if ((m.mapInteractionRate ?? 0) < 30)
+    alerts.push("地图互动率低于工作阈值：优先优化天气结论、地图可读性和城市点击动机。");
+  if ((comparison.mapInteractionRateDelta ?? 0) <= -5)
+    alerts.push("地图互动率较前 7 天下降超过 5 个百分点，建议优先排查近期产品或流量结构变化。");
+  if ((comparison.countrySelectionRateDelta ?? 0) >= 5)
+    alerts.push("国家选择率较前 7 天明显改善，可以复盘近期首页改动或流量来源变化。");
+  if ((m.retentionIntentRate ?? 0) < 5)
+    alerts.push("留存意图仍弱：暂不建议扩大商业化曝光，先验证收藏/对比是否真正有价值。");
   return alerts.slice(0, 5);
 }
 
@@ -414,7 +420,10 @@ function comparisonSection(comparison: GrowthComparison): string {
     ["留存意图", formatChange(comparison.retentionIntentRateDelta, "pp"), "转化率百分点变化"],
   ];
   return `<section><div class="section-head"><h2>最近 7 天环比前 7 天</h2><span>判断产品是在改善还是走弱</span></div><div class="compare-grid">${cards
-    .map(([label, value, detail]) => `<article><span>${label}</span><strong>${value}</strong><small>${detail}</small></article>`)
+    .map(
+      ([label, value, detail]) =>
+        `<article><span>${label}</span><strong>${value}</strong><small>${detail}</small></article>`,
+    )
     .join("")}</div></section>`;
 }
 
@@ -467,12 +476,17 @@ function rateTrend(points: ReadonlyArray<DailyGrowthPoint>): string {
 }
 
 function volumeTrend(points: ReadonlyArray<DailyGrowthPoint>): string {
-  return lineChart("28 天事件量趋势", "判断增长来自真实流量提升，还是只是短期转化率波动。", points, [
-    { key: "homepageViews", label: "首页浏览", color: "#2563eb" },
-    { key: "countryClicks", label: "国家点击", color: "#0f766e" },
-    { key: "cityInteractions", label: "城市互动", color: "#9333ea" },
-    { key: "shortlistActions", label: "收藏/对比", color: "#c2410c" },
-  ]);
+  return lineChart(
+    "28 天事件量趋势",
+    "判断增长来自真实流量提升，还是只是短期转化率波动。",
+    points,
+    [
+      { key: "homepageViews", label: "首页浏览", color: "#2563eb" },
+      { key: "countryClicks", label: "国家点击", color: "#0f766e" },
+      { key: "cityInteractions", label: "城市互动", color: "#9333ea" },
+      { key: "shortlistActions", label: "收藏/对比", color: "#c2410c" },
+    ],
+  );
 }
 
 function funnelSection(metrics: GrowthFunnelMetrics): string {
@@ -487,7 +501,7 @@ function funnelSection(metrics: GrowthFunnelMetrics): string {
   const rows = stages
     .map(([label, value], index) => {
       const width = Math.max(12, Math.round((value / max) * 100));
-      const previous = index === 0 ? null : stages[index - 1]?.[1] ?? 0;
+      const previous = index === 0 ? null : (stages[index - 1]?.[1] ?? 0);
       const conversion = previous === null ? "起点" : formatRate(percentage(value, previous));
       return `<div class="funnel-row"><div><strong>${escapeHtml(label)}</strong><span>${value} 次事件 · ${conversion}</span></div><div class="funnel-bar" style="width:${width}%"></div></div>`;
     })
