@@ -14,7 +14,9 @@ export interface CityDirectAnswerData {
 }
 
 function numeric(values: ReadonlyArray<number | null | undefined>): number[] {
-  return values.filter((value): value is number => typeof value === "number" && Number.isFinite(value));
+  return values.filter(
+    (value): value is number => typeof value === "number" && Number.isFinite(value),
+  );
 }
 
 export function buildCityDirectAnswerData(
@@ -22,9 +24,7 @@ export function buildCityDirectAnswerData(
 ): CityDirectAnswerData | null {
   if (days.length === 0) return null;
 
-  const rainFreeDates = days
-    .filter(isMostlyDryTravelDay)
-    .map((day) => day.localDate);
+  const rainFreeDates = days.filter(isMostlyDryTravelDay).map((day) => day.localDate);
   const rainAmounts = numeric(days.map((day) => day.weather.precipitationMm));
   const observed = days
     .map((day) => day.weather.observedAt)
@@ -119,7 +119,8 @@ export function buildCityDirectAnswerCopy(
       rainValue,
       method:
         "A day counts as mostly rain-free only when the daily condition is not rain, drizzle or showers and expected precipitation stays within the site threshold.",
-      updated: data.updatedAt === null ? null : `Forecast updated ${updatedLabel(data.updatedAt, locale)}`,
+      updated:
+        data.updatedAt === null ? null : `Forecast updated ${updatedLabel(data.updatedAt, locale)}`,
       source: "Forecast source",
     };
   }

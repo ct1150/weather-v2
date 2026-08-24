@@ -173,17 +173,13 @@ export function CityPage({ viewModel, jsonLd }: CityPageProps) {
             {city.timezone} · {city.latitude.toFixed(2)}, {city.longitude.toFixed(2)}
           </p>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-muted sm:text-base">
-            See which of the next seven days are mostly rain-free, how much rain is expected and
-            the temperature range, then compare other destinations across {city.countryName}.
+            See which of the next seven days are mostly rain-free, how much rain is expected and the
+            temperature range, then compare other destinations across {city.countryName}.
           </p>
         </div>
       </section>
 
-      <CityDirectAnswer
-        cityName={city.cityName}
-        forecastDays={forecastDays ?? []}
-        locale="en"
-      />
+      <CityDirectAnswer cityName={city.cityName} forecastDays={forecastDays ?? []} locale="en" />
 
       <CityTripBridge
         locale="en"

@@ -54,7 +54,11 @@ describe("city direct answer", () => {
   it("renders a visible English answer with dates, rain total and source", () => {
     render(<CityDirectAnswer cityName="Bangkok" forecastDays={DAYS} locale="en" />);
 
-    expect(screen.getByText("2 of the next 3 forecast days in Bangkok are currently expected to be mostly rain-free.")).toBeTruthy();
+    expect(
+      screen.getByText(
+        "2 of the next 3 forecast days in Bangkok are currently expected to be mostly rain-free.",
+      ),
+    ).toBeTruthy();
     expect(screen.getByText(/Better outdoor-weather dates:/)).toHaveTextContent("Aug 24");
     expect(screen.getByText(/Better outdoor-weather dates:/)).toHaveTextContent("Aug 26");
     expect(screen.getByText("0.7 mm")).toBeTruthy();
@@ -70,7 +74,9 @@ describe("city direct answer", () => {
   });
 
   it("renders nothing without forecast days", () => {
-    const { container } = render(<CityDirectAnswer cityName="Bangkok" forecastDays={[]} locale="en" />);
+    const { container } = render(
+      <CityDirectAnswer cityName="Bangkok" forecastDays={[]} locale="en" />,
+    );
     expect(container).toBeEmptyDOMElement();
   });
 });
