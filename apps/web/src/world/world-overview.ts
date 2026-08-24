@@ -25,8 +25,9 @@ export function summarizeCountryWeather(
   cities: ReadonlyArray<BakedCity>,
 ): WorldCountryWeatherSummary {
   const scored = cities
-    .filter((item): item is BakedCity & { score: BakedCity["score"] & { score: number } } =>
-      typeof item.score.score === "number" && Number.isFinite(item.score.score),
+    .filter(
+      (item): item is BakedCity & { score: BakedCity["score"] & { score: number } } =>
+        typeof item.score.score === "number" && Number.isFinite(item.score.score),
     )
     .sort((a, b) => b.score.score - a.score.score);
   const top = scored.slice(0, 3);

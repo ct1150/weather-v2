@@ -30,7 +30,8 @@ const COPY = {
     description:
       "Highlighted countries are already supported. Their color summarizes the best weather options across supported cities for the current forecast.",
     weeklyTitle: "Want the ranking instead?",
-    weeklyDescription: "Compare the strongest city options across countries for this week or this weekend.",
+    weeklyDescription:
+      "Compare the strongest city options across countries for this week or this weekend.",
     weeklyAction: "This week's best weather",
     weekendAction: "This weekend",
     supported: "Supported countries",
@@ -41,7 +42,8 @@ const COPY = {
   "zh-cn": {
     eyebrow: "哪里不下雨",
     title: "先看世界，再决定去哪。",
-    description: "高亮国家均已支持；颜色直接概括该国已收录城市当前整体天气表现，点击国家即可进入城市天气地图。",
+    description:
+      "高亮国家均已支持；颜色直接概括该国已收录城市当前整体天气表现，点击国家即可进入城市天气地图。",
     weeklyTitle: "想直接看排行？",
     weeklyDescription: "跨国家比较本周或本周末天气更值得去的城市。",
     weeklyAction: "查看这周天气排行",
@@ -54,7 +56,8 @@ const COPY = {
   "zh-hant": {
     eyebrow: "哪裡不下雨",
     title: "先看世界，再決定去哪。",
-    description: "高亮國家均已支援；顏色直接概括該國已收錄城市目前整體天氣表現，點擊國家即可進入城市天氣地圖。",
+    description:
+      "高亮國家均已支援；顏色直接概括該國已收錄城市目前整體天氣表現，點擊國家即可進入城市天氣地圖。",
     weeklyTitle: "想直接看排行？",
     weeklyDescription: "跨國家比較本週或本週末天氣更值得去的城市。",
     weeklyAction: "查看這週天氣排行",
@@ -102,10 +105,14 @@ export function CountryMapHome({ countries, locale = "en" }: CountryMapHomeProps
           <p>{copy.description}</p>
         </div>
         <div className="world-discovery-legend" aria-label={copy.visualHint}>
-          <span className="status-excellent">●</span><small>{locale === "en" ? "Great" : locale === "zh-cn" ? "很适合" : "很適合"}</small>
-          <span className="status-good">●</span><small>{locale === "en" ? "Good" : locale === "zh-cn" ? "较适合" : "較適合"}</small>
-          <span className="status-mixed">●</span><small>{locale === "en" ? "Mixed" : "一般"}</small>
-          <span className="status-poor">●</span><small>{locale === "en" ? "Risk" : locale === "zh-cn" ? "风险较高" : "風險較高"}</small>
+          <span className="status-excellent">●</span>
+          <small>{locale === "en" ? "Great" : locale === "zh-cn" ? "很适合" : "很適合"}</small>
+          <span className="status-good">●</span>
+          <small>{locale === "en" ? "Good" : locale === "zh-cn" ? "较适合" : "較適合"}</small>
+          <span className="status-mixed">●</span>
+          <small>{locale === "en" ? "Mixed" : "一般"}</small>
+          <span className="status-poor">●</span>
+          <small>{locale === "en" ? "Risk" : locale === "zh-cn" ? "风险较高" : "風險較高"}</small>
         </div>
       </section>
 
@@ -129,7 +136,9 @@ export function CountryMapHome({ countries, locale = "en" }: CountryMapHomeProps
       <section className="world-country-strip" aria-labelledby="world-country-strip-heading">
         <div className="world-country-strip-heading">
           <p className="eyebrow">{copy.visualHint}</p>
-          <h2 id="world-country-strip-heading" className="section-title mt-2">{copy.supported}</h2>
+          <h2 id="world-country-strip-heading" className="section-title mt-2">
+            {copy.supported}
+          </h2>
         </div>
         <ul>
           {countries.map((country, index) => (

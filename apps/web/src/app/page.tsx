@@ -72,7 +72,8 @@ export default async function Page(): Promise<ReactElement> {
         "@id": `${pageUrl}#website`,
         name: "Where Not Rain",
         alternateName: "World travel weather map",
-        description: "Explore supported countries visually, then compare city weather inside a country.",
+        description:
+          "Explore supported countries visually, then compare city weather inside a country.",
         url: pageUrl,
         inLanguage: "en",
       },
@@ -80,7 +81,8 @@ export default async function Page(): Promise<ReactElement> {
         "@type": "CollectionPage",
         "@id": `${pageUrl}#webpage`,
         name: "World travel weather map",
-        description: "A visual weather-first entry point to supported country and city travel weather maps.",
+        description:
+          "A visual weather-first entry point to supported country and city travel weather maps.",
         url: pageUrl,
         dateModified: dataset.dataUpdatedAt,
         inLanguage: "en",

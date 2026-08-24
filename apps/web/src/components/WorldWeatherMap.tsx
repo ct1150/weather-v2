@@ -122,7 +122,10 @@ export function WorldWeatherMap({
     });
   }
 
-  const activePosition = Math.max(1, countries.findIndex((country) => country.slug === active?.slug) + 1);
+  const activePosition = Math.max(
+    1,
+    countries.findIndex((country) => country.slug === active?.slug) + 1,
+  );
 
   return (
     <section className="world-weather-panel" aria-label={copy.aria} data-world-weather-map>
@@ -135,35 +138,37 @@ export function WorldWeatherMap({
           preserveAspectRatio="xMidYMid meet"
         >
           <path d={WORLD_LAND_PATH} className="world-weather-land" />
-          {positioned.map(({ country, position, geometry, x, y, width, height, centerX, centerY }) => (
-            <a
-              key={country.slug}
-              href={country.path}
-              aria-label={`${country.name}: ${statusLabel(locale, country.weatherStatus)}`}
-              className={`world-weather-country-link status-${country.weatherStatus}`}
-              onMouseEnter={() => setActiveSlug(country.slug)}
-              onFocus={() => setActiveSlug(country.slug)}
-              onClick={() => recordOpen(country, position)}
-            >
-              <svg
-                x={x}
-                y={y}
-                width={width}
-                height={height}
-                viewBox={`0 0 ${COUNTRY_MAP_WIDTH} ${COUNTRY_MAP_HEIGHT}`}
-                preserveAspectRatio="xMidYMid meet"
-                overflow="visible"
+          {positioned.map(
+            ({ country, position, geometry, x, y, width, height, centerX, centerY }) => (
+              <a
+                key={country.slug}
+                href={country.path}
+                aria-label={`${country.name}: ${statusLabel(locale, country.weatherStatus)}`}
+                className={`world-weather-country-link status-${country.weatherStatus}`}
+                onMouseEnter={() => setActiveSlug(country.slug)}
+                onFocus={() => setActiveSlug(country.slug)}
+                onClick={() => recordOpen(country, position)}
               >
-                <path
-                  d={geometry.path}
-                  className="world-weather-country-shape"
-                  fillRule="evenodd"
-                  clipRule="evenodd"
-                />
-              </svg>
-              <circle cx={centerX} cy={centerY} r={8} className="world-weather-country-hit" />
-            </a>
-          ))}
+                <svg
+                  x={x}
+                  y={y}
+                  width={width}
+                  height={height}
+                  viewBox={`0 0 ${COUNTRY_MAP_WIDTH} ${COUNTRY_MAP_HEIGHT}`}
+                  preserveAspectRatio="xMidYMid meet"
+                  overflow="visible"
+                >
+                  <path
+                    d={geometry.path}
+                    className="world-weather-country-shape"
+                    fillRule="evenodd"
+                    clipRule="evenodd"
+                  />
+                </svg>
+                <circle cx={centerX} cy={centerY} r={8} className="world-weather-country-hit" />
+              </a>
+            ),
+          )}
         </svg>
         <p className="world-weather-map-hint">{copy.hint}</p>
       </div>
