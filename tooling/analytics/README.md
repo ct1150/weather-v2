@@ -61,8 +61,37 @@ pnpm --filter @wnr/product-analytics exec wrangler d1 execute DB \
   --env production --remote --file ../../tooling/analytics/funnel.sql
 ```
 
-The SQL files remain deliberately small so the one-person operating model does not require a BI
-service or analytics dashboard.
+The SQL files remain deliberately small so the one-person operating model does not require an
+external BI service.
+
+## Private Growth Dashboard
+
+The product-analytics Worker exposes an optional private operator view at `/growth`. It is disabled
+by default. Configure GitHub Actions Secret `GROWTH_DASHBOARD_PASSWORD` with a strong password of at
+least 12 characters; the production deploy then stores it as a Worker Secret. With no secret, the
+route returns `404` and collection continues normally.
+
+When enabled, open `https://analytics.868656.xyz/growth`. The browser presents an HTTP Basic-auth
+prompt; the username may be any non-empty value and the password is the configured secret. Add
+`?format=json` for the same snapshot as JSON. Responses are `no-store`, HTML is `noindex`, and the
+secret never enters the public web bundle.
+
+The dashboard intentionally uses only aggregate anonymous event counts and shows both trailing 7-day
+and 28-day windows:
+
+- **Acquisition:** homepage views, country selection rate and top selected countries.
+- **Activation:** country-map views and city interaction rate.
+- **Decision:** city-detail-open rate. A detail open is recorded when a country-map city link is
+  activated, distinct from selecting a city inside the map.
+- **Retention intent:** shortlist actions relative to country-map views. This is a behavioral signal,
+  not a D1/D7 cohort-retention rate, because the analytics design stores no user/session/device ID.
+
+The first monetization-readiness gate uses deliberately simple working thresholds: at least 300
+homepage views in 28 days, country selection ≥20%, map city interaction ≥30%, city detail open ≥15%
+and shortlist intent ≥5%. These are **internal validation thresholds, not industry benchmarks**. The
+gate reaches `ready_for_monetization_test` when sample size is sufficient and at least four of five
+checks pass. Affiliate impressions, clicks and revenue are intentionally excluded from this gate so
+commercial integration cannot make the underlying product look healthier than it is.
 
 ## Country-map funnel
 
