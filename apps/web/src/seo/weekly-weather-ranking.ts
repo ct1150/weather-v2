@@ -1,10 +1,7 @@
 import type { BakedDataset } from "../build/types";
 import { projectCountry } from "../build/bake";
 import type { PublishedLocale } from "../app/seo";
-import type {
-  CountryWeatherCityViewModel,
-  CountryWeatherDayViewModel,
-} from "../app/view-models";
+import type { CountryWeatherCityViewModel, CountryWeatherDayViewModel } from "../app/view-models";
 import { isMostlyDryTravelDay } from "../components/rain-day-classification";
 import { toTraditionalText } from "../trips/traditional";
 import { windowIndicesForDates } from "../weather/window-selection";
