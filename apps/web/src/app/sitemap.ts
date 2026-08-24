@@ -37,6 +37,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
           { lastModified, changeFrequency: "daily" },
           ["en", "zh-cn", "zh-hant"],
         ),
+        ...localizedSitemapEntries(
+          `/${country.slug}/best-weekend`,
+          { lastModified, changeFrequency: "daily" },
+          ["en", "zh-cn", "zh-hant"],
+        ),
       );
     }
     for (const city of cities) {
