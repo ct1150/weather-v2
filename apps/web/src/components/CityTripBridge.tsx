@@ -1,5 +1,6 @@
 import type { ReactElement } from "react";
 import { CityTripBridgeAction } from "./CityTripBridgeAction";
+import { DestinationDecisionCommercialSurface } from "./DestinationDecisionCommercialSurface";
 
 export type CityTripBridgeLocale = "en" | "zh-cn" | "zh-hant";
 
@@ -46,21 +47,28 @@ export function CityTripBridge({
 }: CityTripBridgeProps): ReactElement {
   const copy = COPY[locale];
   return (
-    <section className="info-panel mt-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-      <div>
-        <p className="eyebrow">{copy.eyebrow}</p>
-        <p className="mt-2 max-w-2xl text-sm leading-6 text-muted">{copy.generic}</p>
-      </div>
-      <CityTripBridgeAction
-        cityId={cityId}
-        cityName={cityName}
-        countryName={countryName}
-        defaultDate={defaultDate}
-        workspacePath={workspacePath}
-        buttonLabel={copy.add}
-        blankTitle={copy.title}
-        rangePrefix={copy.rangePrefix}
+    <>
+      <section className="info-panel mt-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="eyebrow">{copy.eyebrow}</p>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-muted">{copy.generic}</p>
+        </div>
+        <CityTripBridgeAction
+          cityId={cityId}
+          cityName={cityName}
+          countryName={countryName}
+          defaultDate={defaultDate}
+          workspacePath={workspacePath}
+          buttonLabel={copy.add}
+          blankTitle={copy.title}
+          rangePrefix={copy.rangePrefix}
+        />
+      </section>
+      <DestinationDecisionCommercialSurface
+        locale={locale}
+        routeTemplate="/[country]/[city]"
+        initialDestinationId={cityId}
       />
-    </section>
+    </>
   );
 }
