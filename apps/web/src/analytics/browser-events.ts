@@ -1,4 +1,8 @@
-import { validateAnalyticsEvent, type AnalyticsEvent, type AnalyticsLocale } from "@wnr/analytics";
+import {
+  validateAnalyticsEvent,
+  type AnalyticsEvent,
+  type AnalyticsLocale,
+} from "@wnr/analytics";
 
 export const WNR_ANALYTICS_BROWSER_EVENT = "wnr:analytics";
 
