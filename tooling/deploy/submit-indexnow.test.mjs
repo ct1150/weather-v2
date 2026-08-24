@@ -5,9 +5,12 @@ import { join } from "node:path";
 import test from "node:test";
 
 import {
+  DEFAULT_SITE_HOST,
   INDEXNOW_KEY,
+  PRIORITY_INDEXNOW_PATHS,
   buildIndexNowPayload,
   extractSitemapUrls,
+  priorityIndexNowUrls,
   submitIndexNow,
 } from "./submit-indexnow.mjs";
 
@@ -18,19 +21,40 @@ test("extractSitemapUrls reads and decodes canonical sitemap locations", () => {
   assert.deepEqual(urls, ["https://868656.xyz/", "https://868656.xyz/jp?a=1&b=2"]);
 });
 
-test("buildIndexNowPayload scopes notifications to the production host", () => {
+test("priorityIndexNowUrls focuses proactive submission on 24 logical intent pages", () => {
+  assert.equal(PRIORITY_INDEXNOW_PATHS.length, 24);
+  const urls = priorityIndexNowUrls([
+    "https://868656.xyz/jp",
+    "https://868656.xyz/zh-cn/jp",
+    "https://868656.xyz/jp/tokyo",
+    "https://868656.xyz/jp/osaka",
+  ]);
+  assert.deepEqual(urls, [
+    "https://868656.xyz/jp",
+    "https://868656.xyz/zh-cn/jp",
+    "https://868656.xyz/jp/tokyo",
+  ]);
+});
+
+test("buildIndexNowPayload scopes notifications to the configured production host", () => {
   const payload = buildIndexNowPayload(["https://868656.xyz/", "https://868656.xyz/zh-cn"]);
-  assert.equal(payload.host, "868656.xyz");
+  assert.equal(payload.host, DEFAULT_SITE_HOST);
   assert.equal(payload.key, INDEXNOW_KEY);
   assert.equal(payload.keyLocation, `https://868656.xyz/${INDEXNOW_KEY}.txt`);
   assert.equal(payload.urlList.length, 2);
   assert.throws(() => buildIndexNowPayload(["https://example.com/"]), /outside 868656\.xyz/);
+
+  const branded = buildIndexNowPayload(["https://wherenotrain.example/jp"], "wherenotrain.example");
+  assert.equal(branded.host, "wherenotrain.example");
 });
 
-test("submitIndexNow verifies the public key before submitting URLs", async () => {
+test("submitIndexNow verifies the public key and submits priority URLs", async () => {
   const directory = await mkdtemp(join(tmpdir(), "indexnow-"));
   const sitemapPath = join(directory, "sitemap.xml");
-  await writeFile(sitemapPath, "<urlset><url><loc>https://868656.xyz/</loc></url></urlset>");
+  await writeFile(
+    sitemapPath,
+    "<urlset><url><loc>https://868656.xyz/</loc></url><url><loc>https://868656.xyz/jp</loc></url><url><loc>https://868656.xyz/jp/osaka</loc></url></urlset>",
+  );
   const requests = [];
   const fetchImpl = async (url, options) => {
     requests.push({ url, options });
@@ -41,7 +65,9 @@ test("submitIndexNow verifies the public key before submitting URLs", async () =
   try {
     assert.deepEqual(await submitIndexNow({ sitemapPath, fetchImpl }), {
       status: 202,
-      submitted: 1,
+      submitted: 2,
+      sitemapUrls: 3,
+      priorityMode: true,
     });
     assert.equal(requests[0].url, `https://868656.xyz/${INDEXNOW_KEY}.txt`);
     assert.equal(requests[1].url, "https://api.indexnow.org/indexnow");

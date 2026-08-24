@@ -10,6 +10,7 @@ export type ConversionSurface =
 
 export type ConversionReasonCode =
   | "DESTINATION_STAY_DECIDED"
+  | "DESTINATION_ACTIVITY_OPTIONS"
   | "DESTINATION_TRANSPORT_DECIDED"
   | "STRUCTURED_ACTIVITY_PLANNED"
   | "CAR_DEPENDENCY_CONFIRMED"
@@ -60,8 +61,8 @@ function opportunity(
 
 const CATEGORY_ORDER: ReadonlyArray<CommercialCategory> = [
   "hotel",
-  "flights",
   "activities",
+  "flights",
   "car_rental",
   "sim",
   "insurance",
@@ -108,12 +109,12 @@ export function resolveContextualCommercialOpportunities(
           100,
         ),
         opportunity(
-          "flights",
+          "activities",
           "discovery_decision",
-          "discovery.flights",
+          "discovery.activities",
           destinationId,
-          "DESTINATION_TRANSPORT_DECIDED",
-          80,
+          "DESTINATION_ACTIVITY_OPTIONS",
+          90,
         ),
       );
       break;

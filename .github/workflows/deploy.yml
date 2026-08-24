@@ -75,11 +75,13 @@ jobs:
 
       - name: Build web static export
         env:
-          APP_BASE_URL: https://868656.xyz
+          APP_BASE_URL: ${{ vars.APP_BASE_URL || 'https://868656.xyz' }}
           NEXT_PUBLIC_TRIP_API_URL: ${{ env.TRIP_PRODUCTION_URL }}
           NEXT_PUBLIC_CLOUDFLARE_ANALYTICS_ENABLED: ${{ secrets.NEXT_PUBLIC_CLOUDFLARE_ANALYTICS_ENABLED }}
           NEXT_PUBLIC_CLOUDFLARE_ANALYTICS_TOKEN: ${{ secrets.NEXT_PUBLIC_CLOUDFLARE_ANALYTICS_TOKEN }}
           NEXT_PUBLIC_PRODUCT_ANALYTICS_URL: ${{ env.PRODUCT_ANALYTICS_URL }}
+          NEXT_PUBLIC_AFFILIATE_SLOTS: ${{ vars.NEXT_PUBLIC_AFFILIATE_SLOTS }}
+          NEXT_PUBLIC_AFFILIATE_OFFERS_JSON: ${{ vars.NEXT_PUBLIC_AFFILIATE_OFFERS_JSON }}
         run: pnpm --filter @wnr/web build
 
       - name: Build Workers
@@ -200,6 +202,8 @@ jobs:
 
       - name: Notify IndexNow
         continue-on-error: true
+        env:
+          INDEXNOW_SITE_HOST: ${{ vars.INDEXNOW_SITE_HOST }}
         run: pnpm indexnow:submit
 
       - name: Production weather smoke

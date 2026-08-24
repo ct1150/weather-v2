@@ -70,3 +70,34 @@ service or analytics dashboard.
 homepage map entry, country selection, country-map views and city interactions. Legacy discovery
 queries remain available for compatibility analysis, but no longer define the primary product
 funnel.
+
+## Affiliate conversion and revenue attribution
+
+Browser analytics intentionally stops at aggregate affiliate impressions/clicks. It does **not**
+create a click ID or any user-level identifier. Migration
+`workers/trip-api/migrations/0007_affiliate_revenue.sql` adds `affiliate_revenue_daily_v1`, a
+provider-report table keyed only by day, provider, category, destination and currency.
+
+Import only verified aggregate data exported by an approved affiliate provider. Never import order
+IDs, customer details, booking references, email addresses or raw click identifiers. A typical
+upsert is:
+
+```sql
+INSERT INTO affiliate_revenue_daily_v1 (
+  event_date, provider_id, category, destination_id, currency,
+  conversions, revenue_minor, source, imported_at
+) VALUES (
+  '2026-08-24', 'approved-provider', 'hotel', 'tokyo', 'USD',
+  2, 1840, 'provider_report', datetime('now')
+)
+ON CONFLICT(event_date, provider_id, category, destination_id, currency)
+DO UPDATE SET
+  conversions = excluded.conversions,
+  revenue_minor = excluded.revenue_minor,
+  source = excluded.source,
+  imported_at = excluded.imported_at;
+```
+
+`commercial.sql` joins these daily provider aggregates to impression/click aggregates by provider,
+category, destination and date, producing CTR, conversions and revenue without tracking an
+individual visitor across the outbound journey.

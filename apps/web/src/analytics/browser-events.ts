@@ -40,7 +40,8 @@ function transmitProductEvent(event: AnalyticsEvent, endpoint: string): void {
 
 export function emitProductAnalytics(input: {
   readonly locale: BrowserAnalyticsLocale;
-  readonly routeTemplate: "/" | "/[country]" | "/discover" | "/trips/workspace";
+  readonly routeTemplate:
+    "/" | "/[country]" | "/[country]/[city]" | "/discover" | "/trips/workspace";
   readonly fields: object;
   readonly now?: Date;
   readonly endpoint?: string;

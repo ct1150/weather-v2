@@ -6,6 +6,7 @@ import {
   InstantCountryWeatherExplorer,
   type CountryWeatherExplorerProps as InstantCountryWeatherExplorerProps,
 } from "./InstantCountryWeatherExplorer";
+import { DestinationDecisionCommercialSurface } from "./DestinationDecisionCommercialSurface";
 
 export interface CountryWeatherDataset {
   readonly path: string;
@@ -137,6 +138,10 @@ export function CountryWeatherExplorer(props: CountryWeatherExplorerProps): Reac
         cities={activeDataset.cities}
         updatedLabel={activeDataset.updatedLabel}
         locale={props.locale ?? "en"}
+      />
+      <DestinationDecisionCommercialSurface
+        locale={props.locale ?? "en"}
+        routeTemplate="/[country]"
       />
     </div>
   );
