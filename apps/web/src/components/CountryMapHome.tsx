@@ -7,7 +7,7 @@ import type { WorldWeatherStatus } from "../world/world-overview";
 import { WorldWeatherMap } from "./WorldWeatherMap";
 
 export interface CountryMapHomeItem {
-  readonly countryId: string;
+  readonly countryId?: string;
   readonly slug: string;
   readonly name: string;
   readonly path: string;
