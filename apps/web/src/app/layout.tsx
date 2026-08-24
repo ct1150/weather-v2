@@ -9,6 +9,7 @@ import "./country-map.css";
 import "./instant-country-map.css";
 import "./country-map-refinements.css";
 import "./country-select-refinements.css";
+import "./world-map.css";
 
 export const metadata: Metadata = {
   title: {
