@@ -8,9 +8,16 @@ import type {
   CountryWeatherDayViewModel,
 } from "../app/view-models";
 import { emitProductAnalytics, type BrowserAnalyticsLocale } from "../analytics/browser-events";
+import {
+  discoveryShortlistFromSearch,
+  MAX_DISCOVERY_SHORTLIST,
+  normalizeDiscoveryShortlist,
+  withDiscoveryShortlist,
+} from "../discovery/discovery-retention";
 import { toTraditionalText } from "../trips/traditional";
 import { windowIndicesForDates } from "../weather/window-selection";
 import { isMostlyDryTravelDay } from "./rain-day-classification";
+import { CountryCompareSheet, type CountryCompareItem } from "./CountryCompareSheet";
 import {
   CountryOutlineMap,
   type CountryOutlineMarker,
@@ -73,6 +80,9 @@ const COPY = {
     share: "Copy map link",
     copied: "Link copied",
     copyFailed: "Copy unavailable",
+    addToCompare: (name: string) => `Add ${name} to compare`,
+    removeFromCompare: (name: string) => `Remove ${name} from compare`,
+    compareFull: "You can compare up to 3 destinations.",
     mapHeading: "All supported travel destinations at a glance",
     mapHint: (count: number) =>
       `${count} destinations appear as weather-colored dots. Hover on desktop; on mobile, tap a dot to keep a quick summary beside it and tap another dot to compare. Scroll down only when you want the daily forecast.`,
@@ -126,6 +136,9 @@ const COPY = {
     share: "复制地图链接",
     copied: "链接已复制",
     copyFailed: "暂时无法复制",
+    addToCompare: (name: string) => `加入对比：${name}`,
+    removeFromCompare: (name: string) => `移出对比：${name}`,
+    compareFull: "最多同时对比 3 个目的地。",
     mapHeading: "全部已收录旅行地天气一目了然",
     mapHint: (count: number) =>
       `地图显示 ${count} 个按天气着色的地点圆点。手机轻触圆点会在原地显示摘要，可继续点击其他圆点比较；需要逐日天气时再向下查看。`,
@@ -178,6 +191,9 @@ const COPY = {
     share: "複製地圖連結",
     copied: "連結已複製",
     copyFailed: "暫時無法複製",
+    addToCompare: (name: string) => `加入比較：${name}`,
+    removeFromCompare: (name: string) => `移出比較：${name}`,
+    compareFull: "最多同時比較 3 個目的地。",
     mapHeading: "全部已收錄旅行地天氣一目了然",
     mapHint: (count: number) =>
       `地圖顯示 ${count} 個按天氣著色的地點圓點。手機輕觸圓點會在原地顯示摘要，可繼續點擊其他圓點比較；需要逐日天氣時再向下查看。`,
@@ -479,6 +495,9 @@ export function InstantCountryWeatherExplorer({
   const [filters, setFilters] = useState<WeatherFilters>(EMPTY_FILTERS);
   const [selectedCityId, setSelectedCityId] = useState("");
   const [shareStatus, setShareStatus] = useState("");
+  const [compareCityIds, setCompareCityIds] = useState<ReadonlyArray<string>>([]);
+  const [compareOpen, setCompareOpen] = useState(false);
+  const [compareStatus, setCompareStatus] = useState("");
 
   const dates = useMemo(() => (cities[0]?.days ?? []).map((day) => day.localDate), [cities]);
   const selectedIndices = useMemo(() => {
@@ -500,6 +519,9 @@ export function InstantCountryWeatherExplorer({
     null;
   const selectedReferenceDays =
     cities[0] === undefined ? [] : daysForIndices(cities[0], selectedIndices);
+  const compareSummaries = compareCityIds
+    .map((id) => summaries.find((summary) => summary.city.cityId === id))
+    .filter((summary): summary is CitySummary => summary !== undefined);
   const exactDates = rangeLabel(selectedReferenceDays, locale);
   const filterCount = activeFilterCount(filters);
 
@@ -510,16 +532,7 @@ export function InstantCountryWeatherExplorer({
     nextCityId: string,
   ): void {
     const url = new URL(window.location.href);
-    for (const key of [
-      "window",
-      "origin",
-      "mode",
-      "maxTravel",
-      "intent",
-      "party",
-      "theme",
-      "cities",
-    ]) {
+    for (const key of ["window", "origin", "mode", "maxTravel", "intent", "party", "theme"]) {
       url.searchParams.delete(key);
     }
     if (nextPreset === "custom" && nextCustomRange !== null) {
@@ -590,6 +603,11 @@ export function InstantCountryWeatherExplorer({
       });
       const city = params.get("city") ?? "";
       setSelectedCityId(cities.some((item) => item.cityId === city) ? city : "");
+      setCompareCityIds(
+        discoveryShortlistFromSearch(params).filter((id) =>
+          cities.some((item) => item.cityId === id),
+        ),
+      );
     };
     restoreUrlState();
     window.addEventListener("popstate", restoreUrlState);
@@ -616,6 +634,40 @@ export function InstantCountryWeatherExplorer({
         country_code: country.countryId,
       },
     });
+  }
+
+  function persistCompare(values: ReadonlyArray<string>): void {
+    const normalized = normalizeDiscoveryShortlist(values).filter((id) =>
+      cities.some((item) => item.cityId === id),
+    );
+    setCompareCityIds(normalized);
+    const next = withDiscoveryShortlist(new URLSearchParams(window.location.search), normalized);
+    const query = next.toString();
+    window.history.replaceState(
+      {},
+      "",
+      `${window.location.pathname}${query.length > 0 ? `?${query}` : ""}`,
+    );
+  }
+
+  function toggleCompare(summary: CitySummary): void {
+    const id = summary.city.cityId;
+    if (compareCityIds.includes(id)) {
+      persistCompare(compareCityIds.filter((value) => value !== id));
+      setCompareStatus("");
+      return;
+    }
+    if (compareCityIds.length >= MAX_DISCOVERY_SHORTLIST) {
+      setCompareStatus(copy.compareFull);
+      return;
+    }
+    persistCompare([...compareCityIds, id]);
+    emitProductAnalytics({
+      locale,
+      routeTemplate: "/[country]",
+      fields: { event: "destination_shortlisted", destination_id: id },
+    });
+    setCompareStatus("");
   }
 
   function selectMarker(markerId: string): void {
@@ -965,12 +1017,59 @@ export function InstantCountryWeatherExplorer({
                 </li>
               ))}
             </ol>
+            <div className="mt-4 flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => toggleCompare(selected)}
+                className="country-detail-link focus-ring"
+                aria-pressed={compareCityIds.includes(selected.city.cityId)}
+              >
+                {compareCityIds.includes(selected.city.cityId)
+                  ? copy.removeFromCompare(selected.city.cityName)
+                  : copy.addToCompare(selected.city.cityName)}
+              </button>
+              {compareStatus ? (
+                <span className="text-xs font-semibold text-accent">{compareStatus}</span>
+              ) : null}
+            </div>
             <a href={cityDetailHref(selected.city.path)} className="country-detail-link focus-ring">
               {copy.detail} <span aria-hidden="true">→</span>
             </a>
           </aside>
         ) : null}
       </div>
+
+      <CountryCompareSheet
+        locale={locale}
+        items={compareSummaries.map((summary): CountryCompareItem => ({
+          id: summary.city.cityId,
+          name: summary.city.cityName,
+          symbol: summary.symbol,
+          rainHeadline: lowerRainHeadline(summary, locale),
+          totalRainMm: summary.totalRainMm,
+          maxRain: summary.maxRain,
+          temperatureMin: summary.temperatureMin,
+          temperatureMax: summary.temperatureMax,
+          maxWind: summary.maxWind,
+          detailHref: cityDetailHref(summary.city.path),
+          days: summary.days.map((day) => ({
+            localDate: day.localDate,
+            conditionLabel: conditionLabel(day.weather.conditionLabel, locale),
+            rainProbability: day.weather.rainProbability,
+            temperatureMin: day.weather.temperatureMin,
+            temperatureMax: day.weather.temperatureMax,
+          })),
+        }))}
+        maxItems={MAX_DISCOVERY_SHORTLIST}
+        open={compareOpen}
+        onOpen={() => setCompareOpen(true)}
+        onClose={() => setCompareOpen(false)}
+        onRemove={(id) => persistCompare(compareCityIds.filter((value) => value !== id))}
+        onClear={() => {
+          persistCompare([]);
+          setCompareOpen(false);
+        }}
+      />
 
       <section className="country-city-list-section" aria-labelledby="country-destination-list">
         <div className="country-city-list-heading">
