@@ -23,6 +23,23 @@ describe("Phase 9 commercial surface separation contract", () => {
     expect(commerce).toBeGreaterThan(choice);
   });
 
+  it("connects active country and city decision paths to contextual commerce", () => {
+    const country = source("components/CountryWeatherExplorer.tsx");
+    const city = source("components/CityTripBridge.tsx");
+    const bridge = source("components/DestinationDecisionCommercialSurface.tsx");
+
+    expect(country).toContain("DestinationDecisionCommercialSurface");
+    expect(country).toContain('routeTemplate="/[country]"');
+    expect(city).toContain("DestinationDecisionCommercialSurface");
+    expect(city).toContain('routeTemplate="/[country]/[city]"');
+    expect(city).toContain("initialDestinationId={cityId}");
+
+    expect(bridge).toContain("WNR_ANALYTICS_BROWSER_EVENT");
+    expect(bridge).toContain('detail?.event !== "city_viewed"');
+    expect(bridge).toContain('stage: "discovery_decided"');
+    expect(bridge).toContain("hasDestinationDecision: true");
+  });
+
   it("places weather-replan commerce only behind an actual replacement proposal", () => {
     const replan = source("components/TripReplanPanel.tsx");
     expect(replan).toContain('change.kind === "replace_activity"');
