@@ -7,7 +7,7 @@ import { summarizeCountryWeather } from "../../world/world-overview";
 import { buildAlternates, localeUrl, routeRobots } from "../seo";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const title = "全球旅行天气地图 | 哪里不下雨";
+  const title = "全球旅行天气地图 | 哪里不下雨 | Where Not Rain";
   const description = "在一张世界地图上查看已支持国家的整体天气表现，点击国家后直接比较城市天气。";
   return {
     title: { absolute: title },
