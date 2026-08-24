@@ -44,7 +44,18 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Format check
-        run: pnpm format:check
+        run: |
+          if ! pnpm format:check; then
+            pnpm exec prettier --write \
+              apps/web/src/analytics/browser-events.ts \
+              apps/web/src/components/ContextualAffiliateSurface.tsx \
+              apps/web/src/components/DestinationDecisionCommercialSurface.tsx
+            git diff -- \
+              apps/web/src/analytics/browser-events.ts \
+              apps/web/src/components/ContextualAffiliateSurface.tsx \
+              apps/web/src/components/DestinationDecisionCommercialSurface.tsx
+            exit 1
+          fi
 
       - name: Lint
         run: pnpm lint
