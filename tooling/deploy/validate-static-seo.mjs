@@ -22,7 +22,10 @@ try {
   }
 
   const robots = readRequired("robots.txt");
-  if (!robots.includes("User-agent: *") || !robots.includes("Sitemap: https://868656.xyz/sitemap.xml")) {
+  if (
+    !robots.includes("User-agent: *") ||
+    !robots.includes("Sitemap: https://868656.xyz/sitemap.xml")
+  ) {
     throw new Error("robots.txt does not advertise the production sitemap");
   }
 
