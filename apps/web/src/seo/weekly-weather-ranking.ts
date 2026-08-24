@@ -3,6 +3,7 @@ import { projectCountry } from "../build/bake";
 import type { PublishedLocale } from "../app/seo";
 import type { CountryWeatherCityViewModel } from "../app/view-models";
 import { isMostlyDryTravelDay } from "../components/rain-day-classification";
+import { toTraditionalText } from "../trips/traditional";
 
 export interface WeeklyWeatherRankItem {
   readonly cityId: string;
@@ -29,6 +30,10 @@ function localizedPath(path: string, locale: PublishedLocale): string {
   return `/${locale}${path}`;
 }
 
+function localizedName(value: string, locale: PublishedLocale): string {
+  return locale === "zh-hant" ? toTraditionalText(value) : value;
+}
+
 function rankItem(
   city: CountryWeatherCityViewModel,
   locale: PublishedLocale,
@@ -41,8 +46,8 @@ function rankItem(
 
   return {
     cityId: city.cityId,
-    cityName: city.cityName,
-    countryName: city.countryName,
+    cityName: localizedName(city.cityName, locale),
+    countryName: localizedName(city.countryName, locale),
     path: localizedPath(city.path, locale),
     rainFreeDays: rainFreeDates.length,
     totalDays: city.days.length,
@@ -65,8 +70,9 @@ export function buildWeeklyWeatherRanking(
   dataset: BakedDataset,
   locale: PublishedLocale,
 ): ReadonlyArray<WeeklyWeatherRankItem> {
+  const projectionLocale = locale === "zh-hant" ? "zh-cn" : locale;
   const items = dataset.countries.flatMap((country) => {
-    const projected = projectCountry(dataset, country.slug, locale);
+    const projected = projectCountry(dataset, country.slug, projectionLocale);
     return (projected.weatherCities ?? []).map((city) => rankItem(city, locale));
   });
 
