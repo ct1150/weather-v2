@@ -3,6 +3,8 @@ name: Patch country compare integration
 on:
   push:
     branches: [feat/country-map-compare]
+  pull_request:
+    branches: [main]
 
 permissions:
   contents: write
