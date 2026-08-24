@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import type { ReactElement } from "react";
 import { TraditionalTripWorkspace } from "../../../../components/TraditionalTripWorkspace";
+import { TripDecisionCommercialSurface } from "../../../../components/TripDecisionCommercialSurface";
 import { buildAlternates } from "../../../seo";
 
 export const metadata: Metadata = {
@@ -26,6 +27,7 @@ export default function TraditionalTripWorkspacePage(): ReactElement {
           進入路線執行模式 →
         </a>
       </div>
+      <TripDecisionCommercialSurface locale="zh-hant" />
       <div className="mt-6">
         <TraditionalTripWorkspace />
       </div>

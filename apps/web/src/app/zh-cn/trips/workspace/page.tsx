@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import type { ReactElement } from "react";
+import { TripDecisionCommercialSurface } from "../../../../components/TripDecisionCommercialSurface";
 import { TripWorkspace } from "../../../../components/TripWorkspace";
 import { localeUrl } from "../../../seo";
 
@@ -27,6 +28,7 @@ export default function TripWorkspacePage(): ReactElement {
           进入路线执行模式 →
         </a>
       </div>
+      <TripDecisionCommercialSurface locale="zh-cn" />
       <div className="mt-6">
         <TripWorkspace />
       </div>
