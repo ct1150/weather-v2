@@ -134,6 +134,27 @@
   fill: #94a3b8;
 }
 
+.world-weather-focus-card.status-excellent,
+.world-country-chip.status-excellent {
+  --world-status: #22c55e;
+}
+.world-weather-focus-card.status-good,
+.world-country-chip.status-good {
+  --world-status: #84cc16;
+}
+.world-weather-focus-card.status-mixed,
+.world-country-chip.status-mixed {
+  --world-status: #eab308;
+}
+.world-weather-focus-card.status-poor,
+.world-country-chip.status-poor {
+  --world-status: #f97316;
+}
+.world-weather-focus-card.status-unknown,
+.world-country-chip.status-unknown {
+  --world-status: #94a3b8;
+}
+
 .world-weather-map-hint {
   position: absolute;
   right: 0.85rem;
@@ -155,7 +176,7 @@
   gap: 0.45rem 1rem;
   align-items: center;
   padding: 1rem 1.1rem;
-  border: 1px solid currentColor;
+  border: 1px solid var(--world-status, rgb(var(--wnr-border)));
   border-radius: 1.25rem;
   color: rgb(var(--wnr-foreground));
   background: #fff;
@@ -185,14 +206,14 @@
 
 .world-weather-focus-card > span:last-child {
   grid-column: 1 / -1;
-  color: currentColor;
+  color: var(--world-status, rgb(var(--wnr-primary)));
   font-size: 0.8rem;
   font-weight: 800;
 }
 
 .world-weather-focus-status {
   width: fit-content;
-  color: currentColor;
+  color: var(--world-status, rgb(var(--wnr-muted)));
   font-size: 0.68rem;
   font-weight: 850;
   letter-spacing: 0.08em;
@@ -201,6 +222,7 @@
 
 .world-weather-focus-score {
   min-width: 3.5rem;
+  color: var(--world-status, rgb(var(--wnr-foreground)));
   font-size: 2rem;
   font-weight: 900;
   letter-spacing: -0.05em;
@@ -245,14 +267,11 @@
   place-items: center;
   border-radius: 999px;
   color: #fff;
-  background: currentColor;
+  background: var(--world-status, #94a3b8);
   font-size: 0.78rem;
   font-weight: 900;
 }
 
-.world-country-chip-score::first-line {
-  color: #fff;
-}
 .world-country-chip > span:last-child {
   display: grid;
   gap: 0.1rem;
