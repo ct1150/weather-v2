@@ -4,12 +4,12 @@ import { getBakedDataset } from "../../build/bake";
 import { CountryMapHome, type CountryMapHomeItem } from "../../components/CountryMapHome";
 import { JsonLd } from "../../components/JsonLd";
 import { toTraditionalText } from "../../trips/traditional";
+import { summarizeCountryWeather } from "../../world/world-overview";
 import { buildAlternates, localeUrl, routeRobots } from "../seo";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const title = "哪裡不下雨 | Where Not Rain";
-  const description =
-    "選擇一個國家，在地圖上直接查看熱門旅遊地未來 7 天的天氣圖示、少雨天數和氣溫。";
+  const title = "全球旅行天氣地圖 | 哪裡不下雨";
+  const description = "在一張世界地圖上查看已支援國家的整體天氣表現，點擊國家後直接比較城市天氣。";
   return {
     title: { absolute: title },
     description,
@@ -30,21 +30,30 @@ export default async function TraditionalChineseHome(): Promise<ReactElement> {
   const dataset = await getBakedDataset();
   const countries: CountryMapHomeItem[] = dataset.countries.map((country) => {
     const cities = dataset.citiesByCountry.get(country.id) ?? [];
+    const weather = summarizeCountryWeather(cities);
+    const topIds = new Set(weather.topCityIds);
+    const topCities = [
+      ...cities.filter((item) => topIds.has(item.city.id)),
+      ...cities.filter((item) => !topIds.has(item.city.id)),
+    ].slice(0, 4);
     return {
+      countryId: country.id,
       slug: country.slug,
       name: toTraditionalText(country.name["zh-cn"]),
       path: `/zh-hant/${country.slug}`,
       summary: toTraditionalText(country.summary?.["zh-cn"] ?? country.summary?.en ?? ""),
       cityCount: cities.length,
-      cityNames: cities.slice(0, 4).map((item) => toTraditionalText(item.city.name["zh-cn"])),
+      cityNames: topCities.map((item) => toTraditionalText(item.city.name["zh-cn"])),
+      weatherScore: weather.score,
+      weatherStatus: weather.status,
     };
   });
   const pageUrl = localeUrl("zh-hant", "/");
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "CollectionPage",
-    name: "哪裡不下雨",
-    description: "選擇一個國家，一張地圖查看熱門旅遊地未來 7 天的天氣。",
+    name: "全球旅行天氣地圖",
+    description: "先看世界地圖上的國家天氣，再進入國家地圖比較熱門城市。",
     url: pageUrl,
     dateModified: dataset.dataUpdatedAt,
     inLanguage: "zh-Hant",
