@@ -16,6 +16,7 @@ import type {
 import { getBakedDataset, buildConfig, projectCity } from "../../../build/bake";
 import { JsonLd } from "../../../components/JsonLd";
 import { CityTripBridge } from "../../../components/CityTripBridge";
+import { CityDirectAnswer } from "../../../components/CityDirectAnswer";
 import { buildAlternates, routeRobots, localeUrl, citySearchCopy } from "../../seo";
 
 export interface CityPageProps {
@@ -172,11 +173,17 @@ export function CityPage({ viewModel, jsonLd }: CityPageProps) {
             {city.timezone} · {city.latitude.toFixed(2)}, {city.longitude.toFixed(2)}
           </p>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-muted sm:text-base">
-            Check rain risk, temperature and the 7-day Travel Score, then compare other destinations
-            across {city.countryName} before you book.
+            See which of the next seven days are mostly rain-free, how much rain is expected and
+            the temperature range, then compare other destinations across {city.countryName}.
           </p>
         </div>
       </section>
+
+      <CityDirectAnswer
+        cityName={city.cityName}
+        forecastDays={forecastDays ?? []}
+        locale="en"
+      />
 
       <CityTripBridge
         locale="en"
@@ -382,7 +389,7 @@ export async function generateMetadata({
     title: searchCopy?.title ?? "Destination travel weather",
     description:
       searchCopy?.description ??
-      "See the 7-day forecast, rain risk, temperature and Travel Score for this destination.",
+      "See which of the next seven days are mostly rain-free, plus expected rain and temperature for this destination.",
     alternates: buildAlternates(`/${params.countrySlug}/${params.citySlug}`),
     robots: routeRobots("city", true),
   };
