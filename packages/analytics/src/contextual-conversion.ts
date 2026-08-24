@@ -10,6 +10,7 @@ export type ConversionSurface =
 
 export type ConversionReasonCode =
   | "DESTINATION_STAY_DECIDED"
+  | "DESTINATION_ACTIVITY_OPTIONS"
   | "DESTINATION_TRANSPORT_DECIDED"
   | "STRUCTURED_ACTIVITY_PLANNED"
   | "CAR_DEPENDENCY_CONFIRMED"
@@ -112,7 +113,7 @@ export function resolveContextualCommercialOpportunities(
           "discovery_decision",
           "discovery.activities",
           destinationId,
-          "STRUCTURED_ACTIVITY_PLANNED",
+          "DESTINATION_ACTIVITY_OPTIONS",
           90,
         ),
       );
