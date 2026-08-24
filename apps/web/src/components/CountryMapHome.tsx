@@ -27,13 +27,17 @@ const COPY = {
     choose: "Choose a country",
     placeholder: "Select a country",
     mapAction: "Open weather map",
+    weeklyTitle: "Not sure which country yet?",
+    weeklyDescription:
+      "Compare supported cities across countries by how many of the next seven days are mostly rain-free.",
+    weeklyAction: "See this week's best weather",
     howItWorks: "One glance, three steps",
     steps: [
       ["01", "Choose a country", "Start with the country you are already considering."],
       [
         "02",
         "Read the map",
-        "Weather icons, lower-rain days and temperatures appear on every destination.",
+        "Weather icons, mostly rain-free days and temperatures appear on every destination.",
       ],
       ["03", "Tap a place", "Open the daily forecast only when a destination catches your eye."],
     ],
@@ -45,14 +49,17 @@ const COPY = {
     eyebrow: "哪里不下雨",
     title: "选择一个国家，一张图看懂哪里天气更好。",
     description:
-      "直接查看热门旅游地未来 7 天的天气图标、少雨天数和气温，不需要填写出发地、交通方式或复杂评分。",
+      "直接查看热门旅游地未来 7 天的天气图标、基本不下雨的天数和气温，不需要填写出发地、交通方式或复杂评分。",
     choose: "选择国家",
     placeholder: "请选择一个国家",
     mapAction: "打开天气地图",
+    weeklyTitle: "还没决定去哪个国家？",
+    weeklyDescription: "跨国家比较热门城市未来 7 天基本不下雨的天数，直接找这周天气更好的旅行地。",
+    weeklyAction: "查看这周天气排行",
     howItWorks: "一眼看懂，只需三步",
     steps: [
       ["01", "选择国家", "从你已经感兴趣的国家开始。"],
-      ["02", "查看地图", "每个热门目的地直接显示天气图标、少雨天数和气温。"],
+      ["02", "查看地图", "每个热门目的地直接显示天气图标、基本不下雨的天数和气温。"],
       ["03", "点击地点", "只有对某个地方感兴趣时，再查看逐日天气。"],
     ],
     cityCount: (count: number) => `${count} 个热门旅游地`,
@@ -62,14 +69,17 @@ const COPY = {
     eyebrow: "哪裡不下雨",
     title: "選擇一個國家，一張圖看懂哪裡天氣更好。",
     description:
-      "直接查看熱門旅遊地未來 7 天的天氣圖示、少雨天數和氣溫，不需要填寫出發地、交通方式或複雜評分。",
+      "直接查看熱門旅遊地未來 7 天的天氣圖示、基本不下雨的天數和氣溫，不需要填寫出發地、交通方式或複雜評分。",
     choose: "選擇國家",
     placeholder: "請選擇一個國家",
     mapAction: "打開天氣地圖",
+    weeklyTitle: "還沒決定去哪個國家？",
+    weeklyDescription: "跨國家比較熱門城市未來 7 天基本不下雨的天數，直接找這週天氣更好的旅行地。",
+    weeklyAction: "查看這週天氣排行",
     howItWorks: "一眼看懂，只需三步",
     steps: [
       ["01", "選擇國家", "從你已經感興趣的國家開始。"],
-      ["02", "查看地圖", "每個熱門目的地直接顯示天氣圖示、少雨天數和氣溫。"],
+      ["02", "查看地圖", "每個熱門目的地直接顯示天氣圖示、基本不下雨的天數和氣溫。"],
       ["03", "點擊地點", "只有對某個地方感興趣時，再查看逐日天氣。"],
     ],
     cityCount: (count: number) => `${count} 個熱門旅遊地`,
@@ -80,6 +90,8 @@ const COPY = {
 export function CountryMapHome({ countries, locale = "en" }: CountryMapHomeProps): ReactElement {
   const copy = COPY[locale];
   const countryLinkRefs = useRef(new Map<string, HTMLAnchorElement>());
+  const weeklyPath =
+    locale === "en" ? "/best-weather-this-week" : `/${locale}/best-weather-this-week`;
 
   useEffect(() => {
     emitProductAnalytics({
@@ -135,6 +147,16 @@ export function CountryMapHome({ countries, locale = "en" }: CountryMapHomeProps
             ))}
           </select>
         </label>
+      </section>
+
+      <section className="info-panel mt-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="eyebrow">{copy.weeklyTitle}</p>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-muted">{copy.weeklyDescription}</p>
+        </div>
+        <Link href={weeklyPath} className="country-detail-link focus-ring shrink-0">
+          {copy.weeklyAction} <span aria-hidden="true">→</span>
+        </Link>
       </section>
 
       <section className="country-map-home-list" aria-labelledby="country-map-list-heading">
