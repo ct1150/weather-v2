@@ -3,12 +3,6 @@ import { validateAnalyticsEvent, type AnalyticsEvent, type AnalyticsLocale } fro
 export const WNR_ANALYTICS_BROWSER_EVENT = "wnr:analytics";
 
 export type BrowserAnalyticsLocale = "en" | "zh-cn" | "zh-hant";
-export type BrowserAnalyticsRouteTemplate =
-  | "/"
-  | "/[country]"
-  | "/[country]/[city]"
-  | "/discover"
-  | "/trips/workspace";
 
 const PRODUCT_ANALYTICS_URL = (process.env.NEXT_PUBLIC_PRODUCT_ANALYTICS_URL ?? "").trim();
 
@@ -46,7 +40,12 @@ function transmitProductEvent(event: AnalyticsEvent, endpoint: string): void {
 
 export function emitProductAnalytics(input: {
   readonly locale: BrowserAnalyticsLocale;
-  readonly routeTemplate: BrowserAnalyticsRouteTemplate;
+  readonly routeTemplate:
+    | "/"
+    | "/[country]"
+    | "/[country]/[city]"
+    | "/discover"
+    | "/trips/workspace";
   readonly fields: object;
   readonly now?: Date;
   readonly endpoint?: string;
