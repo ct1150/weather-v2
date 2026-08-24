@@ -3,6 +3,8 @@ import type { PublishedLocale } from "../app/seo";
 import type { WeeklyWeatherRankItem } from "../seo/weekly-weather-ranking";
 import { JsonLd } from "./JsonLd";
 
+export type CountryWeatherRankingMode = "week" | "weekend";
+
 const COPY = {
   en: {
     eyebrow: "Country travel-weather ranking",
@@ -112,22 +114,94 @@ function updatedAt(value: string, locale: PublishedLocale): string {
   }).format(date)} UTC`;
 }
 
+function weekendHeading(locale: PublishedLocale, countryName: string): string {
+  if (locale === "en") return `Best weather in ${countryName} this weekend`;
+  if (locale === "zh-cn") return `${countryName}本周末哪里天气更好？`;
+  return `${countryName}本週末哪裡天氣更好？`;
+}
+
+function weekendIntro(locale: PublishedLocale, countryName: string): string {
+  if (locale === "en") {
+    return `Compare supported destinations in ${countryName} for the upcoming Saturday and Sunday by mostly rain-free days, expected precipitation and peak rain chance.`;
+  }
+  if (locale === "zh-cn") {
+    return `比较${countryName}已收录旅行地即将到来的周六、周日天气，按基本不下雨天数、预计总降雨和最高降雨概率判断周末更适合去哪里。`;
+  }
+  return `比較${countryName}已收錄旅行地即將到來的週六、週日天氣，按基本不下雨天數、預計總降雨和最高降雨機率判斷週末更適合去哪裡。`;
+}
+
+function weekendDirect(
+  locale: PublishedLocale,
+  countryName: string,
+  best: WeeklyWeatherRankItem | undefined,
+): string {
+  if (best === undefined) {
+    if (locale === "en") return `No weekend ranking is available for ${countryName} right now.`;
+    if (locale === "zh-cn") return `暂时没有${countryName}可用的周末天气排行。`;
+    return `暫時沒有${countryName}可用的週末天氣排行。`;
+  }
+  if (locale === "en") {
+    return `${best.cityName} currently ranks first in ${countryName} for the weekend with ${best.rainFreeDays} of ${best.totalDays} forecast days mostly rain-free and ${best.totalRainMm ?? "—"} mm expected precipitation.`;
+  }
+  if (locale === "zh-cn") {
+    return `目前${best.cityName}在${countryName}周末排名第一：${best.totalDays}天里有${best.rainFreeDays}天基本不下雨，预计总降雨${best.totalRainMm ?? "—"} mm。`;
+  }
+  return `目前${best.cityName}在${countryName}週末排名第一：${best.totalDays}天裡有${best.rainFreeDays}天基本不下雨，預計總降雨${best.totalRainMm ?? "—"} mm。`;
+}
+
+function weekendRankingTitle(locale: PublishedLocale, countryName: string): string {
+  if (locale === "en") return `Best weekend travel weather in ${countryName}`;
+  if (locale === "zh-cn") return `${countryName}本周末天气更好的旅行地`;
+  return `${countryName}本週末天氣更好的旅行地`;
+}
+
+function weekendMethodTitle(locale: PublishedLocale): string {
+  if (locale === "en") return "How this country weekend ranking works";
+  if (locale === "zh-cn") return "国家周末排行怎么计算";
+  return "國家週末排行怎麼計算";
+}
+
+function weekendMethod(locale: PublishedLocale): string {
+  if (locale === "en") {
+    return "The next real Saturday and Sunday in the forecast are selected by calendar date. Cities rank first by mostly rain-free weekend days, then by lower expected precipitation and lower peak rain chance. Rain, drizzle, showers, thunder, hail, snow and sleet never count as rain-free.";
+  }
+  if (locale === "zh-cn") {
+    return "系统按真实日历日期选取预报中的下一个周六和周日，再按基本不下雨的天数、预计总降雨量和最高降雨概率依次排序。雨、毛毛雨、阵雨、雷暴、冰雹或雪都不会计为基本不下雨。";
+  }
+  return "系統按真實日曆日期選取預報中的下一個週六和週日，再按基本不下雨的天數、預計總降雨量和最高降雨機率依次排序。雨、毛毛雨、陣雨、雷暴、冰雹或雪都不會計為基本不下雨。";
+}
+
 export function CountryBestWeatherThisWeekPage({
   locale,
   countryName,
   items,
   dataUpdatedAt,
   jsonLd,
+  mode = "week",
 }: {
   readonly locale: PublishedLocale;
   readonly countryName: string;
   readonly items: ReadonlyArray<WeeklyWeatherRankItem>;
   readonly dataUpdatedAt: string;
   readonly jsonLd?: Readonly<Record<string, unknown>>;
+  readonly mode?: CountryWeatherRankingMode;
 }): ReactElement {
   const copy = COPY[locale];
   const displayed = items.slice(0, 20);
   const best = displayed[0];
+  const isWeekend = mode === "weekend";
+  const title = isWeekend ? weekendHeading(locale, countryName) : copy.title(countryName);
+  const intro = isWeekend ? weekendIntro(locale, countryName) : copy.intro(countryName);
+  const direct = isWeekend
+    ? weekendDirect(locale, countryName, best)
+    : copy.direct(countryName, best);
+  const rankingTitle = isWeekend
+    ? weekendRankingTitle(locale, countryName)
+    : copy.ranking(countryName);
+  const methodTitle = isWeekend ? weekendMethodTitle(locale) : copy.methodTitle;
+  const method = isWeekend ? weekendMethod(locale) : copy.method;
+  const rankingId = isWeekend ? "country-weekend-weather-ranking" : "country-weekly-weather-ranking";
+  const methodId = isWeekend ? "country-weekend-weather-method" : "country-weekly-weather-method";
 
   return (
     <main id="main-content" className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-10">
@@ -136,16 +210,14 @@ export function CountryBestWeatherThisWeekPage({
         <div className="relative z-10">
           <p className="eyebrow">{copy.eyebrow}</p>
           <h1 className="mt-4 max-w-4xl text-4xl font-bold tracking-[-0.04em] text-foreground sm:text-6xl">
-            {copy.title(countryName)}
+            {title}
           </h1>
-          <p className="mt-4 max-w-3xl text-sm leading-6 text-muted sm:text-base">
-            {copy.intro(countryName)}
-          </p>
+          <p className="mt-4 max-w-3xl text-sm leading-6 text-muted sm:text-base">{intro}</p>
           <p
             className="mt-5 max-w-3xl text-lg font-bold leading-7 text-foreground"
             data-ranking-answer
           >
-            {copy.direct(countryName, best)}
+            {direct}
           </p>
           <p className="mt-3 text-xs text-muted">
             {copy.updated} {updatedAt(dataUpdatedAt, locale)} · {copy.source}:{" "}
@@ -154,10 +226,10 @@ export function CountryBestWeatherThisWeekPage({
         </div>
       </section>
 
-      <section aria-labelledby="country-weekly-weather-ranking" className="mt-10">
+      <section aria-labelledby={rankingId} className="mt-10">
         <p className="eyebrow">Top {displayed.length}</p>
-        <h2 id="country-weekly-weather-ranking" className="section-title mt-3">
-          {copy.ranking(countryName)}
+        <h2 id={rankingId} className="section-title mt-3">
+          {rankingTitle}
         </h2>
         <ol className="mt-5 grid gap-4 lg:grid-cols-2">
           {displayed.map((item, index) => (
@@ -205,11 +277,11 @@ export function CountryBestWeatherThisWeekPage({
         </ol>
       </section>
 
-      <section className="info-panel mt-10" aria-labelledby="country-weekly-weather-method">
-        <h2 id="country-weekly-weather-method" className="text-lg font-bold text-foreground">
-          {copy.methodTitle}
+      <section className="info-panel mt-10" aria-labelledby={methodId}>
+        <h2 id={methodId} className="text-lg font-bold text-foreground">
+          {methodTitle}
         </h2>
-        <p className="mt-3 max-w-4xl text-sm leading-6 text-muted">{copy.method}</p>
+        <p className="mt-3 max-w-4xl text-sm leading-6 text-muted">{method}</p>
       </section>
     </main>
   );
