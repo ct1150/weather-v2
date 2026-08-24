@@ -98,6 +98,17 @@ export function buildWeeklyWeatherRanking(
   return sortRanking(items);
 }
 
+export function buildCountryWeeklyWeatherRanking(
+  dataset: BakedDataset,
+  locale: PublishedLocale,
+  countrySlug: string,
+): ReadonlyArray<WeeklyWeatherRankItem> {
+  const projectionLocale = locale === "zh-hant" ? "zh-cn" : locale;
+  const projected = projectCountry(dataset, countrySlug, projectionLocale);
+  const items = (projected.weatherCities ?? []).map((city) => rankItem(city, city.days, locale));
+  return sortRanking(items);
+}
+
 export function buildWeekendWeatherRanking(
   dataset: BakedDataset,
   locale: PublishedLocale,
