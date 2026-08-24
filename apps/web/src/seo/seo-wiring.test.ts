@@ -1,11 +1,12 @@
 // apps/web/src/seo/seo-wiring.test.ts
 
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
 import sitemap from "../app/sitemap";
-import robots from "../app/robots";
 import { JsonLd } from "../components/JsonLd";
 import {
   buildAlternates,
@@ -82,13 +83,13 @@ describe("sitemap.ts — country-map acquisition sitemap", () => {
   });
 });
 
-describe("robots.ts — static export robots", () => {
-  it("advertises the sitemap and host", () => {
-    const result = robots();
-    expect(result.rules.userAgent).toBe("*");
-    expect(result.rules.allow).toBe("/");
-    expect(result.sitemap).toBe(`${BASE}/sitemap.xml`);
-    expect(result.host).toBe(BASE);
+describe("public/robots.txt — deterministic crawler entrypoint", () => {
+  it("allows crawling and advertises the production sitemap", () => {
+    const robotsPath = resolve(process.cwd(), "public/robots.txt");
+    const robots = readFileSync(robotsPath, "utf8");
+    expect(robots).toContain("User-agent: *");
+    expect(robots).toContain("Allow: /");
+    expect(robots).toContain(`Sitemap: ${BASE}/sitemap.xml`);
   });
 });
 
