@@ -9,7 +9,7 @@ const WORLD_WIDTH = 1200;
 const WORLD_HEIGHT = 620;
 
 export interface WorldWeatherMapCountry {
-  readonly countryId: string;
+  readonly countryId?: string;
   readonly slug: string;
   readonly name: string;
   readonly path: string;
@@ -89,7 +89,7 @@ export function WorldWeatherMap({
   const positioned = useMemo(
     () =>
       countries.map((country, index) => {
-        const geometry = countryMapGeometry(country.countryId);
+        const geometry = countryMapGeometry(country.countryId ?? country.slug);
         const x = projectX(geometry.minLongitude);
         const right = projectX(geometry.maxLongitude);
         const y = projectY(geometry.maxLatitude);
