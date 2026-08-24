@@ -158,7 +158,10 @@ jobs:
             printf '%s' "$GROWTH_DASHBOARD_PASSWORD" | pnpm --filter @wnr/product-analytics exec wrangler secret put GROWTH_DASHBOARD_PASSWORD --env production
             echo "Private growth dashboard enabled."
           else
-            echo "GROWTH_DASHBOARD_PASSWORD is not configured; /growth remains disabled."
+            if pnpm --filter @wnr/product-analytics exec wrangler secret list --env production --format json | grep -Fq '"GROWTH_DASHBOARD_PASSWORD"'; then
+              pnpm --filter @wnr/product-analytics exec wrangler secret delete GROWTH_DASHBOARD_PASSWORD --env production
+            fi
+            echo "GROWTH_DASHBOARD_PASSWORD is not configured; /growth is disabled."
           fi
 
       - name: Apply Trip D1 migrations
