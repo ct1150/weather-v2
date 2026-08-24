@@ -132,9 +132,9 @@ describe("critical path — commercial kill switch and privacy-safe telemetry", 
         locale: "en",
         country_code: "JP",
       },
-      sink,
+      { sink, requestId: "req-country" },
     );
-    expect(accepted.accepted).toBe(true);
+    expect(accepted).toBe(true);
     expect(emitted).toHaveLength(1);
 
     const rejected = dispatchEvent(
@@ -145,10 +145,11 @@ describe("critical path — commercial kill switch and privacy-safe telemetry", 
         route_template: "/[country]",
         locale: "en",
         country_code: "JP",
-        email: "traveler@example.com",
+        email: "private@example.com",
       },
-      sink,
+      { sink, requestId: "req-private" },
     );
-    expect(rejected.accepted).toBe(false);
+    expect(rejected).toBe(false);
+    expect(emitted).toHaveLength(1);
   });
 });
