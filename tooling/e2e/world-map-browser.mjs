@@ -307,7 +307,11 @@ async function validateViewport({ name, width, height, minScreenshotBytes, click
     if (clickJp) await clickCountry(sessionId, "JP");
     console.log(
       `${name}:`,
-      JSON.stringify({ ...snapshot, screenshotBytes: screenshot.bytes, viewport: screenshot.viewportGeometry }),
+      JSON.stringify({
+        ...snapshot,
+        screenshotBytes: screenshot.bytes,
+        viewport: screenshot.viewportGeometry,
+      }),
     );
   } finally {
     await webdriver("DELETE", `/session/${sessionId}`).catch(() => undefined);
