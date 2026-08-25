@@ -1,6 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type ReactElement } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactElement,
+} from "react";
 import { emitProductAnalytics, type BrowserAnalyticsLocale } from "../analytics/browser-events";
 import type { WorldWeatherStatus } from "../world/world-overview";
 import { countryMapGeometry } from "./country-map-geometry";
@@ -159,18 +166,21 @@ export function WorldWeatherMap({
     [countries],
   );
 
-  function recordOpen(country: WorldWeatherMapCountry, position: number): void {
-    emitProductAnalytics({
-      locale,
-      routeTemplate: "/",
-      fields: {
-        event: "search_result_clicked",
-        destination_id: country.slug,
-        result_type: "country",
-        position,
-      },
-    });
-  }
+  const recordOpen = useCallback(
+    (country: WorldWeatherMapCountry, position: number): void => {
+      emitProductAnalytics({
+        locale,
+        routeTemplate: "/",
+        fields: {
+          event: "search_result_clicked",
+          destination_id: country.slug,
+          result_type: "country",
+          position,
+        },
+      });
+    },
+    [locale],
+  );
 
   useEffect(() => {
     const container = containerRef.current;
@@ -232,7 +242,7 @@ export function WorldWeatherMap({
       mapRef.current?.remove();
       mapRef.current = null;
     };
-  }, [locale, positioned]);
+  }, [locale, positioned, recordOpen]);
 
   const activePosition = Math.max(
     1,
