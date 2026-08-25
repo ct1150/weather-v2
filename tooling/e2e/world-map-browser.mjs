@@ -67,9 +67,7 @@ function findChromeDriver() {
   const lookup = spawnSync(
     "bash",
     ["-lc", "command -v chromedriver || command -v chromium-driver"],
-    {
-      encoding: "utf8",
-    },
+    { encoding: "utf8" },
   );
   const binary = lookup.stdout.trim();
   if (!binary) throw new Error("ChromeDriver is required for world-map browser E2E");
@@ -146,19 +144,38 @@ async function waitForMap(sessionId, expectedMarkers = 10) {
         const canvas = map?.querySelector('canvas.maplibregl-canvas');
         const markers = [...document.querySelectorAll('.world-weather-marker')];
         const rect = map?.getBoundingClientRect();
+        const markerRects = markers.map((marker) => marker.getBoundingClientRect());
+        let overlapPairs = 0;
+        for (let left = 0; left < markerRects.length; left += 1) {
+          for (let right = left + 1; right < markerRects.length; right += 1) {
+            const a = markerRects[left];
+            const b = markerRects[right];
+            const overlapWidth = Math.max(0, Math.min(a.right, b.right) - Math.max(a.left, b.left));
+            const overlapHeight = Math.max(0, Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top));
+            if (overlapWidth * overlapHeight > 40) overlapPairs += 1;
+          }
+        }
         return {
           state: map?.dataset.renderState ?? null,
+          countryLayer: map?.dataset.countryLayer ?? null,
           markerCount: markers.length,
+          overlapPairs,
           mapWidth: rect?.width ?? 0,
           mapHeight: rect?.height ?? 0,
           canvasWidth: canvas?.getBoundingClientRect().width ?? 0,
           canvasHeight: canvas?.getBoundingClientRect().height ?? 0,
-          markerWidth: markers[0]?.getBoundingClientRect().width ?? 0,
-          markerHeight: markers[0]?.getBoundingClientRect().height ?? 0,
+          markerWidth: markerRects[0]?.width ?? 0,
+          markerHeight: markerRects[0]?.height ?? 0,
         };
       `,
     );
-    if (snapshot.state === "ready" && snapshot.markerCount === expectedMarkers) return snapshot;
+    if (
+      snapshot.state === "ready" &&
+      snapshot.countryLayer === "ready" &&
+      snapshot.markerCount === expectedMarkers
+    ) {
+      return snapshot;
+    }
     await new Promise((resolveDelay) => setTimeout(resolveDelay, 350));
   }
   throw new Error(`World map never reached ready state: ${JSON.stringify(snapshot)}`);
@@ -201,7 +218,9 @@ async function validateViewport({ name, width, height, minScreenshotBytes, click
     await webdriver("POST", `/session/${sessionId}/url`, { url: `http://127.0.0.1:${WEB_PORT}/` });
     const snapshot = await waitForMap(sessionId);
 
-    assert.equal(snapshot.markerCount, 10, `${name}: expected all supported country markers`);
+    assert.equal(snapshot.markerCount, 10, `${name}: expected all supported country labels`);
+    assert.equal(snapshot.countryLayer, "ready", `${name}: supported-country polygon layer is missing`);
+    assert.ok(snapshot.overlapPairs <= 3, `${name}: too many country labels overlap`);
     assert.ok(
       snapshot.mapWidth >= Math.min(width * 0.72, 300),
       `${name}: map is unexpectedly narrow`,
@@ -216,11 +235,11 @@ async function validateViewport({ name, width, height, minScreenshotBytes, click
       `${name}: MapLibre canvas does not fill its container`,
     );
     assert.ok(
-      snapshot.markerWidth >= 36 &&
-        snapshot.markerWidth <= 58 &&
-        snapshot.markerHeight >= 36 &&
-        snapshot.markerHeight <= 58,
-      `${name}: country marker geometry is not bounded`,
+      snapshot.markerWidth >= 20 &&
+        snapshot.markerWidth <= 42 &&
+        snapshot.markerHeight >= 20 &&
+        snapshot.markerHeight <= 34,
+      `${name}: country label geometry is not compact`,
     );
 
     const screenshotPath = join(ARTIFACT_DIR, `world-map-${name}.png`);
