@@ -1,12 +1,18 @@
 "use client";
 
-import { useMemo, useState, type ReactElement } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactElement } from "react";
 import { emitProductAnalytics, type BrowserAnalyticsLocale } from "../analytics/browser-events";
 import type { WorldWeatherStatus } from "../world/world-overview";
-import { COUNTRY_MAP_HEIGHT, COUNTRY_MAP_WIDTH, countryMapGeometry } from "./country-map-geometry";
+import { countryMapGeometry } from "./country-map-geometry";
+import { SUPPORTED_COUNTRY_GEOMETRY } from "./world-supported-country-geometry";
 
-const WORLD_WIDTH = 1200;
-const WORLD_HEIGHT = 620;
+import "maplibre-gl/dist/maplibre-gl.css";
+
+export const WORLD_MAP_STYLE_URL = "https://tiles.openfreemap.org/styles/liberty";
+
+const COUNTRY_SOURCE_ID = "world-weather-supported-countries";
+const COUNTRY_FILL_LAYER_ID = "world-weather-supported-country-fill";
+const COUNTRY_OUTLINE_LAYER_ID = "world-weather-supported-country-outline";
 
 export interface WorldWeatherMapCountry {
   readonly countryId?: string;
@@ -19,10 +25,26 @@ export interface WorldWeatherMapCountry {
   readonly weatherStatus: WorldWeatherStatus;
 }
 
+interface PositionedCountry {
+  readonly country: WorldWeatherMapCountry;
+  readonly position: number;
+  readonly longitude: number;
+  readonly latitude: number;
+  readonly code: string;
+}
+
+interface MapLike {
+  readonly remove: () => void;
+}
+
+interface MarkerLike {
+  readonly remove: () => void;
+}
+
 const COPY = {
   en: {
     aria: "World travel weather overview",
-    hint: "Tap a highlighted country to see its cities",
+    hint: "Country color summarizes current travel weather. Tap a highlighted country to compare cities.",
     excellent: "Great options",
     good: "Good options",
     mixed: "Mixed weather",
@@ -33,7 +55,7 @@ const COPY = {
   },
   "zh-cn": {
     aria: "全球旅行天气总览",
-    hint: "点击高亮国家，直接查看城市天气",
+    hint: "国家颜色代表当前整体旅行天气，点击高亮国家即可比较城市。",
     excellent: "天气很适合",
     good: "较适合出行",
     mixed: "天气一般",
@@ -44,7 +66,7 @@ const COPY = {
   },
   "zh-hant": {
     aria: "全球旅行天氣總覽",
-    hint: "點擊高亮國家，直接查看城市天氣",
+    hint: "國家顏色代表目前整體旅行天氣，點擊高亮國家即可比較城市。",
     excellent: "天氣很適合",
     good: "較適合出行",
     mixed: "天氣一般",
@@ -55,25 +77,81 @@ const COPY = {
   },
 } as const;
 
-function projectX(longitude: number): number {
-  return ((longitude + 180) / 360) * WORLD_WIDTH;
-}
-
-function projectY(latitude: number): number {
-  return ((90 - latitude) / 180) * WORLD_HEIGHT;
-}
-
 function statusLabel(locale: BrowserAnalyticsLocale, status: WorldWeatherStatus): string {
   return COPY[locale][status];
 }
 
-const WORLD_LAND_PATH = [
-  "M72 164 C110 95 210 74 300 105 C340 128 344 174 310 203 C280 230 246 245 230 292 C209 334 162 327 139 287 C106 258 72 218 72 164Z",
-  "M322 290 C357 264 397 277 419 315 C444 354 432 414 401 469 C372 518 335 515 320 461 C300 401 289 333 322 290Z",
-  "M520 139 C583 82 697 72 786 104 C840 120 884 151 932 168 C970 184 981 218 947 243 C902 274 850 260 817 278 C765 308 716 306 674 281 C628 254 586 247 546 224 C514 204 495 170 520 139Z",
-  "M734 286 C780 255 846 267 884 302 C912 330 902 365 871 383 C835 404 798 394 770 373 C742 351 714 317 734 286Z",
-  "M925 398 C963 374 1017 386 1040 420 C1060 450 1040 482 1004 492 C963 501 930 477 916 449 C907 430 910 411 925 398Z",
-].join(" ");
+function countryCenter(country: WorldWeatherMapCountry): {
+  readonly longitude: number;
+  readonly latitude: number;
+  readonly code: string;
+} {
+  const code = (country.countryId ?? country.slug).slice(0, 2).toUpperCase();
+  const geometry = countryMapGeometry(code);
+  return {
+    longitude: (geometry.minLongitude + geometry.maxLongitude) / 2,
+    latitude: (geometry.minLatitude + geometry.maxLatitude) / 2,
+    code,
+  };
+}
+
+function hasWebGL(): boolean {
+  if (typeof window === "undefined" || typeof document === "undefined") return false;
+  try {
+    const canvas = document.createElement("canvas");
+    return Boolean(
+      window.WebGLRenderingContext &&
+      (canvas.getContext("webgl") ?? canvas.getContext("experimental-webgl")),
+    );
+  } catch {
+    return false;
+  }
+}
+
+function markerElement(
+  item: PositionedCountry,
+  locale: BrowserAnalyticsLocale,
+  onActivate: (slug: string) => void,
+  onOpen: (country: WorldWeatherMapCountry, position: number) => void,
+): HTMLAnchorElement {
+  const link = document.createElement("a");
+  link.href = item.country.path;
+  link.className = "world-weather-marker";
+  link.dataset.countryId = item.code;
+  link.dataset.countrySlug = item.country.slug;
+  link.setAttribute(
+    "aria-label",
+    `${item.country.name}: ${statusLabel(locale, item.country.weatherStatus)}`,
+  );
+  link.textContent = item.code;
+  link.addEventListener("mouseenter", () => onActivate(item.country.slug));
+  link.addEventListener("focus", () => onActivate(item.country.slug));
+  link.addEventListener("click", () => onOpen(item.country, item.position));
+  return link;
+}
+
+function buildWeatherGeometry(
+  positioned: ReadonlyArray<PositionedCountry>,
+): Readonly<Record<string, unknown>> {
+  const byCode = new Map(positioned.map((item) => [item.code, item] as const));
+  return {
+    type: "FeatureCollection",
+    features: SUPPORTED_COUNTRY_GEOMETRY.features.map((feature) => {
+      const item = byCode.get(feature.properties.code);
+      return {
+        type: "Feature",
+        properties: {
+          code: feature.properties.code,
+          status: item?.country.weatherStatus ?? "unknown",
+          score: item?.country.weatherScore ?? -1,
+          slug: item?.country.slug ?? "",
+          position: item?.position ?? 0,
+        },
+        geometry: feature.geometry,
+      };
+    }),
+  };
+}
 
 export function WorldWeatherMap({
   countries,
@@ -83,44 +161,165 @@ export function WorldWeatherMap({
   readonly locale: BrowserAnalyticsLocale;
 }): ReactElement {
   const copy = COPY[locale];
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const mapRef = useRef<MapLike | null>(null);
+  const markerRefs = useRef<MarkerLike[]>([]);
   const [activeSlug, setActiveSlug] = useState(countries[0]?.slug ?? "");
   const active = countries.find((country) => country.slug === activeSlug) ?? countries[0] ?? null;
 
-  const positioned = useMemo(
+  const positioned = useMemo<ReadonlyArray<PositionedCountry>>(
     () =>
-      countries.map((country, index) => {
-        const geometry = countryMapGeometry(country.countryId ?? country.slug);
-        const x = projectX(geometry.minLongitude);
-        const right = projectX(geometry.maxLongitude);
-        const y = projectY(geometry.maxLatitude);
-        const bottom = projectY(geometry.minLatitude);
-        return {
-          country,
-          position: index + 1,
-          geometry,
-          x,
-          y,
-          width: Math.max(12, right - x),
-          height: Math.max(12, bottom - y),
-          centerX: (x + right) / 2,
-          centerY: (y + bottom) / 2,
-        };
-      }),
+      countries.map((country, index) => ({
+        country,
+        position: index + 1,
+        ...countryCenter(country),
+      })),
     [countries],
   );
 
-  function recordOpen(country: WorldWeatherMapCountry, position: number): void {
-    emitProductAnalytics({
-      locale,
-      routeTemplate: "/",
-      fields: {
-        event: "search_result_clicked",
-        destination_id: country.slug,
-        result_type: "country",
-        position,
-      },
-    });
-  }
+  const recordOpen = useCallback(
+    (country: WorldWeatherMapCountry, position: number): void => {
+      emitProductAnalytics({
+        locale,
+        routeTemplate: "/",
+        fields: {
+          event: "search_result_clicked",
+          destination_id: country.slug,
+          result_type: "country",
+          position,
+        },
+      });
+    },
+    [locale],
+  );
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (container === null) return;
+
+    container.dataset.renderState = "loading";
+    if (!hasWebGL()) {
+      container.dataset.renderState = "fallback";
+      return;
+    }
+
+    let cancelled = false;
+
+    void (async (): Promise<void> => {
+      try {
+        const maplibregl = (await import("maplibre-gl")).default;
+        if (cancelled || containerRef.current === null) return;
+
+        const map = new maplibregl.Map({
+          container: containerRef.current,
+          style: WORLD_MAP_STYLE_URL,
+          center: [111, 20],
+          zoom: 1,
+          minZoom: 0.55,
+          maxZoom: 4.5,
+          renderWorldCopies: false,
+          attributionControl: { compact: true },
+          scrollZoom: false,
+          dragRotate: false,
+          pitchWithRotate: false,
+        });
+
+        mapRef.current = map as unknown as MapLike;
+
+        markerRefs.current = positioned.map((item) => {
+          const element = markerElement(item, locale, setActiveSlug, recordOpen);
+          return new maplibregl.Marker({ element, anchor: "center" })
+            .setLngLat([item.longitude, item.latitude])
+            .addTo(map) as unknown as MarkerLike;
+        });
+
+        map.on("load", () => {
+          map.addSource(COUNTRY_SOURCE_ID, {
+            type: "geojson",
+            data: buildWeatherGeometry(positioned) as never,
+          });
+          map.addLayer({
+            id: COUNTRY_FILL_LAYER_ID,
+            type: "fill",
+            source: COUNTRY_SOURCE_ID,
+            paint: {
+              "fill-color": [
+                "match",
+                ["get", "status"],
+                "excellent",
+                "#22c55e",
+                "good",
+                "#84cc16",
+                "mixed",
+                "#eab308",
+                "poor",
+                "#f97316",
+                "#94a3b8",
+              ],
+              "fill-opacity": 0.62,
+            },
+          });
+          map.addLayer({
+            id: COUNTRY_OUTLINE_LAYER_ID,
+            type: "line",
+            source: COUNTRY_SOURCE_ID,
+            paint: {
+              "line-color": "#ffffff",
+              "line-width": ["interpolate", ["linear"], ["zoom"], 0.5, 0.8, 3, 1.8],
+              "line-opacity": 0.92,
+            },
+          });
+
+          map.on("mouseenter", COUNTRY_FILL_LAYER_ID, (event) => {
+            map.getCanvas().style.cursor = "pointer";
+            const code = String(event.features?.[0]?.properties?.code ?? "");
+            const item = positioned.find((candidate) => candidate.code === code);
+            if (item !== undefined) setActiveSlug(item.country.slug);
+          });
+          map.on("mouseleave", COUNTRY_FILL_LAYER_ID, () => {
+            map.getCanvas().style.cursor = "";
+          });
+          map.on("click", COUNTRY_FILL_LAYER_ID, (event) => {
+            const code = String(event.features?.[0]?.properties?.code ?? "");
+            const item = positioned.find((candidate) => candidate.code === code);
+            if (item === undefined) return;
+            recordOpen(item.country, item.position);
+            window.location.assign(item.country.path);
+          });
+
+          map.fitBounds(
+            [
+              [72, -15],
+              [149, 56],
+            ],
+            {
+              padding: window.innerWidth <= 640 ? 16 : 32,
+              duration: 0,
+              maxZoom: window.innerWidth <= 640 ? 2.15 : 2.35,
+            },
+          );
+
+          if (containerRef.current !== null) {
+            containerRef.current.dataset.renderState = "ready";
+            containerRef.current.dataset.countryLayer = "ready";
+          }
+        });
+      } catch {
+        if (containerRef.current !== null) {
+          containerRef.current.dataset.renderState = "fallback";
+        }
+        mapRef.current = null;
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      for (const marker of markerRefs.current) marker.remove();
+      markerRefs.current = [];
+      mapRef.current?.remove();
+      mapRef.current = null;
+    };
+  }, [locale, positioned, recordOpen]);
 
   const activePosition = Math.max(
     1,
@@ -130,52 +329,14 @@ export function WorldWeatherMap({
   return (
     <section className="world-weather-panel" aria-label={copy.aria} data-world-weather-map>
       <div className="world-weather-map-wrap">
-        <svg
-          className="world-weather-map"
-          viewBox={`0 0 ${WORLD_WIDTH} ${WORLD_HEIGHT}`}
-          role="img"
+        <div
+          ref={containerRef}
+          className="world-weather-map-canvas"
+          data-world-weather-map-canvas
+          data-render-state="loading"
+          role="region"
           aria-label={copy.aria}
-          preserveAspectRatio="xMidYMid meet"
-        >
-          <path d={WORLD_LAND_PATH} className="world-weather-land" />
-          {positioned.map(
-            ({ country, position, geometry, x, y, width, height, centerX, centerY }) => (
-              <a
-                key={country.slug}
-                href={country.path}
-                aria-label={`${country.name}: ${statusLabel(locale, country.weatherStatus)}`}
-                className={`world-weather-country-link status-${country.weatherStatus}`}
-                onMouseEnter={() => setActiveSlug(country.slug)}
-                onFocus={() => setActiveSlug(country.slug)}
-                onClick={() => recordOpen(country, position)}
-              >
-                <svg
-                  x={x}
-                  y={y}
-                  width={width}
-                  height={height}
-                  viewBox={`0 0 ${COUNTRY_MAP_WIDTH} ${COUNTRY_MAP_HEIGHT}`}
-                  preserveAspectRatio="xMidYMid meet"
-                  overflow="hidden"
-                >
-                  <path
-                    d={geometry.path}
-                    className="world-weather-country-shape"
-                    fillRule="evenodd"
-                    clipRule="evenodd"
-                  />
-                </svg>
-                <circle
-                  cx={centerX}
-                  cy={centerY}
-                  r={30}
-                  className="world-weather-country-touch-target"
-                />
-                <circle cx={centerX} cy={centerY} r={8} className="world-weather-country-hit" />
-              </a>
-            ),
-          )}
-        </svg>
+        />
         <p className="world-weather-map-hint">{copy.hint}</p>
       </div>
 
