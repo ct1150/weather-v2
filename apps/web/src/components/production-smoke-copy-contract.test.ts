@@ -88,13 +88,15 @@ describe("production smoke copy contract", () => {
     expect(productionSmoke).toContain('data-testid="country-weather-marker"');
   });
 
-  it("maps good, mixed and wet states to explicit weather-dot colors", () => {
+  it("maps good, mixed and wet states to distinct weather-dot semantics", () => {
     expect(instantMapStyles).toContain(".country-weather-dot.risk-good");
     expect(instantMapStyles).toContain("--dot-color: rgb(var(--wnr-success))");
     expect(instantMapStyles).toContain(".country-weather-dot.risk-mixed");
-    expect(instantMapStyles).toContain("--dot-color: rgb(var(--wnr-warning))");
+    expect(instantMapStyles).toContain("--dot-color: #f59e0b");
+    expect(instantMapStyles).toContain("border-style: dashed");
     expect(instantMapStyles).toContain(".country-weather-dot.risk-wet");
-    expect(instantMapStyles).toContain("--dot-color: rgb(var(--wnr-accent))");
+    expect(instantMapStyles).toContain("--dot-color: rgb(var(--wnr-danger))");
+    expect(instantMapStyles).toContain("border-width: 2px");
     expect(instantMapStyles).toContain("background: var(--dot-color)");
     expect(instantMapStyles).toContain(".country-weather-dot:hover .country-weather-dot-tooltip");
   });

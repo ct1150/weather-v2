@@ -17,6 +17,7 @@ import {
 import { toTraditionalText } from "../trips/traditional";
 import { windowIndicesForDates } from "../weather/window-selection";
 import { isMostlyDryTravelDay } from "./rain-day-classification";
+import { assessRainWindow } from "./rain-window-risk";
 import { CountryCompareSheet, type CountryCompareItem } from "./CountryCompareSheet";
 import { CountrySavedViewsControl } from "./CountrySavedViewsControl";
 import {
@@ -290,10 +291,16 @@ function dailySymbol(condition: string): string {
 
 function summarySymbol(days: ReadonlyArray<CountryWeatherDayViewModel>, risk: Risk): string {
   const conditions = days.map((day) => day.weather.conditionLabel).join(" ");
-  if (/thunder|hail/i.test(conditions)) return "⛈️";
-  if (/snow|sleet/i.test(conditions)) return "🌨️";
-  if (risk === "wet") return "🌧️";
-  if (/rain|drizzle|shower/i.test(conditions)) return "🌦️";
+  const hasSnow = /snow|sleet/i.test(conditions);
+  const hasThunder = /thunder|hail/i.test(conditions);
+
+  if (risk === "mixed") return hasSnow ? "🌨️" : "🌦️";
+  if (risk === "wet") {
+    if (hasThunder) return "⛈️";
+    if (hasSnow) return "🌨️";
+    return "🌧️";
+  }
+
   const clearDays = days.filter((day) => /clear|sun/i.test(day.weather.conditionLabel)).length;
   return clearDays >= Math.ceil(days.length / 2) ? "☀️" : "🌤️";
 }
@@ -346,19 +353,17 @@ function summarize(
     rainAmounts.length > 0
       ? Math.round(rainAmounts.reduce((total, value) => total + value, 0) * 10) / 10
       : null;
+  const maxDailyRainMm = rainAmounts.length > 0 ? Math.max(...rainAmounts) : null;
   const temperatureMin = minimums.length > 0 ? Math.min(...minimums) : null;
   const temperatureMax = maximums.length > 0 ? Math.max(...maximums) : null;
   const maxWind = winds.length > 0 ? Math.round(Math.max(...winds)) : null;
-  const risk: Risk =
-    days.length === 0 || (totalRainMm === null && maxRain === null)
-      ? "unknown"
-      : dryDays === days.length
-        ? "good"
-        : dryDays > 0 &&
-            (dryDays >= Math.ceil(days.length / 2) ||
-              (totalRainMm ?? Infinity) <= days.length * 2.5)
-          ? "mixed"
-          : "wet";
+  const risk: Risk = assessRainWindow({
+    dayCount: days.length,
+    dryDays,
+    totalRainMm,
+    maxDailyRainMm,
+    maxRainProbability: maxRain,
+  }).risk;
   const metrics = { maxRain, maxWind, temperatureMin, temperatureMax };
   const reasons = filterReasons(metrics, filters, locale);
   return {
