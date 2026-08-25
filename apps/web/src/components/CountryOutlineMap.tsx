@@ -13,8 +13,9 @@ import {
   countryMapGeometryOverride,
   projectCountryMapPoint,
 } from "./country-map-geometry-overrides";
+import type { RainWindowRisk } from "./rain-window-risk";
 
-export type CountryOutlineRisk = "good" | "mixed" | "wet" | "unknown";
+export type CountryOutlineRisk = RainWindowRisk;
 
 export interface CountryOutlineMarker {
   readonly id: string;
