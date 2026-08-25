@@ -35,10 +35,11 @@ function render(): string {
 describe("world-map homepage", () => {
   const html = render();
 
-  it("makes the visual world map the primary discovery task", () => {
+  it("makes the real-map canvas the primary discovery task", () => {
     expect(html).toContain("See the world first. Then decide where to go.");
     expect(html).toContain("World travel weather overview");
-    expect(html).toContain("world-weather-country-shape");
+    expect(html).toContain("data-world-weather-map-canvas");
+    expect(html).not.toContain("world-weather-country-shape");
     expect(html).toContain('href="/jp"');
     expect(html).toContain('href="/th"');
     expect(html).not.toContain("Starting city");
