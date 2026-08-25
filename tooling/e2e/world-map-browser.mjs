@@ -219,7 +219,11 @@ async function validateViewport({ name, width, height, minScreenshotBytes, click
     const snapshot = await waitForMap(sessionId);
 
     assert.equal(snapshot.markerCount, 10, `${name}: expected all supported country labels`);
-    assert.equal(snapshot.countryLayer, "ready", `${name}: supported-country polygon layer is missing`);
+    assert.equal(
+      snapshot.countryLayer,
+      "ready",
+      `${name}: supported-country polygon layer is missing`,
+    );
     assert.ok(snapshot.overlapPairs <= 3, `${name}: too many country labels overlap`);
     assert.ok(
       snapshot.mapWidth >= Math.min(width * 0.72, 300),

@@ -101,7 +101,7 @@ function hasWebGL(): boolean {
     const canvas = document.createElement("canvas");
     return Boolean(
       window.WebGLRenderingContext &&
-        (canvas.getContext("webgl") ?? canvas.getContext("experimental-webgl")),
+      (canvas.getContext("webgl") ?? canvas.getContext("experimental-webgl")),
     );
   } catch {
     return false;
@@ -130,7 +130,9 @@ function markerElement(
   return link;
 }
 
-function buildWeatherGeometry(positioned: ReadonlyArray<PositionedCountry>): Readonly<Record<string, unknown>> {
+function buildWeatherGeometry(
+  positioned: ReadonlyArray<PositionedCountry>,
+): Readonly<Record<string, unknown>> {
   const byCode = new Map(positioned.map((item) => [item.code, item] as const));
   return {
     type: "FeatureCollection",

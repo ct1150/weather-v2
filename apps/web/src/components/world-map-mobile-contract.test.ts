@@ -24,7 +24,7 @@ describe("world weather map rendering contract", () => {
     expect(component).toContain("map.addSource(COUNTRY_SOURCE_ID");
     expect(component).toContain('type: "fill"');
     expect(component).toContain('"fill-color"');
-    expect(component).toContain("data.countryLayer = \"ready\"");
+    expect(component).toContain('data.countryLayer = "ready"');
     for (const code of ["JP", "KR", "TH", "VN", "ID", "MY", "PH", "SG", "CN", "TW"]) {
       expect(geometry).toContain(`\\"code\\":\\"${code}\\"`);
     }
