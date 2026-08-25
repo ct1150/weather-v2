@@ -21,7 +21,10 @@ const instantMapStyles = readFileSync(
 const sitemap = readFileSync(new URL("../app/sitemap.ts", import.meta.url), "utf8");
 const trips = readFileSync(new URL("../app/trips/page.tsx", import.meta.url), "utf8");
 const discovery = readFileSync(new URL("../app/discover/page.tsx", import.meta.url), "utf8");
-const manifest = readFileSync(new URL("../../public/manifest.webmanifest", import.meta.url), "utf8");
+const manifest = readFileSync(
+  new URL("../../public/manifest.webmanifest", import.meta.url),
+  "utf8",
+);
 
 describe("weather-first destination-decision UX contracts", () => {
   it("gives every homepage one primary destination-decision task while keeping the map", () => {
