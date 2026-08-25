@@ -26,9 +26,10 @@ const MIME = {
 function staticCandidate(urlPath) {
   const clean = decodeURIComponent(urlPath.split("?")[0] || "/");
   const relative = normalize(clean).replace(/^[/\\]+/, "");
-  const candidates = relative.length === 0
-    ? ["index.html"]
-    : [relative, `${relative}.html`, join(relative, "index.html")];
+  const candidates =
+    relative.length === 0
+      ? ["index.html"]
+      : [relative, `${relative}.html`, join(relative, "index.html")];
 
   for (const candidate of candidates) {
     const full = resolve(OUT_DIR, candidate);
@@ -63,9 +64,13 @@ function startStaticServer() {
 }
 
 function findChromeDriver() {
-  const lookup = spawnSync("bash", ["-lc", "command -v chromedriver || command -v chromium-driver"], {
-    encoding: "utf8",
-  });
+  const lookup = spawnSync(
+    "bash",
+    ["-lc", "command -v chromedriver || command -v chromium-driver"],
+    {
+      encoding: "utf8",
+    },
+  );
   const binary = lookup.stdout.trim();
   if (!binary) throw new Error("ChromeDriver is required for world-map browser E2E");
   return binary;
@@ -94,7 +99,9 @@ async function webdriver(method, path, body) {
   });
   const payload = await response.json();
   if (!response.ok || payload.value?.error) {
-    throw new Error(`WebDriver ${method} ${path} failed: ${JSON.stringify(payload.value ?? payload)}`);
+    throw new Error(
+      `WebDriver ${method} ${path} failed: ${JSON.stringify(payload.value ?? payload)}`,
+    );
   }
   return payload.value;
 }
@@ -195,16 +202,24 @@ async function validateViewport({ name, width, height, minScreenshotBytes, click
     const snapshot = await waitForMap(sessionId);
 
     assert.equal(snapshot.markerCount, 10, `${name}: expected all supported country markers`);
-    assert.ok(snapshot.mapWidth >= Math.min(width * 0.72, 300), `${name}: map is unexpectedly narrow`);
-    assert.ok(snapshot.mapHeight >= 280 && snapshot.mapHeight <= 520, `${name}: map height is invalid`);
+    assert.ok(
+      snapshot.mapWidth >= Math.min(width * 0.72, 300),
+      `${name}: map is unexpectedly narrow`,
+    );
+    assert.ok(
+      snapshot.mapHeight >= 280 && snapshot.mapHeight <= 520,
+      `${name}: map height is invalid`,
+    );
     assert.ok(
       Math.abs(snapshot.canvasWidth - snapshot.mapWidth) < 4 &&
         Math.abs(snapshot.canvasHeight - snapshot.mapHeight) < 4,
       `${name}: MapLibre canvas does not fill its container`,
     );
     assert.ok(
-      snapshot.markerWidth >= 36 && snapshot.markerWidth <= 58 &&
-        snapshot.markerHeight >= 36 && snapshot.markerHeight <= 58,
+      snapshot.markerWidth >= 36 &&
+        snapshot.markerWidth <= 58 &&
+        snapshot.markerHeight >= 36 &&
+        snapshot.markerHeight <= 58,
       `${name}: country marker geometry is not bounded`,
     );
 

@@ -1,13 +1,6 @@
 "use client";
 
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type ReactElement,
-} from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactElement } from "react";
 import { emitProductAnalytics, type BrowserAnalyticsLocale } from "../analytics/browser-events";
 import type { WorldWeatherStatus } from "../world/world-overview";
 import { countryMapGeometry } from "./country-map-geometry";
@@ -104,7 +97,7 @@ function hasWebGL(): boolean {
     const canvas = document.createElement("canvas");
     return Boolean(
       window.WebGLRenderingContext &&
-        (canvas.getContext("webgl") ?? canvas.getContext("experimental-webgl")),
+      (canvas.getContext("webgl") ?? canvas.getContext("experimental-webgl")),
     );
   } catch {
     return false;
