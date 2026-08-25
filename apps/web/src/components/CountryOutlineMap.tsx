@@ -63,9 +63,7 @@ function resolveCountryGeometry(countryId: string) {
  * letting one thunderstorm day visually override several dry days. Daily rows
  * still keep their original condition-specific icon.
  */
-export function summaryMarkerSymbol(
-  marker: Pick<CountryOutlineMarker, "risk" | "symbol">,
-): string {
+export function summaryMarkerSymbol(marker: Pick<CountryOutlineMarker, "risk" | "symbol">): string {
   if (marker.risk !== "mixed") return marker.symbol;
   if (marker.symbol === "🌨️") return marker.symbol;
   return "🌦️";
