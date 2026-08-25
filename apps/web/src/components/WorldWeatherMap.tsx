@@ -4,10 +4,15 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactElement } 
 import { emitProductAnalytics, type BrowserAnalyticsLocale } from "../analytics/browser-events";
 import type { WorldWeatherStatus } from "../world/world-overview";
 import { countryMapGeometry } from "./country-map-geometry";
+import { SUPPORTED_COUNTRY_GEOMETRY } from "./world-supported-country-geometry";
 
 import "maplibre-gl/dist/maplibre-gl.css";
 
 export const WORLD_MAP_STYLE_URL = "https://tiles.openfreemap.org/styles/liberty";
+
+const COUNTRY_SOURCE_ID = "world-weather-supported-countries";
+const COUNTRY_FILL_LAYER_ID = "world-weather-supported-country-fill";
+const COUNTRY_OUTLINE_LAYER_ID = "world-weather-supported-country-outline";
 
 export interface WorldWeatherMapCountry {
   readonly countryId?: string;
@@ -29,7 +34,6 @@ interface PositionedCountry {
 }
 
 interface MapLike {
-  readonly on: (event: string, callback: () => void) => void;
   readonly remove: () => void;
 }
 
@@ -40,7 +44,7 @@ interface MarkerLike {
 const COPY = {
   en: {
     aria: "World travel weather overview",
-    hint: "Weather bubbles show supported countries. Tap one to compare its cities.",
+    hint: "Country color summarizes current travel weather. Tap a highlighted country to compare cities.",
     excellent: "Great options",
     good: "Good options",
     mixed: "Mixed weather",
@@ -51,7 +55,7 @@ const COPY = {
   },
   "zh-cn": {
     aria: "全球旅行天气总览",
-    hint: "彩色天气气泡代表已支持国家，点击即可比较该国城市天气。",
+    hint: "国家颜色代表当前整体旅行天气，点击高亮国家即可比较城市。",
     excellent: "天气很适合",
     good: "较适合出行",
     mixed: "天气一般",
@@ -62,7 +66,7 @@ const COPY = {
   },
   "zh-hant": {
     aria: "全球旅行天氣總覽",
-    hint: "彩色天氣氣泡代表已支援國家，點擊即可比較該國城市天氣。",
+    hint: "國家顏色代表目前整體旅行天氣，點擊高亮國家即可比較城市。",
     excellent: "天氣很適合",
     good: "較適合出行",
     mixed: "天氣一般",
@@ -97,7 +101,7 @@ function hasWebGL(): boolean {
     const canvas = document.createElement("canvas");
     return Boolean(
       window.WebGLRenderingContext &&
-      (canvas.getContext("webgl") ?? canvas.getContext("experimental-webgl")),
+        (canvas.getContext("webgl") ?? canvas.getContext("experimental-webgl")),
     );
   } catch {
     return false;
@@ -112,27 +116,39 @@ function markerElement(
 ): HTMLAnchorElement {
   const link = document.createElement("a");
   link.href = item.country.path;
-  link.className = `world-weather-marker status-${item.country.weatherStatus}`;
+  link.className = "world-weather-marker";
   link.dataset.countryId = item.code;
   link.dataset.countrySlug = item.country.slug;
   link.setAttribute(
     "aria-label",
     `${item.country.name}: ${statusLabel(locale, item.country.weatherStatus)}`,
   );
-
-  const score = document.createElement("strong");
-  score.textContent = item.country.weatherScore === null ? "—" : String(item.country.weatherScore);
-  score.className = "world-weather-marker-score";
-
-  const code = document.createElement("span");
-  code.textContent = item.code;
-  code.className = "world-weather-marker-code";
-
-  link.append(score, code);
+  link.textContent = item.code;
   link.addEventListener("mouseenter", () => onActivate(item.country.slug));
   link.addEventListener("focus", () => onActivate(item.country.slug));
   link.addEventListener("click", () => onOpen(item.country, item.position));
   return link;
+}
+
+function buildWeatherGeometry(positioned: ReadonlyArray<PositionedCountry>): Readonly<Record<string, unknown>> {
+  const byCode = new Map(positioned.map((item) => [item.code, item] as const));
+  return {
+    type: "FeatureCollection",
+    features: SUPPORTED_COUNTRY_GEOMETRY.features.map((feature) => {
+      const item = byCode.get(feature.properties.code);
+      return {
+        type: "Feature",
+        properties: {
+          code: feature.properties.code,
+          status: item?.country.weatherStatus ?? "unknown",
+          score: item?.country.weatherScore ?? -1,
+          slug: item?.country.slug ?? "",
+          position: item?.position ?? 0,
+        },
+        geometry: feature.geometry,
+      };
+    }),
+  };
 }
 
 export function WorldWeatherMap({
@@ -195,8 +211,8 @@ export function WorldWeatherMap({
         const map = new maplibregl.Map({
           container: containerRef.current,
           style: WORLD_MAP_STYLE_URL,
-          center: [105, 18],
-          zoom: window.innerWidth <= 640 ? 0.95 : 1.15,
+          center: [111, 20],
+          zoom: 1,
           minZoom: 0.55,
           maxZoom: 4.5,
           renderWorldCopies: false,
@@ -204,20 +220,86 @@ export function WorldWeatherMap({
           scrollZoom: false,
           dragRotate: false,
           pitchWithRotate: false,
-        }) as unknown as MapLike;
+        });
 
-        mapRef.current = map;
+        mapRef.current = map as unknown as MapLike;
 
         markerRefs.current = positioned.map((item) => {
           const element = markerElement(item, locale, setActiveSlug, recordOpen);
           return new maplibregl.Marker({ element, anchor: "center" })
             .setLngLat([item.longitude, item.latitude])
-            .addTo(map as never) as unknown as MarkerLike;
+            .addTo(map) as unknown as MarkerLike;
         });
 
         map.on("load", () => {
+          map.addSource(COUNTRY_SOURCE_ID, {
+            type: "geojson",
+            data: buildWeatherGeometry(positioned) as never,
+          });
+          map.addLayer({
+            id: COUNTRY_FILL_LAYER_ID,
+            type: "fill",
+            source: COUNTRY_SOURCE_ID,
+            paint: {
+              "fill-color": [
+                "match",
+                ["get", "status"],
+                "excellent",
+                "#22c55e",
+                "good",
+                "#84cc16",
+                "mixed",
+                "#eab308",
+                "poor",
+                "#f97316",
+                "#94a3b8",
+              ],
+              "fill-opacity": 0.62,
+            },
+          });
+          map.addLayer({
+            id: COUNTRY_OUTLINE_LAYER_ID,
+            type: "line",
+            source: COUNTRY_SOURCE_ID,
+            paint: {
+              "line-color": "#ffffff",
+              "line-width": ["interpolate", ["linear"], ["zoom"], 0.5, 0.8, 3, 1.8],
+              "line-opacity": 0.92,
+            },
+          });
+
+          map.on("mouseenter", COUNTRY_FILL_LAYER_ID, (event) => {
+            map.getCanvas().style.cursor = "pointer";
+            const code = String(event.features?.[0]?.properties?.code ?? "");
+            const item = positioned.find((candidate) => candidate.code === code);
+            if (item !== undefined) setActiveSlug(item.country.slug);
+          });
+          map.on("mouseleave", COUNTRY_FILL_LAYER_ID, () => {
+            map.getCanvas().style.cursor = "";
+          });
+          map.on("click", COUNTRY_FILL_LAYER_ID, (event) => {
+            const code = String(event.features?.[0]?.properties?.code ?? "");
+            const item = positioned.find((candidate) => candidate.code === code);
+            if (item === undefined) return;
+            recordOpen(item.country, item.position);
+            window.location.assign(item.country.path);
+          });
+
+          map.fitBounds(
+            [
+              [72, -15],
+              [149, 56],
+            ],
+            {
+              padding: window.innerWidth <= 640 ? 16 : 32,
+              duration: 0,
+              maxZoom: window.innerWidth <= 640 ? 2.15 : 2.35,
+            },
+          );
+
           if (containerRef.current !== null) {
             containerRef.current.dataset.renderState = "ready";
+            containerRef.current.dataset.countryLayer = "ready";
           }
         });
       } catch {
