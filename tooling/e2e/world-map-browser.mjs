@@ -344,7 +344,11 @@ async function validateViewport({ name, width, height, minScreenshotBytes, mobil
     await webdriver("POST", `/session/${sessionId}/url`, { url: `http://127.0.0.1:${WEB_PORT}/` });
     const snapshot = await waitForMap(sessionId);
 
-    assert.equal(snapshot.permanentLabelCount, 0, `${name}: permanent ISO labels should be removed`);
+    assert.equal(
+      snapshot.permanentLabelCount,
+      0,
+      `${name}: permanent ISO labels should be removed`,
+    );
     assert.equal(snapshot.hotspotCount, 1, `${name}: only the Singapore hotspot should remain`);
     assert.equal(
       snapshot.interactionMode,

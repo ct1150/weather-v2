@@ -22,7 +22,7 @@ describe("world weather map rendering contract", () => {
   it("colors real supported-country polygons and gives each feature a stable id", () => {
     expect(component).toContain("SUPPORTED_COUNTRY_GEOMETRY");
     expect(component).toContain("map.addSource(COUNTRY_SOURCE_ID");
-    expect(component).toContain('id: feature.properties.code');
+    expect(component).toContain("id: feature.properties.code");
     expect(component).toContain('type: "fill"');
     expect(component).toContain('"fill-color"');
     expect(component).toContain('dataset.countryLayer = "ready"');
@@ -36,8 +36,8 @@ describe("world weather map rendering contract", () => {
     expect(component).toContain('"feature-state", "focused"');
     expect(component).toContain('"feature-state", "dimmed"');
     expect(component).toContain("COUNTRY_HALO_LAYER_ID");
-    expect(component).toContain('dataset.interactionMode = compactInteraction');
-    expect(component).toContain('dataset.highlightedCountry = code');
+    expect(component).toContain("dataset.interactionMode = compactInteraction");
+    expect(component).toContain("dataset.highlightedCountry = code");
     expect(component).not.toContain("world-weather-marker");
     expect(styles).not.toContain(".world-weather-marker");
   });
