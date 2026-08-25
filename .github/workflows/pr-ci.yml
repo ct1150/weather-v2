@@ -75,6 +75,18 @@ jobs:
           NEXT_PUBLIC_CLOUDFLARE_ANALYTICS_ENABLED: "false"
         run: pnpm --filter @wnr/web build
 
+      - name: Browser E2E world map
+        run: node tooling/e2e/world-map-browser.mjs
+
+      - name: Upload world map E2E screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: world-map-browser-e2e
+          path: artifacts/e2e/world-map-*.png
+          if-no-files-found: warn
+          retention-days: 7
+
       - name: Build Workers
         run: |
           pnpm --filter @wnr/weather-sync build
