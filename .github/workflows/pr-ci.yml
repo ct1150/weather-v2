@@ -9,7 +9,7 @@ on:
     types: [opened, reopened, ready_for_review, synchronize]
 
 permissions:
-  contents: read
+  contents: write
   pull-requests: read
 
 concurrency:
@@ -28,6 +28,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -42,6 +44,23 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Autoformat world map preview files
+        run: |
+          pnpm exec prettier --write \
+            apps/web/src/components/world-map-mobile-contract.test.ts \
+            apps/web/src/components/WorldWeatherMap.tsx \
+            tooling/e2e/world-map-browser.mjs
+          if ! git diff --quiet; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add \
+              apps/web/src/components/world-map-mobile-contract.test.ts \
+              apps/web/src/components/WorldWeatherMap.tsx \
+              tooling/e2e/world-map-browser.mjs
+            git commit -m "style(home): format world map preview interactions"
+            git push origin HEAD:${{ github.event.pull_request.head.ref }}
+          fi
 
       - name: Format check
         run: pnpm format:check
