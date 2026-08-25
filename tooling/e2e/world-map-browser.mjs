@@ -16,7 +16,7 @@ const MIME = {
   ".css": "text/css; charset=utf-8",
   ".html": "text/html; charset=utf-8",
   ".js": "text/javascript; charset=utf-8",
-  ".json": "application/json; charset=utf-8",
+  ".json": "application/json",
   ".png": "image/png",
   ".svg": "image/svg+xml",
   ".webp": "image/webp",
@@ -181,7 +181,50 @@ async function waitForMap(sessionId, expectedMarkers = 10) {
   throw new Error(`World map never reached ready state: ${JSON.stringify(snapshot)}`);
 }
 
+async function scrollElementFullyIntoView(sessionId, selector) {
+  const encodedSelector = JSON.stringify(selector);
+  const geometry = await execute(
+    sessionId,
+    `
+      const element = document.querySelector(${encodedSelector});
+      if (!element) return null;
+      element.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'instant' });
+      const rect = element.getBoundingClientRect();
+      return {
+        top: rect.top,
+        bottom: rect.bottom,
+        height: rect.height,
+        viewportHeight: window.innerHeight,
+      };
+    `,
+  );
+  assert.ok(geometry, `Element not found for ${selector}`);
+  await new Promise((resolveDelay) => setTimeout(resolveDelay, 250));
+
+  const settled = await execute(
+    sessionId,
+    `
+      const element = document.querySelector(${encodedSelector});
+      const rect = element?.getBoundingClientRect();
+      return rect ? {
+        top: rect.top,
+        bottom: rect.bottom,
+        height: rect.height,
+        viewportHeight: window.innerHeight,
+      } : null;
+    `,
+  );
+  assert.ok(settled, `Element disappeared before screenshot: ${selector}`);
+  assert.ok(settled.top >= -2, `Map starts above the viewport (${settled.top}px)`);
+  assert.ok(
+    settled.bottom <= settled.viewportHeight + 2,
+    `Map extends below the viewport (${settled.bottom}px > ${settled.viewportHeight}px)`,
+  );
+  return settled;
+}
+
 async function screenshotElement(sessionId, selector, outputPath) {
+  const viewportGeometry = await scrollElementFullyIntoView(sessionId, selector);
   const element = await webdriver("POST", `/session/${sessionId}/element`, {
     using: "css selector",
     value: selector,
@@ -191,7 +234,7 @@ async function screenshotElement(sessionId, selector, outputPath) {
   const base64 = await webdriver("GET", `/session/${sessionId}/element/${elementId}/screenshot`);
   const png = Buffer.from(base64, "base64");
   writeFileSync(outputPath, png);
-  return png.length;
+  return { bytes: png.length, viewportGeometry };
 }
 
 async function clickCountry(sessionId, countryId) {
@@ -247,18 +290,25 @@ async function validateViewport({ name, width, height, minScreenshotBytes, click
     );
 
     const screenshotPath = join(ARTIFACT_DIR, `world-map-${name}.png`);
-    const screenshotBytes = await screenshotElement(
+    const screenshot = await screenshotElement(
       sessionId,
       "[data-world-weather-map-canvas]",
       screenshotPath,
     );
     assert.ok(
-      screenshotBytes >= minScreenshotBytes,
-      `${name}: map screenshot is suspiciously small (${screenshotBytes} bytes), consistent with a blank/solid block`,
+      Math.abs(screenshot.viewportGeometry.height - snapshot.mapHeight) < 4,
+      `${name}: screenshot geometry does not match the full map`,
+    );
+    assert.ok(
+      screenshot.bytes >= minScreenshotBytes,
+      `${name}: map screenshot is suspiciously small (${screenshot.bytes} bytes), consistent with a blank/solid block`,
     );
 
     if (clickJp) await clickCountry(sessionId, "JP");
-    console.log(`${name}:`, JSON.stringify({ ...snapshot, screenshotBytes }));
+    console.log(
+      `${name}:`,
+      JSON.stringify({ ...snapshot, screenshotBytes: screenshot.bytes, viewport: screenshot.viewportGeometry }),
+    );
   } finally {
     await webdriver("DELETE", `/session/${sessionId}`).catch(() => undefined);
   }
