@@ -17,6 +17,7 @@ import {
 import { toTraditionalText } from "../trips/traditional";
 import { windowIndicesForDates } from "../weather/window-selection";
 import { isMostlyDryTravelDay } from "./rain-day-classification";
+import { assessRainWindow } from "./rain-window-risk";
 import { CountryCompareSheet, type CountryCompareItem } from "./CountryCompareSheet";
 import { CountrySavedViewsControl } from "./CountrySavedViewsControl";
 import {
@@ -162,7 +163,7 @@ const COPY = {
     matchesLimits: "符合你的限制",
     unavailable: "暂无天气数据",
     rainReason: (value: number, limit: number) => `最高降雨概率 ${value}% 超过 ${limit}%`,
-    windReason: (value: number, limit: number) => `风速 ${value} km/h 超过 ${limit} km/h`,
+    windReason: (value: number, limit: number) => `风速 ${value} km/h 超过 ${limit}%`,
     coldReason: (value: number, limit: number) => `夜间最低 ${value}°C 低于 ${limit}°C`,
     hotReason: (value: number, limit: number) => `白天最高 ${value}°C 超过 ${limit}°C`,
     sourceHeading: "如何理解这张地图",
@@ -217,7 +218,7 @@ const COPY = {
     matchesLimits: "符合你的限制",
     unavailable: "暫無天氣資料",
     rainReason: (value: number, limit: number) => `最高降雨機率 ${value}% 超過 ${limit}%`,
-    windReason: (value: number, limit: number) => `風速 ${value} km/h 超過 ${limit} km/h`,
+    windReason: (value: number, limit: number) => `風速 ${value} km/h 超過 ${limit}%`,
     coldReason: (value: number, limit: number) => `夜間最低 ${value}°C 低於 ${limit}°C`,
     hotReason: (value: number, limit: number) => `白天最高 ${value}°C 超過 ${limit}°C`,
     sourceHeading: "如何理解這張地圖",
@@ -290,10 +291,16 @@ function dailySymbol(condition: string): string {
 
 function summarySymbol(days: ReadonlyArray<CountryWeatherDayViewModel>, risk: Risk): string {
   const conditions = days.map((day) => day.weather.conditionLabel).join(" ");
-  if (/thunder|hail/i.test(conditions)) return "⛈️";
-  if (/snow|sleet/i.test(conditions)) return "🌨️";
-  if (risk === "wet") return "🌧️";
-  if (/rain|drizzle|shower/i.test(conditions)) return "🌦️";
+  const hasSnow = /snow|sleet/i.test(conditions);
+  const hasThunder = /thunder|hail/i.test(conditions);
+
+  if (risk === "mixed") return hasSnow ? "🌨️" : "🌦️";
+  if (risk === "wet") {
+    if (hasThunder) return "⛈️";
+    if (hasSnow) return "🌨️";
+    return "🌧️";
+  }
+
   const clearDays = days.filter((day) => /clear|sun/i.test(day.weather.conditionLabel)).length;
   return clearDays >= Math.ceil(days.length / 2) ? "☀️" : "🌤️";
 }
@@ -346,19 +353,17 @@ function summarize(
     rainAmounts.length > 0
       ? Math.round(rainAmounts.reduce((total, value) => total + value, 0) * 10) / 10
       : null;
+  const maxDailyRainMm = rainAmounts.length > 0 ? Math.max(...rainAmounts) : null;
   const temperatureMin = minimums.length > 0 ? Math.min(...minimums) : null;
   const temperatureMax = maximums.length > 0 ? Math.max(...maximums) : null;
   const maxWind = winds.length > 0 ? Math.round(Math.max(...winds)) : null;
-  const risk: Risk =
-    days.length === 0 || (totalRainMm === null && maxRain === null)
-      ? "unknown"
-      : dryDays === days.length
-        ? "good"
-        : dryDays > 0 &&
-            (dryDays >= Math.ceil(days.length / 2) ||
-              (totalRainMm ?? Infinity) <= days.length * 2.5)
-          ? "mixed"
-          : "wet";
+  const risk: Risk = assessRainWindow({
+    dayCount: days.length,
+    dryDays,
+    totalRainMm,
+    maxDailyRainMm,
+    maxRainProbability: maxRain,
+  }).risk;
   const metrics = { maxRain, maxWind, temperatureMin, temperatureMax };
   const reasons = filterReasons(metrics, filters, locale);
   return {
