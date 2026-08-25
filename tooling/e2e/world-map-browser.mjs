@@ -11,6 +11,7 @@ const ARTIFACT_DIR = resolve(ROOT, "artifacts/e2e");
 const WEB_PORT = 4173;
 const DRIVER_PORT = 9515;
 const ELEMENT_KEY = "element-6066-11e4-a52e-4f735466cecf";
+const TOKYO = [139.6917, 35.6895];
 
 const MIME = {
   ".css": "text/css; charset=utf-8",
@@ -133,7 +134,7 @@ async function execute(sessionId, script) {
   return webdriver("POST", `/session/${sessionId}/execute/sync`, { script, args: [] });
 }
 
-async function waitForMap(sessionId, expectedMarkers = 10) {
+async function waitForMap(sessionId) {
   const started = Date.now();
   let snapshot = null;
   while (Date.now() - started < 30_000) {
@@ -142,37 +143,29 @@ async function waitForMap(sessionId, expectedMarkers = 10) {
       `
         const map = document.querySelector('[data-world-weather-map-canvas]');
         const canvas = map?.querySelector('canvas.maplibregl-canvas');
-        const markers = [...document.querySelectorAll('.world-weather-marker')];
+        const labels = [...document.querySelectorAll('.world-weather-marker')];
+        const hotspots = [...document.querySelectorAll('.world-weather-hotspot')];
         const rect = map?.getBoundingClientRect();
-        const markerRects = markers.map((marker) => marker.getBoundingClientRect());
-        let overlapPairs = 0;
-        for (let left = 0; left < markerRects.length; left += 1) {
-          for (let right = left + 1; right < markerRects.length; right += 1) {
-            const a = markerRects[left];
-            const b = markerRects[right];
-            const overlapWidth = Math.max(0, Math.min(a.right, b.right) - Math.max(a.left, b.left));
-            const overlapHeight = Math.max(0, Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top));
-            if (overlapWidth * overlapHeight > 40) overlapPairs += 1;
-          }
-        }
+        const hotspotRect = hotspots[0]?.getBoundingClientRect();
         return {
           state: map?.dataset.renderState ?? null,
           countryLayer: map?.dataset.countryLayer ?? null,
-          markerCount: markers.length,
-          overlapPairs,
+          interactionMode: map?.dataset.interactionMode ?? null,
+          permanentLabelCount: labels.length,
+          hotspotCount: hotspots.length,
           mapWidth: rect?.width ?? 0,
           mapHeight: rect?.height ?? 0,
           canvasWidth: canvas?.getBoundingClientRect().width ?? 0,
           canvasHeight: canvas?.getBoundingClientRect().height ?? 0,
-          markerWidth: markerRects[0]?.width ?? 0,
-          markerHeight: markerRects[0]?.height ?? 0,
+          hotspotWidth: hotspotRect?.width ?? 0,
+          hotspotHeight: hotspotRect?.height ?? 0,
         };
       `,
     );
     if (
       snapshot.state === "ready" &&
       snapshot.countryLayer === "ready" &&
-      snapshot.markerCount === expectedMarkers
+      snapshot.hotspotCount === 1
     ) {
       return snapshot;
     }
@@ -237,37 +230,131 @@ async function screenshotElement(sessionId, selector, outputPath) {
   return { bytes: png.length, viewportGeometry };
 }
 
-async function clickCountry(sessionId, countryId) {
+async function mapPoint(sessionId, coordinates) {
+  return execute(
+    sessionId,
+    `
+      const container = document.querySelector('[data-world-weather-map-canvas]');
+      const map = container?.__wnrWorldMap;
+      const canvas = container?.querySelector('canvas.maplibregl-canvas');
+      if (!map || !canvas) return null;
+      const point = map.project(${JSON.stringify(coordinates)});
+      const rect = canvas.getBoundingClientRect();
+      return { x: Math.round(rect.left + point.x), y: Math.round(rect.top + point.y) };
+    `,
+  );
+}
+
+async function pointerMove(sessionId, point) {
+  assert.ok(point, "Map projection point was not available");
+  await webdriver("POST", `/session/${sessionId}/actions`, {
+    actions: [
+      {
+        type: "pointer",
+        id: "mouse",
+        parameters: { pointerType: "mouse" },
+        actions: [
+          {
+            type: "pointerMove",
+            duration: 120,
+            origin: "viewport",
+            x: point.x,
+            y: point.y,
+          },
+        ],
+      },
+    ],
+  });
+}
+
+async function pointerClick(sessionId, point) {
+  assert.ok(point, "Map projection point was not available");
+  await webdriver("POST", `/session/${sessionId}/actions`, {
+    actions: [
+      {
+        type: "pointer",
+        id: "mouse",
+        parameters: { pointerType: "mouse" },
+        actions: [
+          {
+            type: "pointerMove",
+            duration: 80,
+            origin: "viewport",
+            x: point.x,
+            y: point.y,
+          },
+          { type: "pointerDown", button: 0 },
+          { type: "pointerUp", button: 0 },
+        ],
+      },
+    ],
+  });
+}
+
+async function worldMapInteractionState(sessionId) {
+  return execute(
+    sessionId,
+    `
+      const map = document.querySelector('[data-world-weather-map-canvas]');
+      const overview = document.querySelector('[data-world-weather-overview]');
+      return {
+        highlightedCountry: map?.dataset.highlightedCountry ?? null,
+        activeCountry: overview?.dataset.activeCountry ?? null,
+        path: window.location.pathname,
+      };
+    `,
+  );
+}
+
+async function waitForActiveCountry(sessionId, countryId) {
+  const started = Date.now();
+  let state = null;
+  while (Date.now() - started < 5_000) {
+    state = await worldMapInteractionState(sessionId);
+    if (state.highlightedCountry === countryId && state.activeCountry === countryId) return state;
+    await new Promise((resolveDelay) => setTimeout(resolveDelay, 100));
+  }
+  throw new Error(`Country ${countryId} did not become active: ${JSON.stringify(state)}`);
+}
+
+async function clickOverviewLink(sessionId, expectedPath) {
   const element = await webdriver("POST", `/session/${sessionId}/element`, {
     using: "css selector",
-    value: `.world-weather-marker[data-country-id="${countryId}"]`,
+    value: "[data-world-weather-overview-link]",
   });
   const elementId = element[ELEMENT_KEY];
-  assert.ok(elementId, `${countryId} weather marker not found`);
+  assert.ok(elementId, "World weather overview CTA not found");
   await webdriver("POST", `/session/${sessionId}/element/${elementId}/click`, {});
+  await waitForPath(sessionId, expectedPath);
+}
 
+async function waitForPath(sessionId, expectedPath) {
   const started = Date.now();
   while (Date.now() - started < 8_000) {
     const current = await webdriver("GET", `/session/${sessionId}/url`);
-    if (new URL(current).pathname.replace(/\/$/, "") === "/jp") return;
+    if (new URL(current).pathname.replace(/\/$/, "") === expectedPath) return;
     await new Promise((resolveDelay) => setTimeout(resolveDelay, 200));
   }
-  throw new Error("Clicking the JP marker did not navigate to /jp");
+  throw new Error(`Browser did not navigate to ${expectedPath}`);
 }
 
-async function validateViewport({ name, width, height, minScreenshotBytes, clickJp = false }) {
+async function validateViewport({ name, width, height, minScreenshotBytes, mobile }) {
   const sessionId = await createSession(width, height);
   try {
     await webdriver("POST", `/session/${sessionId}/url`, { url: `http://127.0.0.1:${WEB_PORT}/` });
     const snapshot = await waitForMap(sessionId);
 
-    assert.equal(snapshot.markerCount, 10, `${name}: expected all supported country labels`);
     assert.equal(
-      snapshot.countryLayer,
-      "ready",
-      `${name}: supported-country polygon layer is missing`,
+      snapshot.permanentLabelCount,
+      0,
+      `${name}: permanent ISO labels should be removed`,
     );
-    assert.ok(snapshot.overlapPairs <= 3, `${name}: too many country labels overlap`);
+    assert.equal(snapshot.hotspotCount, 1, `${name}: only the Singapore hotspot should remain`);
+    assert.equal(
+      snapshot.interactionMode,
+      mobile ? "tap-preview" : "hover-open",
+      `${name}: interaction mode is incorrect`,
+    );
     assert.ok(
       snapshot.mapWidth >= Math.min(width * 0.72, 300),
       `${name}: map is unexpectedly narrow`,
@@ -282,12 +369,25 @@ async function validateViewport({ name, width, height, minScreenshotBytes, click
       `${name}: MapLibre canvas does not fill its container`,
     );
     assert.ok(
-      snapshot.markerWidth >= 20 &&
-        snapshot.markerWidth <= 42 &&
-        snapshot.markerHeight >= 20 &&
-        snapshot.markerHeight <= 34,
-      `${name}: country label geometry is not compact`,
+      snapshot.hotspotWidth >= 28 &&
+        snapshot.hotspotWidth <= 40 &&
+        snapshot.hotspotHeight >= 28 &&
+        snapshot.hotspotHeight <= 40,
+      `${name}: Singapore hotspot is not a compact enlarged touch target`,
     );
+
+    await scrollElementFullyIntoView(sessionId, "[data-world-weather-map-canvas]");
+    const tokyo = await mapPoint(sessionId, TOKYO);
+
+    if (mobile) {
+      await pointerClick(sessionId, tokyo);
+      const selected = await waitForActiveCountry(sessionId, "JP");
+      assert.equal(selected.path, "/", "mobile: first tap should preview instead of navigating");
+    } else {
+      await pointerMove(sessionId, tokyo);
+      const hovered = await waitForActiveCountry(sessionId, "JP");
+      assert.equal(hovered.path, "/", "desktop: hover should preview without navigating");
+    }
 
     const screenshotPath = join(ARTIFACT_DIR, `world-map-${name}.png`);
     const screenshot = await screenshotElement(
@@ -304,7 +404,13 @@ async function validateViewport({ name, width, height, minScreenshotBytes, click
       `${name}: map screenshot is suspiciously small (${screenshot.bytes} bytes), consistent with a blank/solid block`,
     );
 
-    if (clickJp) await clickCountry(sessionId, "JP");
+    if (mobile) {
+      await clickOverviewLink(sessionId, "/jp");
+    } else {
+      await pointerClick(sessionId, tokyo);
+      await waitForPath(sessionId, "/jp");
+    }
+
     console.log(
       `${name}:`,
       JSON.stringify({
@@ -338,13 +444,14 @@ try {
     width: 390,
     height: 844,
     minScreenshotBytes: 18_000,
+    mobile: true,
   });
   await validateViewport({
     name: "desktop",
     width: 1440,
     height: 900,
     minScreenshotBytes: 35_000,
-    clickJp: true,
+    mobile: false,
   });
   console.log("world-map browser E2E: passed");
 } catch (error) {
