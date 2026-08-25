@@ -134,7 +134,11 @@ export function CountryMapHome({ countries, locale = "en" }: CountryMapHomeProps
         </div>
       </section>
 
-      <section id="world-weather-map" className="world-map-section" aria-label={copy.mapSectionLabel}>
+      <section
+        id="world-weather-map"
+        className="world-map-section"
+        aria-label={copy.mapSectionLabel}
+      >
         <WorldWeatherMap countries={countries} locale={locale} />
       </section>
 
