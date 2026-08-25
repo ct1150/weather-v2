@@ -31,11 +31,12 @@ function renderHome(): string {
 }
 
 describe("critical path — world-map homepage renders without JavaScript", () => {
-  it("renders visual country discovery and crawlable country links", () => {
+  it("renders the real-map enhancement target and crawlable country links", () => {
     const html = renderHome();
     expect(html).toContain("See the world first. Then decide where to go.");
     expect(html).toContain("World travel weather overview");
-    expect(html).toContain("world-weather-country-shape");
+    expect(html).toContain("data-world-weather-map-canvas");
+    expect(html).not.toContain("world-weather-country-shape");
     expect(html).toContain("Japan");
     expect(html).toContain("Sapporo · Osaka · Tokyo");
     expect(html).toContain('href="/jp"');
