@@ -98,21 +98,22 @@
 }
 
 .world-weather-marker {
-  --world-status: #94a3b8;
   display: grid;
-  width: 3.15rem;
-  height: 3.15rem;
+  min-width: 1.85rem;
+  height: 1.6rem;
   place-items: center;
-  align-content: center;
-  gap: 0;
-  border: 2px solid #fff;
-  border-radius: 999px;
-  color: #fff;
-  background: var(--world-status);
+  padding: 0 0.35rem;
+  border: 1px solid rgb(255 255 255 / 0.92);
+  border-radius: 0.55rem;
+  color: rgb(var(--wnr-foreground));
+  background: rgb(255 255 255 / 0.9);
+  font-size: 0.58rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  line-height: 1;
   text-decoration: none;
-  box-shadow:
-    0 5px 14px rgb(15 23 42 / 0.22),
-    0 0 0 1px rgb(15 23 42 / 0.08);
+  box-shadow: 0 2px 8px rgb(15 23 42 / 0.2);
+  backdrop-filter: blur(5px);
   transform: translateZ(0);
   transition:
     transform 140ms ease,
@@ -122,25 +123,11 @@
 .world-weather-marker:hover,
 .world-weather-marker:focus-visible {
   z-index: 10;
-  transform: scale(1.13);
+  transform: scale(1.12);
   box-shadow:
-    0 8px 20px rgb(15 23 42 / 0.3),
-    0 0 0 3px rgb(255 255 255 / 0.8);
+    0 5px 14px rgb(15 23 42 / 0.26),
+    0 0 0 2px rgb(255 255 255 / 0.82);
   outline: none;
-}
-
-.world-weather-marker-score {
-  font-size: 0.86rem;
-  font-weight: 900;
-  line-height: 1;
-}
-
-.world-weather-marker-code {
-  margin-top: 0.12rem;
-  font-size: 0.54rem;
-  font-weight: 850;
-  letter-spacing: 0.08em;
-  line-height: 1;
 }
 
 .status-excellent {
@@ -162,14 +149,6 @@
 .status-unknown {
   --world-status: #94a3b8;
   color: #64748b;
-}
-
-.world-weather-marker.status-excellent,
-.world-weather-marker.status-good,
-.world-weather-marker.status-mixed,
-.world-weather-marker.status-poor,
-.world-weather-marker.status-unknown {
-  color: #fff;
 }
 
 .world-weather-map-hint {
@@ -334,16 +313,10 @@
   }
 
   .world-weather-marker {
-    width: 2.65rem;
-    height: 2.65rem;
-  }
-
-  .world-weather-marker-score {
-    font-size: 0.75rem;
-  }
-
-  .world-weather-marker-code {
-    font-size: 0.49rem;
+    min-width: 1.7rem;
+    height: 1.45rem;
+    padding: 0 0.28rem;
+    font-size: 0.52rem;
   }
 
   .world-weather-map-hint {
