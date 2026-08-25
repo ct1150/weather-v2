@@ -58,6 +58,20 @@ function resolveCountryGeometry(countryId: string) {
 }
 
 /**
+ * A map hover is a summary of the selected travel window, not the worst single
+ * forecast day. Mixed windows therefore use a mixed-weather icon instead of
+ * letting one thunderstorm day visually override several dry days. Daily rows
+ * still keep their original condition-specific icon.
+ */
+export function summaryMarkerSymbol(
+  marker: Pick<CountryOutlineMarker, "risk" | "symbol">,
+): string {
+  if (marker.risk !== "mixed") return marker.symbol;
+  if (marker.symbol === "🌨️") return marker.symbol;
+  return "🌦️";
+}
+
+/**
  * Mirrors SVG preserveAspectRatio="xMidYMid meet" so the HTML marker layer and
  * the SVG outline always share the same rendered coordinate frame.
  */
@@ -224,7 +238,7 @@ export function CountryOutlineMap({
               />
               <span className="country-weather-dot-tooltip" aria-hidden="true">
                 <span className="country-weather-dot-tooltip-heading">
-                  <span>{marker.symbol}</span>
+                  <span>{summaryMarkerSymbol(marker)}</span>
                   <strong>{marker.name}</strong>
                 </span>
                 <small>{marker.detail}</small>
