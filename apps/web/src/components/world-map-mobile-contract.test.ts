@@ -24,7 +24,7 @@ describe("world weather map rendering contract", () => {
     expect(component).toContain("map.addSource(COUNTRY_SOURCE_ID");
     expect(component).toContain('type: "fill"');
     expect(component).toContain('"fill-color"');
-    expect(component).toContain('data.countryLayer = "ready"');
+    expect(component).toContain('dataset.countryLayer = "ready"');
     for (const code of ["JP", "KR", "TH", "VN", "ID", "MY", "PH", "SG", "CN", "TW"]) {
       expect(geometry).toContain(`\\"code\\":\\"${code}\\"`);
     }
@@ -37,13 +37,15 @@ describe("world weather map rendering contract", () => {
     expect(component).toContain("dataset.countryId");
     expect(styles).toContain("min-width: 1.85rem");
     expect(styles).toContain("height: 1.6rem");
+    expect(styles).toContain(".world-weather-marker:hover");
+    expect(styles).toContain("transform: scale(1.12)");
   });
 
   it("uses explicit desktop and mobile map heights without SVG stretching or clipping hacks", () => {
     expect(styles).toContain("height: clamp(22rem, 44vw, 30rem)");
     expect(styles).toContain("height: 20rem");
-    expect(styles).not.toContain("transform: scale(1.12)");
     expect(styles).not.toContain("aspect-ratio: 1200 / 620");
     expect(styles).not.toContain("world-weather-land");
+    expect(styles).not.toContain(".world-weather-map-canvas {\n  transform:");
   });
 });
