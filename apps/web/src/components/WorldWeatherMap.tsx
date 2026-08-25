@@ -320,7 +320,6 @@ export function WorldWeatherMap({
                 0.3,
                 0.62,
               ],
-              "fill-opacity-transition": { duration: 180, delay: 0 },
             },
           });
           map.addLayer({
@@ -332,8 +331,6 @@ export function WorldWeatherMap({
               "line-width": ["case", ["boolean", ["feature-state", "focused"], false], 7, 0],
               "line-opacity": ["case", ["boolean", ["feature-state", "focused"], false], 0.34, 0],
               "line-blur": 3,
-              "line-width-transition": { duration: 180, delay: 0 },
-              "line-opacity-transition": { duration: 180, delay: 0 },
             },
           });
           map.addLayer({
@@ -354,9 +351,27 @@ export function WorldWeatherMap({
                 ["interpolate", ["linear"], ["zoom"], 0.5, 0.8, 3, 1.8],
               ],
               "line-opacity": ["case", ["boolean", ["feature-state", "dimmed"], false], 0.42, 0.94],
-              "line-width-transition": { duration: 180, delay: 0 },
-              "line-opacity-transition": { duration: 180, delay: 0 },
             },
+          });
+          map.setPaintProperty(COUNTRY_FILL_LAYER_ID, "fill-opacity-transition", {
+            duration: 180,
+            delay: 0,
+          });
+          map.setPaintProperty(COUNTRY_HALO_LAYER_ID, "line-width-transition", {
+            duration: 180,
+            delay: 0,
+          });
+          map.setPaintProperty(COUNTRY_HALO_LAYER_ID, "line-opacity-transition", {
+            duration: 180,
+            delay: 0,
+          });
+          map.setPaintProperty(COUNTRY_OUTLINE_LAYER_ID, "line-width-transition", {
+            duration: 180,
+            delay: 0,
+          });
+          map.setPaintProperty(COUNTRY_OUTLINE_LAYER_ID, "line-opacity-transition", {
+            duration: 180,
+            delay: 0,
           });
 
           map.on("mouseenter", COUNTRY_FILL_LAYER_ID, (event) => {
