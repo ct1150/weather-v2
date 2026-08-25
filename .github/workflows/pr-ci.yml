@@ -9,7 +9,7 @@ on:
     types: [opened, reopened, ready_for_review, synchronize]
 
 permissions:
-  contents: write
+  contents: read
   pull-requests: read
 
 concurrency:
@@ -28,8 +28,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.pull_request.head.ref }}
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -44,21 +42,6 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-
-      - name: Autoformat rain-risk semantics files
-        run: |
-          pnpm exec prettier --write \
-            apps/web/src/components/CountryOutlineMap.tsx \
-            apps/web/src/components/rain-window-risk.ts
-          if ! git diff --quiet; then
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add \
-              apps/web/src/components/CountryOutlineMap.tsx \
-              apps/web/src/components/rain-window-risk.ts
-            git commit -m "style(weather): format rain-risk semantics"
-            git push origin HEAD:${{ github.event.pull_request.head.ref }}
-          fi
 
       - name: Format check
         run: pnpm format:check
