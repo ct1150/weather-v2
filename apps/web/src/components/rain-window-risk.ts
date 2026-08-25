@@ -40,10 +40,7 @@ export function assessRainWindow(signals: RainWindowSignals): RainWindowAssessme
   const averageRainMm =
     dayCount > 0 && signals.totalRainMm !== null ? signals.totalRainMm / dayCount : null;
 
-  if (
-    dayCount === 0 ||
-    (signals.totalRainMm === null && signals.maxRainProbability === null)
-  ) {
+  if (dayCount === 0 || (signals.totalRainMm === null && signals.maxRainProbability === null)) {
     return { risk: "unknown", dryRatio, averageRainMm };
   }
 
