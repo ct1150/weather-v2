@@ -78,7 +78,10 @@ export function SiteHeader(): ReactElement {
           aria-label={isChinese ? "主導覽" : "Main navigation"}
           className="flex items-center gap-1"
         >
-          <a href={discoverHref} className="nav-link bg-foreground !text-white shadow-sm focus-ring">
+          <a
+            href={discoverHref}
+            className="nav-link bg-foreground !text-white shadow-sm focus-ring"
+          >
             <span className="hidden sm:inline">
               {isTraditional ? "找目的地" : isSimplified ? "找目的地" : "Find destinations"}
             </span>
