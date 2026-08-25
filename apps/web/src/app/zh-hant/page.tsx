@@ -7,20 +7,22 @@ import { toTraditionalText } from "../../trips/traditional";
 import { summarizeCountryWeather } from "../../world/world-overview";
 import { buildAlternates, localeUrl, routeRobots } from "../seo";
 
+const HOME_TITLE = "哪裡不下雨？未來14天少雨旅行目的地推薦 | Where Not Rain";
+const HOME_DESCRIPTION =
+  "日期定了但目的地還沒定？選擇出發城市和旅行日期，從可達目的地中找出降雨風險更低的 Top 3，再繼續查看國家和城市天氣地圖。";
+
 export async function generateMetadata(): Promise<Metadata> {
-  const title = "全球旅行天氣地圖 | 哪裡不下雨 | Where Not Rain";
-  const description = "在一張世界地圖上查看已支援國家的整體天氣表現，點擊國家後直接比較城市天氣。";
   return {
-    title: { absolute: title },
-    description,
+    title: { absolute: HOME_TITLE },
+    description: HOME_DESCRIPTION,
     alternates: buildAlternates("/", "zh-hant", ["en", "zh-cn", "zh-hant"]),
     robots: routeRobots("homepage", true),
     openGraph: {
       type: "website",
       url: localeUrl("zh-hant", "/"),
       siteName: "Where Not Rain",
-      title,
-      description,
+      title: HOME_TITLE,
+      description: HOME_DESCRIPTION,
       locale: "zh_TW",
     },
   };
@@ -49,19 +51,44 @@ export default async function TraditionalChineseHome(): Promise<ReactElement> {
     };
   });
   const pageUrl = localeUrl("zh-hant", "/");
+  const discoverUrl = localeUrl("zh-hant", "/discover");
   const jsonLd = {
     "@context": "https://schema.org",
-    "@type": "CollectionPage",
-    name: "全球旅行天氣地圖",
-    description: "先看世界地圖上的國家天氣，再進入國家地圖比較熱門城市。",
-    url: pageUrl,
-    dateModified: dataset.dataUpdatedAt,
-    inLanguage: "zh-Hant",
-    hasPart: countries.map((country) => ({
-      "@type": "WebPage",
-      name: `${country.name}旅行天氣地圖`,
-      url: localeUrl("zh-hant", `/${country.slug}`),
-    })),
+    "@graph": [
+      {
+        "@type": "WebPage",
+        "@id": `${pageUrl}#webpage`,
+        name: "哪裡不下雨？按日期找少雨旅行目的地",
+        description: HOME_DESCRIPTION,
+        url: pageUrl,
+        dateModified: dataset.dataUpdatedAt,
+        inLanguage: "zh-Hant",
+        mainEntity: { "@id": `${discoverUrl}#app` },
+        hasPart: { "@id": `${pageUrl}#countries` },
+      },
+      {
+        "@type": "WebApplication",
+        "@id": `${discoverUrl}#app`,
+        name: "Where Not Rain 少雨目的地工具",
+        description: "選擇出發城市和日期，對可達目的地按降雨風險排序並返回 Top 3。",
+        url: discoverUrl,
+        applicationCategory: "TravelApplication",
+        operatingSystem: "Web",
+        inLanguage: "zh-Hant",
+      },
+      {
+        "@type": "ItemList",
+        "@id": `${pageUrl}#countries`,
+        name: "國家旅行天氣地圖",
+        numberOfItems: countries.length,
+        itemListElement: countries.map((country, index) => ({
+          "@type": "ListItem",
+          position: index + 1,
+          name: `${country.name}旅行天氣地圖`,
+          url: localeUrl("zh-hant", `/${country.slug}`),
+        })),
+      },
+    ],
   };
 
   return (

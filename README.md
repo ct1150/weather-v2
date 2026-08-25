@@ -1,34 +1,49 @@
 # Where Not Rain
 
-Country-first travel weather maps for a one-person company. A visitor chooses a country, then reads weather icons, lower-rain days and temperatures for popular destinations directly on one map.
+Weather-driven destination decisions for travellers whose dates are fixed but destination is still open. The primary task is to choose a starting city and dates, then receive a Top 3 shortlist of reachable destinations ranked by rain risk. Country and city weather maps remain available as a fast visual exploration and SEO acquisition layer.
 
 ## Current product direction
 
 ```text
-choose country
-→ see popular destinations on one map
-→ compare the next 7 days at a glance
-→ optionally grey places that are too wet, windy, hot or cold
-→ tap a destination for its daily forecast
+choose starting city + travel dates + maximum one-way planning time
+→ filter to maintained reachable destinations
+→ apply any explicit weather limits
+→ rank by rain risk
+→ return Top 3
+→ select a destination
+→ continue into detailed country/city weather or post-selection commercial actions
 ```
 
-The active product does not ask for a starting city, transport mode or maximum travel time. It does not use an opaque multi-factor Travel Score to decide which destination appears better. Weather remains the visible evidence and every supported destination remains on the map.
+The active product keeps rain as the ranking target. Reachability is an eligibility layer and transport time is only a tie-break after dry score and forecast confidence. Wind and temperature remain explicit user-selected limits rather than hidden score weights.
 
-English, Simplified Chinese and Traditional Chinese home and country pages share the same interaction model. The legacy least-rain finder remains available under `/discover` for existing saved links but is `noindex` and absent from primary navigation, PWA entry and sitemap acquisition. Existing itinerary, collaboration, route and execution capabilities remain available under `/trips` for current users but are not part of product expansion.
+English, Simplified Chinese and Traditional Chinese home pages now lead into `/discover`. The world map and country maps remain prominent secondary exploration surfaces, and country/city pages stay crawlable acquisition pages. Advanced itinerary, collaboration, route and execution capabilities remain available under `/trips` for existing users but are not part of primary acquisition.
 
-The current product contract is recorded in:
+The current positioning realignment is recorded in:
 
-- `docs/superpowers/product/2026-08-20-founder-prd-country-weather-map.md`
-- `docs/superpowers/plans/2026-08-20-country-weather-map-cutover.md`
+- `docs/superpowers/plans/2026-08-25-home-decision-positioning.md`
+- `docs/superpowers/product/2026-08-19-founder-prd-opc-dry-destination-engine.md`
+- `docs/00-Founder-Vision.md`
+
+The 2026-08-20 country-first weather-map PRD remains historical context for the map experience; it is superseded for homepage acquisition and primary product positioning by the 2026-08-25 realignment.
 
 ## Privacy-safe product measurement
 
 Bounded product events are accepted by the dedicated `product-analytics` Worker and stored in the isolated `wnr_product_events_v1` table in the existing Trip D1 database. The collector stores no account, email, IP, user/session/device identifier, raw URL, query string, free text, itinerary or precise location. Rows have 90-day retention and are never joined to trip or user records.
 
-The country-map funnel is:
+The primary decision funnel is:
 
 ```text
-homepage map entry
+homepage decision entry
+→ valid discovery query
+→ Top 3 returned
+→ destination selected
+→ optional post-selection commercial action
+```
+
+Country-map usage remains a supporting exploration funnel:
+
+```text
+homepage/world map
 → country selection
 → country map view
 → city marker/list interaction

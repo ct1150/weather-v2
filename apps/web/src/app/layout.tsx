@@ -13,11 +13,11 @@ import "./world-map.css";
 
 export const metadata: Metadata = {
   title: {
-    default: "Where Not Rain — country travel weather maps",
+    default: "Where Not Rain — least-rain travel destinations",
     template: "%s — Where Not Rain",
   },
   description:
-    "Choose a country and compare weather icons, lower-rain days and temperatures across popular travel destinations on one map.",
+    "Pick your dates and starting city to find reachable destinations with the lowest rain risk, then explore detailed country and city weather maps.",
   metadataBase: new URL("https://868656.xyz"),
   applicationName: "Where Not Rain",
   manifest: "/manifest.webmanifest",
