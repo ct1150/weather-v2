@@ -35,7 +35,7 @@ export function SiteHeader(): ReactElement {
   const isChinese = currentLocale !== "en";
   const localePrefix = isTraditional ? "/zh-hant" : isSimplified ? "/zh-cn" : "";
   const homeHref = localePrefix || "/";
-  const discoverHref = `${localePrefix}/discover`;
+  const mapHref = `${homeHref === "/" ? "" : homeHref}/#world-weather-map`;
 
   function chooseLocale(event: ChangeEvent<HTMLSelectElement>): void {
     const locale = event.target.value as SiteLocale;
@@ -71,21 +71,18 @@ export function SiteHeader(): ReactElement {
             Where Not Rain
           </span>
           <span className="hidden rounded-full border border-border bg-surface-elevated px-2 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-muted md:inline">
-            {isTraditional ? "少雨旅行" : isSimplified ? "少雨旅行" : "Least-rain trips"}
+            {isTraditional ? "少雨地圖" : isSimplified ? "少雨地图" : "Rain map"}
           </span>
         </a>
         <nav
           aria-label={isChinese ? "主導覽" : "Main navigation"}
           className="flex items-center gap-1"
         >
-          <a
-            href={discoverHref}
-            className="nav-link bg-foreground !text-white shadow-sm focus-ring"
-          >
+          <a href={mapHref} className="nav-link bg-foreground !text-white shadow-sm focus-ring">
             <span className="hidden sm:inline">
-              {isTraditional ? "找目的地" : isSimplified ? "找目的地" : "Find destinations"}
+              {isTraditional ? "看少雨地圖" : isSimplified ? "看少雨地图" : "View rain map"}
             </span>
-            <span className="sm:hidden">{isChinese ? "找目的地" : "Find"}</span>
+            <span className="sm:hidden">{isChinese ? "地圖" : "Map"}</span>
           </a>
           <label className="nav-link focus-within:ring-2 focus-within:ring-primary/30">
             <span className="sr-only">
