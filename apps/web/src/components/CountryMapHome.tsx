@@ -51,7 +51,12 @@ const COPY = {
     mapSectionLabel: "World travel weather overview",
     cityCount: (count: number) => `${count} ${count === 1 ? "city" : "cities"}`,
     dryDays: (dry: number, total: number) => `${dry}/${total} mostly rain-free`,
+    legendExcellent: "Mostly dry",
+    legendGood: "Good",
+    legendMixed: "Mixed",
+    legendPoor: "Wetter",
     footer: "Where Not Rain · Pick dates, then pick a place",
+    source: "Forecast data by ",
   },
   "zh-cn": {
     eyebrow: "哪里不下雨",
@@ -70,7 +75,12 @@ const COPY = {
     mapSectionLabel: "全球旅行天气概览",
     cityCount: (count: number) => `${count} 个城市`,
     dryDays: (dry: number, total: number) => `${dry}/${total} 天基本不下雨`,
+    legendExcellent: "少雨",
+    legendGood: "较少雨",
+    legendMixed: "晴雨交替",
+    legendPoor: "降雨偏多",
     footer: "Where Not Rain · 先选时间，再决定去哪",
+    source: "天气数据：",
   },
   "zh-hant": {
     eyebrow: "哪裡不下雨",
@@ -89,7 +99,12 @@ const COPY = {
     mapSectionLabel: "全球旅行天氣概覽",
     cityCount: (count: number) => `${count} 個城市`,
     dryDays: (dry: number, total: number) => `${dry}/${total} 天基本不下雨`,
+    legendExcellent: "少雨",
+    legendGood: "較少雨",
+    legendMixed: "晴雨交替",
+    legendPoor: "降雨偏多",
     footer: "Where Not Rain · 先選時間，再決定去哪",
+    source: "天氣資料：",
   },
 } as const;
 
@@ -99,7 +114,10 @@ export function CountryMapHome({ countries, locale = "en" }: CountryMapHomeProps
     () => countries.flatMap((country) => country.cityWeather ?? []),
     [countries],
   );
-  const availableDates = useMemo(() => availableHomeWeatherDates(allCityWeather), [allCityWeather]);
+  const availableDates = useMemo(
+    () => availableHomeWeatherDates(allCityWeather),
+    [allCityWeather],
+  );
   const [preset, setPreset] = useState<HomeWeatherPreset>("7d");
   const [customFrom, setCustomFrom] = useState(availableDates[0] ?? "");
   const [customTo, setCustomTo] = useState(availableDates.at(-1) ?? "");
@@ -111,13 +129,16 @@ export function CountryMapHome({ countries, locale = "en" }: CountryMapHomeProps
   const displayedCountries = useMemo<ReadonlyArray<CountryMapHomeItem>>(
     () =>
       countries.map((country) => {
-        if ((country.cityWeather?.length ?? 0) === 0 || selectedDates.length === 0) return country;
-        const weather = summarizeHomeCountryRain(country.cityWeather ?? [], selectedDates);
+        const cityWeather = country.cityWeather ?? [];
+        if (cityWeather.length === 0 || selectedDates.length === 0) return country;
+
+        const weather = summarizeHomeCountryRain(cityWeather, selectedDates);
         const topIds = new Set(weather.topCityIds);
         const topCities = [
-          ...(country.cityWeather ?? []).filter((item) => topIds.has(item.cityId)),
-          ...(country.cityWeather ?? []).filter((item) => !topIds.has(item.cityId)),
+          ...cityWeather.filter((item) => topIds.has(item.cityId)),
+          ...cityWeather.filter((item) => !topIds.has(item.cityId)),
         ].slice(0, 4);
+
         return {
           ...country,
           cityNames: topCities.map((item) => item.cityName),
@@ -151,10 +172,6 @@ export function CountryMapHome({ countries, locale = "en" }: CountryMapHomeProps
     });
   }
 
-  function choosePreset(nextPreset: HomeWeatherPreset): void {
-    setPreset(nextPreset);
-  }
-
   const firstAvailable = availableDates[0] ?? "";
   const lastAvailable = availableDates.at(-1) ?? "";
 
@@ -166,12 +183,17 @@ export function CountryMapHome({ countries, locale = "en" }: CountryMapHomeProps
           <h1>{copy.title}</h1>
           <p>{copy.description}</p>
 
-          <div className="mt-6 rounded-2xl border border-border bg-surface p-3 sm:p-4" data-home-weather-window>
+          <div
+            className="mt-6 rounded-2xl border border-border bg-surface p-3 sm:p-4"
+            data-home-weather-window
+          >
             <div className="flex flex-wrap items-center justify-between gap-3">
               <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-muted">
                 {copy.period}
               </p>
-              <span className="text-xs font-semibold text-muted">{copy.selected(selectedDates.length)}</span>
+              <span className="text-xs font-semibold text-muted">
+                {copy.selected(selectedDates.length)}
+              </span>
             </div>
             <div className="mt-3 grid grid-cols-3 gap-2">
               {([
@@ -188,7 +210,7 @@ export function CountryMapHome({ countries, locale = "en" }: CountryMapHomeProps
                       ? "border-foreground bg-foreground text-white shadow-sm"
                       : "border-border bg-surface-elevated text-foreground hover:border-primary/40"
                   }`}
-                  onClick={() => choosePreset(value)}
+                  onClick={() => setPreset(value)}
                 >
                   {label}
                 </button>
@@ -233,13 +255,13 @@ export function CountryMapHome({ countries, locale = "en" }: CountryMapHomeProps
         </div>
         <div className="world-discovery-legend" aria-label={copy.visualHint}>
           <span className="status-excellent">●</span>
-          <small>{locale === "en" ? "Mostly dry" : locale === "zh-cn" ? "少雨" : "少雨"}</small>
+          <small>{copy.legendExcellent}</small>
           <span className="status-good">●</span>
-          <small>{locale === "en" ? "Good" : locale === "zh-cn" ? "较少雨" : "較少雨"}</small>
+          <small>{copy.legendGood}</small>
           <span className="status-mixed">●</span>
-          <small>{locale === "en" ? "Mixed" : "晴雨交替"}</small>
+          <small>{copy.legendMixed}</small>
           <span className="status-poor">●</span>
-          <small>{locale === "en" ? "Wetter" : locale === "zh-cn" ? "降雨偏多" : "降雨偏多"}</small>
+          <small>{copy.legendPoor}</small>
         </div>
       </section>
 
@@ -259,33 +281,39 @@ export function CountryMapHome({ countries, locale = "en" }: CountryMapHomeProps
           </h2>
         </div>
         <ul>
-          {displayedCountries.map((country, index) => (
-            <li key={country.slug}>
-              <Link
-                href={country.path}
-                prefetch
-                className={`world-country-chip status-${country.weatherStatus} focus-ring`}
-                onClick={() => recordCountryOpen(country, index + 1)}
-              >
-                <span className="world-country-chip-score">{country.weatherScore ?? "—"}</span>
-                <span>
-                  <strong>{country.name}</strong>
-                  <small>
-                    {country.bestDryDays !== undefined && country.weatherDays !== undefined && country.weatherDays > 0
-                      ? copy.dryDays(country.bestDryDays, country.weatherDays)
-                      : copy.cityCount(country.cityCount)}
-                  </small>
-                </span>
-              </Link>
-            </li>
-          ))}
+          {displayedCountries.map((country, index) => {
+            const hasDryWindow =
+              country.bestDryDays !== undefined &&
+              country.weatherDays !== undefined &&
+              country.weatherDays > 0;
+            const detail = hasDryWindow
+              ? copy.dryDays(country.bestDryDays ?? 0, country.weatherDays ?? 0)
+              : copy.cityCount(country.cityCount);
+
+            return (
+              <li key={country.slug}>
+                <Link
+                  href={country.path}
+                  prefetch
+                  className={`world-country-chip status-${country.weatherStatus} focus-ring`}
+                  onClick={() => recordCountryOpen(country, index + 1)}
+                >
+                  <span className="world-country-chip-score">{country.weatherScore ?? "—"}</span>
+                  <span>
+                    <strong>{country.name}</strong>
+                    <small>{detail}</small>
+                  </span>
+                </Link>
+              </li>
+            );
+          })}
         </ul>
       </section>
 
       <footer className="page-footer">
         <span>{copy.footer}</span>
         <span>
-          {locale === "en" ? "Forecast data by " : locale === "zh-cn" ? "天气数据：" : "天氣資料："}
+          {copy.source}
           <a href="https://open-meteo.com/">Open-Meteo</a>
         </span>
       </footer>
