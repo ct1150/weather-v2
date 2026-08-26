@@ -20,31 +20,35 @@ const instantMapStyles = readFileSync(
 );
 const sitemap = readFileSync(new URL("../app/sitemap.ts", import.meta.url), "utf8");
 const trips = readFileSync(new URL("../app/trips/page.tsx", import.meta.url), "utf8");
-const legacyDiscovery = readFileSync(new URL("../app/discover/page.tsx", import.meta.url), "utf8");
+const discovery = readFileSync(new URL("../app/discover/page.tsx", import.meta.url), "utf8");
+const manifest = readFileSync(
+  new URL("../../public/manifest.webmanifest", import.meta.url),
+  "utf8",
+);
 
-describe("country-first weather-map UX contracts", () => {
-  it("gives every homepage one primary country-selection task", () => {
+describe("weather-first destination-decision UX contracts", () => {
+  it("gives every homepage one primary destination-decision task while keeping the map", () => {
     expect(englishHome).toContain("CountryMapHome");
     expect(simplifiedHome).toContain('locale="zh-cn"');
     expect(traditionalHome).toContain('locale="zh-hant"');
     for (const page of [englishHome, simplifiedHome, traditionalHome]) {
       expect(page).not.toContain("origin");
       expect(page).not.toContain("maxTravel");
-      expect(page).not.toContain('href="/discover"');
-      expect(page).not.toContain('href="/trips"');
     }
+    expect(countryMapHome).toContain('"/discover"');
+    expect(countryMapHome).toContain("Find least-rain destinations");
+    expect(countryMapHome).toContain("找少雨目的地");
+    expect(countryMapHome).toContain("WorldWeatherMap");
   });
 
-  it("uses the Where Not Rain identity in every locale", () => {
-    expect(header).toContain("Choose a country");
-    expect(header).toContain("选择国家");
-    expect(header).toContain("選擇國家");
+  it("uses the Where Not Rain identity and destination finder in every locale", () => {
+    expect(header).toContain("Find destinations");
+    expect(header).toContain("找目的地");
     expect(header).toContain("哪里不下雨");
     expect(header).toContain("哪裡不下雨");
-    expect(header).not.toContain('"国家天气图"');
-    expect(header).not.toContain('"國家天氣圖"');
-    expect(simplifiedHome).toContain("哪里不下雨 | Where Not Rain");
-    expect(traditionalHome).toContain("哪裡不下雨 | Where Not Rain");
+    expect(header).toContain("/discover");
+    expect(simplifiedHome).toContain("哪里不下雨？未来14天少雨旅行目的地推荐");
+    expect(traditionalHome).toContain("哪裡不下雨？未來14天少雨旅行目的地推薦");
   });
 
   it("keeps date selection, retires optional limits and switches countries from local state", () => {
@@ -68,13 +72,15 @@ describe("country-first weather-map UX contracts", () => {
     expect(explorer).not.toContain("DiscoveryTripAction");
   });
 
-  it("keeps advanced Trips and legacy discovery outside acquisition", () => {
+  it("promotes least-rain discovery while keeping advanced Trips outside acquisition", () => {
     expect(trips).toContain("Advanced itinerary tools");
     expect(trips).toContain("robots: { index: false, follow: true }");
-    expect(legacyDiscovery).toContain("robots: { index: false, follow: true }");
+    expect(discovery).toContain("robots: { index: true, follow: true }");
+    expect(discovery).not.toContain("Legacy least-rain finder");
+    expect(sitemap).toContain('localizedSitemapEntries("/discover"');
     expect(sitemap).not.toContain('localizedSitemapEntries("/trips"');
-    expect(sitemap).not.toContain('localizedSitemapEntries("/discover"');
     expect(sitemap).not.toContain('localizedSitemapEntries("/explore"');
+    expect(manifest).toContain('"start_url": "/discover"');
   });
 
   it("keeps complete three-locale alternates and destination sitemap routes", () => {

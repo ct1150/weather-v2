@@ -6,6 +6,10 @@ import { JsonLd } from "../components/JsonLd";
 import { summarizeCountryWeather } from "../world/world-overview";
 import { buildAlternates, localeUrl, routeRobots } from "./seo";
 
+const HOME_TITLE = "Least-rain travel destinations for your dates | Where Not Rain";
+const HOME_DESCRIPTION =
+  "Dates fixed but destination open? Choose a starting city and travel dates to find reachable destinations with the lowest rain risk, then explore country weather maps.";
+
 export interface TravelRadarPageProps {
   readonly countryLinks: ReadonlyArray<CountryMapHomeItem>;
   readonly jsonLd?: Readonly<Record<string, unknown>>;
@@ -22,22 +26,19 @@ export function TravelRadarPage({ countryLinks, jsonLd }: TravelRadarPageProps):
 }
 
 export async function generateMetadata(): Promise<Metadata> {
-  const title = "World travel weather map | Where Not Rain";
-  const description =
-    "See supported countries on one world map, compare their overall travel-weather outlook, then open a country to compare cities.";
   return {
-    title: { absolute: title },
-    description,
+    title: { absolute: HOME_TITLE },
+    description: HOME_DESCRIPTION,
     alternates: buildAlternates("/", "en", ["en", "zh-cn", "zh-hant"]),
     robots: routeRobots("homepage", true),
     openGraph: {
       type: "website",
       url: localeUrl("en", "/"),
       siteName: "Where Not Rain",
-      title,
-      description,
+      title: HOME_TITLE,
+      description: HOME_DESCRIPTION,
     },
-    twitter: { card: "summary", title, description },
+    twitter: { card: "summary", title: HOME_TITLE, description: HOME_DESCRIPTION },
   };
 }
 
@@ -64,6 +65,7 @@ export default async function Page(): Promise<ReactElement> {
     };
   });
   const pageUrl = localeUrl("en", "/");
+  const discoverUrl = localeUrl("en", "/discover");
   const jsonLd: Record<string, unknown> = {
     "@context": "https://schema.org",
     "@graph": [
@@ -71,28 +73,38 @@ export default async function Page(): Promise<ReactElement> {
         "@type": "WebSite",
         "@id": `${pageUrl}#website`,
         name: "Where Not Rain",
-        alternateName: "World travel weather map",
-        description:
-          "Explore supported countries visually, then compare city weather inside a country.",
+        alternateName: "Least-rain travel destination finder",
+        description: HOME_DESCRIPTION,
         url: pageUrl,
         inLanguage: "en",
       },
       {
-        "@type": "CollectionPage",
+        "@type": "WebPage",
         "@id": `${pageUrl}#webpage`,
-        name: "World travel weather map",
-        description:
-          "A visual weather-first entry point to supported country and city travel weather maps.",
+        name: "Find least-rain travel destinations",
+        description: HOME_DESCRIPTION,
         url: pageUrl,
         dateModified: dataset.dataUpdatedAt,
         inLanguage: "en",
         isPartOf: { "@id": `${pageUrl}#website` },
-        mainEntity: { "@id": `${pageUrl}#countries` },
+        mainEntity: { "@id": `${discoverUrl}#app` },
+        hasPart: { "@id": `${pageUrl}#countries` },
+      },
+      {
+        "@type": "WebApplication",
+        "@id": `${discoverUrl}#app`,
+        name: "Where Not Rain least-rain destination finder",
+        description:
+          "Choose a starting city and dates, then compare reachable destinations ranked by rain risk.",
+        url: discoverUrl,
+        applicationCategory: "TravelApplication",
+        operatingSystem: "Web",
+        inLanguage: "en",
       },
       {
         "@type": "ItemList",
         "@id": `${pageUrl}#countries`,
-        name: "Supported country travel weather maps",
+        name: "Country travel weather maps",
         numberOfItems: countryLinks.length,
         itemListElement: countryLinks.map((country, index) => ({
           "@type": "ListItem",

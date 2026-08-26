@@ -5,21 +5,30 @@ import { JsonLd } from "../../components/JsonLd";
 import { WeatherDiscoveryPlannerV2 } from "../../components/WeatherDiscoveryPlannerV2";
 import { buildAlternates, localeUrl } from "../seo";
 
+const title = "Least-rain travel destinations for your dates | Where Not Rain";
 const description =
-  "Legacy least-rain shortlist kept for existing saved links. The primary product is now the country travel weather map.";
+  "Choose your starting city and travel dates to compare reachable destinations and get a Top 3 shortlist ranked by rain risk.";
 
 export const metadata: Metadata = {
-  title: "Legacy least-rain finder",
+  title: { absolute: title },
   description,
   alternates: buildAlternates("/discover", "en", ["en", "zh-cn", "zh-hant"]),
-  robots: { index: false, follow: true },
+  robots: { index: true, follow: true },
+  openGraph: {
+    type: "website",
+    url: localeUrl("en", "/discover"),
+    siteName: "Where Not Rain",
+    title,
+    description,
+  },
 };
 
 export default function WeatherDiscoveryPage(): ReactElement {
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "WebApplication",
-    name: "Where Not Rain legacy least-rain finder",
+    "@id": `${localeUrl("en", "/discover")}#app`,
+    name: "Where Not Rain least-rain destination finder",
     description,
     url: localeUrl("en", "/discover"),
     applicationCategory: "TravelApplication",

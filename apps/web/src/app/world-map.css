@@ -2,7 +2,7 @@
   display: grid;
   gap: 1rem;
   align-items: end;
-  padding: clamp(1.4rem, 3vw, 2.5rem) 0 1rem;
+  padding: clamp(1.4rem, 3vw, 2.5rem) 0 1.25rem;
 }
 
 .world-discovery-copy h1 {
@@ -15,12 +15,54 @@
   line-height: 0.98;
 }
 
-.world-discovery-copy > p:last-child {
-  max-width: 44rem;
+.world-discovery-copy > p:last-of-type {
+  max-width: 48rem;
   margin: 1rem 0 0;
   color: rgb(var(--wnr-muted));
   font-size: clamp(0.95rem, 2vw, 1.08rem);
   line-height: 1.65;
+}
+
+.world-discovery-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem;
+  align-items: center;
+  margin-top: 1.25rem;
+}
+
+.world-discovery-primary-action,
+.world-discovery-secondary-action {
+  display: inline-flex;
+  min-height: 2.85rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  padding: 0.7rem 1.05rem;
+  font-size: 0.86rem;
+  font-weight: 850;
+  text-decoration: none;
+}
+
+.world-discovery-primary-action {
+  gap: 0.45rem;
+  color: #fff;
+  background: rgb(var(--wnr-foreground));
+  box-shadow: 0 10px 24px rgb(18 35 62 / 0.18);
+}
+
+.world-discovery-primary-action:hover {
+  transform: translateY(-1px);
+}
+
+.world-discovery-secondary-action {
+  border: 1px solid rgb(var(--wnr-border));
+  color: rgb(var(--wnr-primary));
+  background: rgb(var(--wnr-surface));
+}
+
+.world-map-section {
+  scroll-margin-top: 5.5rem;
 }
 
 .world-discovery-legend {
@@ -317,6 +359,15 @@
 }
 
 @media (max-width: 640px) {
+  .world-discovery-actions {
+    align-items: stretch;
+  }
+
+  .world-discovery-primary-action,
+  .world-discovery-secondary-action {
+    width: 100%;
+  }
+
   .world-weather-panel {
     padding: 0.6rem;
     border-radius: 1.25rem;

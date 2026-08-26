@@ -40,25 +40,33 @@ const traditionalCountry = readFileSync(
 );
 
 describe("production smoke copy contract", () => {
-  it("keeps the country-first identity in all three locales", () => {
+  it("keeps the destination-decision identity in all three locales", () => {
     expect(englishHome).toContain("CountryMapHome");
-    expect(simplifiedHome).toContain("哪里不下雨 | Where Not Rain");
-    expect(traditionalHome).toContain("哪裡不下雨 | Where Not Rain");
+    expect(simplifiedHome).toContain("哪里不下雨？未来14天少雨旅行目的地推荐");
+    expect(traditionalHome).toContain("哪裡不下雨？未來14天少雨旅行目的地推薦");
     expect(siteHeader).toContain("哪里不下雨");
     expect(siteHeader).toContain("哪裡不下雨");
+    expect(siteHeader).toContain("Find destinations");
 
     for (const phrase of [
-      "Pick a country. See where the weather looks better.",
-      "选择一个国家，一张图看懂哪里天气更好。",
-      "選擇一個國家，一張圖看懂哪裡天氣更好。",
-      "哪里不下雨",
-      "哪裡不下雨",
+      "Dates fixed. Where is it least likely to rain?",
+      "日期定了，去哪儿最不容易下雨？",
+      "日期定了，去哪裡最不容易下雨？",
+      "Find least-rain destinations",
+      "找少雨目的地",
     ]) {
       expect(productionSmoke).toContain(phrase);
     }
   });
 
-  it("verifies the immediate complete map while retiring the optional-limit row", () => {
+  it("keeps the world map as a secondary exploration layer", () => {
+    expect(countryMapHome).toContain("WorldWeatherMap");
+    expect(countryMapHome).toContain("Explore the world weather map");
+    expect(countryMapHome).toContain("浏览世界天气地图");
+    expect(countryMapHome).toContain("瀏覽世界天氣地圖");
+  });
+
+  it("verifies the immediate complete country map while retiring the optional-limit row", () => {
     expect(englishCountry).toContain(
       "all ${cities.length} supported travel destinations immediately",
     );
@@ -123,21 +131,5 @@ describe("production smoke copy contract", () => {
     expect(explorer).not.toContain("maplibre-gl");
     expect(explorer).not.toContain("MAPLIBRE_STYLE_URL");
     expect(outlineMap).not.toContain("maplibre-gl");
-  });
-
-  it("does not restore origin, reachability or Top 3 acquisition copy", () => {
-    for (const obsolete of [
-      "Find 3 dry-weather destinations",
-      "找 3 个少雨目的地",
-      "找 3 個少雨目的地",
-      "Starting city",
-      "出发城市",
-      "出發城市",
-      "Max one-way planning time",
-      "最长单程规划时间",
-      "最長單程規劃時間",
-    ]) {
-      expect(productionSmoke).not.toContain(obsolete);
-    }
   });
 });

@@ -32,11 +32,13 @@ function render(): string {
   return renderToStaticMarkup(createElement(TravelRadarPage, { countryLinks: countries }));
 }
 
-describe("world-map homepage", () => {
+describe("destination-decision homepage", () => {
   const html = render();
 
-  it("makes the real-map canvas the primary discovery task", () => {
-    expect(html).toContain("See the world first. Then decide where to go.");
+  it("makes least-rain destination discovery primary while retaining the real world map", () => {
+    expect(html).toContain("Dates fixed. Where is it least likely to rain?");
+    expect(html).toContain("Find least-rain destinations");
+    expect(html).toContain('href="/discover"');
     expect(html).toContain("World travel weather overview");
     expect(html).toContain("data-world-weather-map-canvas");
     expect(html).not.toContain("world-weather-country-shape");
@@ -44,11 +46,10 @@ describe("world-map homepage", () => {
     expect(html).toContain('href="/th"');
     expect(html).not.toContain("Starting city");
     expect(html).not.toContain("Max one-way");
-    expect(html).not.toContain('href="/discover"');
   });
 
-  it("keeps crawlable supported-country links as a compact fallback", () => {
-    expect(html).toContain("Supported countries");
+  it("keeps crawlable country weather maps as secondary exploration", () => {
+    expect(html).toContain("Explore country weather maps");
     expect(html).toContain("Japan");
     expect(html).toContain("Thailand");
     expect(html).toContain("8 cities");

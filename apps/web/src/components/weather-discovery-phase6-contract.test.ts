@@ -82,6 +82,12 @@ describe("least-rain destination discovery contract", () => {
     expect(englishRoute).toContain('locale="en"');
     expect(simplifiedRoute).toContain('locale="zh-cn"');
     expect(traditionalRoute).toContain('locale="zh-hant"');
+    for (const route of [englishRoute, simplifiedRoute, traditionalRoute]) {
+      expect(route).toContain("robots: { index: true, follow: true }");
+      expect(route).not.toContain("Legacy least-rain finder");
+      expect(route).not.toContain("旧版少雨候选工具");
+      expect(route).not.toContain("舊版少雨候選工具");
+    }
     expect(planner).toContain("Least-rain destination finder");
     expect(planner).toContain("少雨目的地工具");
     expect(planner).not.toContain("Weather Discovery 2.0");

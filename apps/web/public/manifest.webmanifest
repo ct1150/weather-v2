@@ -1,8 +1,8 @@
 {
   "name": "Where Not Rain",
   "short_name": "Where Not Rain",
-  "description": "Choose a country and see popular travel destinations' weather on one map.",
-  "start_url": "/",
+  "description": "Choose your dates and starting city to find reachable travel destinations with lower rain risk.",
+  "start_url": "/discover",
   "scope": "/",
   "display": "standalone",
   "background_color": "#f7f8f3",
@@ -17,9 +17,9 @@
   ],
   "shortcuts": [
     {
-      "name": "Choose a country",
-      "short_name": "Country maps",
-      "url": "/"
+      "name": "Find least-rain destinations",
+      "short_name": "Find destinations",
+      "url": "/discover"
     }
   ]
 }

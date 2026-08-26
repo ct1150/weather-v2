@@ -24,14 +24,13 @@ const manifest = readFileSync(
 const serviceWorker = readFileSync(new URL("../../public/sw.js", import.meta.url), "utf8");
 
 describe("Trip execution PWA / offline contracts", () => {
-  it("opens the country-map product while retaining the installable execution shell", () => {
+  it("opens the destination finder while retaining the installable execution shell", () => {
     expect(layout).toContain('manifest: "/manifest.webmanifest"');
     expect(layout).toContain("<PwaBootstrap />");
     expect(bootstrap).toContain('navigator.serviceWorker.register("/sw.js"');
     expect(manifest).toContain('"display": "standalone"');
-    expect(manifest).toContain('"start_url": "/"');
-    expect(manifest).toContain('"url": "/"');
-    expect(manifest).not.toContain('"url": "/discover"');
+    expect(manifest).toContain('"start_url": "/discover"');
+    expect(manifest).toContain('"url": "/discover"');
     expect(manifest).not.toContain('"url": "/trips/execution"');
   });
 
