@@ -58,7 +58,11 @@ describe("home rain window", () => {
   });
 
   it("summarizes a country from its three strongest dry-window cities", () => {
-    const allDry = Array.from({ length: 7 }, () => ({ condition: "Clear", mm: 0, chance: 10 }));
+    const allDry = Array.from({ length: 7 }, () => ({
+      condition: "Clear",
+      mm: 0,
+      chance: 10,
+    }));
     const sixDry = allDry.map((day, index) =>
       index === 0 ? { condition: "Rain", mm: 4, chance: 90 } : day,
     );
