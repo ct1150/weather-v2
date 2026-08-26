@@ -29,7 +29,9 @@ const countries = [
 ] as const;
 
 function render(): string {
-  return renderToStaticMarkup(createElement(TravelRadarPage, { countryLinks: countries }));
+  return renderToStaticMarkup(
+    createElement(TravelRadarPage, { countryLinks: countries }),
+  );
 }
 
 describe("time-driven world-map homepage", () => {
