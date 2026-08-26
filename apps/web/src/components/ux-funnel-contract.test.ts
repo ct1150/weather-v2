@@ -85,8 +85,12 @@ describe("time-first weather-map UX contracts", () => {
   });
 
   it("keeps complete three-locale alternates and destination sitemap routes", () => {
-    expect(englishHome).toContain('buildAlternates("/", "en", ["en", "zh-cn", "zh-hant"])');
-    expect(simplifiedHome).toContain('buildAlternates("/", "zh-cn", ["en", "zh-cn", "zh-hant"])');
+    expect(englishHome).toContain(
+      'buildAlternates("/", "en", ["en", "zh-cn", "zh-hant"])',
+    );
+    expect(simplifiedHome).toContain(
+      'buildAlternates("/", "zh-cn", ["en", "zh-cn", "zh-hant"])',
+    );
     expect(traditionalHome).toContain(
       'buildAlternates("/", "zh-hant", ["en", "zh-cn", "zh-hant"])',
     );
