@@ -13,11 +13,12 @@ export function buildCountryMapHomeItems(
   dataset: BakedDataset,
   locale: BrowserAnalyticsLocale,
 ): ReadonlyArray<CountryMapHomeItem> {
+  const seedLocale = locale === "zh-hant" ? "zh-tw" : locale;
   return dataset.countries.map((country) => {
     const cities = dataset.citiesByCountry.get(country.id) ?? [];
     const cityWeather: HomeCityWeatherSeries[] = cities.map((item) => ({
       cityId: item.city.id,
-      cityName: item.city.name[locale] ?? item.city.name.en,
+      cityName: item.city.name[seedLocale] ?? item.city.name.en,
       days: item.forecast.days.map((day) => ({
         localDate: day.localDate,
         conditionLabel: describeWeatherCode(day.weatherCode).label,
@@ -36,9 +37,9 @@ export function buildCountryMapHomeItems(
     return {
       countryId: country.id,
       slug: country.slug,
-      name: country.name[locale] ?? country.name.en,
+      name: country.name[seedLocale] ?? country.name.en,
       path,
-      summary: country.summary?.[locale] ?? country.summary?.en ?? "",
+      summary: country.summary?.[seedLocale] ?? country.summary?.en ?? "",
       cityCount: cities.length,
       cityNames: topCities.map((item) => item.cityName),
       weatherScore: weather.score,
