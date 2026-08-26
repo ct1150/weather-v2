@@ -11,7 +11,7 @@ const ARTIFACT_DIR = resolve(ROOT, "artifacts/e2e");
 const WEB_PORT = 4173;
 const DRIVER_PORT = 9515;
 const ELEMENT_KEY = "element-6066-11e4-a52e-4f735466cecf";
-const TOKYO = [139.6917, 35.6895];
+const JAPAN_INTERIOR = [137, 36];
 
 const MIME = {
   ".css": "text/css; charset=utf-8",
@@ -377,14 +377,14 @@ async function validateViewport({ name, width, height, minScreenshotBytes, mobil
     );
 
     await scrollElementFullyIntoView(sessionId, "[data-world-weather-map-canvas]");
-    const tokyo = await mapPoint(sessionId, TOKYO);
+    const japan = await mapPoint(sessionId, JAPAN_INTERIOR);
 
     if (mobile) {
-      await pointerClick(sessionId, tokyo);
+      await pointerClick(sessionId, japan);
       const selected = await waitForActiveCountry(sessionId, "JP");
       assert.equal(selected.path, "/", "mobile: first tap should preview instead of navigating");
     } else {
-      await pointerMove(sessionId, tokyo);
+      await pointerMove(sessionId, japan);
       const hovered = await waitForActiveCountry(sessionId, "JP");
       assert.equal(hovered.path, "/", "desktop: hover should preview without navigating");
     }
@@ -407,7 +407,7 @@ async function validateViewport({ name, width, height, minScreenshotBytes, mobil
     if (mobile) {
       await clickOverviewLink(sessionId, "/jp");
     } else {
-      await pointerClick(sessionId, tokyo);
+      await pointerClick(sessionId, japan);
       await waitForPath(sessionId, "/jp");
     }
 
