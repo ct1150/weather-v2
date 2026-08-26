@@ -117,7 +117,11 @@ describe("seo.ts helpers — canonical, country-map copy and robots", () => {
     expect(alt.canonical).toBe(`${BASE}/jp/tokyo`);
     expect(alt.languages).toBeUndefined();
 
-    const discoverAlt = buildAlternates("/discover", "zh-cn", ["en", "zh-cn", "zh-hant"]);
+    const discoverAlt = buildAlternates("/discover", "zh-cn", [
+      "en",
+      "zh-cn",
+      "zh-hant",
+    ]);
     expect(discoverAlt.canonical).toBe(`${BASE}/zh-cn/discover`);
     expect(discoverAlt.languages?.en).toBe(`${BASE}/discover`);
     expect(discoverAlt.languages?.["zh-Hant"]).toBe(`${BASE}/zh-hant/discover`);
