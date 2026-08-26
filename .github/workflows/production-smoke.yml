@@ -170,7 +170,8 @@ jobs:
           fetch_and_match "Protected sync health" "${SYNC_URL}/health" /tmp/sync-health.json \
             '"manualTriggerProtected":true'
           fetch_and_match "Product analytics health" "${ANALYTICS_URL}/health" /tmp/product-analytics-health.json \
-            '"ok":true' '"service":"product-analytics"' '"schemaVersion":1'
+            '"ok":true' '"service":"product-analytics"' '"schemaVersion":2' \
+            '"storage":"d1"' '"binding":true' '"acquisition":true'
           fetch_and_match "Trip forecast API" \
             "${READ_URL}/api/v1/trip-forecast?cityIds=jp-tokyo&from=${TODAY}&to=${WEEK_END}&locale=en" \
             /tmp/forecast.json jp-tokyo temperatureMaxC
