@@ -3,12 +3,12 @@ import type { ReactElement } from "react";
 import { getBakedDataset } from "../build/bake";
 import { CountryMapHome, type CountryMapHomeItem } from "../components/CountryMapHome";
 import { JsonLd } from "../components/JsonLd";
-import { summarizeCountryWeather } from "../world/world-overview";
+import { buildCountryMapHomeItems } from "../world/home-map-model";
 import { buildAlternates, localeUrl, routeRobots } from "./seo";
 
-const HOME_TITLE = "Least-rain travel destinations for your dates | Where Not Rain";
+const HOME_TITLE = "Where Is It Least Likely to Rain? Weekend & 7-Day Map | Where Not Rain";
 const HOME_DESCRIPTION =
-  "Dates fixed but destination open? Choose a starting city and travel dates to find reachable destinations with the lowest rain risk, then explore country weather maps.";
+  "Pick this weekend, the next 7 days or custom forecast dates and watch the world map update to show countries with more mostly rain-free travel days.";
 
 export interface TravelRadarPageProps {
   readonly countryLinks: ReadonlyArray<CountryMapHomeItem>;
@@ -44,28 +44,8 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function Page(): Promise<ReactElement> {
   const dataset = await getBakedDataset();
-  const countryLinks: CountryMapHomeItem[] = dataset.countries.map((country) => {
-    const cities = dataset.citiesByCountry.get(country.id) ?? [];
-    const weather = summarizeCountryWeather(cities);
-    const topIds = new Set(weather.topCityIds);
-    const topCities = [
-      ...cities.filter((item) => topIds.has(item.city.id)),
-      ...cities.filter((item) => !topIds.has(item.city.id)),
-    ].slice(0, 4);
-    return {
-      countryId: country.id,
-      slug: country.slug,
-      name: country.name.en,
-      path: `/${country.slug}`,
-      summary: country.summary?.en ?? "",
-      cityCount: cities.length,
-      cityNames: topCities.map((item) => item.city.name.en),
-      weatherScore: weather.score,
-      weatherStatus: weather.status,
-    };
-  });
+  const countryLinks = buildCountryMapHomeItems(dataset, "en");
   const pageUrl = localeUrl("en", "/");
-  const discoverUrl = localeUrl("en", "/discover");
   const jsonLd: Record<string, unknown> = {
     "@context": "https://schema.org",
     "@graph": [
@@ -73,33 +53,32 @@ export default async function Page(): Promise<ReactElement> {
         "@type": "WebSite",
         "@id": `${pageUrl}#website`,
         name: "Where Not Rain",
-        alternateName: "Least-rain travel destination finder",
+        alternateName: "Time-driven rain-free travel weather map",
         description: HOME_DESCRIPTION,
         url: pageUrl,
+        inLanguage: "en",
+      },
+      {
+        "@type": "WebApplication",
+        "@id": `${pageUrl}#app`,
+        name: "Where Not Rain world weather map",
+        description: HOME_DESCRIPTION,
+        url: pageUrl,
+        applicationCategory: "TravelApplication",
+        operatingSystem: "Web",
         inLanguage: "en",
       },
       {
         "@type": "WebPage",
         "@id": `${pageUrl}#webpage`,
-        name: "Find least-rain travel destinations",
+        name: "Where is it least likely to rain?",
         description: HOME_DESCRIPTION,
         url: pageUrl,
         dateModified: dataset.dataUpdatedAt,
         inLanguage: "en",
         isPartOf: { "@id": `${pageUrl}#website` },
-        mainEntity: { "@id": `${discoverUrl}#app` },
+        mainEntity: { "@id": `${pageUrl}#app` },
         hasPart: { "@id": `${pageUrl}#countries` },
-      },
-      {
-        "@type": "WebApplication",
-        "@id": `${discoverUrl}#app`,
-        name: "Where Not Rain least-rain destination finder",
-        description:
-          "Choose a starting city and dates, then compare reachable destinations ranked by rain risk.",
-        url: discoverUrl,
-        applicationCategory: "TravelApplication",
-        operatingSystem: "Web",
-        inLanguage: "en",
       },
       {
         "@type": "ItemList",

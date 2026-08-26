@@ -1,8 +1,8 @@
 {
   "name": "Where Not Rain",
   "short_name": "Where Not Rain",
-  "description": "Choose your dates and starting city to find reachable travel destinations with lower rain risk.",
-  "start_url": "/discover",
+  "description": "Pick this weekend, the next 7 days or custom forecast dates and see where it stays drier on one world map.",
+  "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "background_color": "#f7f8f3",
@@ -17,9 +17,9 @@
   ],
   "shortcuts": [
     {
-      "name": "Find least-rain destinations",
-      "short_name": "Find destinations",
-      "url": "/discover"
+      "name": "View least-rain world map",
+      "short_name": "Rain map",
+      "url": "/#world-weather-map"
     }
   ]
 }

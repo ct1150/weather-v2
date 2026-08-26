@@ -5,15 +5,15 @@ import { JsonLd } from "../../../components/JsonLd";
 import { WeatherDiscoveryPlannerV2 } from "../../../components/WeatherDiscoveryPlannerV2";
 import { buildAlternates, localeUrl } from "../../seo";
 
-const title = "哪里不下雨？按日期找少雨旅行目的地 | Where Not Rain";
+const title = "高级少雨候选工具 | Where Not Rain";
 const description =
-  "选择出发城市和旅行日期，对可达目的地按降雨风险排序，直接获得 Top 3 少雨旅行目的地。";
+  "可选的高级候选工具，包含出发地和静态可达范围规划；Where Not Rain 的主体验已改为首页按时间变化的世界少雨地图。";
 
 export const metadata: Metadata = {
   title: { absolute: title },
   description,
   alternates: buildAlternates("/discover", "zh-cn", ["en", "zh-cn", "zh-hant"]),
-  robots: { index: true, follow: true },
+  robots: { index: false, follow: true },
   openGraph: {
     type: "website",
     url: localeUrl("zh-cn", "/discover"),
@@ -29,7 +29,7 @@ export default function SimplifiedWeatherDiscoveryPage(): ReactElement {
     "@context": "https://schema.org",
     "@type": "WebApplication",
     "@id": `${localeUrl("zh-cn", "/discover")}#app`,
-    name: "Where Not Rain 少雨目的地工具",
+    name: "Where Not Rain 高级少雨候选工具",
     description,
     url: localeUrl("zh-cn", "/discover"),
     applicationCategory: "TravelApplication",
