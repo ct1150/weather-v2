@@ -68,7 +68,10 @@ describe("weather rankings", () => {
   });
 });
 
-function rainDay(precipitationMm: number | null, rainProbability: number | null): CountryWeatherDayViewModel {
+function rainDay(
+  precipitationMm: number | null,
+  rainProbability: number | null,
+): CountryWeatherDayViewModel {
   return {
     localDate: "2026-10-05",
     weather: {
