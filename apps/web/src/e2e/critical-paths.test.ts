@@ -30,18 +30,21 @@ function renderHome(): string {
   return renderToStaticMarkup(createElement(TravelRadarPage, { countryLinks }));
 }
 
-describe("critical path — destination-decision homepage renders without JavaScript", () => {
-  it("renders the primary least-rain action, real-map enhancement and crawlable country links", () => {
+describe("critical path — time-driven homepage renders without JavaScript", () => {
+  it("renders the weather-period controls, real-map enhancement and crawlable country links", () => {
     const html = renderHome();
-    expect(html).toContain("Dates fixed. Where is it least likely to rain?");
-    expect(html).toContain("Find least-rain destinations");
-    expect(html).toContain('href="/discover"');
+    expect(html).toContain("Pick the dates. See where it stays drier.");
+    expect(html).toContain("Next 7 days");
+    expect(html).toContain("This weekend");
+    expect(html).toContain("Custom dates");
+    expect(html).toContain("data-home-weather-window");
     expect(html).toContain("World travel weather overview");
     expect(html).toContain("data-world-weather-map-canvas");
     expect(html).not.toContain("world-weather-country-shape");
     expect(html).toContain("Japan");
     expect(html).toContain("Sapporo · Osaka · Tokyo");
     expect(html).toContain('href="/jp"');
+    expect(html).not.toContain('href="/discover"');
     expect(html).not.toContain("Starting city");
     expect(html).not.toContain("Max one-way planning time");
   });

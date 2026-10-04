@@ -15,7 +15,7 @@ const traditionalRoute = readFileSync(
   "utf8",
 );
 
-describe("least-rain destination discovery contract", () => {
+describe("advanced least-rain destination discovery contract", () => {
   it("exposes one active least-rain intent and normalizes legacy links", () => {
     expect(engine).toContain('const INTENTS: ReadonlyArray<WeatherDiscoveryIntent> = ["dry"]');
     expect(engine).toContain('intent: "dry"');
@@ -29,7 +29,7 @@ describe("least-rain destination discovery contract", () => {
     expect(planner).not.toContain("Trip style");
   });
 
-  it("filters by a bounded static reachability matrix before weather ranking", () => {
+  it("keeps the bounded static reachability matrix only in the advanced route", () => {
     expect(reachability).toContain('"sg-singapore" | "hk-hong-kong" | "tw-taipei"');
     expect(reachability).toContain("listReachableDestinations");
     expect(reachability).toContain("rankReachableDiscoveryResults");
@@ -78,16 +78,16 @@ describe("least-rain destination discovery contract", () => {
     expect(planner).not.toContain("buildDiscoveryWorkspace");
   });
 
-  it("ships localized crawlable routes with one product promise", () => {
+  it("keeps localized advanced routes reachable but outside acquisition", () => {
     expect(englishRoute).toContain('locale="en"');
     expect(simplifiedRoute).toContain('locale="zh-cn"');
     expect(traditionalRoute).toContain('locale="zh-hant"');
     for (const route of [englishRoute, simplifiedRoute, traditionalRoute]) {
-      expect(route).toContain("robots: { index: true, follow: true }");
-      expect(route).not.toContain("Legacy least-rain finder");
-      expect(route).not.toContain("旧版少雨候选工具");
-      expect(route).not.toContain("舊版少雨候選工具");
+      expect(route).toContain("robots: { index: false, follow: true }");
     }
+    expect(englishRoute).toContain("Advanced least-rain shortlist");
+    expect(simplifiedRoute).toContain("高级少雨候选工具");
+    expect(traditionalRoute).toContain("進階少雨候選工具");
     expect(planner).toContain("Least-rain destination finder");
     expect(planner).toContain("少雨目的地工具");
     expect(planner).not.toContain("Weather Discovery 2.0");

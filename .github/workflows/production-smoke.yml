@@ -95,7 +95,7 @@ jobs:
           }
 
           fetch_and_match "English homepage" "${SITE_URL}/" /tmp/home-en.html \
-            "Dates fixed. Where is it least likely to rain?" "Find least-rain destinations" "Explore the world weather map"
+            "Pick the dates. See where it stays drier." "Next 7 days" "This weekend" "Custom dates"
           fetch_and_match "English landing" "${SITE_URL}/trips" /tmp/trips.html \
             "Advanced itinerary tools" "Existing workspaces remain available." \
             "Return to destination finder"
@@ -113,7 +113,7 @@ jobs:
             "Tokyo" "Use this weather in your itinerary"
 
           fetch_and_match "Traditional homepage" "${SITE_URL}/zh-hant" /tmp/home-hant.html \
-            "日期定了，去哪裡最不容易下雨？" "哪裡不下雨" "找少雨目的地" "瀏覽世界天氣地圖"
+            "先選時間，再看哪裡不下雨。" "未來 7 天" "本週末" "自訂日期"
           fetch_and_match "Traditional landing" "${SITE_URL}/zh-hant/trips" /tmp/trips-hant.html \
             "進階行程工具" "既有行程仍可繼續使用。" "返回少雨目的地工具"
           fetch_and_match "Traditional import route" "${SITE_URL}/zh-hant/trips/new" /tmp/trips-new-hant.html \
@@ -130,7 +130,7 @@ jobs:
             "目的地天氣" "7 天旅行天氣" "東京" "把天氣結論帶進行程"
 
           fetch_and_match "Simplified homepage" "${SITE_URL}/zh-cn" /tmp/home-cn.html \
-            "日期定了，去哪儿最不容易下雨？" "哪里不下雨" "找少雨目的地" "浏览世界天气地图"
+            "先选时间，再看哪里不下雨。" "未来 7 天" "本周末" "自定义日期"
           fetch_and_match "Simplified landing" "${SITE_URL}/zh-cn/trips" /tmp/trips-cn.html \
             "高级行程工具" "已有行程仍可继续使用。" "返回少雨目的地工具"
           fetch_and_match "Simplified import route" "${SITE_URL}/zh-cn/trips/new" /tmp/trips-new-cn.html \

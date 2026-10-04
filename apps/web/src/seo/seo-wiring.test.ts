@@ -19,8 +19,8 @@ import { indexabilityForRouteClass } from "@wnr/seo";
 
 const BASE = "https://868656.xyz";
 
-describe("sitemap.ts — destination-decision and weather-map acquisition sitemap", () => {
-  it("enumerates discovery plus every published country and city weather route once", async () => {
+describe("sitemap.ts — time-driven map and weather-map acquisition sitemap", () => {
+  it("enumerates home plus every published country and city weather route once", async () => {
     const entries = await sitemap();
     expect(entries.length).toBeGreaterThan(0);
 
@@ -28,9 +28,6 @@ describe("sitemap.ts — destination-decision and weather-map acquisition sitema
     expect(urls).toContain(`${BASE}/`);
     expect(urls).toContain(`${BASE}/zh-cn`);
     expect(urls).toContain(`${BASE}/zh-hant`);
-    expect(urls).toContain(`${BASE}/discover`);
-    expect(urls).toContain(`${BASE}/zh-cn/discover`);
-    expect(urls).toContain(`${BASE}/zh-hant/discover`);
     expect(urls).toContain(`${BASE}/jp`);
     expect(urls).toContain(`${BASE}/zh-cn/jp`);
     expect(urls).toContain(`${BASE}/zh-hant/jp`);
@@ -38,8 +35,9 @@ describe("sitemap.ts — destination-decision and weather-map acquisition sitema
     expect(urls).toContain(`${BASE}/zh-cn/jp/tokyo`);
     expect(urls).toContain(`${BASE}/zh-hant/jp/tokyo`);
 
-    // Advanced itinerary surfaces remain reachable for existing links but do
-    // not participate in primary acquisition.
+    expect(urls).not.toContain(`${BASE}/discover`);
+    expect(urls).not.toContain(`${BASE}/zh-cn/discover`);
+    expect(urls).not.toContain(`${BASE}/zh-hant/discover`);
     expect(urls).not.toContain(`${BASE}/explore`);
     expect(urls).not.toContain(`${BASE}/trips`);
     expect(urls).not.toContain(`${BASE}/zh-hant/trips`);
@@ -54,20 +52,20 @@ describe("sitemap.ts — destination-decision and weather-map acquisition sitema
     expect(entries.some((entry) => entry.url.endsWith("/zh-cn/"))).toBe(false);
     expect(entries.some((entry) => entry.url.endsWith("/zh-hant/"))).toBe(false);
 
-    const discovery = entries.find((entry) => entry.url === `${BASE}/discover`);
+    const home = entries.find((entry) => entry.url === `${BASE}/`);
     const japan = entries.find((entry) => entry.url === `${BASE}/jp`);
-    expect(discovery?.alternates?.languages?.["zh-Hant"]).toBe(`${BASE}/zh-hant/discover`);
-    expect(discovery?.alternates?.languages?.["zh-CN"]).toBe(`${BASE}/zh-cn/discover`);
+    expect(home?.alternates?.languages?.["zh-Hant"]).toBe(`${BASE}/zh-hant`);
+    expect(home?.alternates?.languages?.["zh-CN"]).toBe(`${BASE}/zh-cn`);
     expect(japan?.alternates?.languages?.["zh-Hant"]).toBe(`${BASE}/zh-hant/jp`);
     expect(japan?.alternates?.languages?.["zh-CN"]).toBe(`${BASE}/zh-cn/jp`);
   });
 
-  it("advertises three-language hreflang for discovery, country and city pages", async () => {
+  it("advertises three-language hreflang for home, country and city pages", async () => {
     const entries = await sitemap();
-    const discovery = entries.find((entry) => entry.url === `${BASE}/discover`);
+    const home = entries.find((entry) => entry.url === `${BASE}/`);
     const japan = entries.find((entry) => entry.url === `${BASE}/jp`);
     const tokyo = entries.find((entry) => entry.url === `${BASE}/jp/tokyo`);
-    for (const entry of [discovery, japan, tokyo]) {
+    for (const entry of [home, japan, tokyo]) {
       expect(entry?.alternates?.languages?.en).toBeDefined();
       expect(entry?.alternates?.languages?.["zh-CN"]).toBeDefined();
       expect(entry?.alternates?.languages?.["zh-Hant"]).toBeDefined();
@@ -119,13 +117,15 @@ describe("seo.ts helpers — canonical, country-map copy and robots", () => {
     expect(alt.canonical).toBe(`${BASE}/jp/tokyo`);
     expect(alt.languages).toBeUndefined();
 
-    const discoverAlt = buildAlternates("/discover", "zh-cn", ["en", "zh-cn", "zh-hant"]);
+    const discoverAlt = buildAlternates("/discover", "zh-cn", [
+      "en",
+      "zh-cn",
+      "zh-hant",
+    ]);
     expect(discoverAlt.canonical).toBe(`${BASE}/zh-cn/discover`);
     expect(discoverAlt.languages?.en).toBe(`${BASE}/discover`);
     expect(discoverAlt.languages?.["zh-Hant"]).toBe(`${BASE}/zh-hant/discover`);
 
-    // The helper remains valid for noindex advanced pages even though they are
-    // intentionally absent from the public sitemap.
     const tripAlt = buildAlternates("/trips", "zh-hant", ["en", "zh-hant", "zh-cn"]);
     expect(tripAlt.canonical).toBe(`${BASE}/zh-hant/trips`);
     expect(tripAlt.languages?.en).toBe(`${BASE}/trips`);

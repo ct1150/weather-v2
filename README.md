@@ -1,30 +1,29 @@
 # Where Not Rain
 
-Weather-driven destination decisions for travellers whose dates are fixed but destination is still open. The primary task is to choose a starting city and dates, then receive a Top 3 shortlist of reachable destinations ranked by rain risk. Country and city weather maps remain available as a fast visual exploration and SEO acquisition layer.
+A time-driven travel weather map for people who know **when** they can travel but have not decided **where** to go. Pick a forecast window and the world map immediately shows which supported countries have stronger mostly rain-free options; open a country only when you want city-level evidence.
 
 ## Current product direction
 
 ```text
-choose starting city + travel dates + maximum one-way planning time
-→ filter to maintained reachable destinations
-→ apply any explicit weather limits
-→ rank by rain risk
-→ return Top 3
-→ select a destination
-→ continue into detailed country/city weather or post-selection commercial actions
+choose time window
+→ this weekend / next 7 days / custom forecast dates
+→ world map recolors for the selected window
+→ country strip updates from the same window
+→ open a country
+→ compare its cities on the same dates
+→ open city-level daily weather
 ```
 
-The active product keeps rain as the ranking target. Reachability is an eligibility layer and transport time is only a tie-break after dry score and forecast confidence. Wind and temperature remain explicit user-selected limits rather than hidden score weights.
+Time is the only required homepage input. The active homepage does **not** ask for a starting city, transport mode or maximum one-way planning time. Country color is driven by the strongest three city options in that country for the selected window: mostly rain-free day ratio first, expected rain second, peak rain chance third.
 
-English, Simplified Chinese and Traditional Chinese home pages now lead into `/discover`. The world map and country maps remain prominent secondary exploration surfaces, and country/city pages stay crawlable acquisition pages. Advanced itinerary, collaboration, route and execution capabilities remain available under `/trips` for existing users but are not part of primary acquisition.
+English, Simplified Chinese and Traditional Chinese home pages use the same time-first interaction model. `/discover` remains available as an advanced compatibility surface for origin/reachability planning, but it is `noindex`, absent from primary navigation, PWA entry and sitemap acquisition. Country/city maps remain crawlable evidence and acquisition pages. Advanced itinerary, collaboration, route and execution capabilities remain under `/trips` for existing users but are not part of primary acquisition.
 
-The current positioning realignment is recorded in:
+The current positioning is recorded in:
 
-- `docs/superpowers/plans/2026-08-25-home-decision-positioning.md`
-- `docs/superpowers/product/2026-08-19-founder-prd-opc-dry-destination-engine.md`
+- `docs/superpowers/plans/2026-08-26-time-driven-world-map.md`
 - `docs/00-Founder-Vision.md`
 
-The 2026-08-20 country-first weather-map PRD remains historical context for the map experience; it is superseded for homepage acquisition and primary product positioning by the 2026-08-25 realignment.
+The 2026-08-19 OPC reachability engine, 2026-08-20 country-map cutover and 2026-08-25 `/discover` positioning remain historical implementation context. For primary homepage acquisition, the 2026-08-26 time-driven world-map decision supersedes them.
 
 ## Privacy-safe product measurement
 
@@ -33,21 +32,22 @@ Bounded product events are accepted by the dedicated `product-analytics` Worker 
 The primary decision funnel is:
 
 ```text
-homepage decision entry
-→ valid discovery query
-→ Top 3 returned
-→ destination selected
-→ optional post-selection commercial action
+homepage weather-window view
+→ time window selected
+→ world/country weather read
+→ country selected
+→ city weather opened
+→ optional downstream conversion
 ```
 
-Country-map usage remains a supporting exploration funnel:
+The advanced compatibility funnel remains separate:
 
 ```text
-homepage/world map
-→ country selection
-→ country map view
-→ city marker/list interaction
-→ city detail open
+/direct or saved /discover link
+→ optional origin/reachability planning
+→ Top 3 shortlist
+→ destination selected
+→ optional post-selection commercial action
 ```
 
 ## Documentation authority

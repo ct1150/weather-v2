@@ -40,30 +40,32 @@ const traditionalCountry = readFileSync(
 );
 
 describe("production smoke copy contract", () => {
-  it("keeps the destination-decision identity in all three locales", () => {
+  it("keeps the time-driven rain-map identity in all three locales", () => {
     expect(englishHome).toContain("CountryMapHome");
-    expect(simplifiedHome).toContain("哪里不下雨？未来14天少雨旅行目的地推荐");
-    expect(traditionalHome).toContain("哪裡不下雨？未來14天少雨旅行目的地推薦");
-    expect(siteHeader).toContain("哪里不下雨");
-    expect(siteHeader).toContain("哪裡不下雨");
-    expect(siteHeader).toContain("Find destinations");
+    expect(simplifiedHome).toContain("哪里不下雨？本周末和未来7天少雨地图");
+    expect(traditionalHome).toContain("哪裡不下雨？本週末和未來7天少雨地圖");
+    expect(siteHeader).toContain("看少雨地图");
+    expect(siteHeader).toContain("看少雨地圖");
+    expect(siteHeader).toContain("View rain map");
 
     for (const phrase of [
-      "Dates fixed. Where is it least likely to rain?",
-      "日期定了，去哪儿最不容易下雨？",
-      "日期定了，去哪裡最不容易下雨？",
-      "Find least-rain destinations",
-      "找少雨目的地",
+      "Pick the dates. See where it stays drier.",
+      "先选时间，再看哪里不下雨。",
+      "先選時間，再看哪裡不下雨。",
+      "Next 7 days",
+      "This weekend",
+      "Custom dates",
     ]) {
       expect(productionSmoke).toContain(phrase);
     }
   });
 
-  it("keeps the world map as a secondary exploration layer", () => {
+  it("keeps the world map as the primary time-driven decision surface", () => {
     expect(countryMapHome).toContain("WorldWeatherMap");
-    expect(countryMapHome).toContain("Explore the world weather map");
-    expect(countryMapHome).toContain("浏览世界天气地图");
-    expect(countryMapHome).toContain("瀏覽世界天氣地圖");
+    expect(countryMapHome).toContain("data-home-weather-window");
+    expect(countryMapHome).toContain('useState<HomeWeatherPreset>("7d")');
+    expect(countryMapHome).toContain("resolveHomeWeatherDates");
+    expect(countryMapHome).not.toContain('"/discover"');
   });
 
   it("verifies the immediate complete country map while retiring the optional-limit row", () => {
