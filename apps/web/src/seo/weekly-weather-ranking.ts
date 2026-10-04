@@ -18,12 +18,38 @@ export interface WeeklyWeatherRankItem {
   readonly peakRainChance: number | null;
   readonly temperatureMin: number | null;
   readonly temperatureMax: number | null;
+  /**
+   * True when fewer than half of the ranked days carry any rain signal
+   * (daily precipitation amount or rain probability). Rankings built on
+   * thin data must say so instead of presenting full confidence.
+   */
+  readonly limitedData: boolean;
 }
 
 function numeric(values: ReadonlyArray<number | null | undefined>): number[] {
   return values.filter(
     (value): value is number => typeof value === "number" && Number.isFinite(value),
   );
+}
+
+/** A forecast day contributes a rain signal when it carries precipitation amount or probability. */
+function hasRainSignal(day: CountryWeatherDayViewModel): boolean {
+  const { precipitationMm, rainProbability } = day.weather;
+  return (
+    (precipitationMm !== null && precipitationMm !== undefined) ||
+    (rainProbability !== null && rainProbability !== undefined)
+  );
+}
+
+/**
+ * Rankings are only as trustworthy as their input. A city counts as
+ * limited-data when fewer than half of its ranked days carry any rain
+ * signal — the rank is then shown with an explicit weak-data indicator.
+ */
+export function limitedRainData(days: ReadonlyArray<CountryWeatherDayViewModel>): boolean {
+  if (days.length === 0) return true;
+  const withSignal = days.filter(hasRainSignal).length;
+  return withSignal * 2 < days.length;
 }
 
 function localizedPath(path: string, locale: PublishedLocale): string {
@@ -61,6 +87,7 @@ function rankItem(
     peakRainChance: rainChances.length === 0 ? null : Math.max(...rainChances),
     temperatureMin: minimums.length === 0 ? null : Math.min(...minimums),
     temperatureMax: maximums.length === 0 ? null : Math.max(...maximums),
+    limitedData: limitedRainData(days),
   };
 }
 

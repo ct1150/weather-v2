@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { getBakedDataset } from "../build/bake";
-import { buildWeekendWeatherRanking, buildWeeklyWeatherRanking } from "./weekly-weather-ranking";
+import {
+  buildWeekendWeatherRanking,
+  buildWeeklyWeatherRanking,
+  limitedRainData,
+} from "./weekly-weather-ranking";
+import type { CountryWeatherDayViewModel } from "../app/view-models";
 
 function expectRanked(items: ReturnType<typeof buildWeeklyWeatherRanking>): void {
   for (let index = 1; index < items.length; index += 1) {
@@ -60,5 +65,44 @@ describe("weather rankings", () => {
 
     expect(traditional.map((item) => item.cityId)).toEqual(english.map((item) => item.cityId));
     expect(traditional[0]?.path.startsWith("/zh-hant/")).toBe(true);
+  });
+});
+
+function rainDay(
+  precipitationMm: number | null,
+  rainProbability: number | null,
+): CountryWeatherDayViewModel {
+  return {
+    localDate: "2026-10-05",
+    weather: {
+      conditionLabel: "Clear",
+      temperatureMin: 20,
+      temperatureMax: 26,
+      rainProbability,
+      precipitationMm,
+      observedAt: "2026-10-01T00:00:00Z",
+    },
+    score: { value: 80, state: "available", confidence: 0.9, reasonCodes: [] },
+  };
+}
+
+describe("limitedRainData", () => {
+  it("is false when every day carries a rain signal", () => {
+    const days = [rainDay(0, 10), rainDay(1.2, 40), rainDay(null, 20)];
+    expect(limitedRainData(days)).toBe(false);
+  });
+
+  it("is true when fewer than half the days carry any rain signal", () => {
+    const days = [rainDay(0, 10), rainDay(null, null), rainDay(null, null), rainDay(null, null)];
+    expect(limitedRainData(days)).toBe(true);
+  });
+
+  it("is true when there are no days at all", () => {
+    expect(limitedRainData([])).toBe(true);
+  });
+
+  it("treats exactly half with signal as sufficient data", () => {
+    const days = [rainDay(0, 10), rainDay(null, 20), rainDay(null, null), rainDay(null, null)];
+    expect(limitedRainData(days)).toBe(false);
   });
 });

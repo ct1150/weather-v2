@@ -23,6 +23,7 @@ const COPY = {
     temperature: "Temperature",
     dates: "Mostly rain-free dates",
     details: "Open city forecast",
+    limitedData: "Limited data",
     methodTitle: "How this country ranking works",
     method:
       "Cities rank first by mostly rain-free forecast days, then by lower expected precipitation and lower peak rain chance. Rain, drizzle, showers, thunder, hail, snow and sleet never count as rain-free.",
@@ -48,6 +49,7 @@ const COPY = {
     temperature: "气温",
     dates: "基本不下雨日期",
     details: "查看城市天气",
+    limitedData: "数据有限",
     methodTitle: "国家排行怎么计算",
     method:
       "先按基本不下雨的天数从多到少排序，再比较预计总降雨量和最高降雨概率。逐日天气如果明确是雨、毛毛雨、阵雨、雷暴、冰雹或雪，就不会计为基本不下雨。",
@@ -73,6 +75,7 @@ const COPY = {
     temperature: "氣溫",
     dates: "基本不下雨日期",
     details: "查看城市天氣",
+    limitedData: "資料有限",
     methodTitle: "國家排行怎麼計算",
     method:
       "先按基本不下雨的天數從多到少排序，再比較預計總降雨量和最高降雨機率。逐日天氣如果明確是雨、毛毛雨、陣雨、雷暴、冰雹或雪，就不會計為基本不下雨。",
@@ -166,6 +169,11 @@ export function CountryBestWeatherThisWeekPage({
                 <div>
                   <p className="text-xs font-bold text-muted">#{index + 1}</p>
                   <h3 className="mt-1 text-xl font-bold text-foreground">{item.cityName}</h3>
+                  {item.limitedData ? (
+                    <p className="mt-1.5 inline-flex w-fit rounded-full border border-border px-2 py-0.5 text-[11px] font-semibold text-muted">
+                      {copy.limitedData}
+                    </p>
+                  ) : null}
                 </div>
                 <strong className="rounded-full bg-surface-elevated px-3 py-2 text-sm text-foreground">
                   {copy.rainFree(item)}

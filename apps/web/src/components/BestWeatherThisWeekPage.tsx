@@ -25,6 +25,7 @@ const WEEK_COPY = {
     temperature: "Temperature",
     dates: "Mostly rain-free dates",
     details: "Open city forecast",
+    limitedData: "Limited data",
     methodTitle: "How this ranking works",
     method:
       "Destinations rank first by the number of mostly rain-free forecast days, then by lower expected precipitation and lower peak rain chance. A day does not count as rain-free when the daily condition is rain, drizzle, showers, thunder, hail, snow or sleet.",
@@ -50,6 +51,7 @@ const WEEK_COPY = {
     temperature: "气温",
     dates: "基本不下雨日期",
     details: "查看城市天气",
+    limitedData: "数据有限",
     methodTitle: "排行怎么计算",
     method:
       "先按“基本不下雨”的天数从多到少排序，再比较预计总降雨量和最高降雨概率。逐日天气如果明确是雨、毛毛雨、阵雨、雷暴、冰雹或雪，就不会计为“基本不下雨”。",
@@ -75,6 +77,7 @@ const WEEK_COPY = {
     temperature: "氣溫",
     dates: "基本不下雨日期",
     details: "查看城市天氣",
+    limitedData: "資料有限",
     methodTitle: "排行怎麼計算",
     method:
       "先按「基本不下雨」的天數從多到少排序，再比較預計總降雨量和最高降雨機率。逐日天氣如果明確是雨、毛毛雨、陣雨、雷暴、冰雹或雪，就不會計為「基本不下雨」。",
@@ -103,6 +106,7 @@ const WEEKEND_COPY = {
     temperature: "Temperature",
     dates: "Mostly rain-free weekend dates",
     details: "Open city forecast",
+    limitedData: "Limited data",
     methodTitle: "How this weekend ranking works",
     method:
       "The next real Saturday and Sunday in the forecast are selected by calendar date. Destinations rank first by mostly rain-free weekend days, then by lower expected precipitation and lower peak rain chance. Rain, drizzle, showers, thunder, hail, snow and sleet never count as rain-free.",
@@ -128,6 +132,7 @@ const WEEKEND_COPY = {
     temperature: "气温",
     dates: "基本不下雨的周末日期",
     details: "查看城市天气",
+    limitedData: "数据有限",
     methodTitle: "周末排行怎么计算",
     method:
       "系统按真实日历日期选取预报中的下一个周六和周日，再按“基本不下雨”的天数、预计总降雨量和最高降雨概率依次排序。雨、毛毛雨、阵雨、雷暴、冰雹或雪都不会计为“基本不下雨”。",
@@ -153,6 +158,7 @@ const WEEKEND_COPY = {
     temperature: "氣溫",
     dates: "基本不下雨的週末日期",
     details: "查看城市天氣",
+    limitedData: "資料有限",
     methodTitle: "週末排行怎麼計算",
     method:
       "系統按真實日曆日期選取預報中的下一個週六和週日，再按「基本不下雨」的天數、預計總降雨量和最高降雨機率依次排序。雨、毛毛雨、陣雨、雷暴、冰雹或雪都不會計為「基本不下雨」。",
@@ -248,6 +254,11 @@ export function BestWeatherThisWeekPage({
                   <p className="text-xs font-bold text-muted">#{index + 1}</p>
                   <h3 className="mt-1 text-xl font-bold text-foreground">{item.cityName}</h3>
                   <p className="mt-1 text-xs text-muted">{item.countryName}</p>
+                  {item.limitedData ? (
+                    <p className="mt-1.5 inline-flex w-fit rounded-full border border-border px-2 py-0.5 text-[11px] font-semibold text-muted">
+                      {copy.limitedData}
+                    </p>
+                  ) : null}
                 </div>
                 <strong className="rounded-full bg-surface-elevated px-3 py-2 text-sm text-foreground">
                   {copy.rainFree(item)}
