@@ -1,9 +1,22 @@
 import type { PublishedLocale } from "../app/seo";
 import type { BakedDataset } from "../build/types";
-import { buildWeeklyWeatherRanking, type WeeklyWeatherRankItem } from "./weekly-weather-ranking";
+import {
+  buildWeekendWeatherRanking,
+  buildWeeklyWeatherRanking,
+  type WeeklyWeatherRankItem,
+} from "./weekly-weather-ranking";
 
 function countryPathPrefix(countrySlug: string, locale: PublishedLocale): string {
   return locale === "en" ? `/${countrySlug}/` : `/${locale}/${countrySlug}/`;
+}
+
+function filterCountry(
+  items: ReadonlyArray<WeeklyWeatherRankItem>,
+  countrySlug: string,
+  locale: PublishedLocale,
+): ReadonlyArray<WeeklyWeatherRankItem> {
+  const prefix = countryPathPrefix(countrySlug, locale);
+  return items.filter((item) => item.path.startsWith(prefix));
 }
 
 export function buildCountryWeeklyWeatherRanking(
@@ -11,6 +24,13 @@ export function buildCountryWeeklyWeatherRanking(
   countrySlug: string,
   locale: PublishedLocale,
 ): ReadonlyArray<WeeklyWeatherRankItem> {
-  const prefix = countryPathPrefix(countrySlug, locale);
-  return buildWeeklyWeatherRanking(dataset, locale).filter((item) => item.path.startsWith(prefix));
+  return filterCountry(buildWeeklyWeatherRanking(dataset, locale), countrySlug, locale);
+}
+
+export function buildCountryWeekendWeatherRanking(
+  dataset: BakedDataset,
+  countrySlug: string,
+  locale: PublishedLocale,
+): ReadonlyArray<WeeklyWeatherRankItem> {
+  return filterCountry(buildWeekendWeatherRanking(dataset, locale), countrySlug, locale);
 }
